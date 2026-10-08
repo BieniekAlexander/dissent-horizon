@@ -2,6 +2,9 @@
 kind: Entity
 title: th_command_center
 scene: res://scenes/entities/structures/th/th_commandCenter.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 300}
   time: 60

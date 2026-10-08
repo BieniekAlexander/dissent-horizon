@@ -38,7 +38,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 ## damage attribution); `manager` is forwarded to selectors that need it (most ignore it)
 ## and may be null (e.g. projectile impact).
 func apply(
-	a_seed: Array[Entity], a_source: Commandable = null, a_manager: ScenarioTriggerManager = null
+	a_seed: Array[Entity], a_source: Actor = null, a_manager: ScenarioTriggerManager = null
 ) -> void:
 	var recipients: Array[Entity] = a_seed
 	for sel: EntitySelector in _selectors():

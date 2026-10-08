@@ -1,7 +1,7 @@
 extends GutTest
 
 ## Tests for the two rules water adds to the rest of the game: where a structure may stand in
-## it (Structure.allow_submerged / EnergyExtractor.valid_placement), and what a lithium pond
+## it (Fixture.allow_submerged / EnergyExtractor.valid_placement), and what a lithium pond
 ## pays out as it drains (WaterBody.extract).
 ##
 ## Run with:
@@ -292,7 +292,7 @@ func _economy_with(a_map: Map, a_units: Array) -> BotEconomy:
 
 
 ## A builder holding a Build aimed at `a_world`, which is what makes it read as in flight.
-func _builder_building_at(a_map: Map, a_world: Vector3) -> Commandable:
+func _builder_building_at(a_map: Map, a_world: Vector3) -> Actor:
 	var unit := FakePieces.unit(FakePieces.BUILDER)
 	add_child_autofree(unit)
 	var tool := Tool.new("command_tool_x", &"test_extractor", null, "x", Vector2i.ZERO, 0, 0)
@@ -352,8 +352,11 @@ func test_a_partly_explored_pond_is_offered_only_where_it_was_seen() -> void:
 	_add_water(map, WaterBody.NOMINAL_ENERGY)
 	var economy: BotEconomy = _economy_with(map, [])
 	var seen: Vector3 = map.grid_to_world(_SHALLOW_ORIGIN)
+	# The whole footprint aimed there, since placement refuses unexplored ground under any part
+	# of it (construction.md §Placement is judged against what the commander knows).
+	var seen_cells: Array[Vector2i] = map.footprint_cells(VU.in_xz(seen), _DIMS)
 	(economy._bot as StubBot).explored_filter = func(a_pos: Vector3) -> bool:
-		return a_pos.is_equal_approx(seen)
+		return seen_cells.has(map.world_to_grid(VU.in_xz(a_pos)))
 	assert_eq(
 		economy._nearest_workable_pond_spot(),
 		seen,
@@ -447,11 +450,11 @@ func test_an_ordinary_structure_is_refused_by_shallow_water() -> void:
 	var map: Map = _make_map()
 	_add_water(map)
 	assert_true(
-		Structure.valid_placement(_msg(map, _aim(map, _DRY_ORIGIN)), _DIMS),
+		Fixture.valid_placement(_msg(map, _aim(map, _DRY_ORIGIN)), _DIMS),
 		"dry flat ground takes an ordinary structure"
 	)
 	assert_false(
-		Structure.valid_placement(_msg(map, _aim(map, _SHALLOW_ORIGIN)), _DIMS),
+		Fixture.valid_placement(_msg(map, _aim(map, _SHALLOW_ORIGIN)), _DIMS),
 		"shallow water admits nothing that has not declared allow_submerged"
 	)
 
@@ -460,11 +463,11 @@ func test_allow_submerged_grants_shallow_water_but_never_deep() -> void:
 	var map: Map = _make_map()
 	_add_water(map)
 	assert_true(
-		Structure.valid_placement(_msg(map, _aim(map, _SHALLOW_ORIGIN)), _DIMS, false, true),
+		Fixture.valid_placement(_msg(map, _aim(map, _SHALLOW_ORIGIN)), _DIMS, false, true),
 		"a submersible structure stands in wadeable water"
 	)
 	assert_false(
-		Structure.valid_placement(_msg(map, _aim(map, _DEEP_ORIGIN)), _DIMS, false, true),
+		Fixture.valid_placement(_msg(map, _aim(map, _DEEP_ORIGIN)), _DIMS, false, true),
 		"deep water is impassable ground and holds nothing at all"
 	)
 

@@ -11,12 +11,12 @@ extends RefCounted
 const SpecSchema := preload("res://tools/spec_import/schema.gd")
 
 ## Which set of guaranteed components a piece gets. Decided by what the piece can DO, not by
-## what it is called: anything that takes orders or can be damaged carries the Commandable set.
+## what it is called: anything that takes orders or can be damaged carries the Actor set.
 enum Tier { COMMANDABLE, FEATURE, BODILESS }
 
 const LIBRARY: String = "res://scenes/components/%s.tscn"
 const SCRIPT_ENTITY: String = "res://scripts/entities/entity.gd"
-const SCRIPT_COMMANDABLE: String = "res://scripts/entities/commandable.gd"
+const SCRIPT_COMMANDABLE: String = "res://scripts/entities/actor.gd"
 const SCRIPTS: String = "res://scripts/entities/components/%s.gd"
 const SCRIPT_OWNERSHIP: String = "res://scripts/entities/components/ownership.gd"
 
@@ -32,8 +32,8 @@ const ACTOR: Array[int] = [Tier.COMMANDABLE]
 ##   type / script — an inline node
 ##   props  — raw .tscn values written on creation (inline nodes only)
 ##   tiers  — the Tier values that get it
-##   when   — "mobile", "fixture", "sighted", "visible", "aerial" or "docking" to require that
-##            facet as well; absent = always
+##   when   — "mobile", "fixture", "sighted", "visible", "aerial", "docking" or "commandable"
+##            to require that facet as well; absent = always
 ##   after  — a component an EXISTING scene gains is placed straight after this one, which is
 ##            where a new scene has it; absent = at the end
 ##   mobile_props — raw overrides {child path: {property: value}} a MOBILE piece writes on
@@ -41,7 +41,7 @@ const ACTOR: Array[int] = [Tier.COMMANDABLE]
 ## A component's FORMER node names, old → new. A scene still carrying the old name has that
 ## node renamed in place (SpecSceneSync._rename_legacy_components) rather than gaining a second
 ## copy beside it, which would leak and crash at teardown (entity-scene-hierarchy.md).
-const RENAMED_COMPONENTS: Dictionary = {"Movement": "Locomotion"}
+const RENAMED_COMPONENTS: Dictionary = {"Movement": "Locomotion", "Structure": "Fixture"}
 
 const COMPONENTS: Array[Dictionary] = [
 	{"name": "#####STATE#####", "type": "Node", "tiers": PHYSICAL},
@@ -83,9 +83,9 @@ const COMPONENTS: Array[Dictionary] = [
 		"after": "Aerial"
 	},
 	{
-		"name": "Structure",
+		"name": "Fixture",
 		"type": "Node",
-		"script": "structure",
+		"script": "fixture",
 		"tiers": PHYSICAL,
 		"when": "fixture"
 	},
@@ -93,6 +93,14 @@ const COMPONENTS: Array[Dictionary] = [
 	{"name": "Veterancy", "type": "Node", "script": "veterancy", "tiers": ACTOR},
 	{"name": "#####CONTROLS#####", "type": "Node", "tiers": PHYSICAL},
 	{"name": "Selectable", "scene": "selectable", "tiers": PHYSICAL},
+	{
+		"name": "Orders",
+		"type": "Node",
+		"script": "orders",
+		"tiers": ACTOR,
+		"when": "commandable",
+		"after": "Selectable"
+	},
 	{"name": "#####VISUALS#####", "type": "Node", "tiers": PHYSICAL},
 	{
 		"name": "HPBar",
@@ -150,7 +158,7 @@ const EMISSION_COMPONENTS: Array[Dictionary] = [
 ]
 
 
-## A piece that takes orders or can be damaged is a Commandable; a fixture that does neither
+## A piece that takes orders or can be damaged is a Actor; a fixture that does neither
 ## is a feature on a plain Entity; anything else has no body at all. "Can be damaged" is asked
 ## of the doc's shape AND of the flattened spec (`defense.hp` becomes `hp`), since the importer
 ## composes from the latter.
@@ -211,6 +219,9 @@ static func components(spec: Dictionary) -> Array[Dictionary]:
 					continue
 			"docking":
 				if not bool(spec.get("docking", false)):
+					continue
+			"commandable":
+				if not SpecSchema.is_commandable(spec):
 					continue
 		out.append(entry)
 	return out

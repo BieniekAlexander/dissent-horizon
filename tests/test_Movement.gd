@@ -850,7 +850,7 @@ func test_can_crush_is_never_symmetric():
 
 
 func test_can_crush_anything_gates_the_per_tick_scan():
-	# Commandable._tick_crush() skips the whole scan when this is false, so it must
+	# Actor._tick_crush() skips the whole scan when this is false, so it must
 	# agree with can_crush(): false only when NO class could ever be crushed.
 	for c: int in Movement.CrushClass.values():
 		var mover := _movement_of_class(c)

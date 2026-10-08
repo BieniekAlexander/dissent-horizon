@@ -92,7 +92,7 @@ func _measure_piece(a_path: String) -> Dictionary:
 		return {}
 	var defense: Node = entity.get_node_or_null("Defense")
 	var movement: Movement = entity.get_node_or_null("Locomotion") as Movement
-	var structure: Node = entity.get_node_or_null("Structure")
+	var structure: Node = entity.get_node_or_null("Fixture")
 	var visual_class: int = VisualDefaults.classify_piece(
 		defense.frame_type if defense != null else Defense.FrameType.BIO,
 		movement.mode if movement != null else Movement.Mode.GROUNDED,

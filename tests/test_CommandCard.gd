@@ -226,11 +226,11 @@ func after_each() -> void:
 	FakePieces.restore_abilities()
 
 
-func _entity(a_options: Dictionary) -> Commandable:
+func _entity(a_options: Dictionary) -> Actor:
 	var commander := Commander.new()
 	commander.id = 1
 	add_child_autofree(commander)
-	var entity := FakePieces.make(a_options) as Commandable
+	var entity := FakePieces.make(a_options) as Actor
 	add_child_autofree(entity)
 	entity.ownership.commander = commander
 	return entity
@@ -241,7 +241,7 @@ func _entity(a_options: Dictionary) -> Commandable:
 ## put a lone Go button where the training used to be and hid every train button behind the
 ## toggle.
 func test_a_stationary_producer_opens_on_its_training() -> void:
-	var barracks: Commandable = _entity(BARRACKS)
+	var barracks: Actor = _entity(BARRACKS)
 	assert_false(barracks.has_node("Locomotion"), "guards the fixture: a barracks is stationary")
 	var controller: RTSController = _controller([barracks])
 	assert_eq(controller.command_family, ControlBinding.CommandFamily.PRODUCTION)
@@ -278,7 +278,7 @@ const CANNON: Dictionary = {"structure": true, "abilities": [{"grants": [&"bomba
 
 func test_a_producer_that_also_carries_abilities_settles_on_production() -> void:
 	# Guards the fixture for the test below: this is the selection that exposed the gap.
-	var citadel: Commandable = _entity(CITADEL)
+	var citadel: Actor = _entity(CITADEL)
 	assert_true(citadel.has_node("Production"), "it trains")
 	assert_true(citadel.has_node("Abilities"), "and it casts")
 	assert_eq(_controller([citadel]).command_family, ControlBinding.CommandFamily.PRODUCTION)
@@ -307,7 +307,7 @@ func test_arming_a_command_turns_the_grid_to_its_card() -> void:
 
 func test_turning_to_a_card_the_selection_cannot_fill_is_refused() -> void:
 	# set_command_family is what keeps _show_card_for_command from emptying the grid.
-	var recruit: Commandable = _entity(RECRUIT)
+	var recruit: Actor = _entity(RECRUIT)
 	var controller: RTSController = _controller([recruit])
 	assert_eq(controller.command_family, ControlBinding.CommandFamily.ACTIVE)
 	controller._show_card_for_command("command_tool_fake_trainee")

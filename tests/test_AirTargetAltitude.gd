@@ -25,8 +25,8 @@ func _commander(a_id: int) -> Commander:
 
 ## A live entity owned by `a_commander`. Ownership is assigned directly rather than through
 ## initialize() so no Map is needed — the shortcut test_DockingBay and test_Garrison take.
-func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
-	var e := FakePieces.make(a_options) as Commandable
+func _entity(a_options: Dictionary, a_commander: Commander) -> Actor:
+	var e := FakePieces.make(a_options) as Actor
 	add_child_autofree(e)
 	e.ownership.commander = a_commander
 	return e
@@ -57,7 +57,7 @@ func test_the_threshold_is_derived_from_cruise_altitude() -> void:
 
 #region A ground unit
 func test_a_ground_unit_is_a_ground_target() -> void:
-	var infantry: Commandable = _entity(RECRUIT, _commander(1))
+	var infantry: Actor = _entity(RECRUIT, _commander(1))
 	assert_false(infantry.is_air_target(), "it stands on the ground")
 	assert_true(_is_ground_layer(infantry), "and is filed on the ground layer")
 	assert_false(_is_air_layer(infantry), "and only that layer")
@@ -68,7 +68,7 @@ func test_a_ground_unit_is_a_ground_target() -> void:
 
 #region An aircraft
 func test_an_aircraft_at_cruise_is_an_air_target() -> void:
-	var plane: Commandable = _entity(CLIPPER, _commander(1))
+	var plane: Actor = _entity(CLIPPER, _commander(1))
 	assert_true(plane.is_air_target(), "it spawns at cruise altitude")
 	assert_true(_is_air_layer(plane), "so it is filed on the air layer")
 	assert_false(_is_ground_layer(plane), "and only that layer")
@@ -78,7 +78,7 @@ func test_a_parked_aircraft_is_a_ground_target() -> void:
 	# The case that motivated the change: a jet on its pad used to keep TARGETABLE_AIR, so
 	# no ground-only weapon could lock it at all — a hangar was immune to the infantry
 	# standing next to it.
-	var plane: Commandable = _entity(CLIPPER, _commander(1))
+	var plane: Actor = _entity(CLIPPER, _commander(1))
 	plane.aerial.land_permanently()
 	assert_ne(
 		_tick_until(plane.aerial, func() -> bool: return plane.aerial.height_offset() <= 0.01),
@@ -95,7 +95,7 @@ func test_an_aircraft_on_final_approach_is_still_an_air_target() -> void:
 	# is_airborne() goes false the INSTANT a descent begins, while the aircraft is still at
 	# cruise altitude — which is why it cannot be the targeting test. A jet on final is a
 	# hundred feet up and squarely an anti-air problem; only altitude says so.
-	var plane: Commandable = _entity(CLIPPER, _commander(1))
+	var plane: Actor = _entity(CLIPPER, _commander(1))
 	plane.aerial.land_permanently()
 	plane.aerial._physics_process(1.0 / TimeUtils.ticks_per_second())
 	assert_false(plane.aerial.is_airborne(), "no longer AIRBORNE — the descent has begun")
@@ -114,7 +114,7 @@ func test_an_aircraft_on_final_approach_is_still_an_air_target() -> void:
 func test_a_unit_under_a_canopy_is_an_air_target() -> void:
 	# A GROUNDED unit CAN be in the air. Its mode never changes, which is exactly why
 	# the mode cannot answer this question.
-	var infantry: Commandable = _entity(RECRUIT, _commander(1))
+	var infantry: Actor = _entity(RECRUIT, _commander(1))
 	infantry.movement.begin_parachute_descent(Aerial.AERIAL_HEIGHT, Callable())
 	assert_eq(
 		infantry.movement.mode, Movement.Mode.GROUNDED, "the mode is untouched by the descent"
@@ -125,7 +125,7 @@ func test_a_unit_under_a_canopy_is_an_air_target() -> void:
 func test_a_parachutist_becomes_a_ground_target_before_it_lands() -> void:
 	# It crosses the line halfway down rather than on touchdown, which is the accepted
 	# consequence of one shared threshold.
-	var infantry: Commandable = _entity(RECRUIT, _commander(1))
+	var infantry: Actor = _entity(RECRUIT, _commander(1))
 	infantry.movement.begin_parachute_descent(Aerial.AIR_TARGET_ALTITUDE * 0.5, Callable())
 	assert_true(infantry.movement.is_parachuting(), "still falling (the fixture this needs)")
 	assert_false(infantry.is_air_target(), "but already below the line")
@@ -136,7 +136,7 @@ func test_a_parachutist_becomes_a_ground_target_before_it_lands() -> void:
 
 #region The layer follows altitude without being re-applied by hand
 func test_the_layer_is_refiled_when_the_threshold_is_crossed() -> void:
-	var infantry: Commandable = _entity(RECRUIT, _commander(1))
+	var infantry: Actor = _entity(RECRUIT, _commander(1))
 	assert_true(_is_ground_layer(infantry), "on the ground to start with")
 	infantry.movement.begin_parachute_descent(Aerial.AERIAL_HEIGHT, Callable())
 	infantry.refresh_targetable_altitude()
@@ -147,7 +147,7 @@ func test_the_layer_is_refiled_when_the_threshold_is_crossed() -> void:
 func test_refiling_is_a_no_op_while_the_answer_holds() -> void:
 	# The per-tick call must be free when nothing has changed — it runs on every commandable
 	# every tick, so a write per frame is the thing to avoid.
-	var plane: Commandable = _entity(CLIPPER, _commander(1))
+	var plane: Actor = _entity(CLIPPER, _commander(1))
 	var before: int = plane.hurtbox.collision_layer
 	plane.refresh_targetable_altitude()
 	plane.refresh_targetable_altitude()
@@ -161,7 +161,7 @@ func test_refiling_is_a_no_op_while_the_answer_holds() -> void:
 func test_a_structure_is_a_ground_target_regardless() -> void:
 	# A structure takes the Structure branch and never consults altitude — it is a ground
 	# target by being a structure, and it also blocks line of fire.
-	var field: Commandable = _entity(AIRFIELD, _commander(1))
+	var field: Actor = _entity(AIRFIELD, _commander(1))
 	field.build_progress = 1.0
 	assert_false(field.is_air_target(), "no Movement, so no altitude to have")
 	assert_true(_is_ground_layer(field))
@@ -169,7 +169,7 @@ func test_a_structure_is_a_ground_target_regardless() -> void:
 
 
 func test_refiling_leaves_a_structure_alone() -> void:
-	var field: Commandable = _entity(AIRFIELD, _commander(1))
+	var field: Actor = _entity(AIRFIELD, _commander(1))
 	field.build_progress = 1.0
 	var before: int = field.hurtbox.collision_layer
 	field.refresh_targetable_altitude()
@@ -184,12 +184,12 @@ func test_a_weapon_picks_its_reach_from_the_same_predicate() -> void:
 	# The second half of the rule: "what can shoot it" and "at what range" must be one
 	# answer. A parachuting soldier used to sit on the air layer and be shot at ground range.
 	var cmd: Commander = _commander(1)
-	var shooter: Commandable = _entity(CLIPPER, cmd)
+	var shooter: Actor = _entity(CLIPPER, cmd)
 	var weapon: Weapon = shooter.weapon_inventory.get_child(0) as Weapon
 	if weapon == null:
 		pending("the fixture aircraft carries no Weapon to ask")
 		return
-	var infantry: Commandable = _entity(RECRUIT, cmd)
+	var infantry: Actor = _entity(RECRUIT, cmd)
 	var grounded: CollisionShape3D = weapon.get_range_for_target(infantry)
 	infantry.movement.begin_parachute_descent(Aerial.AERIAL_HEIGHT, Callable())
 	assert_true(infantry.is_air_target(), "now an air target (the fixture this needs)")

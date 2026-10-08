@@ -11,21 +11,22 @@ extends GutTest
 ## was inert inside GUT and the drone could see nothing at all.
 ##
 ## That scenario is the END-TO-END cover, and it is the one that proves the engine-side gate
-## (Commandable.is_holding_fire) actually stops a pickup. These tests are the unit-level
+## (Actor.is_holding_fire) actually stops a pickup. These tests are the unit-level
 ## half: that the manager sets, clears and enforces the flag at the right moments.
 
 
-## A Commandable with the four children Entity/Commandable resolve with a hard `$`, and
+## A Actor with the four children Entity/Actor resolve with a hard `$`, and
 ## nothing else — same stub shape as tests/test_BotHostileTargets.gd.
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
 		for pair: Array in [
 			["Ownership", Ownership.new()],
 			["AvoidanceObstacle", NavigationObstacle3D.new()],
-			["Veterancy", Veterancy.new()]
+			["Veterancy", Veterancy.new()],
+			["Orders", Orders.new()]
 		]:
 			var node: Node = pair[1]
 			node.name = pair[0]
@@ -60,7 +61,7 @@ func before_each() -> void:
 	_kamikaze = BotKamikaze.new(_bot, BotActuator.new(null))
 
 
-func _drone() -> Commandable:
+func _drone() -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	_bot.add_child(piece)
 	piece.ownership.commander = _bot
@@ -72,7 +73,7 @@ func test_a_piece_acquires_targets_by_default() -> void:
 
 
 func test_holding_a_drone_suppresses_its_own_target_acquisition() -> void:
-	var drone: Commandable = _drone()
+	var drone: Actor = _drone()
 	_kamikaze._hold(drone)
 	assert_true(
 		drone.is_holding_fire,
@@ -83,8 +84,8 @@ func test_holding_a_drone_suppresses_its_own_target_acquisition() -> void:
 func test_holding_drops_an_engagement_aggro_already_committed_to() -> void:
 	# Suppression only prevents the NEXT pickup. A drone that has already latched onto
 	# something would otherwise fly the run the manager just refused.
-	var drone: Commandable = _drone()
-	var victim: Commandable = _drone()
+	var drone: Actor = _drone()
+	var victim: Actor = _drone()
 	drone.update_commands(Attack.new(CommandMessage.new(null, victim)))
 	assert_true(drone.has_command(), "precondition: it is committed")
 
@@ -95,15 +96,15 @@ func test_holding_drops_an_engagement_aggro_already_committed_to() -> void:
 func test_holding_leaves_a_drone_with_no_command_at_all() -> void:
 	# What the no-cluster scenario asserts, at module level: a held drone with no base to
 	# return to stands still and empty-handed rather than being given something to do.
-	var drone: Commandable = _drone()
+	var drone: Actor = _drone()
 	_kamikaze._hold(drone)
 	assert_false(drone.has_command())
 
 
 func test_committing_a_run_releases_the_hold_first() -> void:
 	# Or the drone flies in under a hold and cannot re-acquire if the leash ever drops.
-	var drone: Commandable = _drone()
-	var victim: Commandable = _drone()
+	var drone: Actor = _drone()
+	var victim: Actor = _drone()
 	_kamikaze._hold(drone)
 	assert_true(drone.is_holding_fire, "precondition: held")
 

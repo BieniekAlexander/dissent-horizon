@@ -2,6 +2,9 @@
 kind: Entity
 title: Safehouse
 scene: res://scenes/entities/structures/an/an_infrastructure.tscn
+flavor:
+  description: potato
+  verbose: potato
 defense:
   armour: MEDIUM
   frame: MECH

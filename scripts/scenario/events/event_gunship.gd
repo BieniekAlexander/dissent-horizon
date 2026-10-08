@@ -20,7 +20,7 @@ var commander_id: int = 1
 
 ## The building that called it in; decides which edge it comes over. Null falls back to the
 ## target point, as in EventAirDrop.
-var caster: Commandable = null
+var caster: Actor = null
 
 ## Memoized: answering means instantiating the whole gunship scene, and the aiming circle asks
 ## every frame the sanction is armed.
@@ -62,7 +62,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	var anchor_xz: Vector2 = VU.in_xz(caster.global_position) if caster != null else station_xz
 	var entry_xz: Vector2 = OffMapArrival.entry_xz(map, anchor_xz)
 
-	var gunship: Commandable = gunship_scene.instantiate() as Commandable
+	var gunship: Actor = gunship_scene.instantiate() as Actor
 	if gunship == null:
 		return
 	gunship.initialize(map, commander)

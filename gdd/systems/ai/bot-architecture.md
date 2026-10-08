@@ -125,10 +125,10 @@ currency below, is still the model for the other managers.
   afford, then deploys by policy: defend the base, else strike the army, else hold. It
   decides WHICH sanction, WHICH caster and WHERE; whether the cast is permitted at all is
   `UseSanction`'s to answer, because the bot issues the same command the player does.
-- **`BotKamikaze`** — detects an AOE-suicide unit from its projectile rather than by name,
+- **`BotKamikaze`** — detects an AOE-suicide unit from its weapon (`self_destruct` with a blast) rather than by name,
   and spends one only when the blast's value beats the drone's own cost. Its HOLD is enforced
   rather than advisory: a drone with no worthwhile blast has its own target acquisition
-  suppressed (`Commandable.is_holding_fire`) and any aggro-acquired engagement dropped, so
+  suppressed (`Actor.is_holding_fire`) and any aggro-acquired engagement dropped, so
   proximity cannot override the cost-effectiveness decision the module exists to make.
 
 ## Scouting
@@ -388,7 +388,7 @@ from tick ~300 with `believed_enemy_army_value` still 0 — and it made
 `nearest_enemy_structure_to_base()` survives as a query about what EXISTS (the hostile-target
 audit uses it that way); nothing marches on it.
 
-Both queries answer with a POSITION rather than a `Commandable`, and they have to: a belief
+Both queries answer with a POSITION rather than a `Actor`, and they have to: a belief
 outlives the thing it remembers — the blackboard drops a structure only when the commander
 regains vision of its spot and finds it gone — so "the last place I saw their base" is still
 somewhere worth marching on after the building has been destroyed. The walk is
@@ -437,7 +437,7 @@ cannot lock onto that at all" and for "the weapon does no damage", so counter-ef
 which decides what to BUILD and which target to PREFER — cannot decide what is a legal thing
 to commit to. `weapon_for_target` is the question that can: a weapon may fire iff its
 `target_mask` intersects the target's TARGETABLE_GROUND / TARGETABLE_AIR layers. Aggro
-(`Commandable.get_aggro_near_position`) and `BotTargeting._retarget` had always asked it; the
+(`Actor.get_aggro_near_position`) and `BotTargeting._retarget` had always asked it; the
 places that did not were the two that decide where an army GOES and what a drone COMMITS to.
 
 The same question is now asked at two more layers, because an objective is not the only way a
@@ -445,7 +445,7 @@ bot unit acquires something it cannot hurt:
 
 - **`BotActuator.attack` refuses to issue an impossible Attack**, by asking
   `Attack.meets_precondition` exactly as `use_sanction` asks `UseSanction`'s. Nothing
-  downstream would: `Commandable.update_commands` does not consult preconditions (that is the
+  downstream would: `Actor.update_commands` does not consult preconditions (that is the
   player UI's job), and a persistent Attack with no usable weapon returns `self` from
   `get_updated_state` for ever — the unit stands beside its target holding an order it can
   neither finish nor abandon.
@@ -984,7 +984,7 @@ timeout itself, and peak extractors recovered from 2.67 to 3.42. Cover:
 
 **One of the two suspects is now closed, and the guard still earns its place.** The builder
 that never started a job was `Movement._resolve_movement_target` casting an Extraction Site as
-a `Commandable` when it is a plain `Entity` — a structure need not be commandable, so the cast
+a `Actor` when it is a plain `Entity` — a structure need not be commandable, so the cast
 failed silently and the builder never resolved a target. That is fixed (2026-09-10, by the
 author), and placement itself can no longer strand a builder either: §Where a building goes
 rejects any spot that would split the walkable surface, so the bot cannot wall its own builder

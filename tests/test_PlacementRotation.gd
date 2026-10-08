@@ -50,7 +50,7 @@ var _world: Node3D
 var _map: StubMap
 var _commander: Commander
 var _controller: RTSController
-var _builder: Commandable
+var _builder: Actor
 var _saved_player_id: int = 0
 var _tool: Tool
 
@@ -76,7 +76,7 @@ func before_each() -> void:
 	_commander.technology_mapping = {
 		TOOL_TYPE: FakePieces.tech(), SQUARE: FakePieces.tech(), LONG: FakePieces.tech()
 	}
-	_builder = FakePieces.make(BUILDER_SCENE) as Commandable
+	_builder = FakePieces.make(BUILDER_SCENE) as Actor
 	_world.add_child(_builder)
 	(_builder.get_node("Builds") as Builds).buildable_types = [TOOL_TYPE]
 	_builder.ownership.commander = _commander

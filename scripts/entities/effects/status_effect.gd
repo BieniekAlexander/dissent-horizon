@@ -108,7 +108,7 @@ enum ReapplyMode {
 @export var effect_radius: float = 0.0
 
 ## The entity that inflicted this effect, for damage attribution (may be null / freed).
-var source: Commandable = null
+var source: Actor = null
 
 ## Current stack count (>= 1 once applied). Read-only to the outside; subclasses scale
 ## their potency off it. Always 1 unless reapply_mode == STACK.
@@ -146,7 +146,7 @@ func _validate_property(a_property: Dictionary) -> void:
 ##
 ## If the host already carries this kind of effect, the existing instance is reapplied
 ## per `reapply_mode` and THIS node is discarded (it was a redundant duplicate).
-func apply_to(a_entity: Entity, a_source: Commandable = null) -> void:
+func apply_to(a_entity: Entity, a_source: Actor = null) -> void:
 	var existing: StatusEffect = _find_matching(a_entity)
 	if existing != null and existing != self:
 		source = a_source
@@ -229,7 +229,7 @@ func _reapply_with(a_incoming: StatusEffect) -> void:
 ## Re-enact an already-active effect of this kind. Refreshes the timer in both modes
 ## and, under STACK, adds a stack (capped at max_stacks). Re-attributes to the latest
 ## inflictor so the most recent source gets credit for any damage.
-func _reapply(a_source: Commandable) -> void:
+func _reapply(a_source: Actor) -> void:
 	source = a_source
 	_elapsed = 0
 	if reapply_mode == ReapplyMode.STACK and _stacks < max_stacks:

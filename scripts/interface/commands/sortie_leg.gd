@@ -10,7 +10,7 @@ extends MoveCommand
 
 
 ## Always flying — a leg has no idle state.
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	return true
 
 
@@ -20,7 +20,7 @@ func ends_on_arrival() -> bool:
 	return false
 
 
-func can_act(_a_actor: Commandable) -> bool:
+func can_act(_a_actor: Actor) -> bool:
 	return false
 
 

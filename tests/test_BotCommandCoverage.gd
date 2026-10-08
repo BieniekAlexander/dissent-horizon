@@ -70,6 +70,11 @@ const COVERED_OTHERWISE: Dictionary = {
 ## Commands a commander would never want. Kept short on purpose — every entry here is a
 ## claim about the game, not about the bot's maturity.
 const NOT_THE_BOTS: Dictionary = {
+	"SetHoldFire":
+	(
+		"a player's hold fire queued with the additive modifier. The bot sets the flag itself"
+		+ " (BotKamikaze's hold) and never needs it to wait in a queue"
+	),
 	"FocusFire":
 	(
 		"a human's manual override of automatic target selection. The bot HAS automatic"

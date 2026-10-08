@@ -22,10 +22,10 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	for sel: EntitySelector in _selectors():
 		entities = sel.filter(entities, a_manager)
 	# The selector pipeline is Entity-typed, but commands only apply to Commandables —
-	# narrow to them here (the Commandable predicate at the command-issuing boundary).
-	var units: Array[Commandable] = []
+	# narrow to them here (the Actor predicate at the command-issuing boundary).
+	var units: Array[Actor] = []
 	for entity: Entity in entities:
-		if entity is Commandable:
+		if entity is Actor:
 			units.append(entity)
 	issue_commands_to(units, a_manager)
 
@@ -34,7 +34,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 ## `p_commander_id_context` is the owning commander's id — available to EventCommandTarget
 ## via active_commander_id() while the call is in progress.
 func issue_commands_to(
-	a_units: Array[Commandable],
+	a_units: Array[Actor],
 	a_manager: ScenarioTriggerManager,
 	a_p_commander_id_context: int = -1
 ) -> void:
@@ -47,7 +47,7 @@ func issue_commands_to(
 	var offsets: Array[Vector3] = _formation_offsets(a_units, a_manager, event_commands)
 	if not event_commands.is_empty():
 		for i: int in a_units.size():
-			var unit: Commandable = a_units[i]
+			var unit: Actor = a_units[i]
 			var offset: Vector3 = offsets[i]
 			var chain: Array[MoveCommand] = []
 			for ec: EventCommand in event_commands:
@@ -116,7 +116,7 @@ func _aggro_shape_override() -> CollisionShape3D:
 ## post rather than every unit converging on one shared point. Returns all-zero offsets for
 ## a single unit or when the chain has no positional post to anchor on.
 func _formation_offsets(
-	a_units: Array[Commandable],
+	a_units: Array[Actor],
 	a_manager: ScenarioTriggerManager,
 	a_event_commands: Array[EventCommand]
 ) -> Array[Vector3]:
@@ -126,7 +126,7 @@ func _formation_offsets(
 		if ec is EventCommandPoint:
 			anchor = ec as EventCommandPoint
 	if a_units.size() <= 1 or anchor == null or a_manager.map == null:
-		for _u: Commandable in a_units:
+		for _u: Actor in a_units:
 			offsets.append(Vector3.ZERO)
 		return offsets
 	var map: Map = a_manager.map

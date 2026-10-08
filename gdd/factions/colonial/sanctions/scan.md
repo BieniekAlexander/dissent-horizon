@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Scan
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [2, 0], factions: [colonial]}
 hud_button: true
 column: 1

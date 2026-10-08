@@ -6,7 +6,7 @@ extends GutTest
 ## 1. THE REGISTRY KEY. Fog nodes filed themselves under the RAW `watching_commander_id`,
 ##    which for the player's own fog (placed in player.tscn) is the authoring default `-1`.
 ##    Every caller then had to remember to map the player's real id back to that key, and
-##    `Commandable.is_visible_to` did not — so it looked up commander 1, found nothing, and
+##    `Actor.is_visible_to` did not — so it looked up commander 1, found nothing, and
 ##    returned "visible" for every enemy on the map. That is what left the player's aggro
 ##    ungated by fog: units opened fire on things they could not see.
 ##
@@ -44,8 +44,8 @@ func _fog(a_watching_id: int) -> Fog:
 	return fog
 
 
-func _unit(a_commander_id: int) -> Commandable:
-	var u := FakePieces.make(IRREGULAR) as Commandable
+func _unit(a_commander_id: int) -> Actor:
+	var u := FakePieces.make(IRREGULAR) as Actor
 	add_child_autofree(u)
 	var c := Commander.new()
 	c.id = a_commander_id
@@ -86,7 +86,7 @@ func test_a_freed_fog_does_not_come_back_from_the_registry() -> void:
 func test_visibility_consults_the_players_own_fog() -> void:
 	# The regression itself: with the fog filed under the wrong key this returned true, and
 	# every fogged enemy was a legal aggro target for the player's army.
-	var enemy: Commandable = _unit(OTHER)
+	var enemy: Actor = _unit(OTHER)
 	assert_true(enemy.is_visible_to(PLAYER), "no fog registered — nothing to hide behind")
 	var fog: Fog = _fog(-1)
 	assert_eq(Fog.for_commander(PLAYER), fog, "guards the fixture")

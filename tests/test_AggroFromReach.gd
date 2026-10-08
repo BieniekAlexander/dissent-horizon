@@ -63,8 +63,8 @@ func _cylinder_node(a_radius: float) -> CollisionShape3D:
 
 ## The harness with one weapon reaching `a_ground` on the ground and `a_air` in the air
 ## (a negative value: cannot hit that layer).
-func _piece(a_ground: float, a_air: float) -> Commandable:
-	var piece: Commandable = FakePieces.make(HARNESS_PATH) as Commandable
+func _piece(a_ground: float, a_air: float) -> Actor:
+	var piece: Actor = FakePieces.make(HARNESS_PATH) as Actor
 	add_child_autofree(piece)
 	var weapon: Weapon = piece.weapon_inventory.get_weapons()[0]
 	weapon.target_mask = (GROUND if a_ground >= 0.0 else 0) | (AIR if a_air >= 0.0 else 0)
@@ -79,13 +79,13 @@ func _piece(a_ground: float, a_air: float) -> Commandable:
 
 
 func test_each_layer_follows_its_own_reach() -> void:
-	var piece: Commandable = _piece(8.0, 3.0)
+	var piece: Actor = _piece(8.0, 3.0)
 	assert_eq(RangeShapes.xz_radius(piece.aggro_shape_ground), 9.0)
 	assert_eq(RangeShapes.xz_radius(piece.aggro_shape_air), RangeShapes.AGGRO_MIN_RADIUS)
 
 
 func test_a_layer_it_cannot_hit_has_no_volume() -> void:
-	var piece: Commandable = _piece(5.0, -1.0)
+	var piece: Actor = _piece(5.0, -1.0)
 	assert_null(piece.aggro_shape_air.shape, "a ground-only gun picks no fights with aircraft")
 	assert_eq(piece.aggro_shapes(), [piece.aggro_shape_ground])
 
@@ -95,7 +95,7 @@ func test_the_wider_volume_is_the_piece_aggro_radius() -> void:
 
 
 func test_losing_movement_caps_aggro_at_reach() -> void:
-	var piece: Commandable = _piece(2.5, -1.0)
+	var piece: Actor = _piece(2.5, -1.0)
 	piece.movement = null
 	piece.refresh_aggro_shapes()
 	assert_eq(RangeShapes.xz_radius(piece.aggro_shape_ground), 2.5)
@@ -106,11 +106,11 @@ func test_losing_movement_caps_aggro_at_reach() -> void:
 
 #region A bunker aggros with its occupants' reach
 func test_a_bunker_takes_its_occupants_reach_plus_its_bonus() -> void:
-	var host: Commandable = _piece(-1.0, -1.0)
+	var host: Actor = _piece(-1.0, -1.0)
 	var garrison := Garrison.new()
 	garrison.bunker = true
 	host.add_child(garrison)
-	var occupant: Commandable = _piece(5.0, -1.0)
+	var occupant: Actor = _piece(5.0, -1.0)
 	garrison._garrisoned.append(occupant)
 
 	# No hull term: reach is measured from the host's footprint, like every range.
@@ -119,7 +119,7 @@ func test_a_bunker_takes_its_occupants_reach_plus_its_bonus() -> void:
 
 
 func test_a_hold_that_does_not_fire_lends_nothing() -> void:
-	var host: Commandable = _piece(-1.0, -1.0)
+	var host: Actor = _piece(-1.0, -1.0)
 	var garrison := Garrison.new()
 	garrison.bunker = false
 	host.add_child(garrison)

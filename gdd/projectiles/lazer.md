@@ -2,6 +2,9 @@
 kind: Entity
 title: lazer
 scene: res://scenes/entities/projectiles/lazer.tscn
+flavor:
+  description: potato
+  verbose: potato
 damage: 20
 damage_type: LEAD
 status_effects: [lazer_burn]

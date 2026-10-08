@@ -69,7 +69,7 @@ func to_command(
 	# only ever re-checks the SAME target; there is no aggro-reacquisition here at all), which
 	# is what "beeline for structures, ignore units" actually needs.
 	if type == Type.BASE:
-		var target: Commandable = _closest_in(selected, global_position)
+		var target: Actor = _closest_in(selected, global_position)
 		var atk_msg := CommandMessage.new(a_manager.map, target, null, target.global_position)
 		return Attack.new(atk_msg)
 
@@ -97,7 +97,7 @@ func _enemy_candidates(a_manager: ScenarioTriggerManager, a_spawning_id: int) ->
 	var group: String = "structure" if type == Type.BASE else "unit"
 	var result: Array = []
 	for node in a_manager.get_tree().get_nodes_in_group(group):
-		var c := node as Commandable
+		var c := node as Actor
 		if c == null:
 			continue
 		if c.commander_id == 0 or c.commander_id == a_spawning_id:
@@ -154,16 +154,16 @@ func _select_cluster(a_clusters: Array, _a_manager: ScenarioTriggerManager) -> A
 static func _centroid(cluster: Array) -> Vector3:
 	var sum := Vector3.ZERO
 	for node in cluster:
-		sum += (node as Commandable).global_position
+		sum += (node as Actor).global_position
 	return sum / float(cluster.size())
 
 
 ## The single member of `cluster` nearest to `ref_pos` — the specific entity an Attack (as
 ## opposed to an AttackMove toward the cluster's averaged centroid) locks onto.
-static func _closest_in(cluster: Array, ref_pos: Vector3) -> Commandable:
-	var best: Commandable = cluster[0]
+static func _closest_in(cluster: Array, ref_pos: Vector3) -> Actor:
+	var best: Actor = cluster[0]
 	for node in cluster:
-		var c := node as Commandable
+		var c := node as Actor
 		if (
 			c.global_position.distance_squared_to(ref_pos)
 			< best.global_position.distance_squared_to(ref_pos)
@@ -175,7 +175,7 @@ static func _closest_in(cluster: Array, ref_pos: Vector3) -> Commandable:
 static func _total_hp(cluster: Array) -> float:
 	var total: float = 0.0
 	for node in cluster:
-		var c := node as Commandable
+		var c := node as Actor
 		if c.defense != null:
 			total += c.defense.hp
 	return total
@@ -184,7 +184,7 @@ static func _total_hp(cluster: Array) -> float:
 static func _total_hp_max(cluster: Array) -> float:
 	var total: float = 0.0
 	for node in cluster:
-		var c := node as Commandable
+		var c := node as Actor
 		if c.defense != null:
 			total += c.defense.hp_max
 	return total

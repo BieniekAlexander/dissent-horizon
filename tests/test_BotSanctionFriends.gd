@@ -13,7 +13,7 @@ class StubSanction:
 	extends Sanction
 
 	func accepts_target(a_candidate: Variant, _a_commander: Commander) -> bool:
-		return a_candidate is Commandable and (a_candidate as Commandable).id != REJECTED
+		return a_candidate is Actor and (a_candidate as Actor).id != REJECTED
 
 
 var _bot: Bot
@@ -33,8 +33,8 @@ func before_each() -> void:
 
 
 ## An owned unit of `a_id` at `a_at`, with `a_hp_fraction` of its hit points left.
-func _own(a_id: StringName, a_at: Vector3, a_hp_fraction: float = 1.0) -> Commandable:
-	var unit: Commandable = FakePieces.unit({"id": a_id, "hp": 100.0})
+func _own(a_id: StringName, a_at: Vector3, a_hp_fraction: float = 1.0) -> Actor:
+	var unit: Actor = FakePieces.unit({"id": a_id, "hp": 100.0})
 	_bot.add_child(unit)
 	unit.ownership.commander = _bot
 	unit.global_position = a_at
@@ -50,7 +50,7 @@ func test_the_endangered_friend_is_the_dearest_hurt_unit_in_the_engagement() -> 
 	var sanction := StubSanction.new()
 	sanction.targeting = Sanction.Targeting.ENDANGERED_FRIEND
 	_own(CHEAP, Vector3(1, 0, 0), 0.2)
-	var dear: Commandable = _own(DEAR, Vector3(2, 0, 0), 0.4)
+	var dear: Actor = _own(DEAR, Vector3(2, 0, 0), 0.4)
 	_own(DEAR, Vector3(3, 0, 0), 0.9)  # dear, but healthy
 	_own(DEAR, Vector3(50, 0, 0), 0.1)  # dear and dying, but not in this fight
 	assert_eq(_bo._aim(sanction, _zone_at(Vector3.ZERO)), dear)
@@ -67,7 +67,7 @@ func test_the_event_decides_who_may_be_targeted() -> void:
 	var sanction := StubSanction.new()
 	sanction.targeting = Sanction.Targeting.ENDANGERED_FRIEND
 	_own(REJECTED, Vector3(1, 0, 0), 0.1)
-	var cheap: Commandable = _own(CHEAP, Vector3(2, 0, 0), 0.1)
+	var cheap: Actor = _own(CHEAP, Vector3(2, 0, 0), 0.1)
 	assert_eq(_bo._aim(sanction, _zone_at(Vector3.ZERO)), cheap, "dearer, but refused")
 
 
@@ -75,7 +75,7 @@ func test_the_valuable_friend_is_the_dearest_accepted_unit_fight_or_none() -> vo
 	var sanction := StubSanction.new()
 	sanction.targeting = Sanction.Targeting.VALUABLE_FRIEND
 	_own(CHEAP, Vector3(1, 0, 0))
-	var dear: Commandable = _own(DEAR, Vector3(80, 0, 0))
+	var dear: Actor = _own(DEAR, Vector3(80, 0, 0))
 	_own(REJECTED, Vector3(2, 0, 0))
 	assert_eq(_bo._aim(sanction, {}), dear)
 	assert_false(sanction.targeting_needs_engagement())

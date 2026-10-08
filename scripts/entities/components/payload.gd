@@ -29,7 +29,7 @@ const HITSCAN_MAX_ERROR_ANGLE: float = deg_to_rad(2.0)
 @export var damage_type: Damage.Type = Damage.Type.LEAD
 
 ## Who fired it — the attribution for damage and effects. May be freed mid-flight.
-var from: Commandable
+var from: Actor
 ## What it was aimed at, or what an impact test found instead. May be freed mid-flight.
 var target: Entity
 ## A blast's victims, measured on the tick of the last contact and waiting for the payout that
@@ -78,7 +78,7 @@ func aims_at_ground_under(a_target: Entity) -> bool:
 
 
 ## Take aim: `a_from` fired it at `a_target`.
-func arm(a_from: Commandable, a_target: Entity) -> void:
+func arm(a_from: Actor, a_target: Entity) -> void:
 	from = a_from
 	target = a_target
 
@@ -98,7 +98,7 @@ func apply() -> void:
 	# `from` and `target` can each be freed before this lands, and a freed object fails a
 	# typed parameter's class check (CLAUDE.md §A freed object cannot be passed to a typed
 	# parameter), so both are guarded. The source collapses to null: an unattributed hit.
-	var source: Commandable = from if is_instance_valid(from) else null
+	var source: Actor = from if is_instance_valid(from) else null
 	if not has_blast():
 		# A target that garrisoned mid-flight is alive but out of the world, and out of reach.
 		if is_instance_valid(target) and target.is_inside_tree():

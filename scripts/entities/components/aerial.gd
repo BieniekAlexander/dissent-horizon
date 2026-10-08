@@ -150,6 +150,10 @@ const TAXI_FACING_EPSILON: float = 0.03
 ## BEARING from that anchor is treated as a real direction rather than arrival jitter.
 ## Inside it, set_anchor() seeds the orbit from the unit's heading instead — see there.
 const ORBIT_ENTRY_CENTRED_FRACTION: float = 0.5
+
+## A direction component smaller than this is treated as zero by the ascent-cap march: the
+## march never crosses a boundary on that axis, rather than dividing by almost nothing.
+const DDA_EPSILON: float = 1e-6
 #endregion
 
 #region Properties
@@ -215,7 +219,7 @@ var _landing_state: LandingState = LandingState.AIRBORNE
 var _prev_tilt_velocity: Vector3 = Vector3.ZERO
 
 ## Aerial terrain-following state (see _update_aerial_altitude). _smoothed_terrain_y is
-## the eased base terrain height the unit follows — Commandable adds height_offset() to
+## the eased base terrain height the unit follows — Actor adds height_offset() to
 ## it for the final world Y (follow_y). _vertical_velocity is its current rate of
 ## change (world-units/s), ramped under MAX_VERTICAL_ACCEL. Seeded to the actual terrain
 ## height on the first tick (guarded by _aerial_y_seeded) so the unit doesn't ease up
@@ -298,6 +302,8 @@ var _landing_rate: float = 0.0
 ## attack ended, or target out of dive_distance handling) it eases back to AERIAL_HEIGHT.
 var _dive_requested: bool = false
 var _dive_target_xz: Vector2 = Vector2.ZERO
+## The height above the ground a dive bottoms out at: the top of what it is ramming.
+var _dive_floor: float = 0.0
 
 ## Current descent rate of a FLYING dive, world-units/second (positive = descending).
 ## Ramped under DIVE_ACCEL toward the geometry-derived demand, and reset to 0 whenever the
@@ -404,7 +410,7 @@ static func of(a_piece: Node) -> Aerial:
 	return a_piece.get_node_or_null("Aerial") as Aerial if a_piece != null else null
 
 
-## World-units above the terrain surface Commandable adds when snapping Y.
+## World-units above the terrain surface Actor adds when snapping Y.
 func height_offset() -> float:
 	return _current_height_offset
 
@@ -621,7 +627,7 @@ func park_on_deck(a_deck_offset: float = 0.0) -> void:
 ##
 ## POSITION, not velocity: a commanded velocity is suppressed outright while a unit is on the
 ## deck, so a velocity handed to a taxiing aircraft goes nowhere. Y is left alone —
-## Commandable rewrites it from the terrain every tick.
+## Actor rewrites it from the terrain every tick.
 ##
 ## Refused unless the unit is actually on the deck, so this can never be mistaken for a
 ## flight instruction. A HOVERING dock would simply not call it: a helicopter has no
@@ -964,15 +970,17 @@ func compute_orbit_velocity() -> Vector3:
 
 #region FLYING dive-attack
 ## Ask a FLYING unit to dive toward `target_xz` (a world XZ) this tick: it descends from
-## AERIAL_HEIGHT toward the ground as it closes within `dive_distance`. Call every tick the
+## AERIAL_HEIGHT toward `a_floor` (a height above the ground, the top of what it rams) as it
+## closes within `dive_distance`. Call every tick the
 ## dive should continue (e.g. from Attack while a FLYING actor attacks a ground target) —
 ## the request self-clears, so the moment the calls stop the unit eases back up to cruise
 ## altitude. No-op outside FLYING mode.
-func request_dive(a_target_xz: Vector2) -> void:
+func request_dive(a_target_xz: Vector2, a_floor: float = 0.0) -> void:
 	if mode != Movement.Mode.FLYING:
 		return
 	_dive_requested = true
 	_dive_target_xz = a_target_xz
+	_dive_floor = a_floor
 
 
 ## Per-tick FLYING altitude control, called from _physics_process. Two regimes:
@@ -1020,12 +1028,13 @@ func _dive_commit_distance(a_horizontal_speed: float) -> float:
 ## the descent against, so it simply drops at the cap.
 func _descend_toward_dive(a_dist: float, a_dt: float) -> void:
 	var horizontal_speed: float = VU.in_xz(_velocity()).length()
+	var drop: float = maxf(_current_height_offset - _dive_floor, 0.0)
 	var desired: float = DIVE_MAX_DESCENT_RATE
 	if horizontal_speed > 1e-3 and a_dist > 1e-3:
-		desired = _current_height_offset / (a_dist / horizontal_speed)
+		desired = drop / (a_dist / horizontal_speed)
 	desired = clampf(desired, 0.0, DIVE_MAX_DESCENT_RATE)
 	_dive_rate = move_toward(_dive_rate, desired, DIVE_ACCEL * a_dt)
-	_current_height_offset = maxf(0.0, _current_height_offset - _dive_rate * a_dt)
+	_current_height_offset -= minf(_dive_rate * a_dt, drop)
 	_apply_flying_attitude(_dive_rate, horizontal_speed, a_dt)
 
 
@@ -1331,81 +1340,85 @@ func _snap_to_navmesh() -> void:
 ## Cap the XZ speed of `v` so the unit cannot enter a building-occupied (or
 ## out-of-bounds) cell before it has finished ascending to AERIAL_HEIGHT.
 ##
-## Works by marching a DDA ray through the grid in the velocity direction.
-## If a blocked cell is found at distance `d` (world units), the XZ speed is
-## capped to d / seconds_remaining — the maximum speed that keeps the unit
-## clear of the obstruction until it clears the building height.
+## If a blocked cell lies at distance `d` (world units) along the velocity, the XZ speed is
+## capped to d / seconds_remaining — the maximum speed that keeps the unit clear of the
+## obstruction until it clears the building height.
 func _cap_xz_for_ascent(a_v: Vector3) -> Vector3:
 	var map: Map = _map()
-	if map == null or map.terrain_grid == null or map.height_map == null:
+	var host: Node3D = _host()
+	if map == null or map.terrain_grid == null or map.height_map == null or host == null:
 		return a_v
 	var xz := Vector2(a_v.x, a_v.z)
 	if xz.is_zero_approx():
 		return a_v
-	var xz_speed := xz.length()
-	var dir := xz.normalized()
 	var seconds_remaining: float = _seconds_to_change_offset(AERIAL_HEIGHT - _current_height_offset)
 	if seconds_remaining <= 0.0:
 		return a_v
-	var max_dist: float = xz_speed * seconds_remaining
-
-	var host: Node3D = _host()
-	if host == null:
+	var dir: Vector2 = xz.normalized()
+	# Into fractional cell space, where cell (gx, gz) occupies [gx, gx + 1): through the map's
+	# inverse transform, so distances are map-local units (world units at map scale CELL_SIZE).
+	var inv: Transform3D = map.global_transform.affine_inverse()
+	var local_pos: Vector3 = inv * Vector3(host.global_position.x, 0.0, host.global_position.z)
+	var local_dir: Vector3 = inv.basis * Vector3(dir.x, 0.0, dir.y)
+	var distance: float = distance_to_obstruction(
+		map.terrain_grid,
+		Vector2(
+			local_pos.x + (map.height_map.map_width - 1) * 0.5,
+			local_pos.z + (map.height_map.map_depth - 1) * 0.5
+		),
+		Vector2(local_dir.x, local_dir.z),
+		xz.length() * seconds_remaining
+	)
+	if distance == INF:
 		return a_v
-	var pos_xz := Vector2(host.global_position.x, host.global_position.z)
-
-	# Convert world XZ to fractional cell space for DDA.
-	# Cell (gx, gz) occupies [gx, gx+1) in cell space.
-	var inv := map.global_transform.affine_inverse()
-	var hw: float = (map.height_map.map_width - 1) * 0.5
-	var hd: float = (map.height_map.map_depth - 1) * 0.5
-	var local_pos := inv * Vector3(pos_xz.x, 0.0, pos_xz.y)
-	var lx: float = local_pos.x + hw
-	var lz: float = local_pos.z + hd
-	var cur_x: int = floori(lx)
-	var cur_z: int = floori(lz)
-
-	# Transform the world-space direction through the map's inverse basis so DDA
-	# t-values are in map-local units (= world units when map scale = CELL_SIZE).
-	var local_dir := inv.basis * Vector3(dir.x, 0.0, dir.y)
-	var dx: float = local_dir.x
-	var dz: float = local_dir.z
-
-	var step_x: int = 1 if dx >= 0.0 else -1
-	var step_z: int = 1 if dz >= 0.0 else -1
-
-	# t-distance (local units) to each axis's first boundary, then per-cell step.
-	var frac_x: float = lx - cur_x
-	var frac_z: float = lz - cur_z
-	var t_max_x: float = (
-		((1.0 - frac_x) / dx) if dx > 1e-6 else (frac_x / -dx) if dx < -1e-6 else INF
+	var capped_speed: float = (
+		distance / seconds_remaining if seconds_remaining > DDA_EPSILON else 0.0
 	)
-	var t_max_z: float = (
-		((1.0 - frac_z) / dz) if dz > 1e-6 else (frac_z / -dz) if dz < -1e-6 else INF
-	)
-	var t_delta_x: float = (1.0 / absf(dx)) if absf(dx) > 1e-6 else INF
-	var t_delta_z: float = (1.0 / absf(dz)) if absf(dz) > 1e-6 else INF
+	return Vector3(dir.x * capped_speed, a_v.y, dir.y * capped_speed)
 
+
+## How far from `start` (cell space) along `dir` the first cell that holds a building or lies
+## out of bounds begins, or INF when none begins within `max_distance`. A DDA march: each step
+## crosses one cell boundary, on whichever axis reaches its next boundary first.
+static func distance_to_obstruction(
+	grid: TerrainGrid, start: Vector2, dir: Vector2, max_distance: float
+) -> float:
+	var cell := Vector2i(floori(start.x), floori(start.y))
+	var step := Vector2i(1 if dir.x >= 0.0 else -1, 1 if dir.y >= 0.0 else -1)
+	var fraction: Vector2 = start - Vector2(cell)
+	# Distance to each axis's first boundary, then the distance between boundaries.
+	var to_next := Vector2(
+		_distance_to_boundary(fraction.x, dir.x), _distance_to_boundary(fraction.y, dir.y)
+	)
+	var per_cell := Vector2(
+		1.0 / absf(dir.x) if absf(dir.x) > DDA_EPSILON else INF,
+		1.0 / absf(dir.y) if absf(dir.y) > DDA_EPSILON else INF
+	)
 	while true:
-		var t: float
-		if t_max_x < t_max_z:
-			t = t_max_x
-			cur_x += step_x
-			t_max_x += t_delta_x
+		var distance: float
+		if to_next.x < to_next.y:
+			distance = to_next.x
+			cell.x += step.x
+			to_next.x += per_cell.x
 		else:
-			t = t_max_z
-			cur_z += step_z
-			t_max_z += t_delta_z
-		if t >= max_dist:
-			break
-		var next_cell := Vector2i(cur_x, cur_z)
-		if (
-			not map.terrain_grid.is_in_bounds(next_cell)
-			or map.terrain_grid.is_building_at(next_cell)
-		):
-			var capped_speed: float = t / seconds_remaining if seconds_remaining > 1e-6 else 0.0
-			return Vector3(dir.x * capped_speed, a_v.y, dir.y * capped_speed)
-	return a_v
+			distance = to_next.y
+			cell.y += step.y
+			to_next.y += per_cell.y
+		if distance >= max_distance:
+			return INF
+		if not grid.is_in_bounds(cell) or grid.is_building_at(cell):
+			return distance
+	return INF
+
+
+## Distance along one axis from `fraction` (0..1 within a cell) to the boundary `component`
+## heads for; INF for an axis the march does not move along.
+static func _distance_to_boundary(fraction: float, component: float) -> float:
+	if component > DDA_EPSILON:
+		return (1.0 - fraction) / component
+	if component < -DDA_EPSILON:
+		return fraction / -component
+	return INF
 
 
 #endregion

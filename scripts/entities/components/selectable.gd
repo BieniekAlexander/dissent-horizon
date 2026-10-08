@@ -4,7 +4,7 @@ extends Area3D
 ## Selectable component — owns "is this entity currently selected" state.
 ##
 ## Step 1 of the components refactor: this node is added as a child of every
-## Commandable. The controller continues to own the *set* of selected entities,
+## Actor. The controller continues to own the *set* of selected entities,
 ## but the per-entity selection bit lives here. Anything that needs to know
 ## whether an entity is selected (HP bar visibility, debug overlays, future
 ## SelectionVisual component) should read Selectable.state or listen to
@@ -55,7 +55,7 @@ enum State {
 
 ## Optional path (relative to this Selectable) to a Node3D whose .visible should
 ## track selection state. Lets scenes wire up the indicator declaratively so
-## Commandable doesn't have to know about it in code. A future SelectionVisual
+## Actor doesn't have to know about it in code. A future SelectionVisual
 ## component will subscribe to state_changed instead and this export will go away.
 @export var indicator_path: NodePath
 

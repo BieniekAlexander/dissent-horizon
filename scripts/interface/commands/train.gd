@@ -28,7 +28,7 @@ static func requires_position() -> bool:
 ## controller submits ONE purchase per click, listing every capable structure as a
 ## candidate, so a stronghold+infantry selection trains from the stronghold alone.
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if message.tool == null:
 		return PreconditionFailureCause.COMMAND_PENDING_TOOL
@@ -67,7 +67,7 @@ static func meets_precondition(
 ##
 ## Why it works this way: gdd/systems/combat/aerial-operations/docking-bays-and-pads.md §A pad must
 ## be free before an aircraft is trained.
-static func has_free_pad_for(producer: Commandable, tool: Tool) -> bool:
+static func has_free_pad_for(producer: Actor, tool: Tool) -> bool:
 	if tool == null or not tool.needs_docking:
 		return true
 	var bay: DockingBay = producer.get_node_or_null("DockingBay") as DockingBay

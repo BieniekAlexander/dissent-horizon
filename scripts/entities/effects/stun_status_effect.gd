@@ -3,8 +3,8 @@ class_name StunStatusEffect
 extends StatusEffect
 
 ## Suppresses ALL command processing on the host — movement AND action alike — for
-## `duration_ticks`. See Commandable.is_stunned() and the gate at the top of
-## CommandReceiver._process_commands(). This is a harder stop than Commandable's
+## `duration_ticks`. See Actor.is_stunned() and the gate at the top of
+## CommandReceiver._process_commands(). This is a harder stop than Actor's
 ## built-in stagger (which only blocks a handful of opt-in actions like Build/Repair
 ## and never blocks movement); a stunned unit does nothing at all until it wears off.
 ##
@@ -18,7 +18,7 @@ extends StatusEffect
 
 
 func _on_apply() -> void:
-	var actor := _entity as Commandable
+	var actor := _entity as Actor
 	if (
 		actor == null
 		or actor.defense == null

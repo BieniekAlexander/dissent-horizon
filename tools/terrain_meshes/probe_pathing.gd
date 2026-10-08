@@ -48,7 +48,7 @@ func _run() -> void:
 	print("=== %s : (%.0f, %.0f) -> (%.0f, %.0f) ===" % [_scene, _from.x, _from.z, _to.x, _to.z])
 
 	# ISOLATED: park every other unit far away so RVO has nobody to react to.
-	var subject: Commandable = units[0]
+	var subject: Actor = units[0]
 	var parked: Array = []
 	for i: int in range(1, units.size()):
 		parked.append(units[i])
@@ -57,7 +57,7 @@ func _run() -> void:
 
 	# CLUSTERED: bring them back next to the subject, standing still.
 	for i: int in parked.size():
-		var p: Commandable = parked[i]
+		var p: Actor = parked[i]
 		p.global_position = _snap(_from + Vector3(cos(i * 1.6) * 2.0, 0.0, sin(i * 1.6) * 2.0))
 	await get_tree().physics_frame
 	await _measure(subject, "clustered")
@@ -65,7 +65,7 @@ func _run() -> void:
 	get_tree().quit(0)
 
 
-func _measure(a_unit: Commandable, a_label: String) -> void:
+func _measure(a_unit: Actor, a_label: String) -> void:
 	a_unit.global_position = _snap(_from)
 	a_unit.update_commands(null)
 	await get_tree().physics_frame
@@ -120,7 +120,7 @@ func _player_units() -> Array:
 	if player == null:
 		return out
 	for c: Node in player.get_children():
-		if c is Commandable and c.is_in_group("unit") and not c.is_queued_for_deletion():
+		if c is Actor and c.is_in_group("unit") and not c.is_queued_for_deletion():
 			out.append(c)
 	return out
 

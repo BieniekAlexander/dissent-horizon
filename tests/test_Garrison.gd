@@ -56,8 +56,8 @@ func _commanded(a_id: int) -> Commander:
 
 ## A live entity instance owned by [a_commander_id]. Ownership is assigned directly (not
 ## through initialize) so no Map is needed, mirroring test_Interaction's helper.
-func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var e := FakePieces.make(a_options) as Commandable
+func _entity(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var e := FakePieces.make(a_options) as Actor
 	add_child_autofree(e)
 	e.ownership.commander = _commanded(a_commander_id)
 	return e
@@ -86,7 +86,7 @@ func test_default_masks_admit_a_grounded_soldier():
 
 func test_default_masks_reject_an_aerial_unit():
 	var g: Garrison = _garrison(4)
-	var clipper: Commandable = _entity(CLIPPER, 1)
+	var clipper: Actor = _entity(CLIPPER, 1)
 	assert_eq(clipper.movement.mode, Movement.Mode.HOVERING, "the clipper is a hovering unit")
 	assert_false(g.admits(clipper), "hovering units are not admitted by default")
 	g.occupiable_movements |= Garrison.MOVEMENT_HOVERING
@@ -154,7 +154,7 @@ func test_a_bulky_unit_needs_two_free_slots():
 
 
 func test_the_stock_truck_cage_admits_servants_and_nobody_else_by_order():
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
 	var cage: Garrison = truck.get_node("Garrison") as Garrison
 	assert_false(cage.is_closed(), "a Servant can be ordered in")
 	assert_true(cage.admits(_entity(SERVANT, 1)), "a Servant rides the truck")
@@ -165,7 +165,7 @@ func test_the_stock_truck_cage_admits_servants_and_nobody_else_by_order():
 
 
 func test_the_compound_is_a_closed_hold_that_sentences_what_is_deposited():
-	var compound: Commandable = FakePieces.make(COMPOUND)
+	var compound: Actor = FakePieces.make(COMPOUND)
 	var hold: Garrison = compound.get_node("Garrison") as Garrison
 	assert_true(hold.is_closed(), "deposit is the only way in — nothing may be ordered into it")
 	assert_true(
@@ -198,7 +198,7 @@ func test_an_empty_allowlist_restricts_nothing():
 
 
 func test_an_ordinary_garrison_is_not_closed():
-	var shelter: Commandable = FakePieces.make(OPEN_GARRISON)
+	var shelter: Actor = FakePieces.make(OPEN_GARRISON)
 	assert_false(
 		(shelter.get_node("Garrison") as Garrison).is_closed(),
 		"an ordinary garrison is shelter, not a prison"
@@ -213,7 +213,7 @@ func test_an_ordinary_garrison_is_not_closed():
 
 
 func test_occupy_into_a_stock_truck_is_for_servants_only():
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
 	assert_eq(
 		Occupy.meets_precondition(_entity(SERVANT, 1), _message_for(truck)),
 		MoveCommand.PreconditionFailureCause.NONE,
@@ -232,8 +232,8 @@ func test_occupy_into_a_stock_truck_is_for_servants_only():
 
 
 func test_occupy_is_allowed_for_an_open_garrison():
-	var recruit: Commandable = _entity(RECRUIT, 1)
-	var mercury: Commandable = _entity(MERCURY, 1)
+	var recruit: Actor = _entity(RECRUIT, 1)
+	var mercury: Actor = _entity(MERCURY, 1)
 	assert_eq(
 		Occupy.meets_precondition(recruit, _message_for(mercury)),
 		MoveCommand.PreconditionFailureCause.NONE,
@@ -242,8 +242,8 @@ func test_occupy_is_allowed_for_an_open_garrison():
 
 
 func test_occupy_is_refused_when_the_movement_mask_rejects_the_unit():
-	var clipper: Commandable = _entity(CLIPPER, 1)
-	var mercury: Commandable = _entity(MERCURY, 1)
+	var clipper: Actor = _entity(CLIPPER, 1)
+	var mercury: Actor = _entity(MERCURY, 1)
 	assert_eq(
 		Occupy.meets_precondition(clipper, _message_for(mercury)),
 		MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
@@ -259,7 +259,7 @@ func test_occupy_is_refused_when_the_movement_mask_rejects_the_unit():
 
 ## The Compound separates the two directions: closed to entry, open to exit.
 func test_evacuate_is_allowed_for_a_closed_hold():
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison as Garrison
 	assert_true(hold.is_closed(), "nothing can be ordered into the Compound")
 	assert_true(hold.can_release(), "and its Servants can still be let out")
@@ -271,10 +271,10 @@ func test_evacuate_is_allowed_for_a_closed_hold():
 
 ## An order releases the host's own side and never a captive.
 func test_an_order_releases_a_servant_and_never_a_captive():
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
 	var cage: Garrison = truck.garrison as Garrison
-	var servant: Commandable = _entity(SERVANT, 1)
-	var captive: Commandable = _entity(TERRESTRIAL, 0)
+	var servant: Actor = _entity(SERVANT, 1)
+	var captive: Actor = _entity(TERRESTRIAL, 0)
 	cage.garrison(servant)
 	cage.garrison(captive)
 	assert_false(cage.is_captive(servant))
@@ -284,29 +284,29 @@ func test_an_order_releases_a_servant_and_never_a_captive():
 
 
 func test_evacuating_a_truck_turns_out_its_servants_and_keeps_its_captives():
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
 	var cage: Garrison = truck.garrison as Garrison
-	var servant: Commandable = _entity(SERVANT, 1)
-	var captive: Commandable = _entity(TERRESTRIAL, 0)
+	var servant: Actor = _entity(SERVANT, 1)
+	var captive: Actor = _entity(TERRESTRIAL, 0)
 	cage.garrison(servant)
 	cage.garrison(captive)
 	cage.evacuate_by_order(null)
 	assert_true(servant.is_inside_tree(), "the Servant is back in the world")
-	assert_eq(cage.occupants(), [captive] as Array[Commandable], "the prisoner stays")
+	assert_eq(cage.occupants(), [captive] as Array[Actor], "the prisoner stays")
 	assert_false(captive.is_inside_tree())
 
 
 func test_a_servant_let_out_of_a_compound_leaves_the_prisoners_serving():
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison as Garrison
-	var servant: Commandable = _entity(SERVANT, 1)
-	var captive: Commandable = _entity(TERRESTRIAL, 0)
+	var servant: Actor = _entity(SERVANT, 1)
+	var captive: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(captive)
 	hold.garrison(servant)
 	hold._physics_process(1.0)
 	hold.evacuate_by_order(null)
 	assert_true(servant.is_inside_tree(), "released before its sentence ended, back in the game")
-	assert_eq(hold.occupants(), [captive] as Array[Commandable])
+	assert_eq(hold.occupants(), [captive] as Array[Actor])
 	assert_almost_eq(
 		hold._sentence_remaining[captive],
 		hold.sentence_length - 1.0,
@@ -316,9 +316,9 @@ func test_a_servant_let_out_of_a_compound_leaves_the_prisoners_serving():
 
 
 func test_evacuating_only_captives_releases_nobody():
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison as Garrison
-	var captive: Commandable = _entity(TERRESTRIAL, 0)
+	var captive: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(captive)
 	hold.evacuate_by_order(null)
 	assert_eq(hold.garrisoned_count(), 1)
@@ -328,7 +328,7 @@ func test_evacuating_only_captives_releases_nobody():
 ## The half a release must NOT do. Sentencing is the Compound's act, reached only through a
 ## DEPOSIT interaction, so a captive let out in the field goes back as itself.
 func test_a_released_captive_is_not_sentenced():
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
 	var cage: Garrison = truck.garrison as Garrison
 	assert_eq(cage.sentence_length, 0.0, "the cage sentences nothing")
 	assert_false(cage.can_intern(), "only a Compound does that")
@@ -344,7 +344,7 @@ func test_a_garrison_can_be_authored_shut_in_the_exit_direction():
 
 
 func test_evacuate_is_allowed_for_an_open_garrison():
-	var mercury: Commandable = _entity(MERCURY, 1)
+	var mercury: Actor = _entity(MERCURY, 1)
 	assert_eq(
 		Evacuate.meets_precondition(mercury, _message_for(null)),
 		MoveCommand.PreconditionFailureCause.NONE,
@@ -357,9 +357,9 @@ func test_nobody_may_be_ordered_into_a_compound():
 	# itself, never converted into a Servant that could walk back out, so deposit is the only
 	# way in for anyone — Servant and Recruit alike. See colonial-dominion.md §A captive
 	# serves a sentence.
-	var servant: Commandable = _entity(SERVANT, 1)
-	var recruit: Commandable = _entity(RECRUIT, 1)
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var servant: Actor = _entity(SERVANT, 1)
+	var recruit: Actor = _entity(RECRUIT, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	assert_eq(
 		Occupy.meets_precondition(servant, _message_for(compound)),
 		MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE,
@@ -383,14 +383,14 @@ func test_nobody_may_be_ordered_into_a_compound():
 
 
 func test_capture_applies_while_the_cage_has_room():
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
 	assert_true(
 		Garrison.can_capture(truck, _entity(TERRESTRIAL, 0)), "an empty truck can take a prisoner"
 	)
 
 
 func test_capture_stops_applying_once_the_cage_is_full():
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
 	var cage: Garrison = truck.garrison
 	for _i in range(cage.capacity):
 		cage.garrison(_entity(TERRESTRIAL, 0))
@@ -401,36 +401,36 @@ func test_capture_stops_applying_once_the_cage_is_full():
 
 
 func test_a_captured_unit_leaves_the_world_but_stays_alive():
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
-	var captive: Commandable = _entity(TERRESTRIAL, 0)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
+	var captive: Actor = _entity(TERRESTRIAL, 0)
 	truck.garrison.garrison(captive)
 	assert_false(captive.is_inside_tree(), "the prisoner is out of the scene tree")
 	assert_true(is_instance_valid(captive), "but not freed")
-	assert_eq(truck.garrison.occupants(), [captive] as Array[Commandable])
+	assert_eq(truck.garrison.occupants(), [captive] as Array[Actor])
 
 
 ## --- Deposit moves the truck's captives into the compound, unconverted ----------
 
 
 ## A captor loaded with `a_count` neutral terrestrials.
-func _loaded_truck(a_count: int) -> Commandable:
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
+func _loaded_truck(a_count: int) -> Actor:
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
 	for _i in range(a_count):
 		truck.garrison.garrison(_entity(TERRESTRIAL, 0))
 	return truck
 
 
 func test_deposit_moves_prisoners_into_the_compound_unconverted():
-	var truck: Commandable = _loaded_truck(2)
-	var captives: Array[Commandable] = truck.garrison.occupants().duplicate()
-	var compound: Commandable = _entity(COMPOUND, 2)
+	var truck: Actor = _loaded_truck(2)
+	var captives: Array[Actor] = truck.garrison.occupants().duplicate()
+	var compound: Actor = _entity(COMPOUND, 2)
 	assert_eq(compound.garrison.deposit_from(truck.garrison), 2, "both captives are moved")
 	assert_eq(truck.garrison.garrisoned_count(), 0, "the truck is empty again")
 	assert_eq(compound.garrison.garrisoned_count(), 2, "the compound holds two")
 	assert_eq(
 		compound.garrison.occupants(), captives, "the SAME units — a transfer, not a conversion"
 	)
-	for occupant: Commandable in compound.garrison.occupants():
+	for occupant: Actor in compound.garrison.occupants():
 		assert_eq(
 			occupant.id,
 			TERRESTRIAL.get("id", &"fake_unit"),
@@ -444,10 +444,10 @@ func test_deposit_moves_prisoners_into_the_compound_unconverted():
 
 
 func test_a_deposit_takes_the_servants_riding_along_and_sentences_them():
-	var truck: Commandable = _loaded_truck(1)
-	var servant: Commandable = _entity(SERVANT, 1)
+	var truck: Actor = _loaded_truck(1)
+	var servant: Actor = _entity(SERVANT, 1)
 	truck.garrison.garrison(servant)
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
 	assert_eq(hold.deposit_from(truck.garrison), 2, "the prisoner and the Servant")
 	assert_true(servant in hold.occupants())
@@ -464,11 +464,11 @@ func test_a_deposit_takes_the_servants_riding_along_and_sentences_them():
 
 
 func test_a_deposited_captive_serves_a_sentence():
-	var truck: Commandable = _loaded_truck(1)
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var truck: Actor = _loaded_truck(1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
 	hold.deposit_from(truck.garrison)
-	var captive: Commandable = hold.occupants()[0]
+	var captive: Actor = hold.occupants()[0]
 	assert_almost_eq(
 		hold._sentence_remaining[captive],
 		hold.sentence_length,
@@ -478,10 +478,10 @@ func test_a_deposited_captive_serves_a_sentence():
 
 
 func test_a_finished_sentence_consumes_the_captive():
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
 	hold.sentence_length = 1.0
-	var captive: Commandable = _entity(TERRESTRIAL, 0)
+	var captive: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(captive)
 	hold._physics_process(1.5)
 	assert_eq(hold.garrisoned_count(), 0, "the term is up — the captive leaves the hold")
@@ -489,10 +489,10 @@ func test_a_finished_sentence_consumes_the_captive():
 
 
 func test_a_sentence_not_yet_finished_survives_a_tick():
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
 	hold.sentence_length = 10.0
-	var captive: Commandable = _entity(TERRESTRIAL, 0)
+	var captive: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(captive)
 	hold._physics_process(1.0)
 	assert_eq(hold.garrisoned_count(), 1, "nine seconds still to serve")
@@ -500,19 +500,19 @@ func test_a_sentence_not_yet_finished_survives_a_tick():
 
 
 func test_internment_is_partial_when_the_camp_is_nearly_full():
-	var truck: Commandable = _loaded_truck(2)
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var truck: Actor = _loaded_truck(2)
+	var compound: Actor = _entity(COMPOUND, 1)
 	compound.garrison.capacity = 1
 	assert_eq(compound.garrison.deposit_from(truck.garrison), 1, "only what fits is taken")
 	assert_eq(truck.garrison.garrisoned_count(), 1, "the truck keeps the rest")
 
 
 func test_captives_serve_one_at_a_time_in_arrival_order():
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
 	hold.sentence_length = 10.0
-	var first: Commandable = _entity(TERRESTRIAL, 0)
-	var second: Commandable = _entity(TERRESTRIAL, 0)
+	var first: Actor = _entity(TERRESTRIAL, 0)
+	var second: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(first)
 	hold.garrison(second)
 	hold._physics_process(4.0)
@@ -528,7 +528,7 @@ func test_captives_serve_one_at_a_time_in_arrival_order():
 
 
 func test_only_the_captive_serving_pays():
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
 	assert_eq(hold.paying_count(), 0, "an empty prison pays for nobody")
 	hold.garrison(_entity(TERRESTRIAL, 0))
@@ -539,7 +539,7 @@ func test_only_the_captive_serving_pays():
 
 
 func test_an_ordinary_garrison_pays_for_every_occupant():
-	var host: Commandable = _entity(OPEN_GARRISON, 1)
+	var host: Actor = _entity(OPEN_GARRISON, 1)
 	var garrison: Garrison = host.get_node("Garrison") as Garrison
 	garrison.garrison(_entity(SERVANT, 1))
 	garrison.garrison(_entity(SERVANT, 1))
@@ -547,8 +547,8 @@ func test_an_ordinary_garrison_pays_for_every_occupant():
 
 
 func test_a_garrison_with_no_sentence_length_takes_no_deposit():
-	var truck: Commandable = _loaded_truck(1)
-	var shelter: Commandable = _entity(OPEN_GARRISON, 1)
+	var truck: Actor = _loaded_truck(1)
+	var shelter: Actor = _entity(OPEN_GARRISON, 1)
 	assert_false(
 		(shelter.get_node("Garrison") as Garrison).can_intern(),
 		"an ordinary garrison is shelter, not a camp"
@@ -562,9 +562,9 @@ func test_a_garrison_with_no_sentence_length_takes_no_deposit():
 
 
 func test_deposit_applies_to_a_camp_and_not_to_a_safehouse():
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
 	truck.garrison.garrison(_entity(TERRESTRIAL, 0))
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var resolved: Interaction = truck.interactor.applicable_interaction(
 		truck, _message_for(compound)
 	)
@@ -579,7 +579,7 @@ func test_deposit_applies_to_a_camp_and_not_to_a_safehouse():
 
 
 func test_deposit_does_not_apply_to_an_empty_truck():
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
 	assert_null(
 		truck.interactor.applicable_interaction(truck, _message_for(_entity(COMPOUND, 1))),
 		"there is nothing to deposit"
@@ -590,11 +590,11 @@ func test_deposit_does_not_apply_to_an_empty_truck():
 
 
 func test_destroying_the_holder_returns_prisoners_to_their_own_commander():
-	# The release path a destroyed truck / compound takes (Commandable._on_death →
+	# The release path a destroyed truck / compound takes (Actor._on_death →
 	# Garrison.evacuate). No Map is stood up, which evacuate tolerates: the evacuees are
 	# placed on a fallback ring and issued no follow-up commands.
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
-	var captive: Commandable = _entity(TERRESTRIAL, 0)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
+	var captive: Actor = _entity(TERRESTRIAL, 0)
 	var captor_commander: Commander = truck.commander
 	var captive_commander: Commander = captive.commander
 	truck.garrison.garrison(captive)
@@ -611,8 +611,8 @@ func test_destroying_the_holder_returns_prisoners_to_their_own_commander():
 func test_a_prisoner_is_freed_when_it_has_no_commander_to_return_to():
 	# A captive whose commander is gone can't be returned to the world; it must be freed
 	# rather than left an orphan (what the old Inventory eject did).
-	var truck: Commandable = _entity(SUPPLY_TRUCK, 1)
-	var captive: Commandable = _entity(TERRESTRIAL, 0)
+	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
+	var captive: Actor = _entity(TERRESTRIAL, 0)
 	truck.garrison.garrison(captive)
 	captive.ownership.commander = null
 	truck.garrison.evacuate(null)
@@ -624,10 +624,10 @@ func test_a_destroyed_camp_releases_its_prisoners_to_the_world():
 	# Compound takes — distinct from the unit path a destroyed truck takes, since a
 	# structure seeds placement off its footprint. Run without a Map, which that path
 	# tolerates: it anchors on the host and places the evacuees on the fallback ring.
-	var compound: Commandable = _entity(COMPOUND, 2)
+	var compound: Actor = _entity(COMPOUND, 2)
 	assert_true(compound.is_in_group("structure"), "the compound takes the structure release path")
-	var captive_a: Commandable = _entity(TERRESTRIAL, 1)
-	var captive_b: Commandable = _entity(TERRESTRIAL, 1)
+	var captive_a: Actor = _entity(TERRESTRIAL, 1)
+	var captive_b: Actor = _entity(TERRESTRIAL, 1)
 	compound.garrison.garrison(captive_a)
 	compound.garrison.garrison(captive_b)
 
@@ -711,7 +711,7 @@ func test_an_event_authored_under_a_host_loads_its_garrison_at_scenario_start():
 	scenario.add_child(manager)
 	add_child_autofree(scenario)
 
-	var compound: Commandable = FakePieces.make(COMPOUND)
+	var compound: Actor = FakePieces.make(COMPOUND)
 	camp_commander.add_child(compound)
 	compound.map = map
 	compound.ownership.commander = camp_commander
@@ -728,7 +728,7 @@ func test_an_event_authored_under_a_host_loads_its_garrison_at_scenario_start():
 	assert_eq(
 		compound.garrison.garrisoned_count(), 3, "the authored units start inside the compound"
 	)
-	for occupant: Commandable in compound.garrison.occupants():
+	for occupant: Actor in compound.garrison.occupants():
 		assert_eq(
 			occupant.commander,
 			prisoner_commander,
@@ -752,7 +752,7 @@ func test_a_starting_event_under_a_host_is_not_run_twice():
 	scenario.add_child(manager)
 	add_child_autofree(scenario)
 
-	var truck: Commandable = FakePieces.make(SUPPLY_TRUCK)
+	var truck: Actor = FakePieces.make(SUPPLY_TRUCK)
 	commander.add_child(truck)
 	truck.map = map
 	truck.ownership.commander = commander
@@ -772,7 +772,7 @@ func test_a_starting_event_under_a_host_is_not_run_twice():
 
 
 func test_the_camp_banks_dominion_for_the_prisoner_serving():
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var generator: OccupantDominionGenerator = compound.get_node("DominionGenerator")
 	compound.garrison.garrison(_entity(TERRESTRIAL, 0))
 	compound.garrison.garrison(_entity(TERRESTRIAL, 0))
@@ -787,9 +787,22 @@ func test_the_camp_banks_dominion_for_the_prisoner_serving():
 
 
 func test_an_empty_camp_banks_nothing():
-	var compound: Commandable = _entity(COMPOUND, 1)
+	var compound: Actor = _entity(COMPOUND, 1)
 	var generator: OccupantDominionGenerator = compound.get_node("DominionGenerator")
 	var before: int = compound.commander.dominion
 	generator.ticks_elapsed = DominionGenerator.TICK_RATE - 1
 	generator.tick()
 	assert_eq(compound.commander.dominion, before, "no prisoners, no dominion")
+
+
+## A held unit is off the tree and has no position of its own; where it is in the world is its
+## host's — what a waypoint line starts from.
+func test_a_held_unit_is_where_its_host_is():
+	var host: Actor = _entity(OPEN_GARRISON, 1)
+	host.global_position = Vector3(7.0, 0.0, 3.0)
+	var soldier: Actor = _entity(RECRUIT, 1)
+	soldier.global_position = Vector3(1.0, 0.0, 1.0)
+	assert_eq(soldier.world_position(), Vector3(1.0, 0.0, 1.0), "standing, it is where it is")
+	host.get_node("Garrison").garrison(soldier)
+	assert_true(soldier.is_garrisoned())
+	assert_eq(soldier.world_position(), host.global_position, "held, it is where its host is")

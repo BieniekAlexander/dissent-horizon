@@ -27,7 +27,7 @@ it, and they are the same rule three times: **the order is KEPT, not refused.**
 
 | State | Why it stops |
 |---|---|
-| **Stunned** (`Commandable.is_stunned`) | a total stop — no reactive `get_updated_state` swap, no `can_act`/`fulfill_action`, no movement. Unlike stagger, which blocks only opt-in actions and never movement |
+| **Stunned** (`Actor.is_stunned`) | a total stop — no reactive `get_updated_state` swap, no `can_act`/`fulfill_action`, no movement. Unlike stagger, which blocks only opt-in actions and never movement |
 | **Still under construction** (`not is_built`) | a half-built barracks trains nothing; the same rule for every other command |
 | **Still under a canopy** (`Movement.is_parachuting`) | tipped out of an air transport and floating down, with no say in where it goes |
 
@@ -91,7 +91,7 @@ Two deliberate limits:
 - **Death is left to the paths that already handle it.** Every command handles a freed target,
   and a flying actor's orbit-on-death anchoring lives in that path; reporting death here too
   would change how a death is handled, which is a different behaviour.
-- **Only a `Commandable` can be off the field.** A non-Commandable `Entity` target — an
+- **Only a `Actor` can be off the field.** A non-Actor `Entity` target — an
   extraction site, say — has no such state and always reads as in play.
 
 The queue is not disturbed: `_drop_command` clears the current order and `_update_state`
@@ -117,7 +117,7 @@ non-zero avoidance velocity FOR the idle unit, which `_on_velocity_computed` the
 so idle units may drift aside when a mover pushes into them. That is in tension with
 "enemies don't get out of the way". If it reads wrong, the fix is to keep feeding 0 here but
 suppress *applying* avoidance velocity for commandless units in
-`Commandable._on_velocity_computed`.
+`Actor._on_velocity_computed`.
 
 ---
 
@@ -178,6 +178,6 @@ order and walking away.
 It is enforced on `Defense.restore` rather than at each mender, because that is the one door
 every one of them goes through: the `Repair` command, a `HealAOE` aura, and whatever is
 added next cannot come to disagree about it. **Construction is not healing** and is
-deliberately outside this: `Commandable.advance_build_progress` writes `hp` directly, so a
+deliberately outside this: `Actor.advance_build_progress` writes `hp` directly, so a
 half-built structure taking fire still rises as its builders work — the builders' own
 `blocked_by_stagger` is what answers a hit on THEM.

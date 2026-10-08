@@ -1,6 +1,6 @@
-[gd_scene load_steps=31 format=3 uid="uid://b516axn33kxtn"]
+[gd_scene load_steps=32 format=3 uid="uid://b516axn33kxtn"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_c2jau"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_c2jau"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="1_spec"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_qppi4"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="2_spec"]
@@ -27,6 +27,7 @@
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="21_wnteh"]
 [ext_resource type="Script" uid="uid://04yfk0mkmwom" path="res://scripts/entities/components/aerial.gd" id="6_spec"]
 [ext_resource type="Script" uid="uid://b5vq0ggkn5wow" path="res://scripts/entities/components/docking.gd" id="7_spec"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="8_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_wu8wr"]
 height = 0.6
@@ -42,6 +43,8 @@ height = 0.25
 [node name="AnAircraftMediumSupport" type="CharacterBody3D" unique_id=1426684783 groups=["piece", "unit"]]
 script = ExtResource("1_c2jau")
 id = &"an_aircraftMedium_support"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=658827186]
 
@@ -95,6 +98,9 @@ script = ExtResource("11_52m8m")
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
 shape = SubResource("CylinderShape3D_wu8wr")
 metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("8_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1801577801]
 

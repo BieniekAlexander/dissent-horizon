@@ -99,6 +99,24 @@ var match_log: MatchLog = null
 ## the opening, not a defeat. Never cleared.
 var _hegemony_armed: Dictionary = {}
 
+## Where players' orders enter the simulation, at the start of each tick. Null in the editor
+## and before _ready. gdd/systems/commands/recording-and-replay.md §The order stream.
+var order_stream: OrderStream = null
+## Records this match (or, in playback, checks it against its recording). Null in the editor
+## and before _ready.
+var recorder: ReplayRecorder = null
+## A recording to PLAY BACK instead of a match to play: set before the scenario enters the tree,
+## and it takes the seed and the orders from the recording. Null for a live match.
+var replay_to_play: ReplayFile = null
+
+## Every piece that has entered play this session, by spawn serial (Entity.spawn_serial) — how
+## a recorded order names a piece. Kept for a piece's whole life, garrisoned (off the tree)
+## included, which is why it is a lookup rather than a scan of the "piece" group; entries for
+## freed pieces stay and read as null. UNTYPED values: a freed piece fails a typed lookup.
+var _pieces_by_serial: Dictionary = {}
+## The serial the next piece entering play takes; serials start at 1, so 0 means "none".
+var _next_spawn_serial: int = 1
+
 ## Built in _ready() from player_slots: id 0 = neutral Commander, then one Commander
 ## per slot (ids 1..N) — the human rig (scenes/player.tscn) for a non-bot slot, a Bot
 ## otherwise. Indexed by commander id (entities resolve owners via commanders[id]).
@@ -114,8 +132,11 @@ var commanders: Array = []
 #region Lifecycle
 func _ready() -> void:
 	# FIRST, before anything that could draw: the simulation's pseudo-randomness is only
-	# reproducible if it is seeded ahead of every consumer.
+	# reproducible if it is seeded ahead of every consumer. A playback plays its recording's seed.
+	if replay_to_play != null:
+		rng_seed = int(replay_to_play.header.get("seed", rng_seed))
 	seed_simulation()
+	PurchaseTransaction.reset_ids()
 	_create_debug_mode()
 	_ensure_lighting()
 	if map == null:
@@ -128,6 +149,15 @@ func _ready() -> void:
 		return
 
 	_build_commanders()
+	order_stream = OrderStream.new(self)
+	add_child(order_stream)
+	recorder = ReplayRecorder.new(self)
+	add_child(recorder)
+	if replay_to_play != null:
+		recorder.verify_against(replay_to_play)
+		order_stream.play_back(ReplayRecorder.orders_of(replay_to_play))
+	else:
+		recorder.begin()
 
 	var players_node = Node3D.new()
 	players_node.name = "Players"
@@ -147,6 +177,7 @@ func _ready() -> void:
 			bot.consider_structures = slot.consider_structures
 			bot.consider_units = slot.consider_units
 			_attach_brain(bot, slot.difficulty, slot.is_bot, _personality_config(slot))
+			bot.get_node("BotBrain").disabled_jobs = slot.disabled_bot_jobs
 
 	# Create a Fog node for each bot commander so it tracks its own exploration.
 	# The human player already has a Fog in player.tscn (watching_commander_id = -1).
@@ -169,7 +200,7 @@ func _ready() -> void:
 		_setup_spectator_hud()
 		_init_spectator_fog()
 
-	# Typed Entity (not Commandable): commander/default_commander_id are Entity-level, and
+	# Typed Entity (not Actor): commander/default_commander_id are Entity-level, and
 	# the "piece" group holds features such as ExtractionSite as well as Actors.
 	for entity: Entity in get_tree().get_nodes_in_group("piece"):
 		entity.commander = commanders[entity.default_commander_id]
@@ -211,8 +242,8 @@ func _ready() -> void:
 ## In a HEGEMONY scenario, give every player commander a short look at every shelter on the map
 ## (SHELTER_REVEAL_RADIUS / _SECONDS). Nothing for any other win condition: a mission decides for
 ## itself what its player knows. Returns the vision sources spawned, for a test to inspect.
-func _reveal_shelters_at_start() -> Array[Commandable]:
-	var spawned: Array[Commandable] = []
+func _reveal_shelters_at_start() -> Array[Actor]:
+	var spawned: Array[Actor] = []
 	if win_condition != WinCondition.HEGEMONY or map == null:
 		return spawned
 	var points: Array[Vector2] = shelter_points(get_tree())
@@ -220,7 +251,7 @@ func _reveal_shelters_at_start() -> Array[Commandable]:
 		if slot.commander == null:
 			continue
 		for point: Vector2 in points:
-			var source: Commandable = EventRevealRegion.spawn_vision(
+			var source: Actor = EventRevealRegion.spawn_vision(
 				slot.commander, map, point, SHELTER_REVEAL_RADIUS, SHELTER_REVEAL_SECONDS
 			)
 			if source != null:
@@ -238,9 +269,19 @@ static func shelter_points(a_tree: SceneTree) -> Array[Vector2]:
 	return points
 
 
-## A playback speed is the engine's global, so it would otherwise outlive this session.
+## A playback speed is the engine's global, so it would otherwise outlive this session. Leaving a
+## match also keeps its recording, ended or not.
 func _exit_tree() -> void:
 	PlaybackSpeed.reset()
+	if recorder != null:
+		recorder.write_autosave()
+
+
+## Debug mode just changed the simulation in a way no player order can: the recording ends here
+## and is kept as an invalid replay. gdd/systems/commands/recording-and-replay.md §Debug mode.
+func note_debug_change(a_reason: String) -> void:
+	if recorder != null:
+		recorder.invalidate(a_reason)
 
 
 func _physics_process(_a_delta: float) -> void:
@@ -393,18 +434,10 @@ func local_player() -> Commander:
 const _GLOBAL_STREAM_SALT: int = 0x9E3779B9
 
 
-## Seed every generator the simulation draws from, from this scenario's `rng_seed`.
-##
-## TWO generators, and the split is forced rather than chosen:
-##
-##   * `SU.rng` is the gameplay generator — hitscan spread, Wander, the unit-placement
-##     scatter, a mortar barrage's muzzle offsets. Everything that can be routed is.
-##   * Godot's GLOBAL generator is what `Expression` gives an authored scenario expression
-##     ("15 + randi_range(0, 10)"), and it cannot be redirected — see ScenarioExpression.
-##     Seeding it is the only way that draw becomes replayable.
-##
-## Public and callable on a bare instance so the rule can be tested without booting a map:
-## it touches no node and no scene state.
+## Seed every generator the simulation draws from, from this scenario's `rng_seed`: `SU.rng`
+## for gameplay, and Godot's GLOBAL generator, which authored `Expression`s draw from and which
+## cannot be redirected (gdd/systems/ai/selfplay-harness.md §Determinism). Touches no node, so the
+## rule can be tested on a bare instance.
 func seed_simulation() -> void:
 	SU.rng.seed = rng_seed
 	seed(rng_seed ^ _GLOBAL_STREAM_SALT)
@@ -485,6 +518,14 @@ func _validate_player_slots() -> void:
 		)
 		push_error(message)
 		assert(false, message)
+	var unknown_jobs: Dictionary = _unknown_bot_job_slots()
+	if not unknown_jobs.is_empty():
+		var message: String = (
+			"%s: player slot(s) %s switch off bot jobs that do not exist (BotBrain.JOB_NAMES)."
+			% [name, str(unknown_jobs)]
+		)
+		push_error(message)
+		assert(false, message)
 	var unresolved: Dictionary = _unresolved_personality_slots()
 	if not unresolved.is_empty():
 		var message: String = (
@@ -493,6 +534,22 @@ func _validate_player_slots() -> void:
 		)
 		push_error(message)
 		assert(false, message)
+
+
+## Slot numbers (1-based commander ids) → the `disabled_bot_jobs` names no BotBrain job has.
+## Pure, so it can be tested directly; _validate_player_slots does the reporting.
+func _unknown_bot_job_slots() -> Dictionary:
+	var unknown: Dictionary = {}
+	for i: int in player_slots.size():
+		var slot: PlayerSlot = player_slots[i]
+		if slot == null:
+			continue
+		var names: Array = slot.disabled_bot_jobs.filter(
+			func(job: StringName) -> bool: return not BotBrain.JOB_NAMES.has(job)
+		)
+		if not names.is_empty():
+			unknown[i + 1] = names
+	return unknown
 
 
 ## Slot numbers (1-based commander ids) → why their `personality` or `config_overrides`
@@ -784,6 +841,11 @@ func _is_omniscient(a_commander: Commander) -> bool:
 ## scripted events (e.g. a skirmish) has none, so we create an empty host here —
 ## otherwise the bots' (and player's) sanctions would have nowhere to run and
 ## silently no-op. Idempotent: returns the existing node when the scene has one.
+## This scenario's trigger host, or null before _ready made it.
+func trigger_manager() -> ScenarioTriggerManager:
+	return get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
+
+
 func _ensure_trigger_manager() -> ScenarioTriggerManager:
 	var existing := get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
 	if existing != null:
@@ -931,7 +993,7 @@ func _center_player_camera_on_starting_entities() -> void:
 func _player_owned_positions_xz(a_player: Commander, a_group: String) -> Array[Vector2]:
 	var result: Array[Vector2] = []
 	for node: Node in get_tree().get_nodes_in_group(a_group):
-		var entity := node as Commandable
+		var entity := node as Actor
 		if entity != null and entity.commander == a_player:
 			result.append(VU.in_xz(entity.global_position))
 	return result
@@ -949,6 +1011,8 @@ func _on_game_over(a_won: bool) -> void:
 		return
 	_game_over_seen = true
 	print("[Scenario] Game over — player %s" % ("wins" if a_won else "loses"))
+	if recorder != null:
+		recorder.write_autosave()
 	var player: Commander = local_player()
 	if a_won:
 		end_match(player.id if player != null else -1)
@@ -1021,6 +1085,23 @@ static func of(a_node: Node) -> Scenario:
 	return a_node.get_tree().current_scene as Scenario if a_node.is_inside_tree() else null
 
 
+## Give `a_piece` the next spawn serial and remember it by that serial. Called once per piece,
+## as it first enters the tree, so tree order (scene-placed pieces) and spawn order (everything
+## later) fix the numbering, the same on every run of a seed.
+## gdd/systems/commands/recording-and-replay.md §The order stream.
+func register_piece(a_piece: Entity) -> int:
+	var serial: int = _next_spawn_serial
+	_next_spawn_serial += 1
+	_pieces_by_serial[serial] = a_piece
+	return serial
+
+
+## The live piece with spawn serial `a_serial`, or null when none has it or it has been freed.
+func piece_by_serial(a_serial: int) -> Entity:
+	var piece: Variant = _pieces_by_serial.get(a_serial)
+	return piece as Entity if is_instance_valid(piece) else null
+
+
 ## Switch `a_bot`'s brain on or off. Switching one ON rebuilds it from scratch, keeping its
 ## difficulty and the parameters it played by (its personality, if the slot named one): its
 ## claims, build plans and beliefs went stale while it was off.
@@ -1028,6 +1109,7 @@ func set_ai_control(a_bot: Bot, a_is_on: bool) -> void:
 	var brain: BotBrain = a_bot.brain()
 	if brain == null or brain.active == a_is_on:
 		return
+	note_debug_change("a bot was switched %s" % ("on" if a_is_on else "off"))
 	brain.active = false
 	if not a_is_on:
 		return
@@ -1044,6 +1126,7 @@ func set_ai_control(a_bot: Bot, a_is_on: bool) -> void:
 func set_bot_difficulty(a_commander_id: int, a_tier: PlayerSlot.Difficulty) -> void:
 	var bot: Bot = commander_by_id(a_commander_id) as Bot
 	if bot != null and bot.brain() != null:
+		note_debug_change("a bot's difficulty was changed")
 		bot.brain().set_difficulty(a_tier)
 
 

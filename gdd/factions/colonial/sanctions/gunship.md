@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Gunship
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [0, 2], factions: [colonial]}
 hud_button: true
 column: 1

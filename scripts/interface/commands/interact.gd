@@ -14,6 +14,8 @@ extends MoveCommand
 ## (i.e. while can_act is true, so fulfill_action runs once per physics tick), and the
 ## interaction completes once it reaches the resolved Interaction's required_ticks.
 var _elapsed_ticks: float = 0.0
+## Physics ticks until a deposit hands its next captive over (see _unload_step).
+var _ticks_until_handover: float = 0.0
 #endregion
 
 
@@ -25,7 +27,7 @@ static func requires_position() -> bool:
 ## Valid when the actor has an Interactor with an applicable interaction (per the
 ## interaction type's mapped precondition).
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if not is_instance_valid(message.target) or not (message.target is Entity):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -39,7 +41,7 @@ static func meets_precondition(
 
 #region Private helpers
 ## The interaction the actor would perform on the current target, or null.
-func _interaction_for(a_actor: Commandable) -> Interaction:
+func _interaction_for(a_actor: Actor) -> Interaction:
 	if a_actor.interactor == null:
 		return null
 	return a_actor.interactor.applicable_interaction(a_actor, message)
@@ -52,13 +54,13 @@ func _interaction_for(a_actor: Commandable) -> Interaction:
 ## Some interactions are channeled/vulnerable (HIJACK) and pause while the actor is
 ## staggered; others (DEPOSIT) are not. Defer to the resolved interaction's own
 ## rule — see Interaction.blocks_while_staggered.
-func blocked_by_stagger(a_actor: Commandable) -> bool:
+func blocked_by_stagger(a_actor: Actor) -> bool:
 	var interaction := _interaction_for(a_actor)
 	return interaction != null and interaction.blocks_while_staggered()
 
 
 ## Drop the command if the target vanished or the interaction no longer applies.
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	if not is_instance_valid(message.target):
 		return null
 	if _interaction_for(a_actor) == null:
@@ -66,7 +68,7 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	return self
 
 
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	return is_instance_valid(message.target) and not _in_reach(a_actor)
 
 
@@ -80,12 +82,12 @@ func ends_on_arrival() -> bool:
 	return false
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	return is_instance_valid(message.target) and _in_reach(a_actor)
 
 
 ## A deposit is unloading captives; every other interaction is interacting.
-func acting_action(a_actor: Commandable) -> ActionTracker.Action:
+func acting_action(a_actor: Actor) -> ActionTracker.Action:
 	var interaction: Interaction = _interaction_for(a_actor)
 	return (
 		ActionTracker.Action.UNLOADING
@@ -99,7 +101,7 @@ func acting_action(a_actor: Commandable) -> ActionTracker.Action:
 ## MOBILE target, the resolved interaction's `interact_shape` (a collision volume centred
 ## on the actor) decides reach when set — letting an interaction (e.g. HIJACK) reach a
 ## target a few units away without colliding — otherwise the default near-touch contact applies.
-func _in_reach(a_actor: Commandable) -> bool:
+func _in_reach(a_actor: Actor) -> bool:
 	var target: Entity = message.target
 	if target.is_in_group("fixture"):
 		return SU.unit_is_close_to_structure(a_actor, target)
@@ -111,23 +113,42 @@ func _in_reach(a_actor: Commandable) -> bool:
 
 ## Accumulate interaction time while in range; perform the event once the
 ## interaction's duration has elapsed, then end the command.
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	var interaction := _interaction_for(a_actor)
 	if interaction == null:
 		return null
 	_elapsed_ticks += 1.0
 	if _elapsed_ticks < interaction.required_ticks(message.target):
 		return self
+	if interaction.type == Interaction.Type.DEPOSIT:
+		return _unload_step(a_actor)
 	_complete(a_actor, interaction)
 	return null
 
 
-## Run the interaction's completion effect, dispatched by type. DEPOSIT moves what the
-## actor holds into the target's Garrison; HIJACK takes the target over.
-func _complete(a_actor: Commandable, a_interaction: Interaction) -> void:
+## One tick of a deposit once its interaction has completed. The carrier hands its captives over
+## one at a time, its `unload_time` apart — the first at once, then one per interval — until it
+## is empty or the target is full; re-ordering it stops the unload. Without an unload time the
+## whole load goes over at once.
+func _unload_step(a_actor: Actor) -> Variant:
+	var source: Garrison = a_actor.garrison
+	var sink: Garrison = Interaction.target_garrison(message.target)
+	if source == null or sink == null:
+		return null
+	if source.unload_time <= 0.0:
+		sink.deposit_from(source)
+		return null
+	if _ticks_until_handover <= 0.0:
+		sink.deposit_from(source, 1)
+		_ticks_until_handover = source.unload_time * TimeUtils.ticks_per_second()
+	_ticks_until_handover -= 1.0
+	return self if sink.can_take_next_from(source) else null
+
+
+## Run the interaction's completion effect, dispatched by type. HIJACK takes the target over;
+## DEPOSIT runs over several ticks instead (_unload_step).
+func _complete(a_actor: Actor, a_interaction: Interaction) -> void:
 	match a_interaction.type:
-		Interaction.Type.DEPOSIT:
-			_deposit(a_actor)
 		Interaction.Type.HIJACK:
 			_hijack(a_actor)
 
@@ -136,28 +157,16 @@ func _complete(a_actor: Commandable, a_interaction: Interaction) -> void:
 ## actor is expended doing it.
 ##
 ## Why it works this way: gdd/systems/commands/construction.md §Hijack: taking an occupied vehicle.
-func _hijack(a_actor: Commandable) -> void:
+func _hijack(a_actor: Actor) -> void:
 	if not is_instance_valid(message.target):
 		return
-	var prize: Commandable = message.target as Commandable
+	var prize: Actor = message.target as Actor
 	if prize == null or a_actor.commander == null:
 		return
 	prize.update_commands(null)
 	prize.commander = a_actor.commander
 	if a_actor.defense != null:
 		a_actor.defense.kill()
-
-
-## Move the actor's captives into the target's Garrison, oldest first, until the target is
-## full or the actor is empty (partial deposit allowed). A transfer, not a conversion: each
-## captive stays itself and starts serving `sentence_length` in the sink — see
-## Garrison.deposit_from.
-func _deposit(a_actor: Commandable) -> void:
-	var source: Garrison = a_actor.garrison
-	var sink: Garrison = Interaction.target_garrison(message.target)
-	if source == null or sink == null:
-		return
-	sink.deposit_from(source)
 
 
 #endregion

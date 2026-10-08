@@ -68,10 +68,10 @@ func _refresh_ledger() -> void:
 		var scout: BotScout = brain.get_scout()
 		var scouting: Dictionary = {}
 		if scout != null:
-			for s: Commandable in scout._scouts:
+			for s: Actor in scout._scouts:
 				if is_instance_valid(s):
 					scouting[s.get_instance_id()] = true
-		for u: Commandable in brain.bot.get_units():
+		for u: Actor in brain.bot.get_units():
 			var key: int = u.get_instance_id()
 			alive[key] = true
 			var rec: Dictionary = _tracked.get(key, {"slot": i, "scouting": false, "hurt": false})
@@ -114,7 +114,7 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 	var attacking: int = 0
 	var stalled: int = 0
 	var beside_untargetable: int = 0
-	for u: Commandable in army:
+	for u: Actor in army:
 		var is_attacking: bool = (
 			u.has_command()
 			and u.current_command() is Attack
@@ -219,7 +219,7 @@ func _army_can_damage(a_army: Array, a_target: Variant) -> bool:
 
 ## THE COUNT THE REPORT IS ABOUT: is `a_unit` standing within its own reach of a visible
 ## enemy that nothing it carries can target, with nothing in that same reach that it can?
-func _is_beside_untargetable(a_bot: Bot, a_unit: Commandable) -> bool:
+func _is_beside_untargetable(a_bot: Bot, a_unit: Actor) -> bool:
 	if a_unit.weapon_inventory == null:
 		return false
 	var reach: float = MIN_LOOK_RADIUS
@@ -227,7 +227,7 @@ func _is_beside_untargetable(a_bot: Bot, a_unit: Commandable) -> bool:
 		reach = maxf(reach, w.ground_reach())
 	var saw_untargetable: bool = false
 	for e in a_bot.get_enemies_near(a_unit.global_position, reach):
-		var c := e as Commandable
+		var c := e as Actor
 		if c == null or not c.is_visible_to(a_bot.id):
 			continue
 		if a_unit.weapon_inventory.weapon_for_target(c) != null:
@@ -241,11 +241,11 @@ func _is_beside_untargetable(a_bot: Bot, a_unit: Commandable) -> bool:
 func _objective_is_untargetable(a_bot: Bot, a_army: Array, a_objective: Vector3) -> bool:
 	var found: bool = false
 	for e in a_bot.get_enemies_near(a_objective, ARRIVE_RADIUS):
-		var c := e as Commandable
+		var c := e as Actor
 		if c == null or not c.is_visible_to(a_bot.id):
 			continue
 		found = true
-		for u: Commandable in a_army:
+		for u: Actor in a_army:
 			if u.weapon_inventory != null and u.weapon_inventory.weapon_for_target(c) != null:
 				return false
 	return found

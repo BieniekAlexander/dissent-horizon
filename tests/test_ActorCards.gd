@@ -23,15 +23,15 @@ func after_each() -> void:
 	FakePieces.restore_abilities()
 
 
-func _piece(a_options: Dictionary) -> Commandable:
-	var piece: Commandable = FakePieces.make(a_options) as Commandable
+func _piece(a_options: Dictionary) -> Actor:
+	var piece: Actor = FakePieces.make(a_options) as Actor
 	add_child_autofree(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true
 	return piece
 
 
-func _card(a_piece: Commandable) -> CommandableCard:
+func _card(a_piece: Actor) -> CommandableCard:
 	var card := CommandableCard.new()
 	add_child_autofree(card)
 	card.bind_existing(a_piece)

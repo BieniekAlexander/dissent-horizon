@@ -8,8 +8,8 @@ extends GutTest
 ## not asserted here.
 
 
-func _watcher() -> Commandable:
-	var piece: Commandable = FakePieces.unit({"aerial": true, "vision": 8.0, "selectable": false})
+func _watcher() -> Actor:
+	var piece: Actor = FakePieces.unit({"aerial": true, "vision": 8.0, "selectable": false})
 	add_child_autofree(piece)
 	return piece
 

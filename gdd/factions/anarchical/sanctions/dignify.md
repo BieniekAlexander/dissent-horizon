@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Dignify
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [0, 0], factions: [anarchists]}
 hud_button: true
 column: 0

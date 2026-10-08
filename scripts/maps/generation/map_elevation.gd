@@ -675,18 +675,10 @@ func _relabel() -> void:
 				cliff_cells[cell] = true
 
 
-## **A cliff may stand only where a barrier does** (Alex, 2026-09-19): elevation marks divisions
-## the topology already made, and may not add its own. **A barrier is where a drop may land
-## whole** — its cells are the cliff, and the ground either side keeps its own height. Elsewhere
-## the free ground between two regions of different height is GRADED — pulled to within
-## `_GRADE_PER_CELL` of its neighbours until the
-## drop is spread over a band a walker can climb. Only ground beside a barrier keeps its step,
-## and that is what becomes a cliff.
-##
-## Reserved ground is held: a footprint or start box tilted by a grade would be unbuildable.
-## Barriers are held too — their own cells are the cliff. The relaxation runs as sweeps over the
-## grid, the way a distance transform does, so a band spreads by a cell per sweep in each
-## direction rather than needing a round per cell.
+## Grade the free ground between regions of different height to within `_GRADE_PER_CELL` of its
+## neighbours, so a cliff stands only where a barrier does (map-generation.md §6. Elevation —
+## terraces and cliffs). Reserved ground and barriers are held. Sweeps over the grid like a
+## distance transform, so a band spreads a cell per sweep each way.
 func _grade_free_ground() -> void:
 	_sweep_grade()
 	_settle_owned_zones()

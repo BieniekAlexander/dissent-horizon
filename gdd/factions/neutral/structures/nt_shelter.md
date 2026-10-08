@@ -4,6 +4,9 @@ title: shelter
 scene: res://scenes/entities/structures/nt/nt_shelter.tscn
 editor_description: Neutral map feature that houses and repopulates Terrestrials.
 commandable: false
+flavor:
+  description: potato
+  verbose: potato
 footprint: [3, 3]
 shelter: true
 ---

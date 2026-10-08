@@ -45,7 +45,7 @@ units of the threshold.
 
 `MoveCommand.movement_destination()` is the seam that allows it: a command may name a destination its `message.target` does not imply, and `CommandReceiver._resolve_movement_target` asks before doing anything else.
 
-**The taxi is `Aerial.taxi_along(path, on_complete)`** — one ground drive, used by both halves so they cannot drift apart, with `LandingState.TAXIING` while it runs. It writes POSITION, not velocity: a commanded velocity is suppressed outright while a unit is on the deck, so a velocity handed to a taxiing aircraft goes nowhere. Y is left alone — `Commandable` rewrites it from the terrain every tick.
+**The taxi is `Aerial.taxi_along(path, on_complete)`** — one ground drive, used by both halves so they cannot drift apart, with `LandingState.TAXIING` while it runs. It writes POSITION, not velocity: a commanded velocity is suppressed outright while a unit is on the deck, so a velocity handed to a taxiing aircraft goes nowhere. Y is left alone — `Actor` rewrites it from the terrain every tick.
 
 **Turning and rolling are separate actions.** On the ground an aircraft is a vehicle with a nosewheel: it stops, swings the nose round to point at the next waypoint (`TAXI_FACING_EPSILON`), and only then drives. Doing both at once slid it diagonally across the apron, which is the one thing an aeroplane cannot do. A parked, idle aircraft meanwhile points itself at its taxiway (`Docking.aim_parked_at_runway`), so that turn is already made when an order arrives.
 
@@ -76,7 +76,7 @@ Three things about it are load-bearing:
 
 ## Releasing a runway is one place, both directions
 
-*Moved out of `commandable.gd::_release_runway`.*
+*Moved out of `actor.gd::_release_runway`.*
 
 The Rearm is PREPENDED, which is what makes the resume free: prepending pushes the
 interrupted order onto the front of the queue, so when the rearm ends by returning null

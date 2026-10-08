@@ -13,12 +13,12 @@ extends AbstractEvent
 ## via Map.add_entity; anything else (a pure VFX/SFX node) is parked at the anchor.
 ##
 ## An EventIssueCommand child node, if present, issues a command chain to every spawned
-## Commandable that is still in the tree (garrisoned units are excluded — see below). If
+## Actor that is still in the tree (garrisoned units are excluded — see below). If
 ## absent, spawned units receive no initial orders.
 ##
 ## Garrisoning spawned units, two ways (either fills a CLOSED garrison — a stock truck,
 ## a Compound — just as well as an open one; see _garrison_all):
-## - `garrison_host`: a pre-placed (scene-authored) Commandable. Each spawned Commandable
+## - `garrison_host`: a pre-placed (scene-authored) Actor. Each spawned Actor
 ##   is garrisoned into it directly instead of placed at a world position.
 ## - Nested EventSpawnEntities children: any of THIS event's spawned Commandables that
 ##   carry a Garrison component are passed down as runtime hosts, and the child spawns
@@ -69,9 +69,9 @@ const DEFAULT_COUNT: int = 1
 ## of these gates". The pick is per execution, not per entity, so a wave stays together;
 ## Map.add_entities already spreads the individual units around the chosen anchor.
 @export var spawn_position: Node3D
-## Optional pre-placed garrison host. When set, every spawned Commandable is garrisoned
+## Optional pre-placed garrison host. When set, every spawned Actor is garrisoned
 ## into it (see Garrison.garrison) instead of being placed at a world position.
-@export var garrison_host: Commandable
+@export var garrison_host: Actor
 
 ## Scene-tree groups every entity this event spawns is added to.
 ##
@@ -174,10 +174,10 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 
 ## Entry point for an EventSpawnEntities nested under another EventSpawnEntities. Spawns
 ## its own entities exactly as execute() does (ignoring `garrison_host` — the parent's
-## `hosts` win instead), garrisons every spawned Commandable round-robin across `hosts`,
+## `hosts` win instead), garrisons every spawned Actor round-robin across `hosts`,
 ## then recurses into ITS OWN EventSpawnEntities children, passing down whichever of its
 ## spawned Commandables carry a Garrison component.
-func _execute_with_hosts(a_hosts: Array[Commandable], a_map: Map, a_commander: Commander) -> void:
+func _execute_with_hosts(a_hosts: Array[Actor], a_map: Map, a_commander: Commander) -> void:
 	var anchor: Vector3 = resolve_spawn_anchor()
 	var anchor_xz := VU.in_xz(anchor)
 
@@ -260,12 +260,12 @@ func resolve_count() -> int:
 ## Instances every scene in `entity_scenes` `count` times and routes each by kind.
 ## Commandables are returned uninitialized and out of tree — callers choose the
 ## placement path (a batched Map.add_entities, or an explicit initialize()-then-garrison).
-## Non-Commandable Entities and bare nodes have no such choice to make, so they're placed
+## Non-Actor Entities and bare nodes have no such choice to make, so they're placed
 ## immediately at `anchor`/`anchor_xz`.
 func _instantiate_all(
 	a_map: Map, a_commander: Commander, a_anchor: Vector3, a_anchor_xz: Vector2
-) -> Array[Commandable]:
-	var commandables: Array[Commandable] = []
+) -> Array[Actor]:
+	var commandables: Array[Actor] = []
 	var spawn_count: int = resolve_count()
 	for packed: PackedScene in entity_scenes:
 		if packed == null:
@@ -275,7 +275,7 @@ func _instantiate_all(
 			# Before any routing, so the label is on the node no matter which branch places it —
 			# and before it enters the tree, so anything reacting to the group sees it complete.
 			_apply_spawn_groups(inst)
-			if inst is Commandable:
+			if inst is Actor:
 				commandables.append(inst)
 			elif inst is Entity:
 				a_map.add_entity(inst as Entity, a_anchor_xz, a_commander)
@@ -309,8 +309,8 @@ func _apply_spawn_groups(a_node: Node) -> void:
 ## truck's cage, a Compound — exactly as readily as an open one. That is how a
 ## scenario starts a truck already carrying prisoners.
 func _garrison_all(
-	a_commandables: Array[Commandable],
-	a_hosts: Array[Commandable],
+	a_commandables: Array[Actor],
+	a_hosts: Array[Actor],
 	a_map: Map,
 	a_commander: Commander
 ) -> void:
@@ -319,9 +319,9 @@ func _garrison_all(
 		assert(false, "No garrison hosts available")
 		return
 	for i: int in a_commandables.size():
-		var unit: Commandable = a_commandables[i]
+		var unit: Actor = a_commandables[i]
 		unit.initialize(a_map, a_commander)
-		var host: Commandable = a_hosts[i % a_hosts.size()]
+		var host: Actor = a_hosts[i % a_hosts.size()]
 		if not host.garrison.has_room_for(unit):
 			push_error(
 				(
@@ -336,9 +336,9 @@ func _garrison_all(
 
 ## The subset of `commandables` that carry a Garrison component — the runtime hosts
 ## handed down to a nested EventSpawnEntities child (see _execute_with_hosts).
-func _garrisonable(a_commandables: Array[Commandable]) -> Array[Commandable]:
-	var result: Array[Commandable] = []
-	for c: Commandable in a_commandables:
+func _garrisonable(a_commandables: Array[Actor]) -> Array[Actor]:
+	var result: Array[Actor] = []
+	for c: Actor in a_commandables:
 		if c.garrison != null:
 			result.append(c)
 	return result
@@ -346,9 +346,9 @@ func _garrisonable(a_commandables: Array[Commandable]) -> Array[Commandable]:
 
 ## `commandables` minus any that garrisoning has since removed from the tree —
 ## EventIssueCommand.issue_commands_to expects live, in-tree units.
-func _exclude_garrisoned(a_commandables: Array[Commandable]) -> Array[Commandable]:
-	var result: Array[Commandable] = []
-	for unit: Commandable in a_commandables:
+func _exclude_garrisoned(a_commandables: Array[Actor]) -> Array[Actor]:
+	var result: Array[Actor] = []
+	for unit: Actor in a_commandables:
 		if unit.is_inside_tree():
 			result.append(unit)
 	return result

@@ -2,9 +2,9 @@ extends GutTest
 
 ## Regression test: CommandMessage.deep_copy() must not crash when `target` has been freed.
 ##
-## rally_commands (Commandable.rally_commands) are long-lived templates — a rallied
+## rally_commands (Actor.rally_commands) are long-lived templates — a rallied
 ## MoveCommand's target can die and be FREED long before the template is ever duplicated
-## (the observed crash path: Garrison.evacuate() -> Commandable.rally_chain() ->
+## (the observed crash path: Garrison.evacuate() -> Actor.rally_chain() ->
 ## MoveCommand.duplicated() -> CommandMessage.deep_copy(), when a garrison host that still
 ## holds a stale rally template dies and evacuates its occupants). Passing an already-freed
 ## Object into CommandMessage.new()'s typed `a_target: Entity` parameter crashes outright
@@ -18,7 +18,7 @@ extends GutTest
 
 
 func test_deep_copy_scrubs_a_freed_target_instead_of_crashing() -> void:
-	var target: Commandable = FakePieces.unit()
+	var target: Actor = FakePieces.unit()
 	add_child(target)  # freed explicitly below — not autofree, which would free it too late
 	var message := CommandMessage.new(null, target, null, Vector3(3, 0, 4))
 
@@ -34,7 +34,7 @@ func test_deep_copy_scrubs_a_freed_target_instead_of_crashing() -> void:
 
 
 func test_deep_copy_still_carries_a_live_target() -> void:
-	var target: Commandable = FakePieces.unit()
+	var target: Actor = FakePieces.unit()
 	add_child_autofree(target)
 	var message := CommandMessage.new(null, target)
 
@@ -67,7 +67,7 @@ func test_deep_copy_still_carries_a_live_aggro_shape() -> void:
 ## (the observed path: a transport dies heading for a unit that has just been garrisoned, and
 ## its evacuation reads the rally order aimed at that unit). It is aimed at where it was last.
 func test_a_target_held_off_the_tree_is_aimed_at_where_it_was_last_seen() -> void:
-	var target: Commandable = FakePieces.unit()
+	var target: Actor = FakePieces.unit()
 	add_child_autofree(target)
 	target.global_position = Vector3(5, 0, 6)
 	var message := CommandMessage.new(null, target, null, Vector3(3, 0, 4))
@@ -82,7 +82,7 @@ func test_a_target_held_off_the_tree_is_aimed_at_where_it_was_last_seen() -> voi
 
 
 func test_a_target_never_seen_in_the_tree_is_aimed_at_the_order_position() -> void:
-	var target: Commandable = FakePieces.unit()
+	var target: Actor = FakePieces.unit()
 	autofree(target)
 	var message := CommandMessage.new(null, target, null, Vector3(3, 0, 4))
 	assert_eq(message.position, Vector3(3, 0, 4))

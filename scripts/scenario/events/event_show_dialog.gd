@@ -70,5 +70,5 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	if a_manager.dialog_requested.get_connections().is_empty():
 		dialog.acknowledge()
 		return
-	a_manager.dialog_requested.emit(dialog)
+	a_manager.raise_dialog(dialog)
 #endregion

@@ -32,8 +32,8 @@ func _strain() -> void:
 	assert_true(_commander.is_infrastructure_strained(), "the fixture is actually strained")
 
 
-func _piece(a_options: Dictionary) -> Commandable:
-	var piece: Commandable = FakePieces.make(a_options)
+func _piece(a_options: Dictionary) -> Actor:
+	var piece: Actor = FakePieces.make(a_options)
 	add_child_autofree(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true
@@ -42,7 +42,7 @@ func _piece(a_options: Dictionary) -> Commandable:
 
 
 ## `a_piece` with a one-charge pool granting POOLED_ABILITY bolted on.
-func _with_pool(a_piece: Commandable) -> Abilities:
+func _with_pool(a_piece: Actor) -> Abilities:
 	var pool := Abilities.new()
 	pool.name = "Abilities"
 	pool.groups = [{"max_charges": 1, "cooldown_ticks": 100, "grants": [POOLED_ABILITY]}]
@@ -68,7 +68,7 @@ func test_a_unit_is_never_unpowered() -> void:
 
 func test_an_unowned_structure_is_never_unpowered() -> void:
 	# Neutral map furniture has no commander to be short of anything.
-	var turret: Commandable = FakePieces.make(TURRET_SCENE)
+	var turret: Actor = FakePieces.make(TURRET_SCENE)
 	add_child_autofree(turret)
 	turret.set_physics_process(false)
 	assert_false(turret.is_unpowered())

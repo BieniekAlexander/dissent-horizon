@@ -24,7 +24,7 @@ class StubBot:
 	var harmless: Array = []
 	const PRICE: int = 100
 
-	func matchup(a_attacker: Commandable, _a_target: Commandable) -> float:
+	func matchup(a_attacker: Actor, _a_target: Actor) -> float:
 		return 0.0 if harmless.has(a_attacker) else 1.0
 
 	func unit_cost(_a_unit_type) -> int:
@@ -32,7 +32,7 @@ class StubBot:
 
 	func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 		return pieces.filter(
-			func(p: Commandable) -> bool:
+			func(p: Actor) -> bool:
 				return (
 					p.commander_id != id
 					and p.commander_id != 0
@@ -42,7 +42,7 @@ class StubBot:
 
 
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make(a_is_structure: bool, a_stealthed: bool) -> StubPiece:
 		var piece := StubPiece.new()
@@ -55,8 +55,8 @@ class StubPiece:
 			node.name = pair[0]
 			piece.add_child(node)
 		if a_is_structure:
-			var structure := Structure.new()
-			structure.name = "Structure"
+			var structure := Fixture.new()
+			structure.name = "Fixture"
 			piece.add_child(structure)
 		if a_stealthed:
 			var stealth := Stealth.new()
@@ -144,7 +144,7 @@ func _reveal(a_at: Vector3, a_radius: float) -> void:
 
 func _piece(
 	a_owner: Commander, a_is_structure: bool, a_at: Vector3, a_stealthed: bool = false
-) -> Commandable:
+) -> Actor:
 	var piece: StubPiece = StubPiece.make(a_is_structure, a_stealthed)
 	a_owner.add_child(piece)
 	piece.ownership.commander = a_owner
@@ -157,13 +157,13 @@ func _piece(
 	return piece
 
 
-func _own_structure(a_at: Vector3, a_hp: float = 100.0) -> Commandable:
-	var s: Commandable = _piece(_bot, true, a_at)
+func _own_structure(a_at: Vector3, a_hp: float = 100.0) -> Actor:
+	var s: Actor = _piece(_bot, true, a_at)
 	s.defense.hp = a_hp
 	return s
 
 
-func _enemy_unit(a_at: Vector3, a_stealthed: bool = false) -> Commandable:
+func _enemy_unit(a_at: Vector3, a_stealthed: bool = false) -> Actor:
 	return _piece(_foe, false, a_at, a_stealthed)
 
 
@@ -186,8 +186,8 @@ func test_a_visible_enemy_beside_a_structure_is_a_threat() -> void:
 	# which starts at INF. TODO: whether an unhurt structure with an enemy beside it is "most
 	# threatened" is one question with two answers today; the sanctions' DEFEND zone keys off
 	# this one, so it opens only once something has taken damage.
-	var home: Commandable = _own_structure(Vector3.ZERO, 80.0)
-	var raider: Commandable = _enemy_unit(Vector3(5.0, 0.0, 0.0))
+	var home: Actor = _own_structure(Vector3.ZERO, 80.0)
+	var raider: Actor = _enemy_unit(Vector3(5.0, 0.0, 0.0))
 	_reveal(Vector3.ZERO, 10.0)
 	assert_true(_bot.is_base_under_threat(RADIUS))
 	assert_eq(_bot.get_enemies_threatening_base(RADIUS), [raider])
@@ -212,7 +212,7 @@ func test_a_visible_enemy_out_of_the_radius_is_no_threat() -> void:
 func test_an_enemy_that_cannot_hurt_the_structure_is_no_threat() -> void:
 	# An unarmed builder, a recon drone over an extractor: standing beside a structure is not
 	# threatening it, and a threat that cannot be ended held the base "threatened" for good.
-	var home: Commandable = _own_structure(Vector3.ZERO, 80.0)
+	var home: Actor = _own_structure(Vector3.ZERO, 80.0)
 	_bot.harmless.append(_enemy_unit(Vector3(5.0, 0.0, 0.0)))
 	_reveal(Vector3.ZERO, 10.0)
 	assert_false(_bot.is_base_under_threat(RADIUS))
@@ -222,8 +222,8 @@ func test_an_enemy_that_cannot_hurt_the_structure_is_no_threat() -> void:
 
 
 func test_a_threat_is_valued_at_its_cost_times_its_matchup() -> void:
-	var home: Commandable = _own_structure(Vector3.ZERO)
-	var raider: Commandable = _enemy_unit(Vector3(5.0, 0.0, 0.0))
+	var home: Actor = _own_structure(Vector3.ZERO)
+	var raider: Actor = _enemy_unit(Vector3(5.0, 0.0, 0.0))
 	_reveal(Vector3.ZERO, 10.0)
 	assert_eq(
 		_bot.base_threats(RADIUS),
@@ -232,7 +232,7 @@ func test_a_threat_is_valued_at_its_cost_times_its_matchup() -> void:
 
 
 func test_a_command_centre_is_threatened_from_further_off_when_asked() -> void:
-	var centre: Commandable = _own_structure(Vector3.ZERO)
+	var centre: Actor = _own_structure(Vector3.ZERO)
 	centre.id = Deployment.command_centre_ids()[0]
 	_enemy_unit(Vector3(15.0, 0.0, 0.0))
 	_reveal(Vector3.ZERO, 20.0)
@@ -243,7 +243,7 @@ func test_a_command_centre_is_threatened_from_further_off_when_asked() -> void:
 ## The real matchup, not the stub's: a piece with no weapon and no weight reads 0.
 func test_an_unarmed_piece_has_no_matchup() -> void:
 	var real: Bot = autofree(Bot.new()) as Bot
-	var builder: Commandable = _enemy_unit(Vector3(5.0, 0.0, 0.0))
+	var builder: Actor = _enemy_unit(Vector3(5.0, 0.0, 0.0))
 	assert_eq(real.matchup(builder, _own_structure(Vector3.ZERO)), 0.0)
 
 
@@ -259,8 +259,8 @@ func test_a_neutral_piece_is_never_a_threat() -> void:
 
 
 func test_the_most_threatened_structure_is_the_most_hurt_one_with_a_visible_enemy_near() -> void:
-	var whole: Commandable = _own_structure(Vector3.ZERO, 100.0)
-	var hurt: Commandable = _own_structure(Vector3(40.0, 0.0, 0.0), 20.0)
+	var whole: Actor = _own_structure(Vector3.ZERO, 100.0)
+	var hurt: Actor = _own_structure(Vector3(40.0, 0.0, 0.0), 20.0)
 	_enemy_unit(Vector3(5.0, 0.0, 0.0))
 	_enemy_unit(Vector3(45.0, 0.0, 0.0))
 	_reveal(Vector3.ZERO, 60.0)
@@ -271,7 +271,7 @@ func test_the_most_threatened_structure_is_the_most_hurt_one_with_a_visible_enem
 func test_a_hurt_structure_whose_attacker_is_fogged_is_not_the_most_threatened() -> void:
 	# Its enemy is the one the bot cannot see, so the barely-scratched structure under a
 	# VISIBLE enemy is the answer — and the badly hurt one is not read as under attack at all.
-	var scratched: Commandable = _own_structure(Vector3.ZERO, 90.0)
+	var scratched: Actor = _own_structure(Vector3.ZERO, 90.0)
 	_own_structure(Vector3(40.0, 0.0, 0.0), 20.0)
 	_enemy_unit(Vector3(5.0, 0.0, 0.0))
 	_enemy_unit(Vector3(45.0, 0.0, 0.0))
@@ -282,6 +282,6 @@ func test_a_hurt_structure_whose_attacker_is_fogged_is_not_the_most_threatened()
 func test_threats_near_two_structures_are_counted_once() -> void:
 	_own_structure(Vector3.ZERO)
 	_own_structure(Vector3(10.0, 0.0, 0.0))
-	var raider: Commandable = _enemy_unit(Vector3(5.0, 0.0, 0.0))
+	var raider: Actor = _enemy_unit(Vector3(5.0, 0.0, 0.0))
 	_reveal(Vector3.ZERO, 20.0)
 	assert_eq(_bot.get_enemies_threatening_base(RADIUS), [raider])

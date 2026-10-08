@@ -1,7 +1,7 @@
 class_name HealthBarGradient
 
 ## Single source of truth for HP-bar fill color: green at full health, through
-## yellow at half, to red as it empties. Sampled by Commandable._on_hp_changed and
+## yellow at half, to red as it empties. Sampled by Actor._on_hp_changed and
 ## applied as the fill Sprite3D's `modulate`, which is why every HPBarFill texture in
 ## the entity scenes is WHITE — the color lives here, not in the scenes, so changing
 ## the ramp takes effect project-wide without touching a .tscn.

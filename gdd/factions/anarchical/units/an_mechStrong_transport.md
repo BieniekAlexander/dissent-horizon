@@ -2,6 +2,9 @@
 kind: Entity
 title: War Wagon
 scene: res://scenes/entities/units/an/an_mechStrong_transport.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 750}
   time: 20

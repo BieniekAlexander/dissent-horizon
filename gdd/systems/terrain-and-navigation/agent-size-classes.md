@@ -126,7 +126,7 @@ keep working against the full passable surface.
   footprint).
 - `NavManager.layer_for(size)` = `1 << (size-1)` (SMALL→bit0 … MASSIVE→bit3); the base
   un-eroded region uses a reserved bit (`1<<30`) no agent selects.
-- Called from `Commandable._on_commander_changed` (the first point where `map` is set
+- Called from `Actor._on_commander_changed` (the first point where `map` is set
   for both dynamically-spawned and scene-placed units), next to `enable_avoidance()`,
   passing `bounding_radius(MOVEMENT_OBSTRUCTION)` — the MovementBody shape radius.
 - `Movement.nav_agent_class` is the resolved value (a plain var, for introspection),
@@ -152,6 +152,15 @@ agent stopped as close as its mesh allowed and re-resolved the same cell every t
 candidates are now ranked by distance and the first one a path on the unit's own class
 layer actually reaches is taken — one query per candidate, memoized for the life of the
 command. When none is reachable it falls back to the nearest, and the unit waits.
+
+**An approach cell is EDGE-adjacent, never a diagonal corner** (`SU.nearest_footprint_adjacent_cell`).
+A cell touching a rectangular footprint only at a corner shares a single grid vertex with it,
+and a navmesh baked from passable cells does not connect through a vertex — the two cells share
+no walkable edge. Sent there, the agent reports the corner unreachable, stops as close as it can
+get, and may land short of every "close enough" test waiting on it (garrison release, Build's
+overlay routing, `CommandReceiver._resolve_movement_target`). `unit_is_close_to_footprint` still
+counts the diagonals: a unit already standing at a corner IS close. Reachability is the
+destination's question, not the range check's.
 
 **Bots keep their bases passable for the widest class.** Rules 1 and 2 of `NavPlacement`
 ask about passable cells, which is the SMALL unit's view: a one-cell gap is a route to it.

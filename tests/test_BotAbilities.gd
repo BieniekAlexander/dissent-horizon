@@ -29,7 +29,7 @@ class FakeBot:
 
 	func visible_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 		return enemies.filter(
-			func(e: Commandable) -> bool:
+			func(e: Actor) -> bool:
 				return e.global_position.distance_to(a_position) <= a_radius
 		)
 
@@ -52,11 +52,11 @@ class RecordingActuator:
 	var casts: Array = []  # [{"caster", "id", "at"}]
 	var spots: Array = []  # [{"spotter", "at"}]
 
-	func use_ability(a_caster: Commandable, a_ability_id: StringName, a_world_pos: Vector3) -> bool:
+	func use_ability(a_caster: Actor, a_ability_id: StringName, a_world_pos: Vector3) -> bool:
 		casts.append({"caster": a_caster, "id": a_ability_id, "at": a_world_pos})
 		return true
 
-	func spot(a_spotter: Commandable, a_world_pos: Vector3) -> bool:
+	func spot(a_spotter: Actor, a_world_pos: Vector3) -> bool:
 		spots.append({"spotter": a_spotter, "at": a_world_pos})
 		# A real order leaves the spotter holding a Spot; the release test reads that.
 		a_spotter.update_commands(Spot.new(CommandMessage.new(null, null, null, a_world_pos)))
@@ -86,8 +86,8 @@ func after_each() -> void:
 	AbilityCatalog._blast_radius_cache.erase(STRIKE)
 
 
-func _caster(a_grants: Array, a_at: Vector3 = Vector3.ZERO) -> Commandable:
-	var piece: Commandable = FakePieces.unit({"abilities": [{"grants": a_grants}]})
+func _caster(a_grants: Array, a_at: Vector3 = Vector3.ZERO) -> Actor:
+	var piece: Actor = FakePieces.unit({"abilities": [{"grants": a_grants}]})
 	add_child_autofree(piece)
 	piece.ownership.commander = _bot
 	piece.global_position = a_at
@@ -95,16 +95,16 @@ func _caster(a_grants: Array, a_at: Vector3 = Vector3.ZERO) -> Commandable:
 	return piece
 
 
-func _enemy(a_at: Vector3) -> Commandable:
-	var piece: Commandable = FakePieces.unit({})
+func _enemy(a_at: Vector3) -> Actor:
+	var piece: Actor = FakePieces.unit({})
 	add_child_autofree(piece)
 	piece.global_position = a_at
 	_bot.enemies.append(piece)
 	return piece
 
 
-func _loaded_gun() -> Commandable:
-	var gun: Commandable = FakePieces.structure({"abilities": [{"grants": [&"fake_gun"]}]})
+func _loaded_gun() -> Actor:
+	var gun: Actor = FakePieces.structure({"abilities": [{"grants": [&"fake_gun"]}]})
 	add_child_autofree(gun)
 	gun.ownership.commander = _bot
 	_bot.structures.append(gun)
@@ -115,7 +115,7 @@ func _loaded_gun() -> Commandable:
 
 
 func test_a_clump_of_enemies_in_reach_is_struck_at_its_centre() -> void:
-	var caster: Commandable = _caster([STRIKE])
+	var caster: Actor = _caster([STRIKE])
 	_enemy(Vector3(3.0, 0.0, 0.0))
 	_enemy(Vector3(4.0, 0.0, 0.0))
 	_abilities.tick()
@@ -166,7 +166,7 @@ func test_a_passive_ability_is_never_cast() -> void:
 
 
 func test_a_unit_on_an_errand_keeps_to_its_errand() -> void:
-	var caster: Commandable = _caster([STRIKE])
+	var caster: Actor = _caster([STRIKE])
 	_abilities.claims.claim(caster, &"economy", BotClaims.Priority.ERRAND)
 	_enemy(Vector3(3.0, 0.0, 0.0))
 	_enemy(Vector3(4.0, 0.0, 0.0))
@@ -175,7 +175,7 @@ func test_a_unit_on_an_errand_keeps_to_its_errand() -> void:
 
 
 func test_a_unit_mid_fight_still_throws() -> void:
-	var caster: Commandable = _caster([STRIKE])
+	var caster: Actor = _caster([STRIKE])
 	_abilities.claims.claim(caster, BotTargeting.CLAIM_OWNER, BotClaims.Priority.COMBAT)
 	_enemy(Vector3(3.0, 0.0, 0.0))
 	_enemy(Vector3(4.0, 0.0, 0.0))
@@ -188,7 +188,7 @@ func test_a_unit_mid_fight_still_throws() -> void:
 
 func test_a_loaded_gun_sends_a_spotter_to_the_believed_structure() -> void:
 	_loaded_gun()
-	var spotter: Commandable = _caster([SPOT])
+	var spotter: Actor = _caster([SPOT])
 	_bot.believed_at = Vector3(80.0, 0.0, 0.0)
 	_abilities.tick()
 	assert_eq(_act.spots.size(), 1)
@@ -224,7 +224,7 @@ func test_with_nothing_believed_the_spotter_stays() -> void:
 
 func test_a_spotter_whose_solution_ended_is_given_back() -> void:
 	_loaded_gun()
-	var spotter: Commandable = _caster([SPOT])
+	var spotter: Actor = _caster([SPOT])
 	_bot.believed_at = Vector3(80.0, 0.0, 0.0)
 	_abilities.tick()
 	spotter.update_commands(null)  # the gun fired, or it was re-ordered

@@ -367,7 +367,7 @@ unmodified press is not idle-first.
 | *none*              | cancel the purchase (for a collapsed run, the LAST entry of it) | *leaks* | **select the PENDING unit** — the phantom this purchase will produce |
 | `modifier_additive` | ignored                                                          | *leaks* | add it to the pending selection |
 | `modifier_narrow`   | ignored                                                          | *leaks* | *unused* |
-| `modifier_broaden`  | *unused*                                                         | *leaks* | select every pending purchase of the same piece, across the whole queue |
+| `modifier_broaden`  | **cancel every purchase of the same piece the rail shows** — standing ones too; the whole queue in the global view, the selection's share in the scoped one (`ProductionRail.cancel_all_of_type`) | *leaks* | select every pending purchase of the same piece, across the whole queue |
 
 The panel's "clear queued" / "clear standing" buttons are plain `Button`s: LMB only, no
 modifier read anywhere. Each cancels what its column shows — see
@@ -431,11 +431,9 @@ selected chip needs both a queue and a right click — and a border bug is invis
 that asks the mechanism rather than the pixels. Crop the chip using its own
 `get_global_rect()`; a guessed crop proves nothing.
 
-> **TODO — bulk cancel.** `modifier_broaden` + LMB should cancel every queued purchase of that
-> type across the selection: two barracks with five recruits between them, one press. Not
-> built. It wants the same "which entries match this card" query
-> (`ProductionRail._pending_of_type`) that the broaden-select above already uses, so it is a
-> small step from here.
+**Bulk cancel.** `modifier_broaden` + LMB cancels every purchase of the card's piece that the
+rail shows: two barracks with five recruits between them, one press. It reaches what the clear
+buttons reach — never a purchase the player cannot see in that copy of the rail.
 
 **The info panel's production cards want the same treatment**, which is why Context 6 below
 carries no separate specification for them: they are the same `CommandableCard` bound the same
@@ -470,7 +468,7 @@ nothing, so the orders simply wait; a unit that never comes out never acts on th
 release, **its own orders win over the host's rally** — the same precedence a trained unit
 gets between a player order and its producer's rally.
 
-Why that needed no new storage: the occupant is a real `Commandable` with a real
+Why that needed no new storage: the occupant is a real `Actor` with a real
 `CommandReceiver`, which survives being garrisoned. Where a pending unit needed a slot on its
 purchase, this one already had somewhere to put orders.
 
@@ -533,7 +531,8 @@ Two things worth naming:
   `_unhandled_input`, so the Shift latch can miss it. A control-group press is a keyboard
   press like a selector's and reads them the same way.
 
-An empty group still clears the selection on a bare press — pressing a group is a statement
+A second press of the same group within the double-click window centres the camera on it; a
+single press never moves the camera. An empty group still clears the selection on a bare press — pressing a group is a statement
 about what you want selected, and "nothing, yet" is an answer. Membership is pruned on READ
 rather than watched for: a group is only consulted on a keypress, so hooking every member's
 `tree_exiting` would be a lot of bookkeeping for a filter.

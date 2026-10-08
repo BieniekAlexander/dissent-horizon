@@ -13,7 +13,7 @@ extends Node
 ## The extractor PIECE working this site, or null while the site is open. The single source
 ## of truth for "is this site already worked" — EnergyExtractor's placement check forbids a
 ## second, and the extractor clears it when it goes so the site becomes workable again.
-var extractor: Commandable = null:
+var extractor: Actor = null:
 	set(value):
 		extractor = value
 		# Hide the site's model while an extractor covers it (the extractor's own model shows

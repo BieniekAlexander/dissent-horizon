@@ -1,286 +1,92 @@
 # `get_node_or_null` Audit
 
-25 occurrences across 10 files. Each entry shows the call, what happens if it returns null, and a verdict.
+Re-derived 2026-10-08 against the composed tiers of
+[entity-scene-hierarchy](entity-scene-hierarchy.md) §What a piece is entitled to assume. A site's
+verdict now asks one question: **does every piece shape that reaches this code get the node from
+the composition?** If so, `get_node_or_null` is hiding a scene-setup bug and the node could be
+required; if not, null is a real state.
+
+Who reaches the code decides it, not the component:
+
+- `entity.gd` runs for every piece shape — an Actor, a feature (an uncommandable
+  fixture on an `Entity` root), a bodiless piece, an emission — and for out-of-tree build
+  previews, whose `@onready` fields never resolve. Only `Ownership` is guaranteed to all of them.
+- `actor.gd` runs for Actors only, which are guaranteed `Hurtbox`, `AggroRangeGround` /
+  `AggroRangeAir`, `Ownership`, `Defense`, `Veterancy`, `Selectable`, `HPBar`,
+  `SelectionIndicator`, `CommandLineIndicator`, `StatusVisuals`, `DebugLabel` and
+  `TargetIndicator`, plus `Orders` unless the doc says `commandable: false`; a MOBILE Actor adds `NavigationAgent`, `MovementBody`, `Locomotion`,
+  `AltitudeIndicator` and `AvoidanceObstacle`.
+- A test fake (`tests/_fake_pieces.gd`) carries only the components a test names, so turning a
+  guaranteed site into `$Node` means the fake gains that node too.
 
 **Verdicts:**
-- ✅ **Legitimate optional** — null is a valid runtime state; `get_node_or_null` is correct here
-- ⚠️ **Borderline** — null is handled gracefully but the path being set and missing is probably a bug
-- 🚨 **Likely should be required** — null silently disables behaviour that should always be present
-
----
+- ✅ **Optional** — some shape that reaches the code lacks the node; null is a real state.
+- ⚠️ **Guaranteed** — every composed shape that reaches the code has it; `$Node` would do, and a
+  null means a hand-edited scene or a fake missing it.
+- 🚨 **Wrong** — the lookup can silently disable something that should always work.
 
 ## `scripts/entities/entity.gd`
 
-### `locomotion_component` / `movement`
-```gdscript
-@onready var locomotion_component: Locomotion = get_node_or_null("Locomotion") as Locomotion
-@onready var movement_component: Movement = locomotion_component as Movement
-```
-**Used for:** Motion by any strategy (`locomotion`, `can_move()`); `movement` is the live navigated one (nav agent, modes, terrain snapping), and its callers gate on `movement != null`.  
-**If null:** Entity is treated as stationary — correct for structures and items; an emission has a phased `Locomotion` and no `movement`.  
-**Verdict:** ✅ Legitimate optional. Explicitly documented: "Null for entities that don't (structures, items)."
+| Line | Node | Who has it | Verdict |
+|---|---|---|---|
+| 116 | `Defense` | Actors | ✅ a feature or emission takes no damage |
+| 119 | `Aerial` | `aerial:` in the doc | ✅ |
+| 123 | `Locomotion` | mobile Actors, emissions | ✅ null is "cannot move" (`can_move()`) |
+| 159 | `Stealth` | `stealth:` in the doc | ✅ |
+| 164 | `DetectionRange` | detectors | ✅ |
+| 166 | `VisionRange` | sighted Actors and bodiless pieces | ✅ features and emissions see nothing |
+| 171 | `Loadout` | armed pieces | ✅ optional for every shape |
+| 177 | `Selectable` | Actors and features | ✅ bodiless pieces and emissions are never selected |
+| 186 | `Hurtbox` | Actors and features | ✅ bodiless pieces and emissions are untargetable |
+| 207–208 | `AggroRangeGround` / `AggroRangeAir` | Actors | ✅ at this level; guaranteed for every Actor |
+| 265, 293, 320, 629 | `Fixture` | fixtures | ✅ its presence IS the fixture question |
+| 272, 279, 321 | `Locomotion` as `Movement` | mobile Actors | ✅ a navigated mover is the question |
+| 460–462 | `Body`, then `MovementBody` | `Body`: the Recon Drone only; `MovementBody`: mobile Actors | ✅ a fixture measures its footprint instead |
+| 503, 514, 542 | `Hurtbox/HurtboxShape` | every piece with a `Hurtbox` | ✅ guarded on the hurtbox already; the shape node ships in `hurtbox.tscn` |
+| 873, 892 | `Ownership` | every composed piece and emission | ⚠️ called on out-of-tree previews, where `get_node` works and `@onready` does not, so `get_node("Ownership")` would do |
+| 881 | `MeshVisual` | pieces that draw a model (the `has_mesh_visual` waiver removes it) | ✅ |
+| 1046 | `ScenarioTriggerManager` on the scene root | scenarios | ✅ a piece can be in a test with no scenario |
 
----
+## `scripts/entities/actor.gd`
 
-### Line 67 — `vision_range_shape`
-```gdscript
-@onready var vision_range_shape: CollisionShape3D = get_node_or_null("VisionRange")
-```
-**Used for:** `get_aggro_near_position()` and `_get_vision_range_attack()`, both return early if null.  
-**If null:** Entity never initiates aggro from VisionRange — fine for workers, projectiles.  
-**Verdict:** ✅ Legitimate optional.
+| Line | Node | Who has it | Verdict |
+|---|---|---|---|
+| 30 | `AvoidanceObstacle` | mobile Actors | ✅ a structure has none |
+| 32 | `Production` | producers | ✅ |
+| 57 | `EnergyExtractor` | extractors | ✅ |
+| 59 | `DominionGenerator` | dominion sources | ✅ |
+| 61 | `Garrison` | hosts | ✅ |
+| 66 | `DockingBay` | airfields | ✅ |
+| 68 | `Docking` | `docking: true` | ✅ |
+| 69 | `Interactor` | pieces with interactions | ✅ |
+| 70 | `Liberator` | liberators | ✅ |
+| 72 | `Deployable` | deployable units | ✅ |
+| 106 | `DebugLabel` | every Actor | ⚠️ guaranteed by the composition |
+| 371 | `TargetIndicator` | every Actor | ⚠️ guaranteed by the composition |
+| 674, 1297 | `MeshVisual` | pieces that draw a model | ✅ waivable |
 
----
+## Other sites
 
-### Line 97 — `collider`
-```gdscript
-@onready var collider: CollisionShape3D = get_node_or_null("Body")
-```
-**Used for:** Declared but never directly read anywhere in the codebase. Note that `collision_radius` uses `$Body.shape` directly (not this field), so a missing `Body` node would crash `collision_radius` regardless.  
-**If null:** `collider` silently holds null with no caller consequences — but only because no caller reads it. `$Body` is implicitly required by `collision_radius` and by `CharacterBody3D` physics, so the node is always present in practice.  
-**Verdict:** 🚨 Likely should be required. `Body` is a prerequisite for the entity to function at all. Either assert it exists or use `$Body` directly and drop this field.
-
----
-
-### `aggro_shape_ground` / `aggro_shape_air`
-```gdscript
-@onready var aggro_shape_ground: CollisionShape3D = get_node_or_null("AggroRangeGround")
-@onready var aggro_shape_air: CollisionShape3D = get_node_or_null("AggroRangeAir")
-```
-**Used for:** `aggro_shapes()` and every aggro scan, which skip a null node or a null shape.  
-**If null:** Entity never auto-aggros on that layer. Correct for entities off `commandable.tscn`.  
-**Verdict:** ✅ Legitimate optional.
-
----
-
-### Line 104 — `weapon_inventory`
-```gdscript
-@onready var weapon_inventory: Loadout = get_node_or_null("Loadout") as Loadout
-```
-**Used for:** All weapon queries (`weapon_for_target`, `any_weapon_can_target`).  
-**If null:** Entity is unarmed. Correct for technicians, non-combat structures.  
-**Verdict:** ✅ Legitimate optional. Documented: "Null for entities that carry no weapons."
-
----
-
-### Line 179 — `own` in `_apply_team_tint()`
-```gdscript
-var own := get_node_or_null("Ownership") as Ownership
-var id: int = own.commander_id if own != null else 0
-```
-**Used for:** Reading `commander_id` to pick team colour. Falls back to id 0 (white) if null.  
-**If null:** Entity rendered in neutral colour — intentional for out-of-tree build previews whose `@onready` nodes never resolve.  
-**Verdict:** ✅ Legitimate optional. Comment explains the out-of-tree preview case explicitly.
-
----
-
-### Line 181 — `mesh_visual` in `_apply_team_tint()`
-```gdscript
-var mesh_visual := get_node_or_null("MeshVisual") as MeshVisual
-if mesh_visual != null:
-    mesh_visual.set_team_color(team_color())
-```
-**Used for:** Applying team tint. Null-checked before use.  
-**If null:** No tint applied — silent, correct for entities with no model (projectiles, items).  
-**Verdict:** ✅ Legitimate optional. Same out-of-tree preview rationale, plus genuinely model-less entity types exist.  
-**Note (2026-08-24):** this branch used to fall back to a `Sprite` child's `modulate`. Every unit and structure is drawn by `MeshVisual` now, so the fallback was removed — see CLAUDE.md §Condition visuals.
-
----
-
-### Line 191 — `own` in `configure_preview_ownership()`
-```gdscript
-var own := get_node_or_null("Ownership") as Ownership
-if own != null:
-    own.commander = a_commander
-```
-**Used for:** Assigning commander to a build preview instance before it's added to the tree.  
-**If null:** Commander not assigned — would be a silent failure if a preview somehow lacks Ownership.  
-**Verdict:** ✅ Legitimate optional. Called on out-of-tree instances; `@onready` can't be used here. But all entity scenes should have Ownership, so a null here would in practice be a scene-setup bug. Could add a `push_warning` on null.
-
----
-
-## `scripts/entities/commandable.gd`
-
-### Line 21 — `production`
-```gdscript
-@onready var production: Production = get_node_or_null("Production") as Production
-```
-**Used for:** Training units, rally points, train-bar rendering. All callers gate on `production != null`.  
-**If null:** Entity cannot train units — correct for units and non-training structures.  
-**Verdict:** ✅ Legitimate optional.
-
----
-
-### Line 23 — `energy_extractor`
-```gdscript
-@onready var energy_extractor: EnergyExtractor = get_node_or_null("EnergyExtractor") as EnergyExtractor
-```
-**Used for:** `energy_extractor.tick()` in `_update_state`. Gated on `energy_extractor != null`.  
-**If null:** Entity doesn't extract — correct for everything except Extractor.  
-**Verdict:** ✅ Legitimate optional.
-
----
-
-### Line 24 — `dominion_generator`
-```gdscript
-@onready var dominion_generator: DominionGenerator = get_node_or_null("DominionGenerator") as DominionGenerator
-```
-**Used for:** `dominion_generator.tick()` in `_update_state`. Gated on `dominion_generator != null`.  
-**If null:** Entity doesn't generate dominion — correct for everything except Outpost.  
-**Verdict:** ✅ Legitimate optional.
-
----
-
-### Line 41 — `_debug_label`
-```gdscript
-@onready var _debug_label: Label3D = get_node_or_null("DebugLabel") as Label3D
-```
-**Used for:** Showing active command name while the debug view is up (`DebugMode.is_active()`). Gated on `_debug_label != null`.  
-**If null:** No debug overlay. Expected for all production entity scenes.  
-**Verdict:** ✅ Legitimate optional.
-
----
-
-### Line 197 — `sprite` in `_process()`
-```gdscript
-var sprite: Sprite3D = get_node_or_null("Sprite") as Sprite3D
-```
-**Used for:** Flipping sprite on movement direction; modulating alpha based on `build_progress`. Gated on `sprite != null` at each use-site.  
-**If null:** No sprite animation — silent. Called every frame on all Commandables.  
-**Verdict:** ✅ Legitimate optional. Commandable is the base class for both units (have sprites) and some structures (may not). Fetching it per-frame instead of caching as `@onready` is worth noting as a minor performance concern, but the null-handling logic is correct.
-
----
-
-## `scripts/entities/components/movement.gd`
-
-### Line 36 — `_nav_agent`
-```gdscript
-if not nav_agent_path.is_empty():
-    _nav_agent = get_node_or_null(nav_agent_path) as NavigationAgent3D
-```
-**Used for:** All navigation: target position, velocity, path queries. Every method gates on `_nav_agent != null`.  
-**If null:** Movement component does nothing — entity neither navigates nor moves.  
-**Verdict:** 🚨 Likely should be required. A `Movement` component whose nav agent is missing silently makes the entity unresponsive to all move commands, with no error. If `nav_agent_path` is set but the node doesn't exist, it's a misconfigured scene. Should assert: `assert(_nav_agent != null, "Movement: nav_agent_path '%s' not found" % nav_agent_path)` when the path is non-empty.
-
----
-
-## `scripts/entities/components/production.gd`
-
-### Line 46 — `_train_bar`
-```gdscript
-if not train_bar_path.is_empty():
-    _train_bar = get_node_or_null(train_bar_path) as Node3D
-```
-**Used for:** Visual training progress bar. `update_bar()` returns early if `_train_bar == null`.  
-**If null:** Training still works; only the visual bar is absent.  
-**Verdict:** ⚠️ Borderline. An empty path deliberately suppresses the bar — fine. But if the path is non-empty and the node is missing, training silently proceeds with no visual and no error. Consider asserting when path is set.
-
----
-
-### Line 82 — `fill` in `update_bar()`
-```gdscript
-var fill: Node3D = _train_bar.get_node_or_null("TrainBarFill") as Node3D
-if fill == null: return
-```
-**Used for:** Scaling and positioning the fill portion of the train bar.  
-**If null:** Bar is visible but fill doesn't animate — bar appears permanently full/empty with no error.  
-**Verdict:** 🚨 Likely should be required. This is called on `_train_bar`, which already exists. A TrainBar without a TrainBarFill child is a broken scene. Should use `get_node("TrainBarFill")` or assert, not silently no-op.
-
----
-
-## `scripts/entities/components/selectable.gd`
-
-### Line 41 — `node` (indicator)
-```gdscript
-var node: Node = get_node_or_null(indicator_path)
-if node is Node3D:
-    set_indicator(node)
-elif node != null:
-    push_warning("Selectable.indicator_path points at non-Node3D: %s" % node)
-```
-**Used for:** Visual selection ring/indicator shown when entity is selected.  
-**If null:** Entity is selectable but has no visual indicator — silent, handled.  
-**Verdict:** ✅ Legitimate optional. The warning on wrong-type is good practice.
-
----
-
-## `scripts/entities/components/payload.gd`
-
-### `hit_shape()`
-```gdscript
-return host().get_node_or_null("HitShape") as CollisionShape3D
-```
-**Used for:** `has_blast()` — its presence IS the blast; `apply()` queries it for victims.  
-**If null:** the payload lands on the one piece it was aimed at, which is right for a hitscan emission and nothing else.  
-**Verdict:** ✅ Legitimate optional. The importer removes it exactly from hitscan emissions, and `_ready` reports a scene where `hitscan` and the shape disagree.
-
----
-
-## `scripts/entities/tools/weapon.gd`
-
-### Line 38 — `attack_range_shape`
-```gdscript
-@onready var attack_range_shape: CollisionShape3D = get_node_or_null("AttackRange")
-```
-**Used for:** `SU.is_in_attack_range()` — if null, weapon uses melee XZ distance instead of shape overlap.  
-**If null:** Weapon operates as melee (centre-to-centre distance ≤ `melee_range`).  
-**Verdict:** ✅ Legitimate optional. The docstring explicitly documents the null = melee contract. This is a designed two-mode weapon system.
-
----
-
-## `scripts/interface/command_context_parser.gd`
-
-### Line 126 — `production` in `train_tools_for()`
-```gdscript
-var production := a_entity.get_node_or_null("Production") as Production
-if production == null:
-    return result
-```
-**Used for:** Querying which unit types the entity can train, to build the HUD train menu.  
-**If null:** Returns empty array — correct for units and non-training structures.  
-**Verdict:** ✅ Legitimate optional. This is a discovery/query call on an arbitrary entity; null is the expected result for most entity types.
-
----
-
-## `scripts/interface/commands/capture.gd`
-
-## `scripts/interface/rts_controller.gd`
-
-### Line 191 — `sprite` in build preview setup
-```gdscript
-var sprite := source.get_node_or_null("Sprite") as Sprite3D
-if sprite != null:
-    var ghost := sprite.duplicate() as Sprite3D
-    ghost.modulate.a = BUILD_PREVIEW_ALPHA
-    _build_preview.add_child(ghost)
-```
-**Used for:** Extracting the structure's sprite to create a translucent placement ghost.  
-**If null:** No ghost rendered — the placement cursor is invisible.  
-**Verdict:** ⚠️ Borderline. An invisible build cursor is a bad UX and probably a scene misconfiguration rather than a legitimate state. Every buildable structure should have a `Sprite` child. Consider a `push_warning` when null so it surfaces during development.
-
----
-
-## `scripts/maps/terrain/heightmap_mesh_generator.gd`
-
-### Line 52 — `mi` in `_apply_to_instance()`
-```gdscript
-var mi: MeshInstance3D = get_node_or_null("GeneratedMesh")
-if mi == null:
-    mi = MeshInstance3D.new()
-    mi.name = "GeneratedMesh"
-    add_child(mi)
-mi.mesh = mesh
-```
-**Used for:** Lazy-creating the MeshInstance3D that displays the terrain mesh, or reusing it if it already exists.  
-**If null:** Node is created on the spot.  
-**Verdict:** ✅ Legitimate optional. This is the idiomatic "create-or-update" pattern; `get_node_or_null` is exactly right here.
-
----
+| Site | Node | Verdict |
+|---|---|---|
+| `movement.gd:201` `_nav_agent` | `NavigationAgent`, bound for a GROUNDED mover only | ✅ an aircraft never binds it by design; the node is guaranteed with the `Locomotion`, so a grounded mover missing it is a hand-edited scene. TODO: assert when `nav_agent_path` is set and a grounded mover finds nothing |
+| `movement.gd:747` `Aerial` | `aerial:` in the doc | ✅ |
+| `production.gd:82` `_train_bar` | the bar `train_bar_path` names | ⚠️ an empty path suppresses the bar on purpose; a set path that finds nothing is a broken scene and trains silently |
+| `production.gd:289` `TrainBarFill` | a child of a bar already found | 🚨 a bar without its fill never animates and says nothing; should be `get_node` |
+| `production.gd:387`, `command_context_parser.gd` (×9) | `DockingBay`, `Loadout`, `Abilities`, `Garrison`, `Production` on an arbitrary piece | ✅ discovery questions asked of any piece |
+| `selectable.gd:78` | the node `indicator_path` names | ✅ warns on the wrong type |
+| `payload.gd:48, 57, 152` | `Payload`, `HitShape`, `Locomotion` | ✅ `HitShape` is the blast, absent exactly from hitscan emissions; `Payload.of` is a discovery question |
+| `weapon.gd:107, 116, 532` | `AttackRangeGround` / `AttackRangeAir` / `AttackRange` | ✅ which shape a weapon has says which layers it reaches |
+| `weapon.gd:335` | `turret_visual_path` | ✅ a turret with no visual part to swing |
+| `weapon.gd:557` | `Aerial` on the wielder | ✅ |
+| `rts_controller.gd:4413` | `Sprite` on a placement source | 🚨 the fallback for a ghost with no `MeshVisual`, and no piece has a node named `Sprite`, so it never finds one: a piece that waived its model gets no ghost at all. TODO: remove the branch, or give a model-less piece a ghost some other way |
+| `heightmap_mesh_generator.gd:144` | `GeneratedMesh` | ✅ create-or-update |
 
 ## Summary
 
-| Verdict | Count | Locations |
-|---|---|---|
-| ✅ Legitimate optional | 19 | entity.gd ×6, commandable.gd ×6, selectable.gd, weapon.gd, command_context_parser.gd, capture.gd, rts_controller.gd (partial), heightmap_mesh_generator.gd |
-| ⚠️ Borderline | 2 | production.gd:46 (`_train_bar` path set but node missing), rts_controller.gd:191 (invisible build cursor) |
-| 🚨 Likely should be required | 4 | entity.gd:97 (`Body` always required), movement.gd:36 (nav agent missing = silent no-move), production.gd:82 (`TrainBarFill` in known-present bar), projectile.gd:17 (silent zero-damage projectile) |
+Of the sites above, the ⚠️ ones are guaranteed by the composition and could be required —
+`Ownership` in `entity.gd`, `DebugLabel` and `TargetIndicator` in `actor.gd`, and
+`Production`'s bar when its path is set. The 🚨 ones hide a broken state or are dead:
+`TrainBarFill` and the controller's `Sprite` branch. Everything else is a real optional state of
+some shape that reaches the code. The rest of the project's ~260 calls are discovery questions
+asked of an arbitrary piece (`X.of(piece)`, `has a Garrison?`) and are not listed one by one.

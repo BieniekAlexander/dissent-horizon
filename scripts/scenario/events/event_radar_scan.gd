@@ -41,7 +41,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	if commander == null or map == null:
 		return
 
-	var scout := _SCOUT_SCENE.instantiate() as Commandable
+	var scout := _SCOUT_SCENE.instantiate() as Actor
 	if scout == null:
 		return
 	Lifespan.attach(scout, lifespan_seconds)
@@ -60,7 +60,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 ## The shape is DUPLICATED first: a PackedScene's sub-resources are shared across every
 ## instance of it, so writing the radius in place would resize every other scan's scout —
 ## and EventRevealRegion's — along with this one.
-func _resize_vision(a_scout: Commandable) -> void:
+func _resize_vision(a_scout: Actor) -> void:
 	var vision := a_scout.get_node_or_null("VisionRange") as CollisionShape3D
 	if vision == null or vision.shape == null:
 		return
@@ -73,7 +73,7 @@ func _resize_vision(a_scout: Commandable) -> void:
 ## Give the scout a DetectionRange so Scout._detect_stealthed_units has something to
 ## query. Built here rather than shipped disabled on the scene so that a tier without
 ## stealth detection has no node at all and skips the query entirely.
-func _add_detection(a_scout: Commandable) -> void:
+func _add_detection(a_scout: Actor) -> void:
 	if detection_radius <= 0.0:
 		return
 	var shape := CylinderShape3D.new()

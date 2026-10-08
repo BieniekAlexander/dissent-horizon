@@ -227,7 +227,7 @@ func test_highlight_drops_entities_that_leave_the_world() -> void:
 	# The marks track a live set: a unit the player destroys must stop being marked without
 	# anyone telling the highlight about it.
 	var condition := StubCondition.new()
-	var entity: Commandable = FakePieces.make(UNIT)
+	var entity: Actor = FakePieces.make(UNIT)
 	add_child_autofree(entity)
 	condition.entities = [entity]
 	var trigger := _armed_trigger_with(condition)
@@ -312,7 +312,7 @@ func test_painter_survives_its_last_marked_entity_dying() -> void:
 	# notices. Drawing in that window must not open an empty ImmediateMesh surface — Godot
 	# raises "No vertices were added" and it repeats every frame until the next refresh.
 	var condition := StubCondition.new()
-	var entity: Commandable = FakePieces.make(UNIT)
+	var entity: Actor = FakePieces.make(UNIT)
 	add_child_autofree(entity)
 	condition.entities = [entity]
 	var trigger := _armed_trigger_with(condition)

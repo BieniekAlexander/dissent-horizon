@@ -9,7 +9,7 @@ extends GutTest
 
 
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
@@ -17,6 +17,7 @@ class StubPiece:
 			["Ownership", Ownership.new()],
 			["AvoidanceObstacle", NavigationObstacle3D.new()],
 			["Veterancy", Veterancy.new()],
+			["Orders", Orders.new()],
 			["Hurtbox", StaticBody3D.new()]
 		]:
 			var node: Node = pair[1]
@@ -45,7 +46,7 @@ class StubBot:
 	func visible_enemies_near(_a_position: Vector3, _a_radius: float) -> Array:
 		return enemies
 
-	func is_suicide_aoe_unit(_a_unit: Commandable) -> bool:
+	func is_suicide_aoe_unit(_a_unit: Actor) -> bool:
 		return false
 
 
@@ -85,7 +86,7 @@ func _commander(a_commander: Commander, a_id: int) -> Commander:
 
 
 ## A piece of `a_owner` at `a_at` moving in crush class `a_class`, with 100 HP.
-func _mover(a_owner: Commander, a_at: Vector3, a_class: Movement.CrushClass) -> Commandable:
+func _mover(a_owner: Commander, a_at: Vector3, a_class: Movement.CrushClass) -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	a_owner.add_child(piece)
 	piece.ownership.commander = a_owner
@@ -101,17 +102,17 @@ func _mover(a_owner: Commander, a_at: Vector3, a_class: Movement.CrushClass) -> 
 	return piece
 
 
-func _truck(a_at: Vector3 = Vector3.ZERO) -> Commandable:
+func _truck(a_at: Vector3 = Vector3.ZERO) -> Actor:
 	return _mover(_bot, a_at, Movement.CrushClass.LARGE)
 
 
-func _infantry(a_at: Vector3) -> Commandable:
+func _infantry(a_at: Vector3) -> Actor:
 	return _mover(_foe, a_at, Movement.CrushClass.TINY)
 
 
 func test_an_unarmed_crusher_is_sent_to_run_over_infantry_in_reach() -> void:
-	var truck: Commandable = _truck()
-	var soldier: Commandable = _infantry(Vector3(3.0, 0.0, 0.0))
+	var truck: Actor = _truck()
+	var soldier: Actor = _infantry(Vector3(3.0, 0.0, 0.0))
 	_bot.enemies = [soldier]
 	_targeting.tick()
 	assert_eq(_act.attacks, [], "nothing to shoot with")
@@ -122,7 +123,7 @@ func test_an_unarmed_crusher_is_sent_to_run_over_infantry_in_reach() -> void:
 
 func test_a_crusher_ignores_what_it_cannot_crush() -> void:
 	_truck()
-	var tank: Commandable = _mover(_foe, Vector3(3.0, 0.0, 0.0), Movement.CrushClass.LARGE)
+	var tank: Actor = _mover(_foe, Vector3(3.0, 0.0, 0.0), Movement.CrushClass.LARGE)
 	_bot.enemies = [tank]
 	_targeting.tick()
 	assert_eq(_act.run_overs, [], "an equal class is not run over")
@@ -131,8 +132,8 @@ func test_a_crusher_ignores_what_it_cannot_crush() -> void:
 func test_a_run_over_in_progress_is_a_held_engagement() -> void:
 	# The claim and the current target both see the run-over, so the truck is not released
 	# and re-ordered every think, and a second candidate must clear the switch margin.
-	var truck: Commandable = _truck()
-	var soldier: Commandable = _infantry(Vector3(3.0, 0.0, 0.0))
+	var truck: Actor = _truck()
+	var soldier: Actor = _infantry(Vector3(3.0, 0.0, 0.0))
 	_bot.enemies = [soldier]
 	_targeting.tick()
 	var cmd := MoveCommand.new(CommandMessage.new(null, soldier, null, soldier.global_position))
@@ -144,13 +145,13 @@ func test_a_run_over_in_progress_is_a_held_engagement() -> void:
 
 
 func test_a_crush_scores_as_a_decisive_matchup() -> void:
-	var truck: Commandable = _truck()
-	var soldier: Commandable = _infantry(Vector3(3.0, 0.0, 0.0))
+	var truck: Actor = _truck()
+	var soldier: Actor = _infantry(Vector3(3.0, 0.0, 0.0))
 	assert_eq(
 		BotTargeting.effectiveness_signal(truck, soldier), BotTargeting.CRUSH_EFFECTIVENESS_SIGNAL
 	)
 	assert_gt(BotTargeting.CRUSH_EFFECTIVENESS_SIGNAL, 1.0, "above a neutral shot")
-	var tank: Commandable = _mover(_foe, Vector3(3.0, 0.0, 0.0), Movement.CrushClass.LARGE)
+	var tank: Actor = _mover(_foe, Vector3(3.0, 0.0, 0.0), Movement.CrushClass.LARGE)
 	assert_eq(BotTargeting.effectiveness_signal(truck, tank), 0.0, "and nothing without a gun")
 
 
@@ -161,7 +162,7 @@ func test_a_crush_scores_as_a_decisive_matchup() -> void:
 
 
 ## Give `a_piece` one melee weapon that can hit ground targets, dealing `a_damage` a shot.
-func _arm(a_piece: Commandable, a_damage: float) -> void:
+func _arm(a_piece: Actor, a_damage: float) -> void:
 	var loadout := autofree(Loadout.new()) as Loadout
 	var weapon := Weapon.new()
 	weapon.melee_damage = a_damage
@@ -172,11 +173,11 @@ func _arm(a_piece: Commandable, a_damage: float) -> void:
 func test_a_drive_that_would_cost_more_than_half_its_hp_is_refused() -> void:
 	# Five anti-mech troopers 6 units off, each shooting hard: the drive would be a death, so
 	# the tank shoots the nearest instead of charging.
-	var tank: Commandable = _truck()
+	var tank: Actor = _truck()
 	tank.movement.speed = 1.0  # a slow drive: six seconds to contact
 	var knot: Array = []
 	for i: int in 5:
-		var trooper: Commandable = _infantry(Vector3(6.0, 0.0, float(i)))
+		var trooper: Actor = _infantry(Vector3(6.0, 0.0, float(i)))
 		_arm(trooper, 100.0)  # 10 shots a second each at the default split: lethal fast
 		knot.append(trooper)
 	_bot.enemies = knot
@@ -185,9 +186,9 @@ func test_a_drive_that_would_cost_more_than_half_its_hp_is_refused() -> void:
 
 
 func test_a_drive_it_will_survive_is_taken() -> void:
-	var tank: Commandable = _truck()
+	var tank: Actor = _truck()
 	tank.movement.speed = 6.0  # one second to contact
-	var trooper: Commandable = _infantry(Vector3(6.0, 0.0, 0.0))
+	var trooper: Actor = _infantry(Vector3(6.0, 0.0, 0.0))
 	_arm(trooper, 1.0)  # a scratch
 	_bot.enemies = [trooper]
 	_targeting.tick()
@@ -195,11 +196,11 @@ func test_a_drive_it_will_survive_is_taken() -> void:
 
 
 func test_a_target_in_a_knot_outranks_a_lone_one() -> void:
-	var tank: Commandable = _truck()
-	var lone: Commandable = _infantry(Vector3(3.0, 0.0, 0.0))
-	var knotted: Commandable = _infantry(Vector3(-3.0, 0.0, 0.0))
-	var beside: Commandable = _infantry(Vector3(-3.0, 0.0, 1.0))
-	var also: Commandable = _infantry(Vector3(-3.0, 0.0, -1.0))
+	var tank: Actor = _truck()
+	var lone: Actor = _infantry(Vector3(3.0, 0.0, 0.0))
+	var knotted: Actor = _infantry(Vector3(-3.0, 0.0, 0.0))
+	var beside: Actor = _infantry(Vector3(-3.0, 0.0, 1.0))
+	var also: Actor = _infantry(Vector3(-3.0, 0.0, -1.0))
 	_bot.enemies = [lone, knotted, beside, also]
 	_targeting.tick()
 	assert_eq(_act.run_overs.size(), 1)
@@ -207,8 +208,8 @@ func test_a_target_in_a_knot_outranks_a_lone_one() -> void:
 
 
 func test_the_clump_bonus_is_capped() -> void:
-	var tank: Commandable = _truck()
-	var target: Commandable = _infantry(Vector3(3.0, 0.0, 0.0))
+	var tank: Actor = _truck()
+	var target: Actor = _infantry(Vector3(3.0, 0.0, 0.0))
 	var crowd: Array = [target]
 	for i: int in 8:
 		crowd.append(_infantry(Vector3(3.0, 0.0, 0.5 * float(i + 1))))
@@ -223,8 +224,8 @@ func test_the_clump_bonus_is_capped() -> void:
 ## A target that went into a garrison is off the tree — held, not gone — and scores nothing,
 ## rather than having its position read.
 func test_a_garrisoned_target_scores_nothing() -> void:
-	var truck: Commandable = _truck()
-	var soldier: Commandable = _infantry(Vector3(3.0, 0.0, 0.0))
+	var truck: Actor = _truck()
+	var soldier: Actor = _infantry(Vector3(3.0, 0.0, 0.0))
 	assert_gt(_targeting._score(truck, soldier), 0.0, "in the open: a candidate")
 	_foe.remove_child(soldier)
 	assert_eq(_targeting._score(truck, soldier), 0.0, "held: nothing to engage")

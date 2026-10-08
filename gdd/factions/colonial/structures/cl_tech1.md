@@ -2,6 +2,9 @@
 kind: Entity
 title: Operations Center
 scene: res://scenes/entities/structures/cl/cl_tech1.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 800}
   time: 25

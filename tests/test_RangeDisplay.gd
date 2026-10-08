@@ -29,8 +29,8 @@ const BOTH_LAYERS: Dictionary = {"vision": 6.0, "weapon": {"ground": 12.0, "air"
 const GROUND_ONLY: Dictionary = {"vision": 6.0, "weapon": {"ground": 9.0}}
 
 
-func _piece(a_options: Dictionary) -> Commandable:
-	var piece: Commandable = FakePieces.unit(a_options)
+func _piece(a_options: Dictionary) -> Actor:
+	var piece: Actor = FakePieces.unit(a_options)
 	add_child_autofree(piece)
 	piece.set_physics_process(false)
 	piece.top_level = true
@@ -190,7 +190,7 @@ func test_a_freed_hover_target_draws_nothing_rather_than_crashing() -> void:
 	# The hovered piece can die under the pointer; the bands are recomposed every frame and
 	# must survive the frame that happens on.
 	var controller: RTSController = _controller()
-	var turret: Commandable = FakePieces.unit(TURRET)
+	var turret: Actor = FakePieces.unit(TURRET)
 	add_child(turret)
 	controller._on_ranges_hovered(turret, EntityRanges.WEAPON_KINDS)
 	turret.free()

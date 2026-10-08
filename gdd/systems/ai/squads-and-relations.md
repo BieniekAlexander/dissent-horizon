@@ -140,11 +140,13 @@ The objective is re-read every think, so a creep of a few metres a think, or the
 building a short step on, used to change nothing — 164 units stood idle at a point whose
 target had fallen.
 
-**Missions switch Bot jobs off per slot rather than switching the Bot off.** `BotBrain.active`
-is all-or-nothing today. A per-job enable on `PlayerSlot` lets a mission run the economy and
-production but author the military as squads, or spawn its waves by event and let the Bot
-assault with them. Preordained groups versus dynamic countering is then which side owns
-`BotProduction`, not a second bot.
+**Missions switch Bot jobs off per slot rather than switching the Bot off.** Built
+2026-10-08: `PlayerSlot.disabled_bot_jobs` names `BotBrain` jobs to leave unscheduled, so a
+mission can run the economy and production but author the military as squads (switch off
+`military`), or spawn its waves by event and let the Bot assault with them (switch off
+`production`). A name no job has fails the boot. Preordained groups versus dynamic countering
+is then which side owns `BotProduction`, not a second bot. Cover:
+`tests/test_BotJobSwitches.gd`.
 
 ## Relations
 
@@ -284,5 +286,5 @@ role is wrong. Not built until a piece needs it; derivation first, as everywhere
    difficulty parameter, and the guard.
 3. `PLANNED` — `Relation`, `Bot.relations()`, multi-actor opportunities; `Escort` for
    transport and the Sapper.
-4. `PLANNED` — `Patrol`, relation affinity and approach coverage in placement, the per-job
-   enable for missions.
+4. `PLANNED` — `Patrol`, relation affinity and approach coverage in placement. The per-job
+   enable for missions is built (2026-10-08).

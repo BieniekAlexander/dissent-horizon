@@ -1,7 +1,7 @@
 extends GutTest
 
 ## Tests for EventCommandTarget — the `frame_filter` addition, and to_command()'s BASE-type
-## branch (Command Assignment extensions, gdd/tasks.md). Both exercised without a live
+## branch (scenario-scripting/tactics.md). Both exercised without a live
 ## Map/navmesh fixture: _enemy_candidates() has no such dependency, and neither does
 ## to_command() for Type.BASE specifically — it builds an Attack targeting a live structure
 ## entity directly rather than calling NavigationServer3D.map_get_closest_point(), which is
@@ -27,10 +27,10 @@ func before_each() -> void:
 	assert_push_warning("expected parent to be Scenario")
 
 
-## A live Commandable owned by `commander_id`, in the "unit" group (mirrors what Map.add_entity
+## A live Actor owned by `commander_id`, in the "unit" group (mirrors what Map.add_entity
 ## does for a real spawn).
-func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var unit: Commandable = FakePieces.make(a_options)
+func _unit(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var unit: Actor = FakePieces.make(a_options)
 	add_child_autofree(unit)
 	# The Commander must already be IN THE TREE: setting .commander fires
 	# Ownership.commander_changed, which auto-reparents the entity to live under its commander
@@ -44,10 +44,10 @@ func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
 	return unit
 
 
-## A live structure Commandable owned by `commander_id`, in the "structure" group, positioned
+## A live structure Actor owned by `commander_id`, in the "structure" group, positioned
 ## at `pos`.
-func _structure(a_commander_id: int, a_pos: Vector3) -> Commandable:
-	var structure: Commandable = FakePieces.make(BUILDING)
+func _structure(a_commander_id: int, a_pos: Vector3) -> Actor:
+	var structure: Actor = FakePieces.make(BUILDING)
 	add_child_autofree(structure)
 	var owner_commander := Commander.new()
 	owner_commander.id = a_commander_id

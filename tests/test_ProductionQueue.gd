@@ -26,11 +26,11 @@ func _make_commander(a_energy: int = 0) -> Commander:
 	return commander
 
 
-## A stand-in production structure: an out-of-tree Commandable with a Production
+## A stand-in production structure: an out-of-tree Actor with a Production
 ## component wired to its `production` field directly (the @onready never resolves
 ## outside the tree). Not in the "structure" group, so is_built reads true.
-func _make_producer(a_types: Array[StringName]) -> Commandable:
-	var producer := autofree(Commandable.new()) as Commandable
+func _make_producer(a_types: Array[StringName]) -> Actor:
+	var producer := autofree(Actor.new()) as Actor
 	var production := Production.new()
 	production.producible_types = a_types
 	producer.add_child(production)
@@ -40,7 +40,7 @@ func _make_producer(a_types: Array[StringName]) -> Commandable:
 
 ## A producer that is still under construction: in the "structure" group (which is what
 ## makes is_built consult build_progress at all) with partial progress.
-func _make_unbuilt_producer(a_types: Array[StringName]) -> Commandable:
+func _make_unbuilt_producer(a_types: Array[StringName]) -> Actor:
 	var producer := _make_producer(a_types)
 	producer.add_to_group("structure")
 	producer.build_progress = 0.4
@@ -192,7 +192,7 @@ func test_purchase_ignores_producers_that_cannot_make_it() -> void:
 
 func test_purchase_is_dropped_when_every_producer_is_gone() -> void:
 	var commander := _make_commander(0)
-	var producer := Commandable.new()
+	var producer := Actor.new()
 	var production := Production.new()
 	production.producible_types = [IRREGULAR]
 	producer.add_child(production)
@@ -258,7 +258,7 @@ func test_unbuilt_producer_is_skipped_while_a_finished_one_is_available() -> voi
 
 func test_purchase_is_dropped_when_the_unbuilt_producer_is_destroyed() -> void:
 	var commander := _make_commander(1000)
-	var producer := Commandable.new()
+	var producer := Actor.new()
 	var production := Production.new()
 	production.producible_types = [IRREGULAR]
 	producer.add_child(production)
@@ -281,9 +281,11 @@ func test_purchase_is_dropped_when_the_unbuilt_producer_is_destroyed() -> void:
 ## The rally queue itself is covered in test_RallyQueue.gd.
 
 
-func _rally(a_structure: Commandable, a_x: float, a_z: float, a_additive: bool = false) -> void:
-	a_structure.command_receiver = CommandReceiver.new()
-	a_structure.command_receiver.initialize(a_structure)
+func _rally(a_structure: Actor, a_x: float, a_z: float, a_additive: bool = false) -> void:
+	if a_structure.orders == null:
+		a_structure.orders = Orders.new()
+		a_structure.add_child(a_structure.orders)
+		a_structure.orders.receiver.initialize(a_structure)
 	a_structure.update_commands(
 		MoveCommand.new(CommandMessage.new(null, null, null, Vector3(a_x, 0.0, a_z))), a_additive
 	)
@@ -298,7 +300,7 @@ func _destinations(a_chain: Array) -> Array:
 	return out
 
 
-func _job_destinations(a_producer: Commandable, a_index: int) -> Array:
+func _job_destinations(a_producer: Actor, a_index: int) -> Array:
 	var out: Array = []
 	for command: MoveCommand in a_producer.production.training_queue[a_index][
 		Production.JOB_COMMANDS
@@ -726,7 +728,7 @@ func test_completing_a_purchase_announces_the_product_before_retiring() -> void:
 	transaction.fulfilled.connect(
 		func(t: PurchaseTransaction, product: Node) -> void: seen.append([t, product])
 	)
-	var unit: Commandable = autofree(Commandable.new()) as Commandable
+	var unit: Actor = autofree(Actor.new()) as Actor
 	transaction.complete(unit)
 	assert_eq(seen.size(), 1, "the fulfilment is announced exactly once")
 	assert_eq(seen[0][1], unit, "carrying the thing that was bought")

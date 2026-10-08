@@ -35,8 +35,8 @@ func _commander(a_id: int) -> Commander:
 	return commander
 
 
-func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var entity := FakePieces.make(a_options) as Commandable
+func _entity(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var entity := FakePieces.make(a_options) as Actor
 	add_child_autofree(entity)
 	entity.ownership.commander = _commander(a_commander_id)
 	return entity
@@ -44,12 +44,12 @@ func _entity(a_options: Dictionary, a_commander_id: int) -> Commandable:
 
 ## An actor holding a plain move order aimed at `a_target`, the shape an unarmed piece uses to
 ## run something down.
-func _ordered_at(a_actor: Commandable, a_target: Commandable) -> void:
+func _ordered_at(a_actor: Actor, a_target: Actor) -> void:
 	var message := CommandMessage.new(null, a_target, null, a_target.global_position)
 	a_actor.update_commands([MoveCommand.new(message)] as Array[MoveCommand])
 
 
-func _tick(a_actor: Commandable) -> void:
+func _tick(a_actor: Actor) -> void:
 	a_actor.command_receiver._update_state()
 	a_actor._process_commands()
 
@@ -57,8 +57,8 @@ func _tick(a_actor: Commandable) -> void:
 #region The rule
 func test_an_order_survives_while_its_target_is_in_the_world() -> void:
 	# The control: nothing about this change may drop an ordinary order.
-	var truck: Commandable = _entity(TRUCK_SCENE, 1)
-	var trooper: Commandable = _entity(TROOPER_SCENE, 2)
+	var truck: Actor = _entity(TRUCK_SCENE, 1)
+	var trooper: Actor = _entity(TROOPER_SCENE, 2)
 	trooper.global_position = Vector3(8.0, 0.0, 0.0)
 	_ordered_at(truck, trooper)
 	_tick(truck)
@@ -66,8 +66,8 @@ func test_an_order_survives_while_its_target_is_in_the_world() -> void:
 
 
 func test_an_order_is_dropped_once_its_target_is_garrisoned() -> void:
-	var truck: Commandable = _entity(TRUCK_SCENE, 1)
-	var trooper: Commandable = _entity(TROOPER_SCENE, 2)
+	var truck: Actor = _entity(TRUCK_SCENE, 1)
+	var trooper: Actor = _entity(TROOPER_SCENE, 2)
 	trooper.global_position = Vector3(8.0, 0.0, 0.0)
 	_ordered_at(truck, trooper)
 	_tick(truck)
@@ -84,8 +84,8 @@ func test_an_order_is_dropped_once_its_target_is_garrisoned() -> void:
 func test_the_actor_does_not_set_off_for_the_world_origin() -> void:
 	# The symptom, asserted directly: it is the destination that was wrong, not just the
 	# bookkeeping. A dropped command leaves the actor with no destination at all.
-	var truck: Commandable = _entity(TRUCK_SCENE, 1)
-	var trooper: Commandable = _entity(TROOPER_SCENE, 2)
+	var truck: Actor = _entity(TRUCK_SCENE, 1)
+	var trooper: Actor = _entity(TROOPER_SCENE, 2)
 	trooper.global_position = Vector3(8.0, 0.0, 0.0)
 	_ordered_at(truck, trooper)
 	_tick(truck)
@@ -99,9 +99,9 @@ func test_the_actor_does_not_set_off_for_the_world_origin() -> void:
 func test_the_next_queued_order_takes_over() -> void:
 	# Dropping must not strand the actor: the truck in the spec that found this carries a
 	# QUEUE of two moves, one per flank, and losing the first has to start the second.
-	var truck: Commandable = _entity(TRUCK_SCENE, 1)
-	var first: Commandable = _entity(TROOPER_SCENE, 2)
-	var second: Commandable = _entity(TROOPER_SCENE, 2)
+	var truck: Actor = _entity(TRUCK_SCENE, 1)
+	var first: Actor = _entity(TROOPER_SCENE, 2)
+	var second: Actor = _entity(TROOPER_SCENE, 2)
 	first.global_position = Vector3(8.0, 0.0, 0.0)
 	second.global_position = Vector3(-8.0, 0.0, 0.0)
 	var chain: Array[MoveCommand] = [
@@ -139,7 +139,7 @@ func test_a_dead_target_is_left_to_the_paths_that_already_handle_it() -> void:
 func test_a_command_with_no_target_at_all_is_unaffected() -> void:
 	# A ground move — the overwhelmingly common order — names no entity and must never be
 	# touched by this rule.
-	var truck: Commandable = _entity(TRUCK_SCENE, 1)
+	var truck: Actor = _entity(TRUCK_SCENE, 1)
 	var message := CommandMessage.new(null, null, null, Vector3(5.0, 0.0, 5.0))
 	truck.update_commands([MoveCommand.new(message)] as Array[MoveCommand])
 	_tick(truck)
@@ -147,9 +147,9 @@ func test_a_command_with_no_target_at_all_is_unaffected() -> void:
 
 
 func test_a_structure_target_is_never_considered_off_the_field() -> void:
-	# Only a Commandable can be garrisoned; a non-Commandable Entity target has no such state
+	# Only a Actor can be garrisoned; a non-Actor Entity target has no such state
 	# and must always read as in play.
-	var truck: Commandable = _entity(TRUCK_SCENE, 1)
+	var truck: Actor = _entity(TRUCK_SCENE, 1)
 	var message := CommandMessage.new(null, truck, null, Vector3.ZERO)
 	assert_false(
 		CommandReceiver._target_has_left_play(message), "a target standing in the world is in play"

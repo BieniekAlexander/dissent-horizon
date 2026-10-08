@@ -1,7 +1,7 @@
 extends GutTest
 
 ## A SCAN'S DETECTOR IS QUERY GEOMETRY, NEVER A BODY. EventRadarScan gives its scout a
-## DetectionRange that Commandable._detect_stealthed_units scans with. The shape is a child
+## DetectionRange that Actor._detect_stealthed_units scans with. The shape is a child
 ## of the scout's root CharacterBody3D, which stands on MOVEMENT_OBSTRUCTION, so a live shape
 ## would make the drone a cylinder of that radius to every spawn and placement probe.
 ##
@@ -15,7 +15,7 @@ const PROBE_OFFSET: float = DETECTION_RADIUS * 0.5
 const PROBE_RADIUS: float = 0.3
 
 
-func _scout_with_detection() -> Commandable:
+func _scout_with_detection() -> Actor:
 	var scan := EventRadarScan.new()
 	autofree(scan)
 	scan.detection_radius = DETECTION_RADIUS

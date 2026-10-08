@@ -80,10 +80,10 @@ func _expected_names(a_spec: Dictionary) -> Array[String]:
 func test_a_unit_is_composed_with_the_actor_set_and_locomotion() -> void:
 	var spec: Dictionary = {"movement": MOBILE}
 	var unit: Node = _compose("unit", spec)
-	assert_true(unit is Commandable)
+	assert_true(unit is Actor)
 	assert_eq(_child_names(unit), _expected_names(spec))
 	assert_true(unit.get_node("Locomotion") is Movement and unit.has_node("NavigationAgent"))
-	assert_false(unit.has_node("Structure"))
+	assert_false(unit.has_node("Fixture"))
 	assert_eq(unit.collision_layer, 1, "a mobile Actor collides like every unit")
 	assert_eq((unit.get_node("HPBar") as Sprite3D).billboard, BaseMaterial3D.BILLBOARD_FIXED_Y)
 	assert_eq(
@@ -93,12 +93,24 @@ func test_a_unit_is_composed_with_the_actor_set_and_locomotion() -> void:
 	)
 
 
+## Taking orders is a component a doc can omit: an Actor that can be damaged but is never ordered
+## (the Recon Drone) carries no `Orders`.
+func test_an_uncommandable_actor_is_composed_without_orders() -> void:
+	var ordered: Array[String] = _expected_names({"movement": MOBILE})
+	var unordered: Array[String] = _expected_names(
+		{"movement": MOBILE, "commandable": false, "hp": 50}
+	)
+	assert_true(ordered.has("Orders"), "a piece that takes orders gets the component")
+	assert_false(unordered.has("Orders"), "one that takes none does not")
+	assert_true(unordered.has("Defense"), "and it is still an Actor, damageable")
+
+
 func test_a_structure_is_composed_with_its_footprint_and_no_locomotion() -> void:
 	var spec: Dictionary = {"footprint": [2, 2]}
 	var structure: Node = _compose("structure", spec)
-	assert_true(structure is Commandable)
+	assert_true(structure is Actor)
 	assert_eq(_child_names(structure), _expected_names(spec))
-	assert_true(structure.has_node("Structure") and structure.has_node("FootprintVisualizer"))
+	assert_true(structure.has_node("Fixture") and structure.has_node("FootprintVisualizer"))
 	assert_false(structure.has_node("Locomotion"))
 	assert_eq((structure.get_node("HPBar") as Sprite3D).billboard, BaseMaterial3D.BILLBOARD_ENABLED)
 
@@ -106,7 +118,7 @@ func test_a_structure_is_composed_with_its_footprint_and_no_locomotion() -> void
 func test_a_feature_is_a_plain_entity_with_no_actor_components() -> void:
 	var spec: Dictionary = {"footprint": [2, 2], "commandable": false}
 	var feature: Node = _compose("feature", spec)
-	assert_false(feature is Commandable)
+	assert_false(feature is Actor)
 	assert_true(feature is Entity)
 	assert_eq(_child_names(feature), _expected_names(spec))
 	for actor_only: String in ["Defense", "HPBar", "NavigationAgent", "Veterancy"]:

@@ -184,7 +184,7 @@ func test_attack_range_without_movement_still_has_combat_commands():
 ##
 ## An unarmed vehicle (a truck, a dominion generator) carries an EMPTY Loadout. Offering it
 ## an attack-move handed it an order it could never carry out — the click resolves to Attack
-## as soon as it lands on a Commandable, and Attack on a weaponless actor neither acts nor
+## as soon as it lands on a Actor, and Attack on a weaponless actor neither acts nor
 ## moves, so the unit stood still holding a dead order. Crushing is not a weapon: a truck
 ## flattens what it drives over as a physics contact, which is not a reason to offer it an
 ## attack order.
@@ -213,7 +213,7 @@ func test_arming_the_same_unit_gives_it_attack_move_back():
 
 ## A stationary producer trains and does NOT advertise a move.
 ##
-## It still ACCEPTS a bare MoveCommand as a rally — that is `Commandable._absorb_rally_commands`,
+## It still ACCEPTS a bare MoveCommand as a rally — that is `Actor._absorb_rally_commands`,
 ## reached through the right-click ladder, which never consults this table. What advertising
 ## `command_move` here bought was a GO BUTTON on a building that cannot go anywhere, and an
 ## ACTIVE-card command on every barracks in the game, which is what hid their training behind

@@ -219,7 +219,7 @@ piece may declare both — the two-form piece, built unless a producer's `trains
 names it. A piece declaring neither, nor `senses.vision:`, is refused: it has no
 body and no sense, so it is prose carrying the marker or a doc missing its key. A
 new scene is composed from those same keys (`composition.gd`): `movement:` brings
-locomotion, `footprint:` a `Structure`, and a piece with both gets both.
+locomotion, `footprint:` a `Fixture`, and a piece with both gets both.
 
 ```yaml
 # file: an_bioLight_builder.md   <- the file name IS the id (no id: key)
@@ -341,6 +341,9 @@ garrison:
                                # Compound is the case: `closed: true` (deposit is the only way
                                # in) plus `sentence_length:`, and no `pieces:` — a captive
                                # is held as itself, never converted
+  unload_time: 1               # a CARRIER's seconds per captive when it deposits: the first
+                               # goes over when the deposit completes, one per interval after.
+                               # Omitted = the whole load at once
 abilities:                     # the abilities it can use, and the charge pools they share
   - {cooldown: 60, grants: [beacon]}
 repairs: true                  # gives the piece a Repairs component; omitted = cannot repair
@@ -351,7 +354,7 @@ shelter: true                  # identity components, by PRESENCE only — also
                                # plants a ground beacon and leaves, rather than holding one);
                                # tuning stays in the scene
 beacon: 20                     # persistent bombardable bubble (BeaconRange); false removes
-infrastructure: -40                    # Commandable.infrastructure: >0 provides, <0 consumes, 0 neutral
+infrastructure: -40                    # Actor.infrastructure: >0 provides, <0 consumes, 0 neutral
 occupancy_size: 2              # how much of a garrison's capacity this piece consumes
                                # when garrisoned (default 1)
 ui: {grid: [1, 2], factions: [anarchists]}   # button text is `title`; no label key
@@ -523,7 +526,7 @@ members and their **template data** — footprint, hp, energy cost, build time i
 `infrastructure` — in `resources/generated/families.json`, and `PieceFamilies` reads it back.
 
 A family member is a TEMPLATE, so its `infrastructure:` is published there and is **never
-written to the scene root**: `Commandable.infrastructure` is credited to whichever commander owns
+written to the scene root**: `Actor.infrastructure` is credited to whichever commander owns
 the node, and a neutral (or garrison-captured) building must grant nothing.
 
 **`variants:`** lists the family members a piece is built from, default first (Anarchical

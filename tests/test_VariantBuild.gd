@@ -60,7 +60,7 @@ class StubMap:
 		a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0, _a_rebake: bool = true
 	) -> void:
 		placed.append(a_structure)
-		var obs := a_structure.get_node("Structure") as Structure
+		var obs := a_structure.get_node("Fixture") as Fixture
 		var footprint: Array[Vector2i] = footprint_cells(a_world_center, obs.dimensions)
 		for cell: Vector2i in footprint:
 			cell_grid[cell.x][cell.y] = a_structure
@@ -172,9 +172,9 @@ func _template(a_id: StringName) -> PieceFamilies.Template:
 
 
 ## A builder that may build the piece, standing at `a_at`.
-func _make_builder(a_at: Variant) -> Commandable:
+func _make_builder(a_at: Variant) -> Actor:
 	var at: Vector2 = _xz(a_at)
-	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
+	var builder: Actor = FakePieces.make(BUILDER_SCENE) as Actor
 	_world.add_child(builder)
 	var builds := builder.get_node("Builds") as Builds
 	builds.buildable_types = [_base_tool().type]
@@ -194,7 +194,7 @@ func _xz(a_at: Variant) -> Vector2:
 	return VU.in_xz(a_at) if a_at is Vector3 else a_at as Vector2
 
 
-## Scenes instanced here ship without flavor text, which Commandable reports with a push_error
+## Scenes instanced here ship without flavor text, which Actor reports with a push_error
 ## GUT would count as a failure: a content gap unrelated to what is under test, dismissed by
 ## message only.
 func _dismiss_known_errors() -> void:
@@ -209,18 +209,18 @@ func _dismiss_known_errors() -> void:
 
 ## A neutral building of `a_id`, owned by the neutral commander and registered on the map at
 ## `a_origin` with the footprint its own scene declares.
-func _neutral_building(a_id: StringName, a_origin: Vector2i = NEUTRAL_ORIGIN) -> Commandable:
-	var building: Commandable = _template(a_id).load_scene().instantiate() as Commandable
+func _neutral_building(a_id: StringName, a_origin: Vector2i = NEUTRAL_ORIGIN) -> Actor:
+	var building: Actor = _template(a_id).load_scene().instantiate() as Actor
 	_neutral.add_child(building)
 	building.initialize(_map, _neutral)
 	_dismiss_known_errors()
-	var dims: Vector2i = (building.get_node("Structure") as Structure).dimensions
+	var dims: Vector2i = (building.get_node("Fixture") as Fixture).dimensions
 	_map.add_structure(building, VU.in_xz(_map.footprint_centroid(a_origin, dims)))
 	return building
 
 
 ## Take a structure off the world entirely: both commanders' books, the grid, then the node.
-func _discard(a_node: Commandable) -> void:
+func _discard(a_node: Actor) -> void:
 	_commander.remove_structure(a_node)
 	_neutral.remove_structure(a_node)
 	a_node.free()
@@ -238,9 +238,9 @@ func _family() -> Array[PieceFamilies.Template]:
 
 ## The target piece's own scene, instanced — the reference for what a converted or built
 ## an_infrastructure must carry.
-func _target_instance() -> Commandable:
-	var instance: Commandable = (
-		Tool.for_id(EntityIds.AN_INFRASTRUCTURE).packed_scene.instantiate() as Commandable
+func _target_instance() -> Actor:
+	var instance: Actor = (
+		Tool.for_id(EntityIds.AN_INFRASTRUCTURE).packed_scene.instantiate() as Actor
 	)
 	autofree(instance)
 	return instance
@@ -349,9 +349,9 @@ func test_an_order_carries_a_concrete_tool() -> void:
 
 #region The shared routine
 func test_every_underlying_form_becomes_the_piece_it_is_built_from() -> void:
-	var donor: Commandable = _target_instance()
+	var donor: Actor = _target_instance()
 	for template: PieceFamilies.Template in _family():
-		var node: Commandable = template.load_scene().instantiate() as Commandable
+		var node: Actor = template.load_scene().instantiate() as Actor
 		autofree(node)
 		var frames_before: int = _garrison_frames(node)
 		Repurposing.into(node, EntityIds.AN_INFRASTRUCTURE)
@@ -362,7 +362,7 @@ func test_every_underlying_form_becomes_the_piece_it_is_built_from() -> void:
 		assert_eq(node.pricing_id(), template.id)
 		assert_eq(node.infrastructure, template.infrastructure, "%s's own infrastructure" % label)
 		assert_eq(
-			(node.get_node("Structure") as Structure).dimensions,
+			(node.get_node("Fixture") as Fixture).dimensions,
 			template.footprint,
 			"%s keeps its footprint" % label
 		)
@@ -401,7 +401,7 @@ func test_every_underlying_form_becomes_the_piece_it_is_built_from() -> void:
 ## on a fixture target that authors values no shipped piece does, with a footprint-side value (HP)
 ## it must leave alone.
 func test_the_routine_copies_what_the_target_scene_authors_and_only_that() -> void:
-	var target_root := Commandable.new()
+	var target_root := Actor.new()
 	target_root.name = "Target"
 	var defense := Defense.new()
 	defense.name = "Defense"
@@ -419,7 +419,7 @@ func test_the_routine_copies_what_the_target_scene_authors_and_only_that() -> vo
 	assert_eq(packed.pack(target_root), OK)
 	target_root.free()
 
-	var node := Commandable.new()
+	var node := Actor.new()
 	autofree(node)
 	node.id = &"some_form"
 	node.infrastructure = 40
@@ -448,19 +448,19 @@ func test_a_new_build_of_each_variant_is_that_variants_body_with_the_pieces_prop
 	var base: Tool = _base_tool()
 	for i: int in base.variants.size():
 		var template: PieceFamilies.Template = _template(base.variants[i])
-		var builder: Commandable = _make_builder(SITE)
+		var builder: Actor = _make_builder(SITE)
 		var message: CommandMessage = _order(base.with_variant(i), SITE)
 		var command := Build.new(message)
 		var next: Variant = command.fulfill_action(builder)
 		_dismiss_known_errors()
 
 		assert_true(next is Assemble, "the builder goes on to build what it placed")
-		var built: Commandable = _map.placed[0] as Commandable
+		var built: Actor = _map.placed[0] as Actor
 		var label: String = String(template.id)
 		assert_eq(built.id, EntityIds.AN_INFRASTRUCTURE, "%s is built as the piece" % label)
 		assert_eq(built.scene_file_path, template.scene_path, "from its own scene")
 		assert_eq(built.infrastructure, template.infrastructure)
-		assert_eq((built.get_node("Structure") as Structure).dimensions, template.footprint)
+		assert_eq((built.get_node("Fixture") as Fixture).dimensions, template.footprint)
 		assert_eq(
 			_map.structure_cell_map[built].size(),
 			template.footprint.x * template.footprint.y,
@@ -497,8 +497,8 @@ func test_a_finished_build_is_timed_by_its_form() -> void:
 	var base: Tool = _base_tool()
 	_commander.technology_mapping[base.variants[0]].creation_time = 100
 	_commander.technology_mapping[base.variants[1]].creation_time = 1000
-	var first: Commandable = _template(base.variants[0]).load_scene().instantiate() as Commandable
-	var second: Commandable = _template(base.variants[1]).load_scene().instantiate() as Commandable
+	var first: Actor = _template(base.variants[0]).load_scene().instantiate() as Actor
+	var second: Actor = _template(base.variants[1]).load_scene().instantiate() as Actor
 	autofree(first)
 	autofree(second)
 	Repurposing.into(first, base.type)
@@ -569,12 +569,12 @@ func test_placement_validity_uses_the_variants_footprint() -> void:
 		_map.cell_grid[far_cell.x][far_cell.y] = Node3D.new()
 		var blocked: Node = _map.cell_grid[far_cell.x][far_cell.y]
 		assert_false(
-			Structure.valid_placement(_order(base.with_variant(i), SITE), dims),
+			Fixture.valid_placement(_order(base.with_variant(i), SITE), dims),
 			"the variant's own far corner blocks it"
 		)
 		_map.cell_grid[far_cell.x][far_cell.y] = null
 		blocked.free()
-		assert_true(Structure.valid_placement(_order(base.with_variant(i), SITE), dims))
+		assert_true(Fixture.valid_placement(_order(base.with_variant(i), SITE), dims))
 
 
 func test_the_blueprint_and_its_reservation_use_the_variants_footprint() -> void:
@@ -583,11 +583,11 @@ func test_the_blueprint_and_its_reservation_use_the_variants_footprint() -> void
 		var template: PieceFamilies.Template = _template(base.variants[i])
 		var message: CommandMessage = _order(base.with_variant(i), SITE)
 		Build.submit_purchase(_commander, message)
-		var blueprint: Commandable = Build.plan_structure(_commander, message)
+		var blueprint: Actor = Build.plan_structure(_commander, message)
 		_dismiss_known_errors()
 		assert_not_null(blueprint)
 		assert_eq(blueprint.id, EntityIds.AN_INFRASTRUCTURE)
-		assert_eq((blueprint.get_node("Structure") as Structure).dimensions, template.footprint)
+		assert_eq((blueprint.get_node("Fixture") as Fixture).dimensions, template.footprint)
 		assert_eq(
 			_commander.planned_footprint_cells().size(),
 			template.footprint.x * template.footprint.y,
@@ -602,8 +602,8 @@ func test_the_blueprint_and_its_reservation_use_the_variants_footprint() -> void
 func test_an_order_by_id_alone_is_the_default_variant() -> void:
 	var by_id: Tool = Tool.for_type(EntityIds.AN_INFRASTRUCTURE)
 	var default: PieceFamilies.Template = _template(by_id.variants[0])
-	var preview: Commandable = _commander.get_build_preview_instance(by_id) as Commandable
-	assert_eq((preview.get_node("Structure") as Structure).dimensions, default.footprint)
+	var preview: Actor = _commander.get_build_preview_instance(by_id) as Actor
+	assert_eq((preview.get_node("Fixture") as Fixture).dimensions, default.footprint)
 	assert_eq(preview.infrastructure, default.infrastructure)
 	var transaction: PurchaseTransaction = PurchaseTransaction.for_tool(
 		_commander, PurchaseTransaction.Kind.BUILD, _order(by_id, SITE).tool
@@ -616,10 +616,10 @@ func test_an_order_by_id_alone_is_the_default_variant() -> void:
 
 #region Conversion
 ## Converts `a_building` with `a_tool` armed, returns [seconds it took, the transaction].
-func _convert(a_building: Commandable, a_tool: Tool, a_aim: Vector2) -> Array:
+func _convert(a_building: Actor, a_tool: Tool, a_aim: Vector2) -> Array:
 	var message: CommandMessage = _order(a_tool, a_aim)
 	var transaction: PurchaseTransaction = Build.submit_purchase(_commander, message)
-	var builder: Commandable = _make_builder(a_building.global_position)
+	var builder: Actor = _make_builder(a_building.global_position)
 	var command := Build.new(message)
 	await wait_physics_frames(1)
 	var delta: float = builder.get_physics_process_delta_time()
@@ -634,7 +634,7 @@ func test_any_neutral_building_converts_whichever_variant_is_armed() -> void:
 	var base: Tool = _base_tool()
 	for template: PieceFamilies.Template in _family():
 		for i: int in base.variants.size():
-			var building: Commandable = _neutral_building(template.id)
+			var building: Actor = _neutral_building(template.id)
 			var message: CommandMessage = _order(base.with_variant(i), building.global_position)
 			assert_same(
 				Build._conversion_target(_commander, message),
@@ -649,7 +649,7 @@ func test_any_neutral_building_converts_whichever_variant_is_armed() -> void:
 
 
 func test_the_target_is_the_building_whose_footprint_holds_the_aimed_cell() -> void:
-	var building: Commandable = _neutral_building(_family().back().id)
+	var building: Actor = _neutral_building(_family().back().id)
 	var footprint: Array = _map.structure_cell_map[building]
 	for cell: Vector2i in footprint:
 		var message: CommandMessage = _order(_base_tool(), VU.in_xz(_map.grid_to_world(cell)))
@@ -665,7 +665,7 @@ func test_the_target_is_the_building_whose_footprint_holds_the_aimed_cell() -> v
 
 
 func test_only_a_neutral_family_member_is_a_target() -> void:
-	var building: Commandable = _neutral_building(_family()[0].id)
+	var building: Actor = _neutral_building(_family()[0].id)
 	var aim: Vector2 = VU.in_xz(building.global_position)
 	building.commander = _commander
 	assert_null(
@@ -685,7 +685,7 @@ func test_only_a_neutral_family_member_is_a_target() -> void:
 func test_a_conversion_costs_and_takes_the_targets_discounted_numbers() -> void:
 	var base: Tool = _base_tool()
 	for template: PieceFamilies.Template in _family():
-		var building: Commandable = _neutral_building(template.id)
+		var building: Actor = _neutral_building(template.id)
 		var energy_before: int = _commander.energy
 		var result: Array = await _convert(
 			building, base.with_variant(0), VU.in_xz(building.global_position)
@@ -705,8 +705,8 @@ func test_a_conversion_costs_and_takes_the_targets_discounted_numbers() -> void:
 
 func test_a_conversion_is_refused_without_the_discounted_price_unless_deferred() -> void:
 	var template: PieceFamilies.Template = _family()[0]
-	var building: Commandable = _neutral_building(template.id)
-	var builder: Commandable = _make_builder(building.global_position)
+	var building: Actor = _neutral_building(template.id)
+	var builder: Actor = _make_builder(building.global_position)
 	var message: CommandMessage = _order(_base_tool(), VU.in_xz(building.global_position))
 	var price: int = roundi(float(template.energy_cost) * Build.ENERGY_DISCOUNT)
 	_commander.energy = price - 1
@@ -732,9 +732,9 @@ func test_a_conversion_is_refused_without_the_discounted_price_unless_deferred()
 
 func test_a_converted_building_is_the_piece_in_the_building_it_was() -> void:
 	var base: Tool = _base_tool()
-	var donor: Commandable = _target_instance()
+	var donor: Actor = _target_instance()
 	for template: PieceFamilies.Template in _family():
-		var building: Commandable = _neutral_building(template.id)
+		var building: Actor = _neutral_building(template.id)
 		var defense := building.get_node("Defense") as Defense
 		defense.hp = defense.hp_max * .5
 		var hp_before: float = defense.hp
@@ -753,7 +753,7 @@ func test_a_converted_building_is_the_piece_in_the_building_it_was() -> void:
 		assert_eq(building.commander, _commander, "%s is ours" % label)
 		assert_eq(building.id, EntityIds.AN_INFRASTRUCTURE)
 		assert_eq(defense.hp, hp_before, "%s keeps its HP" % label)
-		assert_eq((building.get_node("Structure") as Structure).dimensions, template.footprint)
+		assert_eq((building.get_node("Fixture") as Fixture).dimensions, template.footprint)
 		assert_eq(_map.structure_cell_map[building], footprint_before, "and its cells")
 		assert_ne(_garrison_frames(building), frames_before, "%s's garrison masks changed" % label)
 		assert_eq(_garrison_frames(building), _garrison_frames(donor), "to the piece's own")
@@ -781,7 +781,7 @@ func test_a_converted_building_is_the_piece_in_the_building_it_was() -> void:
 
 func test_losing_a_converted_building_withdraws_its_infrastructure() -> void:
 	var template: PieceFamilies.Template = _family()[0]
-	var building: Commandable = _neutral_building(template.id)
+	var building: Actor = _neutral_building(template.id)
 	await _convert(building, _base_tool(), VU.in_xz(building.global_position))
 	_dismiss_known_errors()
 	assert_eq(
@@ -801,11 +801,11 @@ func test_losing_a_converted_building_withdraws_its_infrastructure() -> void:
 #region A neutral building grants nothing
 func test_a_neutral_building_grants_no_infrastructure_by_existing_or_being_garrisoned() -> void:
 	for template: PieceFamilies.Template in _family():
-		var building: Commandable = _neutral_building(template.id)
+		var building: Actor = _neutral_building(template.id)
 		assert_eq(building.infrastructure, 0, "%s's scene carries none" % template.id)
 		assert_eq(_neutral.infrastructure_provided, Commander.BASE_INFRASTRUCTURE)
 
-		var occupant: Commandable = _make_builder(Vector2(12.0, 12.0))
+		var occupant: Actor = _make_builder(Vector2(12.0, 12.0))
 		(building.get_node("Garrison") as Garrison).garrison(occupant)
 		assert_eq(building.commander, _commander, "ownership is adopted through the garrison")
 		assert_eq(

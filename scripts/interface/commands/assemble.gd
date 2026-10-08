@@ -19,7 +19,7 @@ extends MoveCommand
 
 #region Preconditions
 static func meets_precondition(
-	_actor: Commandable, _message: CommandMessage
+	_actor: Actor, _message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	return PreconditionFailureCause.NONE
 
@@ -29,18 +29,18 @@ static func meets_precondition(
 #region Properties
 ## The actor that registered itself as a builder on the target structure. Stored so
 ## _notification(PREDELETE) can unregister it if the command is cancelled before completion.
-var _builder: Commandable = null
+var _builder: Actor = null
 #endregion
 
 
 #region State updates
 ## Finishing construction is a channeled action: a hit staggers the worker,
 ## pausing build progress until the stagger wears off.
-func blocked_by_stagger(_a_actor: Commandable) -> bool:
+func blocked_by_stagger(_a_actor: Actor) -> bool:
 	return true
 
 
-func get_updated_state(_a_actor: Commandable) -> Variant:
+func get_updated_state(_a_actor: Actor) -> Variant:
 	# The structure being built can be destroyed mid-build. Once freed, message.target
 	# reads as a previously-freed instance and any check on it (e.g.
 	# unit_is_close_to_target's `is Entity`) crashes. Drop the command instead.
@@ -49,11 +49,11 @@ func get_updated_state(_a_actor: Commandable) -> Variant:
 	return self
 
 
-func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
+func acting_action(_a_actor: Actor) -> ActionTracker.Action:
 	return ActionTracker.Action.BUILDING
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	return SU.unit_is_close_to_target(a_actor, message.target)
 
 
@@ -64,8 +64,8 @@ func ends_on_arrival() -> bool:
 	return false
 
 
-func fulfill_action(a_actor: Commandable) -> Variant:
-	var site: Commandable = message.target
+func fulfill_action(a_actor: Actor) -> Variant:
+	var site: Actor = message.target
 	if _builder == null:
 		_builder = a_actor
 		site.register_builder(a_actor)
@@ -112,7 +112,7 @@ func _notification(a_what: int) -> void:
 		# object") — and a freed ref reads as `!= null` false, so is_instance_valid is
 		# the only reliable guard. Nothing left to unregister if the target is gone.
 		if message != null and is_instance_valid(message.target):
-			var site: Commandable = message.target as Commandable
+			var site: Actor = message.target as Actor
 			if site != null:
 				site.unregister_builder(_builder)
 	super(a_what)

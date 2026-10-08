@@ -32,8 +32,8 @@ func _commander(a_id: int) -> Commander:
 	return _commanders[a_id]
 
 
-func _unit(a_commander_id: int) -> Commandable:
-	var unit: Commandable = FakePieces.unit()
+func _unit(a_commander_id: int) -> Actor:
+	var unit: Actor = FakePieces.unit()
 	add_child_autofree(unit)
 	unit.top_level = true
 	unit.ownership.commander = _commander(a_commander_id)

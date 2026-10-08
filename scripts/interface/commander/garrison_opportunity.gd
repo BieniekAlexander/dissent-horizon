@@ -4,11 +4,11 @@ extends BotOpportunity
 ## GarrisonOpportunity — send an idle combat unit into a friendly bunker structure
 ## so it can fire from inside while being protected.
 
-var _host: Commandable
+var _host: Actor
 var _utility: float
 
 
-func _init(a_unit: Commandable, a_host: Commandable, a_utility: float) -> void:
+func _init(a_unit: Actor, a_host: Actor, a_utility: float) -> void:
 	actor = a_unit
 	_host = a_host
 	_utility = a_utility

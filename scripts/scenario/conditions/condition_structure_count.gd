@@ -22,19 +22,19 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	# intentional for AT_MOST victory checks (a half-built enemy structure still
 	# exists and should prevent victory), but may be surprising for AT_LEAST
 	# economic triggers where only built structures provide income. Gate on
-	# Commandable.is_built inside the loop if a specific condition needs it.
+	# Actor.is_built inside the loop if a specific condition needs it.
 	var n := 0
 	if structure_type == &"":
 		for t: StringName in commander.structure_type_map:
 			n += (
 				commander
 				. structure_type_map[t]
-				. filter(func(c: Commandable): return c.is_built)
+				. filter(func(c: Actor): return c.is_built)
 				. size()
 			)
 	else:
 		var s: Variant = commander.structure_type_map.get(structure_type)
-		n = s.filter(func(c: Commandable): return c.is_built).size() if s != null else 0
+		n = s.filter(func(c: Actor): return c.is_built).size() if s != null else 0
 	match comparison:
 		Comparison.AT_LEAST:
 			return n >= count

@@ -30,7 +30,7 @@ class StubCommander:
 
 
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make(a_is_structure: bool) -> StubPiece:
 		var piece := StubPiece.new()
@@ -43,8 +43,8 @@ class StubPiece:
 			node.name = pair[0]
 			piece.add_child(node)
 		if a_is_structure:
-			var structure := Structure.new()
-			structure.name = "Structure"
+			var structure := Fixture.new()
+			structure.name = "Fixture"
 			piece.add_child(structure)
 		var bar := Node3D.new()
 		bar.name = "HPBar"
@@ -72,7 +72,7 @@ func before_each() -> void:
 	_board = CommanderBlackboard.new(_commander)
 
 
-func _piece(a_is_structure: bool, a_at: Vector3) -> Commandable:
+func _piece(a_is_structure: bool, a_at: Vector3) -> Actor:
 	var piece: StubPiece = StubPiece.make(a_is_structure)
 	add_child_autofree(piece)
 	piece.global_position = a_at
@@ -98,7 +98,7 @@ func _look(a_clear: Array[Vector3], a_now: float) -> void:
 
 
 func test_a_piece_in_sight_is_believed_at_where_it_stands() -> void:
-	var unit: Commandable = _piece(false, FAR)
+	var unit: Actor = _piece(false, FAR)
 	_see([unit], 10.0)
 	var entries: Array = _board.believed()
 	assert_eq(entries.size(), 1)
@@ -110,7 +110,7 @@ func test_a_piece_in_sight_is_believed_at_where_it_stands() -> void:
 
 
 func test_a_re_sighting_refreshes_the_place_and_the_time_without_a_second_entry() -> void:
-	var unit: Commandable = _piece(false, FAR)
+	var unit: Actor = _piece(false, FAR)
 	_see([unit], 10.0)
 	unit.global_position = FAR + Vector3(5.0, 0.0, 0.0)
 	_see([unit], 20.0)
@@ -130,14 +130,14 @@ func test_a_structure_and_a_unit_are_filed_as_such() -> void:
 
 
 func test_a_unit_out_of_sight_stays_believed_inside_the_expiry_window() -> void:
-	var unit: Commandable = _piece(false, FAR)
+	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
 	_look([], CommanderBlackboard.BLACKBOARD_EXPIRATION - 1.0)
 	assert_true(_board.believes(unit.get_instance_id()), "still inside the window")
 
 
 func test_a_unit_out_of_sight_lapses_once_the_window_has_passed() -> void:
-	var unit: Commandable = _piece(false, FAR)
+	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
 	_look([], CommanderBlackboard.BLACKBOARD_EXPIRATION + 1.0)
 	assert_false(_board.believes(unit.get_instance_id()))
@@ -145,7 +145,7 @@ func test_a_unit_out_of_sight_lapses_once_the_window_has_passed() -> void:
 
 
 func test_a_unit_belief_does_not_lapse_while_it_keeps_being_seen() -> void:
-	var unit: Commandable = _piece(false, FAR)
+	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
 	_see([unit], CommanderBlackboard.BLACKBOARD_EXPIRATION - 1.0)
 	_look([], CommanderBlackboard.BLACKBOARD_EXPIRATION + 1.0)
@@ -157,7 +157,7 @@ func test_a_unit_belief_is_not_dropped_by_seeing_its_spot_empty() -> void:
 	# says nothing. Disproving a unit belief is Bot.belief_is_disproved's question, asked of
 	# the objective rather than of the table (bot-engagement-fixes.md §What this does NOT
 	# explain leaves whether the table should drop it as an open question).
-	var unit: Commandable = _piece(false, FAR)
+	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
 	_look([FAR], 1.0)
 	assert_true(_board.believes(unit.get_instance_id()))
@@ -166,7 +166,7 @@ func test_a_unit_belief_is_not_dropped_by_seeing_its_spot_empty() -> void:
 func test_a_unit_killed_in_sight_is_dropped_at_once() -> void:
 	# The bot watched it die. Kept for the full window, every enemy it killed counted toward
 	# the army it believed it faced — measured 2026-10-07 at two to four times the real one.
-	var unit: Commandable = _piece(false, FAR)
+	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
 	var id: int = unit.get_instance_id()
 	unit.free()
@@ -175,7 +175,7 @@ func test_a_unit_killed_in_sight_is_dropped_at_once() -> void:
 
 
 func test_a_unit_that_dies_out_of_sight_is_still_believed() -> void:
-	var unit: Commandable = _piece(false, FAR)
+	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
 	_look([], 1.0)  # it has walked out of view
 	var id: int = unit.get_instance_id()
@@ -188,21 +188,21 @@ func test_a_unit_that_dies_out_of_sight_is_still_believed() -> void:
 
 
 func test_a_structure_out_of_sight_is_believed_indefinitely() -> void:
-	var structure: Commandable = _piece(true, FAR)
+	var structure: Actor = _piece(true, FAR)
 	_see([structure], 0.0)
 	_look([], CommanderBlackboard.BLACKBOARD_EXPIRATION * 10.0)
 	assert_true(_board.believes(structure.get_instance_id()), "structures do not move")
 
 
 func test_a_structure_is_dropped_when_its_spot_is_in_vision_and_it_is_not_there() -> void:
-	var structure: Commandable = _piece(true, FAR)
+	var structure: Actor = _piece(true, FAR)
 	_see([structure], 0.0)
 	_look([FAR], 1.0)
 	assert_false(_board.believes(structure.get_instance_id()), "seen gone")
 
 
 func test_a_structure_still_in_sight_at_its_spot_is_kept() -> void:
-	var structure: Commandable = _piece(true, FAR)
+	var structure: Actor = _piece(true, FAR)
 	_see([structure], 0.0)
 	_commander.clear_at = [FAR]
 	_see([structure], 1.0)
@@ -214,7 +214,7 @@ func test_a_structure_is_dropped_by_vision_not_by_its_node_being_freed() -> void
 	# Then it looks, and the belief goes. The table never asks is_instance_valid — a bot that
 	# knew a building fell before any unit could see the spot was the leak world-model.md
 	# §The fog boundary lists third.
-	var structure: Commandable = _piece(true, FAR)
+	var structure: Actor = _piece(true, FAR)
 	_see([structure], 0.0)
 	var id: int = structure.get_instance_id()
 	structure.free()
@@ -225,7 +225,7 @@ func test_a_structure_is_dropped_by_vision_not_by_its_node_being_freed() -> void
 
 
 func test_vision_elsewhere_drops_nothing() -> void:
-	var structure: Commandable = _piece(true, FAR)
+	var structure: Actor = _piece(true, FAR)
 	_see([structure], 0.0)
 	_look([-FAR], 1.0)
 	assert_true(_board.believes(structure.get_instance_id()))

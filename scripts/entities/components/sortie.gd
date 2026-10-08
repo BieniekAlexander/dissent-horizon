@@ -10,8 +10,8 @@ extends Node
 ## player's Attack orders on station, and any order replaces the active one — so a run held as
 ## an order would be thrown away by the first target. The sortie sits beside the command queue
 ## instead: it flies the transit legs as [SortieLeg] orders, gates which orders the aircraft
-## admits (Commandable.update_commands), and keeps its weapons cold off station
-## (Commandable.can_use_weapons). Added at launch by EventGunship; no doc key, since only the
+## admits (Actor.update_commands), and keeps its weapons cold off station
+## (Actor.can_use_weapons). Added at launch by EventGunship; no doc key, since only the
 ## gunship flies one.
 
 enum Phase {
@@ -47,7 +47,7 @@ static func of(a_entity: Node) -> Sortie:
 
 ## Put [aircraft] on a sortie over [station], arriving from [home], for [station_seconds].
 static func launch(
-	aircraft: Commandable, map: Map, home: Vector3, station: Vector3, station_seconds: float
+	aircraft: Actor, map: Map, home: Vector3, station: Vector3, station_seconds: float
 ) -> Sortie:
 	var sortie := Sortie.new()
 	sortie.name = NODE_NAME
@@ -87,7 +87,7 @@ func _admits(a_order: MoveCommand) -> bool:
 #region Tick
 ## Framework-imposed per-tick state: the phase and the station clock.
 func _physics_process(_a_delta: float) -> void:
-	var aircraft := get_parent() as Commandable
+	var aircraft := get_parent() as Actor
 	if aircraft == null:
 		return
 	match phase:
@@ -109,7 +109,7 @@ func _physics_process(_a_delta: float) -> void:
 				_hold_leg(aircraft, _outbound_point())
 
 
-func _take_station(a_aircraft: Commandable) -> void:
+func _take_station(a_aircraft: Actor) -> void:
 	phase = Phase.ON_STATION
 	a_aircraft.update_commands(null)
 	a_aircraft.locomotion.settle(_station)
@@ -117,13 +117,13 @@ func _take_station(a_aircraft: Commandable) -> void:
 
 ## Idle on station circles the STATION, not wherever its last target died — a finished Attack
 ## leaves the orbit anchored on the target's last position (CommandReceiver._drop_command).
-func _circle_station(a_aircraft: Commandable) -> void:
+func _circle_station(a_aircraft: Actor) -> void:
 	var aerial: Aerial = a_aircraft.aerial
 	if aerial != null and not aerial.anchor().is_equal_approx(_station):
 		a_aircraft.locomotion.settle(_station)
 
 
-func _leave(a_aircraft: Commandable) -> void:
+func _leave(a_aircraft: Actor) -> void:
 	phase = Phase.OUTBOUND
 	a_aircraft.update_commands(null)
 	_fly_leg_to(_outbound_point())
@@ -139,12 +139,12 @@ func _outbound_point() -> Vector3:
 
 ## Re-issue the transit leg if anything took it away — a Stop or a cleared queue is admitted as
 ## a null order, which no admission can refuse.
-func _hold_leg(a_aircraft: Commandable, a_destination: Vector3) -> void:
+func _hold_leg(a_aircraft: Actor, a_destination: Vector3) -> void:
 	if not (a_aircraft.current_command() is SortieLeg):
 		_fly_leg_to(a_destination)
 
 
 func _fly_leg_to(a_destination: Vector3) -> void:
-	var aircraft := get_parent() as Commandable
+	var aircraft := get_parent() as Actor
 	aircraft.update_commands(SortieLeg.new(CommandMessage.new(_map, null, null, a_destination)))
 #endregion

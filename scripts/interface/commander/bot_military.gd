@@ -331,7 +331,7 @@ func _hold(a_post: Vector3) -> void:
 ## guard; and the reserve is released to the wave as a body when it is worth sending.
 func _tick_reinforcements(a_objective: Vector3) -> void:
 	var newcomers: Array = _combat_units(_bot.get_units()).filter(
-		func(u: Commandable) -> bool: return not (_main.has(u) or _reserve.has(u) or _guard.has(u))
+		func(u: Actor) -> bool: return not (_main.has(u) or _reserve.has(u) or _guard.has(u))
 	)
 	if _may_run(2):
 		_reserve.add_all(newcomers)
@@ -367,7 +367,7 @@ func _tick_guard() -> void:
 			worst = threat
 	# At the threat itself, not at the structure it is near: the guard is there to end it.
 	_guard.policy = HoldPolicy.new(
-		_act, (worst["enemy"] as Commandable).global_position, OBJECTIVE_EPSILON
+		_act, (worst["enemy"] as Actor).global_position, OBJECTIVE_EPSILON
 	)
 	_size_guard(threats)
 
@@ -383,7 +383,7 @@ func _size_guard(a_threats: Array) -> void:
 		needed += threat["value"]
 	needed *= guard_strength_ratio
 	var answers: Array = []  # [unit, its value against the threats]
-	for unit: Commandable in _guard.members() + _reserve.members():
+	for unit: Actor in _guard.members() + _reserve.members():
 		var best: float = 0.0
 		for threat: Dictionary in a_threats:
 			best = maxf(best, _bot.matchup(unit, threat["enemy"]))
@@ -403,7 +403,7 @@ func _size_guard(a_threats: Array) -> void:
 		chosen.append(answer[0])
 		strength += answer[1]
 	var rest: Array = (_guard.members() + _reserve.members()).filter(
-		func(unit: Commandable) -> bool: return not chosen.has(unit)
+		func(unit: Actor) -> bool: return not chosen.has(unit)
 	)
 	_guard.set_members(chosen)
 	_reserve.set_members(rest)
@@ -463,7 +463,7 @@ func _is_abandoned(a_position: Vector3) -> bool:
 
 ## The bot's own command centre under threat, or null — only under HEGEMONY, where it is the
 ## first thing the army defends.
-func _threatened_command_centre() -> Commandable:
+func _threatened_command_centre() -> Actor:
 	if _bot.win_condition() != Scenario.WinCondition.HEGEMONY:
 		return null
 	return _bot.threatened_command_centre(defend_threat_radius * COMMAND_CENTRE_THREAT_MULTIPLIER)
@@ -472,7 +472,7 @@ func _threatened_command_centre() -> Commandable:
 ## What `a_units` are worth, in the energy the wave's launch value is measured in.
 func _value_of(a_units: Array) -> float:
 	var total: float = 0.0
-	for unit: Commandable in a_units:
+	for unit: Actor in a_units:
 		total += float(_bot.unit_cost(unit.id))
 	return total
 
@@ -493,7 +493,7 @@ func _staging_point(a_objective: Vector3) -> Vector3:
 ## its own buildings on whichever side they happened to be. Home itself with no structure.
 func _station_point(a_direction: Vector2) -> Vector3:
 	var home: Vector3 = _home_anchor_position()
-	var front: Commandable = _bot.frontmost_structure(a_direction)
+	var front: Actor = _bot.frontmost_structure(a_direction)
 	var anchor: Vector3 = front.global_position if front != null else home
 	return anchor + VU.from_xz(a_direction) * STAGING_OFFSET
 
@@ -507,7 +507,7 @@ func _rally_production(a_point: Vector3, a_moved: bool) -> void:
 	_rally_point = a_point
 	_has_rally = true
 	var structures: Array = _bot.get_production_structures().filter(
-		func(s: Commandable) -> bool: return moved or s.rally_commands.is_empty()
+		func(s: Actor) -> bool: return moved or s.rally_commands.is_empty()
 	)
 	if not structures.is_empty():
 		_act.rally(structures, a_point)
@@ -535,7 +535,7 @@ func reserve_size() -> int:
 	return (
 		_combat_units(_bot.get_units())
 		. filter(
-			func(u: Commandable) -> bool: return not (_posture == Posture.ATTACK and _main.has(u))
+			func(u: Actor) -> bool: return not (_posture == Posture.ATTACK and _main.has(u))
 		)
 		. size()
 	)
@@ -701,7 +701,7 @@ func _combat_units(a_units: Array) -> Array:
 ## Whether `a_unit` is the army's to order right now — see _combat_units. Also every squad's
 ## `eligible` test, so a member claimed mid-fight or on an errand is left alone by dispatch
 ## and picked up again when released.
-func _is_armys(a_unit: Commandable) -> bool:
+func _is_armys(a_unit: Actor) -> bool:
 	return (
 		_bot.unit_has_combat_utility(a_unit)
 		and not claims.is_claimed(a_unit)
@@ -717,10 +717,10 @@ func _objective_for(a_posture: Posture) -> Variant:
 		Posture.DEFEND:
 			# The command centre first, under HEGEMONY: losing it is losing the match, so it
 			# outranks a more damaged building elsewhere.
-			var centre: Commandable = _threatened_command_centre()
+			var centre: Actor = _threatened_command_centre()
 			if centre != null:
 				return centre.global_position
-			var threatened: Commandable = _bot.most_threatened_structure()
+			var threatened: Actor = _bot.most_threatened_structure()
 			if threatened != null:
 				return threatened.global_position
 			return _home_anchor()

@@ -1,13 +1,13 @@
-[gd_scene load_steps=23 format=3 uid="uid://dse7m45bbxjfg"]
+[gd_scene load_steps=24 format=3 uid="uid://dse7m45bbxjfg"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_411xa"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_411xa"]
 [ext_resource type="Script" path="res://scripts/entities/components/production.gd" id="1_spec"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="2_spec"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_5qigu"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_h7ek4"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_h55vv"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="8_6sly3"]
-[ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="9_gmyp8"]
+[ext_resource type="Script" path="res://scripts/entities/components/fixture.gd" id="9_gmyp8"]
 [ext_resource type="Script" path="res://scripts/entities/components/defense.gd" id="10_ecpa4"]
 [ext_resource type="Script" path="res://scripts/entities/components/veterancy.gd" id="11_rxq16"]
 [ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="12_ty5d2"]
@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="19_3intm"]
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="21_qtxcu"]
 [ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="22_t4cod"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="3_spec"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_epxow"]
 size = Vector3(4, 2, 4)
@@ -35,6 +36,8 @@ collision_mask = 0
 script = ExtResource("1_411xa")
 infrastructure = -75
 id = &"an_warFactory"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1835383713]
 
@@ -53,7 +56,7 @@ shape = ExtResource("2_spec")
 [node name="Ownership" type="Node" parent="." unique_id=2049800160]
 script = ExtResource("8_6sly3")
 
-[node name="Structure" type="Node" parent="." unique_id=1193093298]
+[node name="Fixture" type="Node" parent="." unique_id=1193093298]
 script = ExtResource("9_gmyp8")
 dimensions = Vector2i(4, 4)
 
@@ -74,6 +77,9 @@ script = ExtResource("11_rxq16")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("BoxShape3D_epxow")
 metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("3_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1043499943]
 

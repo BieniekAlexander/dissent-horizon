@@ -118,7 +118,7 @@ static func decision_lines(recent: Array[Dictionary]) -> PackedStringArray:
 static func trainable_values(bot: Bot) -> Dictionary:
 	var demand: Dictionary = bot.enemy_demand_map()
 	var out: Dictionary = {}
-	for s: Commandable in bot.get_production_structures():
+	for s: Actor in bot.get_production_structures():
 		for type in bot.considered_producible_types(s.production):
 			if not out.has(type) and bot.has_tech_for(type):
 				out[type] = bot.unit_composition_value(type, demand)

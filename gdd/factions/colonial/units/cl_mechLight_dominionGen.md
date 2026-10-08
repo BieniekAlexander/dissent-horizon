@@ -32,6 +32,7 @@ garrison:
   bunker: false
   captures: true
   pieces: [cl_bioLight_builder]
+  unload_time: 1
 ui:
   grid: [1, 1]
   factions:

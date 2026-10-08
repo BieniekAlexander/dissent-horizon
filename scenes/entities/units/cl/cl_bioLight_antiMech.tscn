@@ -1,6 +1,6 @@
-[gd_scene load_steps=32 format=3 uid="uid://xi4d44sl0pu6"]
+[gd_scene load_steps=33 format=3 uid="uid://xi4d44sl0pu6"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_msm4r"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_msm4r"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_long.tres" id="1_spec"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_k5n2k"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_small.tres" id="2_spec"]
@@ -28,6 +28,7 @@
 [ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="25_27dc2"]
 [ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="26_vfc1y"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="27_nvtuq"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="4_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_ape66"]
 radius = 0.3
@@ -43,6 +44,8 @@ height = 1.803109
 [node name="Badger" type="CharacterBody3D" unique_id=70655620 groups=["piece", "unit"]]
 script = ExtResource("1_msm4r")
 id = &"cl_bioLight_antiMech"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1131298837]
 
@@ -103,6 +106,9 @@ debug_color = Color(0.85, 0.01, 0, 0.42)
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
 shape = SubResource("CylinderShape3D_d42vi")
 metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("4_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1703832019]
 

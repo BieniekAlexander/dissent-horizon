@@ -2,6 +2,9 @@
 kind: Entity
 title: Sapper
 scene: res://scenes/entities/units/an/an_bioLight_antiStructure.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 500}
   time: 20

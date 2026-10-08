@@ -140,7 +140,7 @@ func set_signal_weights(a_effectiveness: float, a_finishability: float, a_proxim
 func tick() -> int:
 	_work = 0
 	_release_finished_engagements()
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		_work += UNIT_WORK_UNITS
 		if not claims.can_claim(unit, CLAIM_OWNER, BotClaims.Priority.COMBAT):
 			continue  # an errand or an exclusive owner has it
@@ -163,13 +163,13 @@ func _release_finished_engagements() -> void:
 		if not is_instance_valid(unit):
 			claims.release(unit, CLAIM_OWNER)
 			continue
-		var engaged: Commandable = unit as Commandable
+		var engaged: Actor = unit as Actor
 		var command: MoveCommand = engaged.current_command()
 		if not (command is Attack or _is_run_over(engaged, command)):
 			claims.release(unit, CLAIM_OWNER)
 
 
-func _retarget(a_unit: Commandable) -> void:
+func _retarget(a_unit: Actor) -> void:
 	# Candidates: enemies within this unit's OWN aggro range that it can attack.
 	# Scoping to aggro range (not a fixed scan radius) keeps picks inside the
 	# persist=false attack leash, so the chosen target sticks instead of being
@@ -180,7 +180,7 @@ func _retarget(a_unit: Commandable) -> void:
 	var from: Hull = a_unit.hull()
 	var nearby: Array = _bot.visible_enemies_near(a_unit.global_position, radius + from.extent())
 	var candidates: Array = nearby.filter(
-		func(c: Commandable): return _can_engage(a_unit, c) and Hull.gap(from, c.hull()) <= radius
+		func(c: Actor): return _can_engage(a_unit, c) and Hull.gap(from, c.hull()) <= radius
 	)
 	# The signals are static (unit, candidate) functions; the clump reading needs the scan
 	# they were drawn from, handed over through this scratch for the duration of the pick and
@@ -190,11 +190,11 @@ func _retarget(a_unit: Commandable) -> void:
 	if candidates.is_empty():
 		_scan_nearby = []
 		return
-	var current: Commandable = _current_target(a_unit)
-	var best: Commandable = _best_candidate(a_unit, current, candidates)
+	var current: Actor = _current_target(a_unit)
+	var best: Actor = _best_candidate(a_unit, current, candidates)
 	_scan_nearby = []
 	# The piece this unit should be on: a better candidate, else the one it is on already.
-	var chosen: Commandable = best if best != null else current
+	var chosen: Actor = best if best != null else current
 	if chosen == null or not chosen.is_inside_tree():
 		return  # nothing to be on, or the current target is garrisoned
 	if Bot.crushes(a_unit.movement, chosen) and _run_over_is_survivable(a_unit, chosen, nearby):
@@ -216,7 +216,7 @@ func _retarget(a_unit: Commandable) -> void:
 
 
 ## Whether `a_unit` has a weapon that can be brought to bear on `a_candidate`.
-static func _can_shoot(a_unit: Commandable, a_candidate: Commandable) -> bool:
+static func _can_shoot(a_unit: Actor, a_candidate: Actor) -> bool:
 	return (
 		a_unit.weapon_inventory != null
 		and a_unit.weapon_inventory.weapon_for_target(a_candidate) != null
@@ -225,12 +225,12 @@ static func _can_shoot(a_unit: Commandable, a_candidate: Commandable) -> bool:
 
 ## Whether `a_unit` can hurt `a_candidate` by any means it has: a weapon, or driving over it.
 ## Crush is lethality (ontology.md §Affordances), so a crusher is retargeted like a shooter.
-static func _can_engage(a_unit: Commandable, a_candidate: Commandable) -> bool:
+static func _can_engage(a_unit: Actor, a_candidate: Actor) -> bool:
 	return _can_shoot(a_unit, a_candidate) or Bot.crushes(a_unit.movement, a_candidate)
 
 
 ## Whether `a_unit` outranks SOME crush class — there is something it could run over.
-static func _can_run_over(a_unit: Commandable) -> bool:
+static func _can_run_over(a_unit: Actor) -> bool:
 	return a_unit.movement != null and a_unit.movement.can_crush_anything()
 
 
@@ -238,7 +238,7 @@ static func _can_run_over(a_unit: Commandable) -> bool:
 ## less spent on the way? `a_nearby` is the visible enemy set the candidates were drawn from;
 ## the ones that can shoot the crusher are the ones that will.
 static func _run_over_is_survivable(
-	a_unit: Commandable, a_target: Commandable, a_nearby: Array
+	a_unit: Actor, a_target: Actor, a_nearby: Array
 ) -> bool:
 	if a_unit.defense == null or a_unit.defense.hp <= 0.0:
 		return false
@@ -249,7 +249,7 @@ static func _run_over_is_survivable(
 		VU.in_xz(a_unit.global_position).distance_to(VU.in_xz(a_target.global_position)) / speed
 	)
 	var incoming_dps: float = 0.0
-	for enemy: Commandable in a_nearby:
+	for enemy: Actor in a_nearby:
 		if enemy.weapon_inventory == null:
 			continue
 		var weapon: Weapon = enemy.weapon_inventory.weapon_for_target(a_unit)
@@ -260,7 +260,7 @@ static func _run_over_is_survivable(
 
 ## The second gate's reading: how many OTHER crushables stand within CRUSH_CLUMP_RADIUS of
 ## `a_target` — what the drive-through would take with it.
-static func _clump_around(a_unit: Commandable, a_target: Commandable, a_nearby: Array) -> int:
+static func _clump_around(a_unit: Actor, a_target: Actor, a_nearby: Array) -> int:
 	var knot: int = 0
 	var at: Vector2 = VU.in_xz(a_target.global_position)
 	# Untyped: the scratch may hold a piece freed since the scan (CLAUDE.md §A freed object
@@ -268,7 +268,7 @@ static func _clump_around(a_unit: Commandable, a_target: Commandable, a_nearby: 
 	for other: Variant in a_nearby:
 		if not is_instance_valid(other) or other == a_target:
 			continue
-		var piece: Commandable = other as Commandable
+		var piece: Actor = other as Actor
 		if piece == null or not Bot.crushes(a_unit.movement, piece):
 			continue
 		if VU.in_xz(piece.global_position).distance_to(at) <= CRUSH_CLUMP_RADIUS:
@@ -278,13 +278,13 @@ static func _clump_around(a_unit: Commandable, a_target: Commandable, a_nearby: 
 
 ## Whether `a_command` is a run-over `a_unit` is on: a plain Move (not an AttackMove, which
 ## extends it) aimed at a piece the unit would crush.
-static func _is_run_over(a_unit: Commandable, a_command: MoveCommand) -> bool:
+static func _is_run_over(a_unit: Actor, a_command: MoveCommand) -> bool:
 	if a_command == null or a_command.get_script() != MoveCommand or a_command.message == null:
 		return false
 	var target: Variant = a_command.message.target
-	if target == null or not is_instance_valid(target) or not (target is Commandable):
+	if target == null or not is_instance_valid(target) or not (target is Actor):
 		return false
-	return Bot.crushes(a_unit.movement, target as Commandable)
+	return Bot.crushes(a_unit.movement, target as Actor)
 
 
 ## HOW FAR THIS UNIT LOOKS FOR A BETTER TARGET: the further of its aggro shape and the
@@ -302,20 +302,20 @@ static func _is_run_over(a_unit: Commandable, a_command: MoveCommand) -> bool:
 ## persist=false Attack, which is dropped when the target leaves WEAPON range, so scanning
 ## to weapon range picks exactly the targets that will stick. Scanning to the aggro shape
 ## was the narrower of the two bounds for no reason but that it was the one already written.
-func _engage_radius(a_unit: Commandable) -> float:
+func _engage_radius(a_unit: Actor) -> float:
 	var radius: float = maxf(_aggro_radius(a_unit), _weapon_reach(a_unit))
 	return radius if radius > 0.0 else scan_radius
 
 
 ## XZ radius of `a_unit`'s wider aggro volume, or 0.0 when it has none.
-func _aggro_radius(a_unit: Commandable) -> float:
+func _aggro_radius(a_unit: Actor) -> float:
 	return maxf(0.0, a_unit.aggro_radius())
 
 
 ## The longest reach among `a_unit`'s weapons, in world units, or 0.0 when it is unarmed.
 ## Ground reach: the candidate set is not known yet at this point, and every range shape is
 ## authored as one very tall cylinder, so the ground shape is the representative one.
-func _weapon_reach(a_unit: Commandable) -> float:
+func _weapon_reach(a_unit: Actor) -> float:
 	if a_unit.weapon_inventory == null:
 		return 0.0
 	var reach: float = 0.0
@@ -331,7 +331,7 @@ func engagements() -> Array:
 	for unit: Variant in claims.units_of(CLAIM_OWNER):
 		if not is_instance_valid(unit):
 			continue
-		var target: Commandable = _current_target(unit)
+		var target: Actor = _current_target(unit)
 		if target != null:
 			out.append({"unit": unit, "target": target})
 	return out
@@ -339,14 +339,14 @@ func engagements() -> Array:
 
 ## The enemy this unit is presently set to attack or run over, or null (e.g. while
 ## attack-moving).
-func _current_target(a_unit: Commandable) -> Commandable:
+func _current_target(a_unit: Actor) -> Actor:
 	if not a_unit.has_command():
 		return null
 	var command: MoveCommand = a_unit.current_command()
 	if command is Attack or _is_run_over(a_unit, command):
 		var t: Entity = command.message.target
 		if is_instance_valid(t):
-			return t as Commandable
+			return t as Actor
 	return null
 
 
@@ -354,12 +354,12 @@ func _current_target(a_unit: Commandable) -> Commandable:
 ## target, or null to keep the current target. A null current target (attack-moving)
 ## means any positively-scored candidate qualifies.
 func _best_candidate(
-	a_unit: Commandable, a_current: Commandable, a_candidates: Array
-) -> Commandable:
+	a_unit: Actor, a_current: Actor, a_candidates: Array
+) -> Actor:
 	var threshold: float = _score(a_unit, a_current) * switch_margin if a_current != null else 0.0
-	var best: Commandable = null
+	var best: Actor = null
 	var best_score: float = threshold
-	for c: Commandable in a_candidates:
+	for c: Actor in a_candidates:
 		var s: float = _score(a_unit, c)
 		if s > best_score:
 			best_score = s
@@ -367,7 +367,7 @@ func _best_candidate(
 	return best
 
 
-func _score(a_unit: Commandable, a_candidate: Commandable) -> float:
+func _score(a_unit: Actor, a_candidate: Actor) -> float:
 	# Off the tree is garrisoned: held, not gone, and no more engageable than a dead piece.
 	if (
 		a_candidate == null
@@ -390,7 +390,7 @@ func _score(a_unit: Commandable, a_candidate: Commandable) -> float:
 ## AND is currently positioned to hit it. A harmless target (a building, or an enemy
 ## out of its own range) scores 0. Binary (1.0 = a live threat), so combined with the
 ## commit margin it means "drop a non-threat for any threat, then stay on it."
-static func threat_signal(unit: Commandable, candidate: Commandable) -> float:
+static func threat_signal(unit: Actor, candidate: Actor) -> float:
 	if candidate.weapon_inventory == null:
 		return 0.0
 	var w: Weapon = candidate.weapon_inventory.weapon_for_target(unit)
@@ -406,7 +406,7 @@ static func threat_signal(unit: Commandable, candidate: Commandable) -> float:
 ## effective_damage / base_damage. 1.0 = neutral, >1 strong vs this target, <1 weak —
 ## so a unit gravitates to the enemies it actually hurts. (Multiplier, not absolute
 ## damage, so the signal is comparable across different-strength units.)
-static func effectiveness_signal(unit: Commandable, candidate: Commandable) -> float:
+static func effectiveness_signal(unit: Actor, candidate: Actor) -> float:
 	# Hand-set matchup override wins over the computed multiplier (parity with the
 	# production effectiveness in Bot.unit_effectiveness_vs).
 	var override: Variant = DamageTable.matchup_override(unit.id, candidate.id)
@@ -431,7 +431,7 @@ static func effectiveness_signal(unit: Commandable, candidate: Commandable) -> f
 ## FINISHABILITY — how close `candidate` is to dying (lost HP fraction, 0..1). A
 ## nearly-dead target scores ~1, a full-health one ~0, so the bot prefers to finish
 ## off cheap kills rather than spread damage.
-static func finishability_signal(_unit: Commandable, candidate: Commandable) -> float:
+static func finishability_signal(_unit: Actor, candidate: Actor) -> float:
 	var d: Defense = candidate.defense
 	if d == null or d.hp_max <= 0.0:
 		return 0.0
@@ -440,7 +440,7 @@ static func finishability_signal(_unit: Commandable, candidate: Commandable) -> 
 
 ## PROXIMITY — prefer closer targets (less travel, faster to engage). Decreasing with
 ## XZ distance, self-normalising to (0, 1] (1 when adjacent, → 0 far away).
-static func proximity_signal(unit: Commandable, candidate: Commandable) -> float:
+static func proximity_signal(unit: Actor, candidate: Actor) -> float:
 	var dist: float = VU.in_xz(unit.global_position).distance_to(
 		VU.in_xz(candidate.global_position)
 	)

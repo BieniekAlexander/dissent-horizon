@@ -1,11 +1,11 @@
-[gd_scene load_steps=23 format=3 uid="uid://cts83yi4a6s4q"]
+[gd_scene load_steps=24 format=3 uid="uid://cts83yi4a6s4q"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="1_spec"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="2_spec"]
 [ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="3_spec"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="4_spec"]
-[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="5_spec"]
+[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/fixture.gd" id="5_spec"]
 [ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="6_spec"]
 [ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="7_spec"]
 [ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="8_spec"]
@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" uid="uid://c0a8hdddox08m" path="res://scenes/components/footprint_visualizer.tscn" id="16_spec"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="17_spec"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="18_spec"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="19_spec"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_placeholder"]
 size = Vector3(3.0, 2.0, 5.0)
@@ -34,6 +35,8 @@ collision_layer = 0
 collision_mask = 0
 script = ExtResource("1_root")
 id = &"nt_building_long"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="."]
 
@@ -52,7 +55,7 @@ shape = ExtResource("17_spec")
 [node name="Ownership" type="Node" parent="."]
 script = ExtResource("4_spec")
 
-[node name="Structure" type="Node" parent="."]
+[node name="Fixture" type="Node" parent="."]
 script = ExtResource("5_spec")
 dimensions = Vector2i(3, 5)
 
@@ -74,6 +77,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 visible = true
 shape = SubResource("BoxShape3D_selection")
 metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("19_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="."]
 

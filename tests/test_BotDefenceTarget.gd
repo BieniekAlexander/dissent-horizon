@@ -28,7 +28,7 @@ class FakeBot:
 	var demand_seen: Dictionary = {}  # what the defence choice was scored against
 	var condition: Scenario.WinCondition = Scenario.WinCondition.MISSION
 	var centres: Array = []
-	var frontmost: Commandable = null
+	var frontmost: Actor = null
 
 	func can_afford(a_type: StringName) -> bool:
 		return energy >= int(costs.get(a_type, 0))
@@ -71,7 +71,7 @@ class FakeBot:
 	func owned_command_centres() -> Array:
 		return centres
 
-	func frontmost_structure(_a_direction: Vector2) -> Commandable:
+	func frontmost_structure(_a_direction: Vector2) -> Actor:
 		return frontmost
 
 	func base_centroid() -> Vector3:
@@ -85,14 +85,16 @@ class StubActuator:
 	extends BotActuator
 	var builds: Array = []
 
-	func build(_a_builder: Commandable, a_type: StringName, _a_pos: Vector3) -> bool:
+	func build(
+		_a_builder: Actor, a_type: StringName, _a_pos: Vector3, _a_quarter_turns: int = 0
+	) -> bool:
 		builds.append(a_type)
 		return true
 
 
 class StubEconomy:
 	extends BotEconomy
-	var builder: Commandable
+	var builder: Actor
 	## What the demand read answers; a tower costs 400 here, so the default clears it.
 	var demand_read: Dictionary = {"anchor": Vector2.ZERO, "demand": 1000.0}
 
@@ -108,7 +110,7 @@ class StubEconomy:
 	func _abort_contested_jobs() -> void:
 		pass  # likewise
 
-	func _pick_builder() -> Commandable:
+	func _pick_builder() -> Actor:
 		return builder
 
 	func _dominion_structure_to_build() -> Variant:
@@ -154,7 +156,7 @@ func _economy() -> StubEconomy:
 	var economy := StubEconomy.new(_bot, _act)
 	economy.reserve = RESERVE
 	economy.income_structure_target = 0
-	economy.builder = autofree(Commandable.new()) as Commandable
+	economy.builder = autofree(Actor.new()) as Actor
 	economy._prev_energy = _bot.energy  # in surplus, so the capacity rung is live
 	return economy
 
@@ -210,7 +212,7 @@ func test_no_producer_yet_means_the_producer_comes_first() -> void:
 
 func test_the_defence_that_answers_the_seen_army_is_the_one_built() -> void:
 	var economy := _economy()
-	var infantry: Commandable = autofree(Commandable.new())
+	var infantry: Actor = autofree(Actor.new())
 	_bot.demand = {&"enemy_infantry": {"demand": 1.0, "rep": infantry}}
 	_bot.values = {TOWER: 0.2, SAM: 1.0}
 	economy.tick()
@@ -219,9 +221,9 @@ func test_the_defence_that_answers_the_seen_army_is_the_one_built() -> void:
 
 func test_with_nothing_seen_the_bots_own_army_stands_in_for_the_enemys() -> void:
 	var economy := _economy()
-	var recruit_a: Commandable = autofree(Commandable.new())
-	var recruit_b: Commandable = autofree(Commandable.new())
-	var truck: Commandable = autofree(Commandable.new())
+	var recruit_a: Actor = autofree(Actor.new())
+	var recruit_b: Actor = autofree(Actor.new())
+	var truck: Actor = autofree(Actor.new())
 	recruit_a.id = &"test_recruit"
 	recruit_b.id = &"test_recruit"
 	truck.id = &"test_truck"
@@ -253,8 +255,8 @@ func test_an_unaffordable_defence_falls_through_rather_than_banking() -> void:
 
 
 ## In the tree under the bot, because the anchor reads a GLOBAL position, as it does in play.
-func _structure_at(a_x: float) -> Commandable:
-	var piece: Commandable = FakePieces.structure({})
+func _structure_at(a_x: float) -> Actor:
+	var piece: Actor = FakePieces.structure({})
 	if not _bot.is_inside_tree():
 		add_child(_bot)
 	_bot.add_child(piece)

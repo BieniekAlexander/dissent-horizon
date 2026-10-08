@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Scavenge
+flavor:
+  description: potato
+  verbose: potato
 passive: true
 valence: BOON
 column: 2

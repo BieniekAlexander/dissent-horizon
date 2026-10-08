@@ -29,7 +29,7 @@ func _rebuild() -> void:
 	if entity == null:
 		return
 
-	var obs: Structure = get_parent().find_child("Structure")
+	var obs: Fixture = get_parent().find_child("Fixture")
 	var w: float = obs.dimensions.x * Map.CELL_SIZE
 	var d: float = obs.dimensions.y * Map.CELL_SIZE
 

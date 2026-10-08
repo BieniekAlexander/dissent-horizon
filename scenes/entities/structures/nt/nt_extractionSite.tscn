@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://scripts/entities/structures/extraction_site.gd" id="2_dep"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="2_ijod7"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="2_wha84"]
-[ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="3_j87wn"]
+[ext_resource type="Script" path="res://scripts/entities/components/fixture.gd" id="3_j87wn"]
 [ext_resource type="Script" path="res://scripts/entities/components/mesh_visual.gd" id="5_p0npg"]
 [ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="6_jqy5p"]
 [ext_resource type="PackedScene" path="res://assets/meshes/cone.blend" id="6_x2nsk"]
@@ -36,7 +36,7 @@ metadata/_visual_default_hurtbox = "BoxShape3D"
 [node name="Ownership" type="Node" parent="." unique_id=31239474]
 script = ExtResource("2_wha84")
 
-[node name="Structure" type="Node" parent="." unique_id=1298530727]
+[node name="Fixture" type="Node" parent="." unique_id=1298530727]
 script = ExtResource("3_j87wn")
 dimensions = Vector2i(2, 2)
 is_obstruction = false

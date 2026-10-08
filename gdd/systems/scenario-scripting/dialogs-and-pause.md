@@ -10,7 +10,7 @@ type: system-note
 ## Pausing the simulation (`SimulationClock`)
 
 
-`scripts/scenario/simulation_clock.gd`, created by `ScenarioTriggerManager._ready` and reachable as `manager.simulation_clock`. It drives `SceneTree.paused`, which maps exactly onto this game's split: **simulation lives in `_physics_process`** (`Commandable._update_state`, the `ProductionQueue` tick, `Fog`, `BotBrain`, `Scenario.frame`), **player agency lives in `_process` / `_unhandled_input`**. So a hold freezes the world while the player can still pan, select, and issue orders — those orders sit in the command queue and are carried out when the world resumes.
+`scripts/scenario/simulation_clock.gd`, created by `ScenarioTriggerManager._ready` and reachable as `manager.simulation_clock`. It drives `SceneTree.paused`, which maps exactly onto this game's split: **simulation lives in `_physics_process`** (`Actor._update_state`, the `ProductionQueue` tick, `Fog`, `BotBrain`, `Scenario.frame`), **player agency lives in `_process` / `_unhandled_input`**. So a hold freezes the world while the player can still pan, select, and issue orders — those orders sit in the command queue and are carried out when the world resumes.
 
 Holds are **reason-keyed and counted** (`hold(reason)` / `release(reason)`), because more than one system may want the world stopped at once; the world resumes only when the last hold goes. Nothing "unpauses" — it releases its own hold.
 

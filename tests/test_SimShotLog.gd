@@ -10,9 +10,9 @@ extends GutTest
 
 ## A shooter watched by `a_log` as group "A.shooters", and a target in "B.targets".
 func _setup(a_roster: SimGroupRoster) -> Array:
-	var shooter: Commandable = FakePieces.unit()
+	var shooter: Actor = FakePieces.unit()
 	add_child_autofree(shooter)
-	var target: Commandable = FakePieces.unit()
+	var target: Actor = FakePieces.unit()
 	add_child_autofree(target)
 	a_roster.add("A.shooters", shooter, "fake_unit")
 	a_roster.add("B.targets", target, "fake_unit")
@@ -20,7 +20,7 @@ func _setup(a_roster: SimGroupRoster) -> Array:
 
 
 ## Fire one emission from `a_shooter`, landing on `a_victims`, then let it leave the game.
-func _fire(a_shooter: Commandable, a_victims: Array, a_settle: bool = true) -> Entity:
+func _fire(a_shooter: Actor, a_victims: Array, a_settle: bool = true) -> Entity:
 	var emission: Entity = FakePieces.emission()
 	add_child(emission)
 	a_shooter.action_tracker.cue(ActionTracker.CUE_EMITTED, emission)
@@ -62,7 +62,7 @@ func test_a_hit_on_a_piece_since_destroyed_still_counts() -> void:
 func test_landing_on_someone_else_is_a_miss() -> void:
 	var roster := SimGroupRoster.new()
 	var pieces: Array = _setup(roster)
-	var bystander: Commandable = FakePieces.unit()
+	var bystander: Actor = FakePieces.unit()
 	add_child_autofree(bystander)
 	_fire(pieces[0], [bystander])
 	assert_eq(_tally(roster), Vector2i(0, 1))

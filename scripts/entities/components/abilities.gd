@@ -281,7 +281,7 @@ func granted_abilities() -> Array[StringName]:
 ##
 ## A pool on something with no host (a bare component in a test) is always operational.
 func is_operational() -> bool:
-	var host := get_parent() as Commandable
+	var host := get_parent() as Actor
 	return host == null or not host.is_unpowered()
 
 

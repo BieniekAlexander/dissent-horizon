@@ -21,7 +21,7 @@ func _make_movement() -> Movement:
 
 func test_a_freed_partner_can_be_dropped() -> void:
 	var movement: Movement = _make_movement()
-	var partner: Commandable = FakePieces.unit()
+	var partner: Actor = FakePieces.unit()
 	add_child(partner)
 	movement.set_avoidance_follow_target(partner)
 	partner.free()
@@ -31,11 +31,11 @@ func test_a_freed_partner_can_be_dropped() -> void:
 
 func test_a_freed_partner_can_be_replaced() -> void:
 	var movement: Movement = _make_movement()
-	var partner: Commandable = FakePieces.unit()
+	var partner: Actor = FakePieces.unit()
 	add_child(partner)
 	movement.set_avoidance_follow_target(partner)
 	partner.free()
-	var next: Commandable = FakePieces.unit()
+	var next: Actor = FakePieces.unit()
 	add_child_autofree(next)
 	movement.set_avoidance_follow_target(next)
 	assert_eq(movement._avoidance_follow, next)

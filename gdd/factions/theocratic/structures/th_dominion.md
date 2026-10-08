@@ -2,6 +2,9 @@
 kind: Entity
 title: th_dominion
 scene: res://scenes/entities/structures/th/th_dominion.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 250

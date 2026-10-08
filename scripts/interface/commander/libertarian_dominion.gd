@@ -27,12 +27,12 @@ var _ticks_elapsed: int = 0
 
 #region Public API
 ## The Opticons this commander owns that are finished and standing.
-func sources() -> Array[Commandable]:
-	var out: Array[Commandable] = []
+func sources() -> Array[Actor]:
+	var out: Array[Actor] = []
 	if commander == null:
 		return out
 	for node: Node in commander.get_children():
-		var piece := node as Commandable
+		var piece := node as Actor
 		if (
 			piece != null
 			and structure_sources.has(piece.id)
@@ -47,12 +47,12 @@ func sources() -> Array[Commandable]:
 
 ## The Opticons this commander has ordered but that are not paying yet: blueprints still waiting
 ## for a builder, and ones under construction.
-func pending_sources() -> Array[Commandable]:
-	var out: Array[Commandable] = []
+func pending_sources() -> Array[Actor]:
+	var out: Array[Actor] = []
 	if commander == null:
 		return out
 	for node: Node in commander.get_children():
-		var piece := node as Commandable
+		var piece := node as Actor
 		if (
 			piece != null
 			and structure_sources.has(piece.id)
@@ -88,19 +88,19 @@ func _snapshot_or_empty() -> Dictionary:
 
 ## The distinct tiles every source claims that pay this cycle — what the sweep banks for.
 func paying_cells() -> Dictionary:
-	var sources_now: Array[Commandable] = sources()
+	var sources_now: Array[Actor] = sources()
 	if sources_now.is_empty():
 		return {}
 	var map: Map = sources_now[0].map
 	var claimed: Array = []
-	for source: Commandable in sources_now:
+	for source: Actor in sources_now:
 		claimed.append(cells_claimed_by(source))
 	return union_excluding(claimed, _allied_fixture_cells(map))
 
 
 ## The tiles inside one source's vision, before de-duplication or exclusion. The vision SHAPE
 ## is the reach, so retuning the Opticon's sight retunes its claim with it.
-static func cells_claimed_by(a_source: Commandable) -> Array[Vector2i]:
+static func cells_claimed_by(a_source: Actor) -> Array[Vector2i]:
 	if a_source.map == null:
 		return []
 	return cells_within(
@@ -336,12 +336,12 @@ func claim_key() -> Variant:
 		return []
 	var planned: Array = []
 	for node: Node in commander.get_children():
-		var piece := node as Commandable
+		var piece := node as Actor
 		if piece != null and piece.is_planned:
 			planned.append([piece.get_instance_id(), piece.global_position])
 	return [
-		sources().map(func(c: Commandable) -> int: return c.get_instance_id()),
-		pending_sources().map(func(c: Commandable) -> int: return c.get_instance_id()),
+		sources().map(func(c: Actor) -> int: return c.get_instance_id()),
+		pending_sources().map(func(c: Actor) -> int: return c.get_instance_id()),
 		planned,
 		map.structure_cell_map.size()
 	]

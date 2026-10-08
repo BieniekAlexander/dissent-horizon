@@ -15,7 +15,7 @@ func test_every_body_in_a_crowd_is_returned() -> void:
 	var root := Node3D.new()
 	add_child_autofree(root)
 	for i: int in CROWD:
-		var piece: Commandable = FakePieces.unit()
+		var piece: Actor = FakePieces.unit()
 		root.add_child(piece)
 		piece.global_position = Vector3(i % 5, 0.0, i / 5)
 	await get_tree().physics_frame

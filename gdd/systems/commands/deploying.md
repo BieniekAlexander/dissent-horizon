@@ -39,7 +39,7 @@ static's efficiency per cost.
 
 ## Which orders a deploying unit takes
 
-Every order enters a Commandable at one point (`Commandable.update_commands`), and a deployable
+Every order enters a Actor at one point (`Actor.update_commands`), and a deployable
 unit judges it there against the form it will be in when the order runs — its PROJECTED form,
 walking the queue it would join. The rules:
 

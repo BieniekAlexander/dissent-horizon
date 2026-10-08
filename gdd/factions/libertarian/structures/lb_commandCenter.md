@@ -2,6 +2,9 @@
 kind: Entity
 title: Shard
 scene: res://scenes/entities/structures/lb/lb_commandCenter.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 300

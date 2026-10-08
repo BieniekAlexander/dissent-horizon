@@ -20,7 +20,7 @@ Key methods:
 - `world_to_grid(world_xz: Vector2) -> Vector2i` — exact inverse
 - `terrain_height_at(world_xz: Vector2) -> float` — bilinear interpolation for continuous height
 
-`Map` maintains `cell_grid: Array` (2D, indexed by grid coords, null = unoccupied, non-null = Commandable) for O(1) structure lookups, and `structure_cell_map: Dictionary` (Commandable → Array[Vector2i]).
+`Map` maintains `cell_grid: Array` (2D, indexed by grid coords, null = unoccupied, non-null = Actor) for O(1) structure lookups, and `structure_cell_map: Dictionary` (Actor → Array[Vector2i]).
 
 ## The corner grid is DERIVED from the play size, and is always square
 

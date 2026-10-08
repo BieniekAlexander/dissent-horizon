@@ -5,7 +5,7 @@ extends Node
 ## Ongoing, hand-authored behaviour for one cluster of scenario-spawned units — the gap
 ## between the Bot (governs a whole skirmish commander, untouched by this) and
 ## EventIssueCommand (issues one command chain, once, with nothing watching afterward). See
-## gdd/tasks.md, "Command Assignment extensions".
+## gdd/systems/scenario-scripting/tactics.md.
 ##
 ## A cluster is identified by node-group membership (`unit_group`), stamped onto units the
 ## same way EventSpawnEntities.spawn_groups labels a wave for ConditionGroupCount — fixed for
@@ -71,7 +71,7 @@ func reset_conditions() -> void:
 func _physics_process(_a_delta: float) -> void:
 	if _manager == null or unit_group.is_empty():
 		return
-	var members: Array[Commandable] = _live_members()
+	var members: Array[Actor] = _live_members()
 	if members.is_empty():
 		return
 	_register_on(members[0].commander)
@@ -110,12 +110,12 @@ func _rules() -> Array[TacticRule]:
 ## out on their own — a dead unit leaves every group along with the rest of the scene tree —
 ## so no explicit pruning is needed, the same reasoning ConditionGroupCount relies on for a
 ## group count.
-func _live_members() -> Array[Commandable]:
-	var result: Array[Commandable] = []
+func _live_members() -> Array[Actor]:
+	var result: Array[Actor] = []
 	for node: Node in get_tree().get_nodes_in_group(unit_group):
 		if node.is_queued_for_deletion():
 			continue
-		var c := node as Commandable
+		var c := node as Actor
 		if c != null:
 			result.append(c)
 	return result

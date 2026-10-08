@@ -41,6 +41,11 @@ enum Difficulty {
 ## trained at. An id the roster lacks fails the boot (Scenario._validate_player_slots).
 @export var personality: String = ""
 
+## BotBrain jobs this slot's bot leaves off, by name (BotBrain.JOB_NAMES): a mission that
+## runs the bot's economy and production but authors its army as squads switches off
+## `military`. Empty runs every job. A name no job has fails the boot.
+@export var disabled_bot_jobs: Array[StringName] = []
+
 ## Field-by-field overrides on top of the tier and personality, keyed by BotDifficulty field
 ## name — a one-off authored tweak ("this one never attacks") that does not deserve a roster
 ## entry. A key that names no field fails the boot.

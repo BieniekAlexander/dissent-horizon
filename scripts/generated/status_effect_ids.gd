@@ -8,4 +8,3 @@ class_name StatusEffectIds
 const BIO_STUN := &"bio_stun"
 const EMP := &"emp"
 const LAZER_BURN := &"lazer_burn"
-const SUICIDE := &"suicide"

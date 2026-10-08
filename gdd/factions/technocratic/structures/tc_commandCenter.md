@@ -2,6 +2,9 @@
 kind: Entity
 title: Outpost
 scene: res://scenes/entities/structures/tc/tc_commandCenter.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 1500

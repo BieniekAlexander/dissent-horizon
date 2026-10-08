@@ -179,8 +179,8 @@ func instantiate() -> Node:
 		return null
 	var instance: Node = packed_scene.instantiate()
 	var found: PieceFamilies.Template = variant_template()
-	if found != null and instance is Commandable:
-		Repurposing.into(instance as Commandable, type)
+	if found != null and instance is Actor:
+		Repurposing.into(instance as Actor, type)
 	return instance
 
 

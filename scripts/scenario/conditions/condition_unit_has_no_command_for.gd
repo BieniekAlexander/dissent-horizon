@@ -54,12 +54,12 @@ func _all_idle(a_manager: ScenarioTriggerManager) -> bool:
 	var units: Array = commander.get_children().filter(
 		func(n: Node) -> bool:
 			return (
-				n is Commandable
-				and (n as Commandable).is_in_group("unit")
-				and (unit_type == &"" or (n as Commandable).id == unit_type)
+				n is Actor
+				and (n as Actor).is_in_group("unit")
+				and (unit_type == &"" or (n as Actor).id == unit_type)
 			)
 	)
 	if units.is_empty():
 		return false
-	return units.all(func(u: Commandable) -> bool: return not u.has_command())
+	return units.all(func(u: Actor) -> bool: return not u.has_command())
 #endregion

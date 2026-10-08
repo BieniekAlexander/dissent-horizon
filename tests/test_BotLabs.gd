@@ -80,7 +80,7 @@ class StubEconomy:
 		surveyed = true
 		return null
 
-	func _issue_build(_a_builder: Commandable, a_type: StringName, a_spot: Vector3) -> bool:
+	func _issue_build(_a_builder: Actor, a_type: StringName, a_spot: Vector3) -> bool:
 		issued.append([a_type, a_spot])
 		return true
 
@@ -89,7 +89,7 @@ class RecordingActuator:
 	extends BotActuator
 	var trained: Array = []
 
-	func train(a_structure: Commandable, a_type: StringName) -> bool:
+	func train(a_structure: Actor, a_type: StringName) -> bool:
 		trained.append([a_structure, a_type])
 		return true
 
@@ -108,7 +108,7 @@ func _economy(a_bot: FakeBot) -> StubEconomy:
 
 ## A structure piece that OVERLAYS an extraction site and collects no energy — the Lab's shape.
 func _overlay_preview() -> Entity:
-	var piece: Commandable = FakePieces.structure()
+	var piece: Actor = FakePieces.structure()
 	var overlay := Extractor.new()
 	overlay.name = "Extractor"
 	piece.add_child(overlay)
@@ -206,8 +206,8 @@ func test_a_commander_with_no_sanctions_wants_no_dominion() -> void:
 
 
 #region A trained infrastructure provider
-func _producer() -> Commandable:
-	var producer: Commandable = FakePieces.structure({"produces": [SURVEYOR]})
+func _producer() -> Actor:
+	var producer: Actor = FakePieces.structure({"produces": [SURVEYOR]})
 	add_child_autofree(producer)
 	return producer
 

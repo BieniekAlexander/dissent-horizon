@@ -15,7 +15,7 @@ var speed_mps: float = 0.0
 
 
 ## The context of `actor` as it stands now.
-static func of(actor: Commandable) -> AnimationContext:
+static func of(actor: Actor) -> AnimationContext:
 	var context: AnimationContext = AnimationContext.new()
 	context.action = actor.action_tracker.current_action()
 	if actor.defense != null and actor.defense.hp_max > 0.0:

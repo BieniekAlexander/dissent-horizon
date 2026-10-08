@@ -2,6 +2,9 @@
 kind: Entity
 title: Annex
 scene: res://scenes/entities/structures/cl/cl_support1.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 500

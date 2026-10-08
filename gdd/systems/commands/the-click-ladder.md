@@ -28,7 +28,7 @@ fire. See [saying-it-plainly.md](saying-it-plainly.md).
 
 Two hotkeys are not in the table, because a name alone cannot express them:
 
-* `command_attack_move` reads the cursor's target — `Attack` on a Commandable,
+* `command_attack_move` reads the cursor's target — `Attack` on a Actor,
   `AttackMove` on ground.
 * `command_launch` WRITES the ability id onto the message before returning `Ability`.
 

@@ -13,8 +13,8 @@ func _field(a_scope: PieceField.Scope, a_path: Array) -> PieceField:
 	return null
 
 
-func _live(a_options: Dictionary) -> Commandable:
-	var piece: Commandable = FakePieces.unit(a_options)
+func _live(a_options: Dictionary) -> Actor:
+	var piece: Actor = FakePieces.unit(a_options)
 	add_child_autofree(piece)
 	piece.set_physics_process(false)
 	return piece
@@ -74,7 +74,7 @@ func test_an_unbounded_value_reads_as_unbounded() -> void:
 
 
 func test_raising_hp_keeps_the_fraction_of_health() -> void:
-	var piece: Commandable = _live({"hp": 100.0})
+	var piece: Actor = _live({"hp": 100.0})
 	piece.defense.hp = 50.0
 	var hp: PieceField = _field(PieceField.Scope.PIECE, ["defense", "hp"])
 	hp.write.call({"node": piece}, 100.0, 150.0)
@@ -83,7 +83,7 @@ func test_raising_hp_keeps_the_fraction_of_health() -> void:
 
 
 func test_a_slowed_unit_keeps_its_slow_when_its_speed_is_retuned() -> void:
-	var piece: Commandable = _live({"speed": 4.0})
+	var piece: Actor = _live({"speed": 4.0})
 	var movement: Movement = piece.get_node("Locomotion") as Movement
 	movement.speed = 2.0  # half speed, as a slow would leave it
 	var speed: PieceField = _field(PieceField.Scope.PIECE, ["movement", "speed"])
@@ -92,7 +92,7 @@ func test_a_slowed_unit_keeps_its_slow_when_its_speed_is_retuned() -> void:
 
 
 func test_resizing_a_clip_keeps_the_fraction_loaded() -> void:
-	var piece: Commandable = _live({"weapon": {"ground": 5.0, "clip_size": 4}})
+	var piece: Actor = _live({"weapon": {"ground": 5.0, "clip_size": 4}})
 	var weapon: Weapon = EntityRanges.first_weapon(piece)
 	weapon.fill_clip()
 	weapon.consume_round()
@@ -102,7 +102,7 @@ func test_resizing_a_clip_keeps_the_fraction_loaded() -> void:
 
 
 func test_retuning_reach_rederives_aggro() -> void:
-	var piece: Commandable = _live({"speed": 2.0, "weapon": {"ground": 2.0}})
+	var piece: Actor = _live({"speed": 2.0, "weapon": {"ground": 2.0}})
 	var before: float = RangeShapes.radius_of(piece.aggro_shape_ground.shape)
 	var reach: PieceField = _field(PieceField.Scope.WEAPON, ["reach", "ground"])
 	var longer := CylinderShape3D.new()
@@ -112,7 +112,7 @@ func test_retuning_reach_rederives_aggro() -> void:
 
 
 func test_retuning_a_pool_keeps_its_fraction_of_charges() -> void:
-	var piece: Commandable = _live(
+	var piece: Actor = _live(
 		{"abilities": [{"grants": [&"fake_ability"], "max_charges": 2, "cooldown_ticks": 60}]}
 	)
 	var abilities: Abilities = piece.get_node("Abilities") as Abilities

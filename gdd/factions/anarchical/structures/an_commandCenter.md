@@ -2,6 +2,9 @@
 kind: Entity
 title: Stronghold
 scene: res://scenes/entities/structures/an/an_commandCenter.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 1500

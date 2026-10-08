@@ -44,6 +44,14 @@ var _ammo: int = 1  ## current amount of ammo left, before reload timer finishes
 ## which is the mechanic's whole point.
 @export var charged: bool = false
 
+## The weapon IS its wielder blowing itself up. Firing it kills the wielder on that tick, and
+## the wielder's death, however it comes, sets the emission off where it is — once. Doc key
+## `self_destruct: true`. Why: gdd/systems/combat/aerial-operations/attack-runs.md §A rammer
+## strikes its target's top, and is spent on contact.
+@export var self_destruct: bool = false
+## Latched once the self-destruct blast has gone off, so no second death path sets off another.
+var _has_self_destructed: bool = false
+
 ## The reach at or below which this weapon is MELEE: it has to be in CONTACT with what it
 ## is hitting. One terrain cell (Map.CELL_SIZE) — the smallest distance this game measures
 ## anything in, so a weapon that cannot reach across a single cell is not shooting across a
@@ -54,24 +62,9 @@ var _ammo: int = 1  ## current amount of ammo left, before reload timer finishes
 const MELEE_REACH_MAX: float = 1.0
 
 
-## Whether this weapon can only be delivered by making contact with `a_target`.
-##
-## DERIVED FROM REACH, replacing the authored `dive_attack` export (and the `dive:` doc key
-## that fed it). A FLYING carrier with a melee-reach weapon is a rammer — that is what
-## ramming IS — so the flag was restating something the numbers already said, and a piece
-## could set one without the other.
-##
-## The export's own comment argued against exactly this derivation, on the grounds that it
-## "would silently change how a unit attacks the next time somebody rebalanced a number".
-## That was right when nothing watched the numbers. It no longer is: the importer's
-## `aerial_weapons_not_melee` rule refuses a FLYING piece with a melee-reach weapon unless
-## its doc DECLARES itself a rammer, so pushing a reach across this threshold either trips a
-## hard error or lands on a piece that has already said in writing that ramming is the plan.
-## The change cannot be silent any more, which is the whole condition the objection named.
-##
-## Note what is NOT used: "does this weapon have a projectile". The kamikaze's bomb IS a
-## projectile — it needs one to carry the blast — so that test would have switched the dive
-## off for the one airframe that exists to dive.
+## Whether this weapon can only be delivered by making contact with `a_target` — derived from
+## reach, which is what makes a FLYING carrier a rammer. Not "has a projectile": the kamikaze's
+## blast is one. gdd/systems/authoring/calibration-rules.md §A dive is derived, not authored.
 func is_melee_ranged(a_target: Entity) -> bool:
 	var reach: float = reach_for(a_target)
 	return reach >= 0.0 and reach <= MELEE_REACH_MAX
@@ -231,6 +224,8 @@ func _ready() -> void:
 		fill_clip()
 	_resolve_turret_visual()
 	_warn_if_launching_from_origin()
+	if self_destruct and wielder() != null:
+		wielder().entity_occurrence.connect(_on_wielder_occurrence)
 
 
 func _physics_process(_a_delta: float) -> void:
@@ -453,18 +448,10 @@ func per_shot_damage_type() -> Damage.Type:
 
 
 ## The range shape this weapon reaches `a_target` with: its AIR reach if the target is high
-## enough off the ground, its GROUND reach otherwise.
-##
-## Asks `Entity.is_air_target()` — the same predicate that decides which targetable LAYER
-## the piece sits on — so "what can shoot it" and "at what range" are one answer. It used to
-## ask `is_airborne()`, a flight-state test that no ground unit could ever satisfy; a
-## parachuting soldier was then shot at ground range while sitting on the air layer.
-##
-## NULL means THIS WEAPON HAS NO REACH AGAINST THAT SIDE — a ground-only weapon asked about
-## an air target, or an anti-air one asked about a target on the ground. Callers must read it
-## as "not in range" rather than assuming a shape is always there: `can_target()` is not a
-## guarantee, because it reads the LATCHED Hurtbox layer while this reads LIVE altitude,
-## and the two disagree for the one tick a piece spends crossing AIR_TARGET_ALTITUDE.
+## enough off the ground (`Entity.is_air_target`), its GROUND reach otherwise. NULL means this
+## weapon has no reach against that side, and callers read it as "not in range" — the target's
+## layer is latched while this reads live altitude, so the two can disagree for one tick.
+## gdd/systems/combat/target-acquisition.md §The latch costs one tick.
 func get_range_for_target(a_target: Entity) -> CollisionShape3D:
 	return attack_range_shape_air if a_target.is_air_target() else attack_range_shape_ground
 
@@ -531,7 +518,7 @@ enum RangeOrigin {
 	HULL,
 	## The range shape standing at the centre of the wielder's ORBIT, overlapping the target's
 	## hurtbox. The wielder's own position plays no part, so moving never closes range, and an
-	## Attack never steers it (Commandable.fights_from_orbit).
+	## Attack never steers it (Actor.fights_from_orbit).
 	ORBIT,
 }
 
@@ -780,7 +767,11 @@ func fill_clip() -> void:
 #endregion
 
 
-func fire(a_owner: Commandable, a_target: Entity) -> void:
+func fire(a_owner: Actor, a_target: Entity) -> void:
+	if self_destruct:
+		consume_round()
+		_self_destruct(a_owner)
+		return
 	if projectile_scene != null:
 		_launch(a_owner, a_target)
 	else:
@@ -797,20 +788,46 @@ func fire(a_owner: Commandable, a_target: Entity) -> void:
 ## splashes whatever is standing there, while a single-target shot resolves onto the target
 ## it was fired at — which is nobody — and hurts nothing. Shelling a chokepoint works;
 ## emptying a rifle into the dirt does not.
-func fire_at_position(a_owner: Commandable, a_position: Vector3) -> void:
+func fire_at_position(a_owner: Actor, a_position: Vector3) -> void:
 	if not can_fire_at_ground():
 		return
-	_launch(a_owner, a_position)
 	consume_round()
+	if self_destruct:
+		_self_destruct(a_owner)
+		return
+	_launch(a_owner, a_position)
 
 
 ## Spawn one projectile at this weapon's next launch point, aimed at `a_target` — an Entity to
 ## home on or a bare Vector3 to land at (Emitter.launch takes either).
-func _launch(a_owner: Commandable, a_target: Variant) -> void:
+func _launch(a_owner: Actor, a_target: Variant) -> void:
 	var projectile: Entity = projectile_scene.instantiate()
 	projectile.initialize(a_owner.map, a_owner.commander)
 	projectile.global_position = next_launch_position()
 	Emitter.launch(projectile, a_owner, a_target)
+
+
+## The commandable carrying this weapon (its Loadout's parent), or null outside a piece.
+func wielder() -> Actor:
+	var loadout: Node = get_parent()
+	return loadout.get_parent() as Actor if loadout != null else null
+
+
+## The wielder died: the self-destruct blast goes off where it is. Runs on the ON_DEATH
+## occurrence, which fires before teardown, so map and commander are still valid.
+func _on_wielder_occurrence(a_occurrence: Entity.EntityOccurrence, _a_source: Entity) -> void:
+	if a_occurrence != Entity.EntityOccurrence.ON_DEATH or _has_self_destructed:
+		return
+	_has_self_destructed = true
+	if projectile_scene != null:
+		_launch(wielder(), wielder().global_position)
+
+
+## Fire a self-destruct weapon: the wielder dies now, and its death sets off the blast.
+func _self_destruct(a_owner: Actor) -> void:
+	if a_owner.defense != null:
+		a_owner.defense.kill()
+	a_owner.die()
 
 
 ## Spend one round and restart both timers. Split out of fire() so the ammo bookkeeping

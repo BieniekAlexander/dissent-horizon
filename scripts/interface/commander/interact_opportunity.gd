@@ -24,7 +24,7 @@ var _travel_weight: float
 ## 0.0 for "bring it home" actions like depositing, which must happen regardless of how
 ## far the carrier wandered — otherwise distance would veto banking prisoners.
 func _init(
-	a_actor: Commandable,
+	a_actor: Actor,
 	a_target: Entity,
 	a_value: float,
 	a_label: String,

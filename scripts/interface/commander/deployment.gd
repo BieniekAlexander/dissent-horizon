@@ -99,7 +99,7 @@ static func is_command_centre_id(a_id: StringName) -> bool:
 
 
 ## Whether `a_piece` is a command centre, by its piece id.
-static func is_command_centre(a_piece: Commandable) -> bool:
+static func is_command_centre(a_piece: Actor) -> bool:
 	return a_piece != null and is_command_centre_id(a_piece.id)
 
 
@@ -138,15 +138,17 @@ func verdict(a_drop: Drop, a_xz: Vector2) -> Verdict:
 	var rule: Dictionary = _footprint_rule(a_drop)
 	var dims: Vector2i = rule["dims"]
 	var message := CommandMessage.new(map, null, null, Vector3(a_xz.x, 0.0, a_xz.y))
-	# Never onto a site or into a pond, for either drop: allow_submerged is never granted, and
-	# an occupied cell (a site is one) fails the footprint outright.
-	if not Structure.valid_placement(message, dims, rule["allow_uneven"], false):
-		return Verdict.BAD_FOOTPRINT
+	# Vision FIRST: judging the footprint of fogged ground would tell the commander what stands
+	# in the fog (construction.md §Placement is judged against what the commander knows).
 	var cells: Array[Vector2i] = map.footprint_cells(a_xz, dims)
 	if not cells.all(
 		func(a_cell: Vector2i) -> bool: return _commander.has_vision_at(map.grid_to_world(a_cell))
 	):
 		return Verdict.OUT_OF_VISION
+	# Never onto a site or into a pond, for either drop: allow_submerged is never granted, and
+	# an occupied cell (a site is one) fails the footprint outright.
+	if not Fixture.valid_placement(message, dims, rule["allow_uneven"], false):
+		return Verdict.BAD_FOOTPRINT
 	if _has_foreign_units_on(footprint_area(map, map.footprint_origin(a_xz, dims), dims)):
 		return Verdict.UNITS_IN_THE_WAY
 	return Verdict.OK
@@ -184,7 +186,7 @@ func _footprint_rule(a_drop: Drop) -> Dictionary:
 			)
 		)
 		var probe: Node = _footprint_scene(a_drop).instantiate()
-		var structure := probe.get_node_or_null("Structure") as Structure
+		var structure := probe.get_node_or_null("Fixture") as Fixture
 		_footprint_rules[a_drop] = {
 			"dims": structure.dimensions if structure != null else Vector2i.ONE,
 			"allow_uneven": structure.allow_uneven if structure != null else false,
@@ -217,7 +219,7 @@ static func footprint_area(a_map: Map, a_origin: Vector2i, a_dims: Vector2i) -> 
 ## Every ground unit whose body overlaps `a_area`. A flier over a spot does not stand on it.
 func units_on(a_area: Rect2) -> Array:
 	return _ground_units().filter(
-		func(a_unit: Commandable) -> bool:
+		func(a_unit: Actor) -> bool:
 			return overlaps(
 				VU.in_xz(a_unit.global_position),
 				a_unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION),
@@ -228,14 +230,14 @@ func units_on(a_area: Rect2) -> Array:
 
 func _has_foreign_units_on(a_area: Rect2) -> bool:
 	return units_on(a_area).any(
-		func(a_unit: Commandable) -> bool: return a_unit.commander_id != _commander.id
+		func(a_unit: Actor) -> bool: return a_unit.commander_id != _commander.id
 	)
 
 
 ## Every unit on the map that stands on the ground, whoever owns it.
 func _ground_units() -> Array:
 	return _commander.get_tree().get_nodes_in_group("unit").filter(
-		func(a_node: Node) -> bool: return a_node is Commandable and Aerial.of(a_node) == null
+		func(a_node: Node) -> bool: return a_node is Actor and Aerial.of(a_node) == null
 	)
 
 
@@ -252,8 +254,8 @@ static func overlaps(a_xz: Vector2, a_radius: float, a_area: Rect2) -> bool:
 ## Land `a_drop` centred on `a_xz` and return the actors it put in play — the command centre,
 ## or the extractor (its site is neutral, and is no actor). Empty, and nothing changes, when
 ## the verdict is not OK.
-func drop(a_drop: Drop, a_xz: Vector2) -> Array[Commandable]:
-	var landed: Array[Commandable] = []
+func drop(a_drop: Drop, a_xz: Vector2) -> Array[Actor]:
+	var landed: Array[Actor] = []
 	if verdict(a_drop, a_xz) != Verdict.OK:
 		return landed
 	var map: Map = _commander.map
@@ -273,15 +275,15 @@ func drop(a_drop: Drop, a_xz: Vector2) -> Array[Commandable]:
 	_charges[a_drop] = charges(a_drop) - 1
 	# After the structure is registered, so the ground it now holds is no longer a place to
 	# stand. verdict() has already refused the spot if any of these were someone else's.
-	for unit: Commandable in displaced:
+	for unit: Actor in displaced:
 		_step_off(unit, map, maxi(dims.x, dims.y) + DISPLACE_MARGIN_RINGS)
 	changed.emit()
 	return landed
 
 
 ## Put one `a_scene` structure in play for the commander at `a_centre`, its model descending.
-func _land(a_scene: PackedScene, a_centre: Vector2) -> Commandable:
-	var structure: Commandable = a_scene.instantiate() as Commandable
+func _land(a_scene: PackedScene, a_centre: Vector2) -> Actor:
+	var structure: Actor = a_scene.instantiate() as Actor
 	_commander.map.add_entities([structure], a_centre, _commander)
 	var model := structure.get_node_or_null("MeshVisual") as MeshVisual
 	if model != null:
@@ -299,7 +301,7 @@ func _land_site(a_centre: Vector2) -> void:
 
 ## Move `a_unit` to the nearest ground its size class can stand on, searching outward from where
 ## it stands. A unit that finds none within `a_max_rings` is left where it is.
-static func _step_off(a_unit: Commandable, a_map: Map, a_max_rings: int) -> void:
+static func _step_off(a_unit: Actor, a_map: Map, a_max_rings: int) -> void:
 	var at: Vector2i = a_map.world_to_grid(VU.in_xz(a_unit.global_position))
 	for ring: int in range(1, a_max_rings + 1):
 		var best: Variant = null

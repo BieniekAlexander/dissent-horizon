@@ -38,7 +38,7 @@ var commander_id: int = 1
 ## over — see OffMapArrival. Null falls back to the target point, which puts the origin
 ## on the perimeter nearest where the shells are going: still off the map, just no longer
 ## keyed to the caster's side of the field.
-var caster: Commandable = null
+var caster: Actor = null
 
 
 ## One shell's blast: every shell is aimed at the same point, so that is the ground the barrage

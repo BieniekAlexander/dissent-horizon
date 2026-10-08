@@ -2,6 +2,9 @@
 kind: Entity
 title: Controller
 scene: res://scenes/entities/structures/lb/lb_tech1.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 1200

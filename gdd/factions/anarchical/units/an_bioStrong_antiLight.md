@@ -2,6 +2,9 @@
 kind: Entity
 title: Juggernaut
 scene: res://scenes/entities/units/an/an_bioStrong_antiLight.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 1000}
   time: 20

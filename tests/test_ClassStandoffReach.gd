@@ -44,8 +44,8 @@ func before_each() -> void:
 
 
 ## A truck standing `a_distance` past the footprint's +z edge, level with its middle.
-func _truck_off_edge(a_distance: float, a_class: NavAgentClass.Size) -> Commandable:
-	var truck: Commandable = FakePieces.unit({"speed": 2.0})
+func _truck_off_edge(a_distance: float, a_class: NavAgentClass.Size) -> Actor:
+	var truck: Actor = FakePieces.unit({"speed": 2.0})
 	_world.add_child(truck)
 	truck.movement.nav_agent_class = a_class
 	var edge_cell: Vector2i = FOOTPRINT_ORIGIN + Vector2i(1, FOOTPRINT_SIZE - 1)

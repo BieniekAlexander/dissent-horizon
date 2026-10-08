@@ -2,6 +2,9 @@
 kind: Entity
 title: radiation
 scene: res://scenes/entities/projectiles/radiation.tscn
+flavor:
+  description: potato
+  verbose: potato
 damage: 3
 damage_type: LEAD
 hitscan: false

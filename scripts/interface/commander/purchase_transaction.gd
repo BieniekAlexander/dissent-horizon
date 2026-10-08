@@ -73,10 +73,12 @@ signal fulfilled(transaction: PurchaseTransaction, product: Node)
 #endregion
 
 #region Properties
-## Monotonic, unique, and never reused. The queue is addressable BY ID rather than by
-## position, which is what lets one transaction refer to another (a command attached to a
-## unit that is still being trained names the transaction producing it). Positions shift
-## every time anything ahead is dispatched or cancelled, so they can't carry a reference.
+## Monotonic and unique within a match: restarted at 1 as each scenario begins (reset_ids), so a
+## replay numbers its purchases exactly as the recorded match did. The queue is addressable BY
+## ID rather than by position, which is what lets one transaction refer to another (a command
+## attached to a unit that is still being trained names the transaction producing it) and a
+## recorded order name a purchase. Positions shift every time anything ahead is dispatched or
+## cancelled, so they can't carry a reference.
 static var _next_id: int = 1
 var id: int = 0
 
@@ -155,7 +157,7 @@ var dependencies: Array = []
 ## The distinction matters for the rally scopes too: broadening a rally reaches every
 ## pending transaction whose filter admits a selected structure, and only a transaction
 ## deliberately fenced to a DIFFERENT producer is out of reach.
-var dispatch_filter: Array[Commandable] = []
+var dispatch_filter: Array[Actor] = []
 
 ## THE ORDERS THE PLAYER AIMED AT THIS PURCHASE — given by selecting the pending entry on the
 ## production rail and issuing a command to it. The unit does not exist yet, so nothing acts
@@ -181,12 +183,12 @@ var _holders: int = 0
 var _ever_held: bool = false
 
 ## BUILD only — the blueprint raised at the site when the order was issued (see
-## Commandable.plan_construction). It is a real, selectable node, so its lifetime has to
+## Actor.plan_construction). It is a real, selectable node, so its lifetime has to
 ## end somewhere: this purchase owns it. consume() hands it over to the builder that
 ## lays it down; cancel() — an abandoned order, a pruned queue, a refund — frees it, and
 ## any unit purchases queued against that blueprint lose their only producer and are
 ## refunded in turn by ProductionQueue's prune.
-var planned_structure: Commandable = null
+var planned_structure: Actor = null
 #endregion
 
 
@@ -254,6 +256,11 @@ func clone() -> PurchaseTransaction:
 	# Production._spawn_unit), so sharing them across passes is safe.
 	copy.player_commands = player_commands.duplicate()
 	return copy
+
+
+## Start a match's numbering over. Called by Scenario._ready, before anything can be bought.
+static func reset_ids() -> void:
+	_next_id = 1
 
 
 static func _take_id() -> int:
@@ -365,8 +372,8 @@ func discard_planned_structure() -> void:
 	# to a typed local errors before the validity check below could run.
 	var blueprint: Variant = planned_structure
 	planned_structure = null
-	if is_instance_valid(blueprint) and (blueprint as Commandable).is_planned:
-		(blueprint as Commandable).queue_free()
+	if is_instance_valid(blueprint) and (blueprint as Actor).is_planned:
+		(blueprint as Actor).queue_free()
 
 
 func is_pending() -> bool:
@@ -402,15 +409,15 @@ func is_cancelled() -> bool:
 ## LIVE rather than being expanded once at submission: a barracks finished after the order
 ## was given is a legitimate producer for it, and a purchase is orphaned only when the
 ## commander genuinely owns nothing that could ever make the thing.
-func candidate_producers() -> Array[Commandable]:
-	var out: Array[Commandable] = []
+func candidate_producers() -> Array[Actor]:
+	var out: Array[Actor] = []
 	# Validity is checked on the raw element, BEFORE it is typed: a freed instance still sits
-	# in the filter until something prunes it, and coercing one to Commandable is itself an
-	# error — so `for producer: Commandable in ...` would fail before reaching the check.
+	# in the filter until something prunes it, and coercing one to Actor is itself an
+	# error — so `for producer: Actor in ...` would fail before reaching the check.
 	for candidate: Variant in _eligible_producers():
 		if not is_instance_valid(candidate):
 			continue
-		var producer := candidate as Commandable
+		var producer := candidate as Actor
 		if (
 			producer != null
 			and producer.production != null
@@ -462,9 +469,9 @@ func queue_player_command(a_command: MoveCommand, a_replace: bool) -> bool:
 ## The candidates that can take the job RIGHT NOW — those that have finished
 ## construction. Dispatch only ever hands a job to one of these; an empty result with a
 ## non-empty candidate list means "still building, wait", not "give up".
-func ready_producers() -> Array[Commandable]:
-	var out: Array[Commandable] = []
-	for producer: Commandable in candidate_producers():
+func ready_producers() -> Array[Actor]:
+	var out: Array[Actor] = []
+	for producer: Actor in candidate_producers():
 		if producer.is_built:
 			out.append(producer)
 	return out

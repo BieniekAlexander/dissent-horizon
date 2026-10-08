@@ -36,14 +36,14 @@ var _remaining: float = 0.0
 
 ## The living residents this shelter has produced. Entries are dropped when the unit
 ## leaves the tree (death / capture / liberation) or changes hands.
-var _residents: Array[Commandable] = []
+var _residents: Array[Actor] = []
 #endregion
 
 
 #region Public API
 ## Living residents currently attributed to this shelter (read-only view — callers must
 ## not mutate the returned array). What [TaskShelter] claims from, oldest-registered first.
-func residents() -> Array[Commandable]:
+func residents() -> Array[Actor]:
 	return _residents
 
 
@@ -61,7 +61,7 @@ func is_full() -> bool:
 ## moment it leaves the scene tree, which covers every way it can be taken out of
 ## play: killed (queue_free), captured (removed from the tree into a Garrison), or
 ## liberated (freed and replaced by an Irregular).
-func register(a_resident: Commandable) -> void:
+func register(a_resident: Actor) -> void:
 	if a_resident == null or not is_instance_valid(a_resident) or _residents.has(a_resident):
 		return
 	_residents.append(a_resident)
@@ -70,7 +70,7 @@ func register(a_resident: Commandable) -> void:
 
 ## Stop attributing [a_resident] to this shelter, freeing a slot for the next
 ## production. Safe to call for a unit that was never registered.
-func unregister(a_resident: Commandable) -> void:
+func unregister(a_resident: Actor) -> void:
 	_residents.erase(a_resident)
 
 
@@ -120,7 +120,7 @@ func _host() -> Entity:
 func _prune() -> void:
 	var host_id: int = _commander_id_of(_host())
 	_residents = _residents.filter(
-		func(r: Commandable) -> bool: return is_instance_valid(r) and _commander_id_of(r) == host_id
+		func(r: Actor) -> bool: return is_instance_valid(r) and _commander_id_of(r) == host_id
 	)
 
 
@@ -138,9 +138,9 @@ static func _commander_id_of(node: Node) -> int:
 func _produce_resident(a_host: Entity) -> void:
 	if terrestrial_scene == null:
 		return
-	var resident := terrestrial_scene.instantiate() as Commandable
+	var resident := terrestrial_scene.instantiate() as Actor
 	if resident == null:
-		push_error("Shelter: terrestrial_scene is not a Commandable")
+		push_error("Shelter: terrestrial_scene is not a Actor")
 		return
 	var anchor: Vector3 = a_host.global_position
 	a_host.map.add_entity(resident, VU.in_xz(anchor), a_host.commander)

@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Beacon Drop
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [1, 1], factions: [colonial]}
 hud_button: true
 column: 3

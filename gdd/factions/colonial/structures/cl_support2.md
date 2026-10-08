@@ -2,6 +2,9 @@
 kind: Entity
 title: Supply Beacon
 scene: res://scenes/entities/structures/cl/cl_support2.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 2000}
   time: 20

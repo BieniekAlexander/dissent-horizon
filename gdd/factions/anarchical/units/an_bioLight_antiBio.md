@@ -2,6 +2,9 @@
 kind: Entity
 title: Sharpshooter
 scene: res://scenes/entities/units/an/an_bioLight_antiBio.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 750}
   time: 30

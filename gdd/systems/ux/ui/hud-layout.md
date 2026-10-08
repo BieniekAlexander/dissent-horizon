@@ -184,8 +184,10 @@ Rendered by `tools/hud_panels_preview.tscn` with `--producer` (Details) or `--de
 
 The minimap is drawn screen-aligned, as the camera frames the play area, in two layers:
 
-- **The map layer** (`MinimapLayer`) — one colour per terrain cell: sand ground; ponds with a
-  darker rim, shaded from pale (poor) to deep blue (rich) by full charge per cell; extraction
+- **The map layer** (`MinimapLayer`) — one colour per terrain cell: sand ground; impassable
+  ground (the terrain grid's steep and blocked cells — ridges, cliffs, obstacle regions) a dark
+  earth, so a barrier shows; ponds with a darker rim, shaded from pale (poor) to deep blue
+  (rich) by full charge per cell, their deep (impassable) water darkened within that shade; extraction
   sites yellow; shelters green; neutral buildings grey; and each start area tinted with its
   slot's team colour. It is seen through the fog — unchanged in sight, darkened when explored,
   black unseen — and rebuilt only when the terrain grid's cells change, since fixtures come and
@@ -198,12 +200,6 @@ building), never by piece id.
 
 **The debug view (`show_debug_info`) reveals the whole minimap too** — every cell in
 sight and every actor drawn — matching what it does to the world.
-
-**PLANNED: impassable terrain on the map layer** (Alex, 2026-10-01). Today ridges, cliffs and
-deep water chasms draw as plain ground, so a barrier is invisible on the minimap; the
-[obstacle regions](../../terrain-and-navigation/map-generation.md) §Obstacle regions would make
-far more of the map impassable. The plan is a layer read from the terrain grid's steep and
-submerged cells.
 
 TODO: the visual details are provisional — they were carried over unchanged from the map
 generator's former review images, and want revisiting (symbol shapes, the palette against the

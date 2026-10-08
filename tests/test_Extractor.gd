@@ -103,7 +103,7 @@ func test_rejects_bare_ground() -> void:
 
 func test_rejects_non_site_structure() -> void:
 	var map: Map = _make_map()
-	var other: Commandable = autofree(Commandable.new()) as Commandable
+	var other: Actor = autofree(Actor.new()) as Actor
 	var centre: Vector2 = _place(map, other, Vector2i(1, 1))
 	assert_false(
 		EnergyExtractor.valid_placement(_msg(map, centre), _DIMS),
@@ -152,7 +152,7 @@ func test_accepts_aim_within_half_a_cell() -> void:
 func test_rejects_already_worked_site() -> void:
 	var map: Map = _make_map()
 	var placed: Array = _extraction_site(map, Vector2i(1, 1))
-	ExtractionSite.of(placed[0]).extractor = autofree(Commandable.new()) as Commandable
+	ExtractionSite.of(placed[0]).extractor = autofree(Actor.new()) as Actor
 	assert_false(
 		EnergyExtractor.valid_placement(_msg(map, placed[1] as Vector2), _DIMS),
 		"no second extractor on an extraction site that already has one"
@@ -183,7 +183,7 @@ func test_a_site_only_piece_takes_a_free_site() -> void:
 func test_a_site_only_piece_is_refused_a_worked_site() -> void:
 	var map: Map = _make_map()
 	var placed: Array = _extraction_site(map, Vector2i(1, 1))
-	(placed[0] as Entity).get_node("ExtractionSite").extractor = autofree(Commandable.new())
+	(placed[0] as Entity).get_node("ExtractionSite").extractor = autofree(Actor.new())
 	assert_false(
 		EnergyExtractor.valid_placement(_msg(map, placed[1] as Vector2), _DIMS, false, false, false),
 		"one overlay per site, whatever the overlay collects"

@@ -97,32 +97,18 @@ with anything else.
 
 ## 5. Continue the documentation escalation
 
-**Done:** 10 functions, 164 comment lines moved into system notes.
-**Remaining:** **37 functions carrying 579 comment lines** above the threshold (comment block
-≥12 lines and longer than the function it documents).
+**Done:** 26 functions moved into system notes (the last 16 on 2026-10-08: every block at least
+twice its function's length outside the bot's files).
+**Remaining:** 43 blocks above the threshold (comment block ≥12 lines and longer than the
+function it documents). Only the 13 clear cases (≥ 2× the function) are to be escalated —
+all in `scripts/interface/commander/bot*.gd`, held back for the bot session (gdd/tasks.md
+T-087); the marginal ones stay where they are.
 
 **Plan.** Same mechanism: keep the summary sentence, move the rationale to the owning system
 note, leave a `§`-anchored pointer. Verify with the same check — every removed sentence must
 appear in a note before the commit lands.
 
 **Risk** low; comment-only. Worth batching by target note.
-
----
-
-## 6. Decompose the remaining long functions
-
-Per §1.2 this is a judgement call, not a lint failure. Ranked by how clearly they decompose:
-
-Remeasured 2026-09-28 (rough counts): `_resolve_command_class`, `_apply_accel_limits`,
-`_drive_movement`, `_process_commands`, `_sync_piece` and `is_enemy_of` are now short. Left:
-
-| Function | Lines | Shape |
-|---|---:|---|
-| `assign_command_to_units` | ~204 | grew back from 158; Train/Build interceptions could follow |
-| `_build_mesh` | ~74 | generation stages |
-| `_cap_xz_for_ascent` | ~68 | geometry stages; now in `aerial.gd` |
-
-**`assign_command_to_units` is the next target**, and the only one clearly over the line.
 
 ---
 
@@ -140,17 +126,8 @@ the test count rises.
 
 ---
 
-## 8. Author the missing piece descriptions
-
-About **83 of 132** spec docs lack `description` / `verbose` (rough count, 2026-09-28); no test
-asserts it any more. Same shape as
-the projectile-title gap, and mechanical, but the strings are **authorial** — they are player
--facing copy, so I would draft and you would edit rather than the reverse.
-
----
-
 ## Suggested order
 
 **7** (small, reveals unknowns) → **1 step 2** (pure bug fix) → **3** (tooling, isolated
-commits) → **4** (mechanical, after formatting) → **5** (comment-only) → **1 rest** → **6**
-→ **2** (stop at step 2 for review) → **8**.
+commits) → **4** (mechanical, after formatting) → **5** (comment-only) → **1 rest**
+→ **2** (stop at step 2 for review).

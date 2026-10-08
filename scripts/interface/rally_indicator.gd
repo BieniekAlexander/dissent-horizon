@@ -6,7 +6,7 @@ extends Node3D
 ## small diamond marker at each stop — same visual language as WaypointIndicator, whose
 ## per-order pooling this deliberately does NOT reuse.
 ##
-## A rally chain is read fresh off Commandable.rally_commands / Production.job_commands
+## A rally chain is read fresh off Actor.rally_commands / Production.job_commands
 ## every frame (see RTSController._update_rally_indicator) rather than pooled per live
 ## CommandMessage: those are TEMPLATES that outlive any single order, of variable length,
 ## and keyed to the current SELECTION rather than to a ref-counted MoveCommand. That is

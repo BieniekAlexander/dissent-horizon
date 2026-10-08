@@ -28,15 +28,15 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _entity(a_options: Dictionary, a_commander: Commander) -> Commandable:
-	var e: Commandable = FakePieces.unit(a_options)
+func _entity(a_options: Dictionary, a_commander: Commander) -> Actor:
+	var e: Actor = FakePieces.unit(a_options)
 	add_child_autofree(e)
 	e.ownership.commander = a_commander
 	return e
 
 
 ## A recruit's rifle: ground-only, so it has no AIR range shape at all.
-func _ground_only_weapon(a_shooter: Commandable) -> Weapon:
+func _ground_only_weapon(a_shooter: Actor) -> Weapon:
 	var weapon: Weapon = a_shooter.weapon_inventory.get_weapons()[0] as Weapon
 	assert_eq(
 		weapon.target_mask & CollisionLayers.Mask.TARGETABLE_AIR,
@@ -48,7 +48,7 @@ func _ground_only_weapon(a_shooter: Commandable) -> Weapon:
 
 ## Lift `a_unit` above the air line WITHOUT re-filing its targetable layer — the exact state
 ## the piece is in for one tick while it crosses, and the state that crashed.
-func _lift_without_refiling(a_unit: Commandable) -> void:
+func _lift_without_refiling(a_unit: Actor) -> void:
 	a_unit.movement.begin_parachute_descent(Aerial.AERIAL_HEIGHT, Callable())
 
 
@@ -56,7 +56,7 @@ func test_the_layer_and_the_altitude_disagree_for_a_tick() -> void:
 	# The mechanism the other two tests rely on. If this ever stops holding — because the
 	# layer is refreshed the moment the height is written — the crash below becomes
 	# unreachable and these tests are pinning a state that cannot occur.
-	var unit: Commandable = _entity(RECRUIT, _commander(1))
+	var unit: Actor = _entity(RECRUIT, _commander(1))
 	_lift_without_refiling(unit)
 
 	assert_true(unit.is_air_target(), "by altitude it is already an air target")
@@ -68,8 +68,8 @@ func test_the_layer_and_the_altitude_disagree_for_a_tick() -> void:
 
 func test_a_ground_only_weapon_has_no_reach_against_an_air_target() -> void:
 	var cmd: Commander = _commander(1)
-	var shooter: Commandable = _entity(RECRUIT, cmd)
-	var victim: Commandable = _entity(RECRUIT, cmd)
+	var shooter: Actor = _entity(RECRUIT, cmd)
+	var victim: Actor = _entity(RECRUIT, cmd)
 	var weapon: Weapon = _ground_only_weapon(shooter)
 	assert_not_null(
 		weapon.get_range_for_target(victim), "precondition: it reaches it on the ground"
@@ -85,8 +85,8 @@ func test_a_ground_only_weapon_has_no_reach_against_an_air_target() -> void:
 
 func test_asking_that_weapon_for_range_reports_out_of_range_rather_than_erroring() -> void:
 	var cmd: Commander = _commander(1)
-	var shooter: Commandable = _entity(RECRUIT, cmd)
-	var victim: Commandable = _entity(RECRUIT, cmd)
+	var shooter: Actor = _entity(RECRUIT, cmd)
+	var victim: Actor = _entity(RECRUIT, cmd)
 	victim.global_position = shooter.global_position
 	var weapon: Weapon = _ground_only_weapon(shooter)
 

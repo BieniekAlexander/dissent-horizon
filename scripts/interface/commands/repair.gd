@@ -31,7 +31,7 @@ const REPAIRABLE_FRAME: Defense.FrameType = Defense.FrameType.MECH
 ## UNENUMERATED_FAILURE_CAUSE for every rejection: the failure causes are a HUD
 ## vocabulary about resources and placement, and none of them says "wrong target".
 static func repairable_cause(
-	actor: Commandable, target: Variant
+	actor: Actor, target: Variant
 ) -> MoveCommand.PreconditionFailureCause:
 	if actor == null or actor.get_node_or_null("Repairs") == null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -44,9 +44,9 @@ static func repairable_cause(
 			if _removes_beacon(actor, beacon)
 			else PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 		)
-	if not (target is Commandable) or not is_instance_valid(target):
+	if not (target is Actor) or not is_instance_valid(target):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	var subject: Commandable = target as Commandable
+	var subject: Actor = target as Actor
 	# Repair is also how a planted charge is got rid of: a charge on the ground is repaired away
 	# outright, by an opponent or by its owner, and an enemy beacon or charge riding on your own
 	# piece comes off when it is mended — however whole the piece is. See
@@ -75,7 +75,7 @@ static func repairable_cause(
 ## Whether repairing `a_subject` would take a marker out of play: it is a charge standing on
 ## the ground (anyone's but a neutral's), or `a_actor`'s own piece with an enemy beacon or
 ## charge riding on it.
-static func _defuses(actor: Commandable, subject: Commandable) -> bool:
+static func _defuses(actor: Actor, subject: Actor) -> bool:
 	if PlantedCharge.of(subject) != null:
 		return (
 			not PlantedCharge.is_riding(subject)
@@ -86,7 +86,7 @@ static func _defuses(actor: Commandable, subject: Commandable) -> bool:
 
 ## Whether repairing `a_beacon` would take it out of play: it is an enemy's, still standing,
 ## and `a_actor`'s side can see it.
-static func _removes_beacon(actor: Commandable, beacon: Beacon) -> bool:
+static func _removes_beacon(actor: Actor, beacon: Beacon) -> bool:
 	var host: Entity = beacon.host()
 	return (
 		not beacon.is_leaving()
@@ -97,12 +97,12 @@ static func _removes_beacon(actor: Commandable, beacon: Beacon) -> bool:
 
 ## True when `a_actor` could repair `a_target` right now. The predicate form of
 ## repairable_cause, for the readers that only want a yes/no.
-static func can_repair(actor: Commandable, subject: Variant) -> bool:
+static func can_repair(actor: Actor, subject: Variant) -> bool:
 	return repairable_cause(actor, subject) == PreconditionFailureCause.NONE
 
 
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	return repairable_cause(actor, message.target)
 
@@ -113,7 +113,7 @@ static func meets_precondition(
 #region State updates
 ## Repairing is a channeled action, like the construction it was split from: a hit
 ## staggers the worker, pausing the mend until the stagger wears off.
-func blocked_by_stagger(_a_actor: Commandable) -> bool:
+func blocked_by_stagger(_a_actor: Actor) -> bool:
 	return true
 
 
@@ -121,7 +121,7 @@ func blocked_by_stagger(_a_actor: Commandable) -> bool:
 ## subject crashes every check that touches it), or it is back to full hp. Re-asking
 ## repairable_cause each tick also covers the subject changing hands or being demolished
 ## and rebuilt under us.
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	if not is_instance_valid(message.target):
 		return null
 	if not can_repair(a_actor, message.target):
@@ -129,11 +129,11 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	return self
 
 
-func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
+func acting_action(_a_actor: Actor) -> ActionTracker.Action:
 	return ActionTracker.Action.REPAIRING
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	return SU.unit_is_close_to_target(a_actor, message.target)
 
 
@@ -144,19 +144,19 @@ func ends_on_arrival() -> bool:
 	return false
 
 
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	var beacon: Beacon = Beacon.of(message.target)
 	if beacon != null:
 		beacon.dismiss()
 		return null
-	var subject := message.target as Commandable
+	var subject := message.target as Actor
 	# Reaching a charge is defusing it: the first touch of a mend takes it out of play.
 	var charge: PlantedCharge = PlantedCharge.of(subject)
 	if charge != null:
 		charge.remove()
 		return null
 	var repairs: Repairs = a_actor.get_node_or_null("Repairs") as Repairs
-	var defense: Defense = (message.target as Commandable).get_node_or_null("Defense") as Defense
+	var defense: Defense = (message.target as Actor).get_node_or_null("Defense") as Defense
 	if repairs == null or defense == null:
 		return null
 	# Each repairer applies its own rate every tick — no builder-style crowding penalty

@@ -40,7 +40,7 @@ A piece takes the placeholder of its class, and the class is derived, never auth
 | bio unit | `Defense.frame_type == BIO` | capsule |
 | mech unit | `Defense.frame_type == MECH` | box |
 | aerial unit | it has `aerial:` (`FLYING`/`HOVERING`) | wedge |
-| structure | has a `Structure` component | box, sized to the authored footprint |
+| structure | has a `Fixture` component | box, sized to the authored footprint |
 | ballistic / linear / lofted / homing projectile | the first phase's motion (gravity, pitch, turn rate) | sphere / tracer / bomb / dart |
 
 **Aerial beats frame, and structure beats both.** What a placeholder has to say first is

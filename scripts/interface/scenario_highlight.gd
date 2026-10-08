@@ -220,7 +220,7 @@ func _add_entity_marker(a_entity: Entity, a_marker_color: Color) -> void:
 ## Ring radius for an entity: its own footprint where that is knowable, with a margin so
 ## the ring sits outside the art rather than through it.
 func _entity_radius(a_entity: Entity) -> float:
-	var structure := a_entity.get_node_or_null("Structure") as Structure
+	var structure := a_entity.get_node_or_null("Fixture") as Fixture
 	if structure != null:
 		var dims: Vector2i = structure.dimensions
 		return maxf(float(dims.x), float(dims.y)) * Map.CELL_SIZE * 0.5 + RING_MARGIN

@@ -8,7 +8,7 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
 What a unit is allowed to pick up as a target on its own, and how long it keeps one.
-`Commandable.get_aggro_near_position` is the acquisition side; `Attack._target_within_leash`
+`Actor.get_aggro_near_position` is the acquisition side; `Attack._target_within_leash`
 is the release side. **They are two halves of one rule, and every bug in this note is a case
 of the two halves disagreeing.**
 
@@ -37,7 +37,7 @@ The player's `Fog` is placed in `player.tscn`, where `watching_commander_id` kee
 authoring default of `-1` meaning "whoever the local player is". Registering under the RAW
 field filed the player's fog under `-1` while every bot's went under its real id — so every
 caller had to remember to map the player's id back to `-1`, and each one wrote that mapping
-out for itself. `Commandable.is_visible_to` did not: it looked up commander `1`, found
+out for itself. `Actor.is_visible_to` did not: it looked up commander `1`, found
 nothing, and returned "no fog, so everything is visible". The player's entire army therefore
 aggroed onto units in the fog, all match, with the fog code itself working perfectly.
 
@@ -83,7 +83,7 @@ The map generator already reasons in alliances.
 
 The aggro query asks the physics engine for hostile bodies only, so allies and neutrals never
 reach the script filter. It matters for correctness, not only cost: the query is capped
-(`Commandable.AGGRO_SCAN_MAX_RESULTS`) before any filter runs and does not return
+(`Actor.AGGRO_SCAN_MAX_RESULTS`) before any filter runs and does not return
 nearest-first, so when it returned allies too, a crowd of friendly bodies could fill the cap
 and hide a visible enemy. `tests/test_AggroIgnoresAllies.gd` pins that case.
 
@@ -106,7 +106,7 @@ cap, or make it a floor on distinct enemies rather than raw hits, if that shows 
 
 A piece hit by an attacker answers it with an Attack, wherever the attacker stands — so fire
 from beyond aggro, which idle pickup never sees, is still returned
-(`Commandable._retaliation_against`). It answers only when:
+(`Actor._retaliation_against`). It answers only when:
 
 - **it is idle** — any order, queued or active, stands; retaliation never overrides one;
 - **it is not holding fire;**
@@ -255,7 +255,7 @@ said it should be shot at ground range — a hangar full of aircraft was immune 
 standing next to it.
 
 **The layer is now re-filed on the tick the answer flips**, from
-`Commandable._physics_process`, immediately after the same height is applied to the body.
+`Actor._physics_process`, immediately after the same height is applied to the body.
 That costs one float comparison per piece per tick and a property write only on a crossing;
 it is on the tick boundary with the Y-write on purpose, so the two can never be a frame apart.
 

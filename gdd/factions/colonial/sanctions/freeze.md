@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Freeze
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [3, 0], factions: [colonial]}
 hud_button: true
 column: 2

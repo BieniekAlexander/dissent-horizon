@@ -93,3 +93,40 @@ func test_fog_darkens_explored_and_hides_unseen() -> void:
 	assert_eq(MinimapLayer.fogged(color, Fog.TerrainVisibility.IN_SIGHT), color)
 	assert_lt(MinimapLayer.fogged(color, Fog.TerrainVisibility.EXPLORED).v, color.v)
 	assert_eq(MinimapLayer.fogged(color, Fog.TerrainVisibility.UNSEEN), MinimapLayer.OUT_OF_PLAY)
+
+
+## Ground no unit can cross draws as a barrier; deep water keeps its pond's shade, darkened.
+func _impassable(a_cells: Array[Vector2i]) -> PackedByteArray:
+	var marks := PackedByteArray()
+	marks.resize(_WIDTH * _DEPTH)
+	for cell: Vector2i in a_cells:
+		marks[cell.y * _WIDTH + cell.x] = 1
+	return marks
+
+
+func test_impassable_ground_draws_as_a_barrier() -> void:
+	var none: Array[Dictionary] = []
+	var cliff: Array[Vector2i] = [Vector2i(3, 3), Vector2i(0, 3)]
+	var layer: PackedColorArray = MinimapLayer.build(
+		_WIDTH, _DEPTH, _in_play(), none, none, none, _impassable(cliff)
+	)
+	assert_eq(_at(layer, Vector2i(3, 3)), MinimapLayer.IMPASSABLE)
+	assert_eq(_at(layer, Vector2i(4, 3)), MinimapLayer.GROUND, "its neighbour is plain ground")
+	assert_eq(_at(layer, Vector2i(0, 3)), MinimapLayer.OUT_OF_PLAY, "out of play stays black")
+
+
+func test_deep_water_is_its_pond_darkened() -> void:
+	var cells: Array[Vector2i] = [Vector2i(5, 5), Vector2i(6, 5)]
+	var deep: Array[Vector2i] = [Vector2i(6, 5)]
+	var ponds: Array[Dictionary] = [{cells = cells, color = MinimapLayer.POND_RICH}]
+	var none: Array[Dictionary] = []
+	var layer: PackedColorArray = MinimapLayer.build(
+		_WIDTH, _DEPTH, _in_play(), ponds, none, none, _impassable(deep)
+	)
+	assert_true(_at(layer, Vector2i(5, 5)).is_equal_approx(MinimapLayer.POND_RICH), "shallow")
+	assert_true(
+		_at(layer, Vector2i(6, 5)).is_equal_approx(
+			MinimapLayer.POND_RICH.darkened(MinimapLayer.DEEP_WATER_DARKEN)
+		),
+		"deep"
+	)

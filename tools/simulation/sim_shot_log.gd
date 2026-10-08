@@ -18,7 +18,7 @@ var _shots: Array[Dictionary] = []
 
 #region Recording
 ## Record what `a_shooter`, a member of group `a_reference` placed as `a_piece`, fires from now on.
-func watch(a_reference: String, a_shooter: Commandable, a_piece: String) -> void:
+func watch(a_reference: String, a_shooter: Actor, a_piece: String) -> void:
 	a_shooter.action_tracker.cued.connect(
 		func(a_cue: StringName, a_source: Object) -> void:
 			if a_cue == ActionTracker.CUE_EMITTED and a_source is Entity:

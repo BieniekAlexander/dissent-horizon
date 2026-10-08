@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Mortar Strike
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [1, 1], factions: [anarchists]}
 hud_button: true
 column: 3

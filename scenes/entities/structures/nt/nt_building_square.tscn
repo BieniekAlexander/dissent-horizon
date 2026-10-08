@@ -1,13 +1,13 @@
-[gd_scene load_steps=23 format=3 uid="uid://c2s5yo2m20vob"]
+[gd_scene load_steps=24 format=3 uid="uid://c2s5yo2m20vob"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_inwnv"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_inwnv"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="2_fkhkx"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_necrp"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_ey3et"]
 [ext_resource type="PackedScene" uid="uid://d3i8gyv13tvod" path="res://scenes/components/vision_range.tscn" id="6_ut5q1"]
 [ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="8_5lsxf"]
-[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/structure.gd" id="9_islg4"]
+[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/fixture.gd" id="9_islg4"]
 [ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="10_vhavk"]
 [ext_resource type="Script" uid="uid://csahh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="11_at73e"]
 [ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="13_pcgc2"]
@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="20_ltsc0"]
 [ext_resource type="PackedScene" uid="uid://c0a8hdddox08m" path="res://scenes/components/footprint_visualizer.tscn" id="22_lej7c"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="23_m4nmp"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="2_spec"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_pxjl4"]
 size = Vector3(4, 2, 4)
@@ -34,6 +35,8 @@ collision_layer = 0
 collision_mask = 0
 script = ExtResource("1_inwnv")
 id = &"nt_building_square"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=960624525]
 
@@ -52,7 +55,7 @@ shape = ExtResource("1_spec")
 [node name="Ownership" type="Node" parent="." unique_id=599793268]
 script = ExtResource("8_5lsxf")
 
-[node name="Structure" type="Node" parent="." unique_id=1210180710]
+[node name="Fixture" type="Node" parent="." unique_id=1210180710]
 script = ExtResource("9_islg4")
 dimensions = Vector2i(4, 4)
 
@@ -81,6 +84,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 visible = true
 shape = SubResource("BoxShape3D_pxjl4")
 metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("2_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1041566370]
 

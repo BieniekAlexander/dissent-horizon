@@ -1,6 +1,6 @@
 extends GutTest
 
-## A STRUCTURE NEED NOT BE A COMMANDABLE, and `as Commandable` fails SILENTLY.
+## A STRUCTURE NEED NOT BE A COMMANDABLE, and `as Actor` fails SILENTLY.
 ##
 ## `CommandReceiver._resolve_movement_target` decides where an ordered unit actually walks.
 ## For a structure target that must be a cell BESIDE the footprint, because the footprint
@@ -9,15 +9,15 @@ extends GutTest
 ## and the unit walks forever without ever reaching build range. That is what "builders
 ## indefinitely failing to start the process of building something" looked like.
 ##
-## The predicate that chose that branch used to read `target is Commandable and
+## The predicate that chose that branch used to read `target is Actor and
 ## target.is_in_group("structure")`. An ExtractionSite is a `structure` and is NOT a
-## `Commandable` — it extends `Entity` directly — so the branch was skipped for it and the
+## `Actor` — it extends `Entity` directly — so the branch was skipped for it and the
 ## builder was handed `message.position`, a cell inside the site. Nothing errored: a failing
 ## `as`/`is` narrowing in GDScript is just `null`/`false`.
 ##
 ## `RTSController` line 434 is why the site is the target at all:
 ##   command_message.target = cursor_result if cursor_result is Entity else null
-## — ANY Entity under the cursor becomes the target, Commandable or not.
+## — ANY Entity under the cursor becomes the target, Actor or not.
 ##
 ## The fixed predicate tests `is Entity` and leans on the "fixture" GROUP for the rest — every
 ## piece with a footprint, features included (the "structure" group is only the commandable ones).
@@ -25,7 +25,7 @@ extends GutTest
 ## PATHS, not preloads — a file-scope preload of an entity scene poisons the Tool registry
 ## for the whole run (CLAUDE.md §A file-scope `preload`…).
 
-## A fixture that takes no orders (an `Entity`, NOT a `Commandable`): an extraction-site stand-in.
+## A fixture that takes no orders (an `Entity`, NOT a `Actor`): an extraction-site stand-in.
 const SITE_SCENE: Dictionary = {"feature": true, "extraction_site": true, "obstruction": false}
 const BUILDER_SCENE: Dictionary = {"speed": 2.0, "vision": 8.0, "builds": [&"fake_barracks"]}
 const BUILD_TYPE: StringName = &"fake_barracks"
@@ -129,8 +129,8 @@ func _make_site() -> Entity:
 	return site
 
 
-func _make_builder(a_cell: Vector2i) -> Commandable:
-	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
+func _make_builder(a_cell: Vector2i) -> Actor:
+	var builder: Actor = FakePieces.make(BUILDER_SCENE) as Actor
 	_world.add_child(builder)
 	var builds := builder.get_node("Builds") as Builds
 	builds.buildable_types = [BUILD_TYPE]
@@ -151,7 +151,7 @@ func _pre_fix_branch_taken(a_target: Variant) -> bool:
 	return (
 		a_target != null
 		and is_instance_valid(a_target)
-		and a_target is Commandable
+		and a_target is Actor
 		and (a_target as Node).is_in_group("structure")
 	)
 
@@ -169,16 +169,16 @@ func _fixed_branch_taken(a_target: Variant) -> bool:
 #region The fixture fact
 func test_an_extraction_site_is_a_structure_that_is_not_a_commandable() -> void:
 	assert_true(_site is Entity, "it is an Entity")
-	assert_false(_site is Commandable, "but NOT a Commandable — it extends Entity directly")
+	assert_false(_site is Actor, "but NOT a Actor — it extends Entity directly")
 	assert_true(_site.is_in_group("fixture"), "and it is in the fixture group")
 	assert_false(_site.is_in_group("structure"), "but not a structure: it takes no orders")
-	assert_true(_site.has_node("Structure"), "carrying a real Structure component")
+	assert_true(_site.has_node("Fixture"), "carrying a real Fixture component")
 
 
 func test_a_failing_narrowing_cast_is_silent() -> void:
 	# The trapdoor itself, in one line: no error, no warning, just null.
-	var narrowed: Commandable = _site as Commandable
-	assert_null(narrowed, "`as Commandable` on a non-Commandable structure yields null quietly")
+	var narrowed: Actor = _site as Actor
+	assert_null(narrowed, "`as Actor` on a non-Actor structure yields null quietly")
 
 
 #endregion
@@ -198,7 +198,7 @@ func test_the_pre_fix_predicate_skipped_an_extraction_site() -> void:
 
 func test_the_predicate_still_ignores_a_non_structure() -> void:
 	# Widening the cast must not turn every entity target into a structure approach.
-	var unit: Commandable = _make_builder(Vector2i(2, 2))
+	var unit: Actor = _make_builder(Vector2i(2, 2))
 	assert_false(_fixed_branch_taken(unit), "a unit target is still a plain point")
 	assert_false(_fixed_branch_taken(null), "and so is a ground click")
 
@@ -210,7 +210,7 @@ func test_the_predicate_still_ignores_a_non_structure() -> void:
 func test_a_builder_targeting_an_extraction_site_is_sent_to_a_cell_it_can_stand_on() -> void:
 	# THE REGRESSION. The destination has to be somewhere the navmesh exists; the site's own
 	# cell is a hole in it, so a builder aimed there never finishes its path and never starts.
-	var builder: Commandable = _make_builder(Vector2i(2, 2))
+	var builder: Actor = _make_builder(Vector2i(2, 2))
 	var command := Build.new(_order_targeting_the_site())
 	var destination: Vector3 = builder.command_receiver._resolve_movement_target(command)
 	var cell: Vector2i = _map.world_to_grid(VU.in_xz(destination))
@@ -230,7 +230,7 @@ func test_a_builder_targeting_an_extraction_site_is_sent_to_a_cell_it_can_stand_
 
 func test_the_pre_fix_destination_was_a_cell_no_unit_could_reach() -> void:
 	# What the old code returned: the fallback, message.position — inside the site.
-	var builder: Commandable = _make_builder(Vector2i(2, 2))
+	var builder: Actor = _make_builder(Vector2i(2, 2))
 	var command := Build.new(_order_targeting_the_site())
 	var pre_fix: Vector3 = command.message.position  # the branch was skipped, so: the fallback
 	assert_false(
@@ -265,7 +265,7 @@ func test_a_builder_ordered_beside_an_extraction_site_actually_starts_building()
 	# The whole path, through real dispatch: a build ordered on free ground NEXT TO the site
 	# places a structure and moves the builder onto Assemble. The site's own cells are
 	# occupied and impassable, so this is the case that has to keep working while the
-	# approach branch above has been widened to take non-Commandable structures.
+	# approach branch above has been widened to take non-Actor structures.
 	#
 	# It is NOT the discriminating regression — it passed before the fix too. The
 	# discriminating one is the destination, above: an order whose TARGET is the site.
@@ -274,7 +274,7 @@ func test_a_builder_ordered_beside_an_extraction_site_actually_starts_building()
 	Build.submit_purchase(_commander, message)
 	Build.plan_structure(_commander, message)
 
-	var builder: Commandable = _make_builder(free_cell)
+	var builder: Actor = _make_builder(free_cell)
 	builder.update_commands(Build.new(CommandMessage.deep_copy(message)), false)
 	builder._process_commands()
 
@@ -295,7 +295,7 @@ func test_a_build_aimed_AT_the_site_is_refused_rather_than_stalling() -> void:
 	Build.submit_purchase(_commander, message)
 	Build.plan_structure(_commander, message)
 
-	var builder: Commandable = _make_builder(Vector2i(SITE_CELL.x + 1, SITE_CELL.y))
+	var builder: Actor = _make_builder(Vector2i(SITE_CELL.x + 1, SITE_CELL.y))
 	builder.update_commands(Build.new(CommandMessage.deep_copy(message)), false)
 	builder._process_commands()
 

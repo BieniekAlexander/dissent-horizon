@@ -23,10 +23,10 @@ extends GutTest
 ## A piece that can live in the tree without a scene behind it. `_ready` is skipped (the
 ## full entity wiring wants a real scene) and processing is off, so no per-frame code runs
 ## against the components it does NOT have. Godot still runs the @onready block on entering
-## the tree, so `_bare` supplies the four children Entity/Commandable resolve with a hard
+## the tree, so `_bare` supplies the four children Entity/Actor resolve with a hard
 ## `$` — everything else is `get_node_or_null` and simply stays null.
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
@@ -78,11 +78,11 @@ func _commander(a_commander: Commander, a_id: int) -> Commander:
 
 ## One owned piece: a child of `a_owner` (which is what every owned-entity sense iterates),
 ## owning-commander set through Ownership, at `a_x, a_z`.
-func _piece(a_owner: Commander, a_is_structure: bool, a_x: float, a_z: float) -> Commandable:
+func _piece(a_owner: Commander, a_is_structure: bool, a_x: float, a_z: float) -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	if a_is_structure:
-		var structure := Structure.new()
-		structure.name = "Structure"
+		var structure := Fixture.new()
+		structure.name = "Fixture"
 		piece.add_child(structure)
 	a_owner.add_child(piece)
 	piece.ownership.commander = a_owner
@@ -96,7 +96,7 @@ func _piece(a_owner: Commander, a_is_structure: bool, a_x: float, a_z: float) ->
 ## The components are ASSIGNED rather than parented: the piece is already in the tree, so
 ## adding a Weapon under it would run that node's own @onready wiring against children a
 ## real weapon scene has and this one does not. The fields are what every sense reads.
-func _arm(a_piece: Commandable, a_damage: float) -> Commandable:
+func _arm(a_piece: Actor, a_damage: float) -> Actor:
 	var defense := autofree(Defense.new()) as Defense
 	defense.hp_max = 100.0
 	defense.hp = 100.0
@@ -121,7 +121,7 @@ func _military() -> BotMilitary:
 ## objective — which means every objective test now has to say when the sighting happened.
 ## Driven through the blackboard's own upsert rather than by faking vision: these stubs have
 ## no vision shapes and no Fog, and what is under test is the objective, not the fog.
-func _believe(a_piece: Commandable) -> Commandable:
+func _believe(a_piece: Actor) -> Actor:
 	_bot.blackboard._upsert(a_piece, 0.0)
 	return a_piece
 
@@ -146,8 +146,8 @@ func test_neutral_pieces_are_neither_enemy_units_nor_enemy_structures() -> void:
 
 
 func test_a_hostile_piece_is_an_enemy_classified_by_its_structure_component() -> void:
-	var unit: Commandable = _piece(_foe, false, 10.0, 0.0)
-	var base: Commandable = _piece(_foe, true, 12.0, 0.0)
+	var unit: Actor = _piece(_foe, false, 10.0, 0.0)
+	var base: Actor = _piece(_foe, true, 12.0, 0.0)
 	assert_eq(_bot.get_enemy_units(), [unit])
 	assert_eq(_bot.get_enemy_structures(), [base])
 
@@ -157,7 +157,7 @@ func test_the_nearest_enemy_structure_is_never_the_nearer_neutral_one() -> void:
 	# opponent's is across the map. Distance must not be what decides this.
 	_piece(_bot, true, 0.0, 0.0)
 	_piece(_neutral, true, 2.0, 0.0)
-	var hostile_base: Commandable = _piece(_foe, true, 60.0, 0.0)
+	var hostile_base: Actor = _piece(_foe, true, 60.0, 0.0)
 	assert_eq(_bot.nearest_enemy_structure_to_base(), hostile_base)
 
 
@@ -209,13 +209,13 @@ func test_an_UNSCOUTED_hostile_base_gives_the_army_no_attack_objective() -> void
 func test_the_attack_objective_is_the_hostile_base_once_it_has_been_SEEN() -> void:
 	_piece(_bot, true, 0.0, 0.0)
 	_piece(_neutral, true, 3.0, 0.0)
-	var hostile_base: Commandable = _believe(_piece(_foe, true, 60.0, 0.0))
+	var hostile_base: Actor = _believe(_piece(_foe, true, 60.0, 0.0))
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), hostile_base.global_position)
 
 
 func test_the_nearer_of_two_believed_bases_is_the_objective() -> void:
 	_piece(_bot, true, 0.0, 0.0)
-	var near: Commandable = _believe(_piece(_foe, true, 30.0, 0.0))
+	var near: Actor = _believe(_piece(_foe, true, 30.0, 0.0))
 	_believe(_piece(_foe, true, 90.0, 0.0))
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), near.global_position)
 
@@ -225,7 +225,7 @@ func test_a_remembered_base_stays_the_objective_after_it_is_destroyed() -> void:
 	# know the structure is gone until it walks back and looks. Marching there is the correct
 	# behaviour, and the arrival is what corrects it.
 	_piece(_bot, true, 0.0, 0.0)
-	var hostile_base: Commandable = _believe(_piece(_foe, true, 60.0, 0.0))
+	var hostile_base: Actor = _believe(_piece(_foe, true, 60.0, 0.0))
 	var remembered: Vector3 = hostile_base.global_position
 	hostile_base.get_parent().remove_child(hostile_base)
 	hostile_base.free()
@@ -240,7 +240,7 @@ func test_a_remembered_base_stays_the_objective_after_it_is_destroyed() -> void:
 func test_with_no_believed_structures_the_army_marches_on_a_believed_UNIT() -> void:
 	_piece(_bot, true, 0.0, 0.0)
 	_piece(_neutral, false, 3.0, 0.0)
-	var hostile_unit: Commandable = _believe(_piece(_foe, false, 40.0, 0.0))
+	var hostile_unit: Actor = _believe(_piece(_foe, false, 40.0, 0.0))
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), hostile_unit.global_position)
 
 
@@ -249,7 +249,7 @@ func test_a_believed_structure_outranks_a_believed_unit() -> void:
 	# no structure left that the bot knows about.
 	_piece(_bot, true, 0.0, 0.0)
 	_believe(_piece(_foe, false, 5.0, 0.0))
-	var hostile_base: Commandable = _believe(_piece(_foe, true, 60.0, 0.0))
+	var hostile_base: Actor = _believe(_piece(_foe, true, 60.0, 0.0))
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), hostile_base.global_position)
 
 
@@ -260,7 +260,7 @@ func test_under_hegemony_the_believed_command_centre_beats_a_nearer_building() -
 	_scenario.win_condition = Scenario.WinCondition.HEGEMONY
 	_piece(_bot, true, 0.0, 0.0)
 	_believe(_piece(_foe, true, 30.0, 0.0))
-	var centre: Commandable = _piece(_foe, true, 60.0, 0.0)
+	var centre: Actor = _piece(_foe, true, 60.0, 0.0)
 	centre.id = Deployment.command_centre_ids()[0]
 	_believe(centre)
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), centre.global_position)
@@ -268,8 +268,8 @@ func test_under_hegemony_the_believed_command_centre_beats_a_nearer_building() -
 
 func test_under_mission_the_nearest_believed_building_is_still_the_objective() -> void:
 	_piece(_bot, true, 0.0, 0.0)
-	var nearer: Commandable = _believe(_piece(_foe, true, 30.0, 0.0))
-	var centre: Commandable = _piece(_foe, true, 60.0, 0.0)
+	var nearer: Actor = _believe(_piece(_foe, true, 30.0, 0.0))
+	var centre: Actor = _piece(_foe, true, 60.0, 0.0)
 	centre.id = Deployment.command_centre_ids()[0]
 	_believe(centre)
 	assert_eq(_military()._objective_for(BotMilitary.Posture.ATTACK), nearer.global_position)

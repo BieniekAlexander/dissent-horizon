@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/entities/entity.gd" id="1_cjycp"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="2_own"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="2_wisfu"]
-[ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="3_obs"]
+[ext_resource type="Script" path="res://scripts/entities/components/fixture.gd" id="3_obs"]
 [ext_resource type="Script" path="res://scripts/entities/components/shelter.gd" id="4_shel"]
 [ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="7_fhj1p"]
 [ext_resource type="Script" path="res://scripts/entities/components/mesh_visual.gd" id="7_yubve"]
@@ -38,7 +38,7 @@ metadata/_visual_default_hurtbox = "BoxShape3D"
 [node name="Ownership" type="Node" parent="." unique_id=1036473683]
 script = ExtResource("2_own")
 
-[node name="Structure" type="Node" parent="." unique_id=1894825326]
+[node name="Fixture" type="Node" parent="." unique_id=1894825326]
 script = ExtResource("3_obs")
 dimensions = Vector2i(3, 3)
 

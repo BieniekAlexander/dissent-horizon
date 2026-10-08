@@ -31,7 +31,7 @@ extends MoveCommand
 ##
 ## THE ONE METHOD A SUBCLASS REPLACES to change what "in range" means. The default is an XZ
 ## distance test against the ability's own authored reach.
-static func is_in_range(actor: Commandable, message: CommandMessage) -> bool:
+static func is_in_range(actor: Actor, message: CommandMessage) -> bool:
 	if actor == null or message == null:
 		return false
 	var reach: float = AbilityCatalog.range_for(_ability_of(message), actor)
@@ -59,7 +59,7 @@ static func out_of_range_cause() -> PreconditionFailureCause:
 
 #region Preconditions
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	return precondition_for(Ability, actor, message)
 
@@ -72,7 +72,7 @@ static func meets_precondition(
 ## an INSTANCE method it does dispatch, which is why can_act below needs no such help.)
 ## Each subclass overriding `meets_precondition` passes itself.
 static func precondition_for(
-	command_class: Script, actor: Commandable, message: CommandMessage
+	command_class: Script, actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	var ability_id: StringName = command_class._ability_of(message)
 	if actor == null or ability_id == &"":
@@ -115,13 +115,13 @@ static func default_cast_arity(message: CommandMessage) -> CastArity:
 ## Free unless already casting an ability — the job rule (MoveCommand.is_free_to_take). Asked
 ## of the actor alone, with no message, so any held ability order counts: a piece rarely
 ## carries more than one ability, and the narrowing has no message to name one with anyway.
-static func is_free_to_take(actor: Commandable) -> bool:
+static func is_free_to_take(actor: Actor) -> bool:
 	return holds_none_of(actor, [Ability])
 
 
 ## Still reloading. Asked of the ACTOR alone, with no message, so it reads every pool the
 ## actor has — right for a unit with one ability, which is every case today.
-static func actor_is_recharging(actor: Commandable) -> bool:
+static func actor_is_recharging(actor: Actor) -> bool:
 	var pool: Abilities = _pool_of(actor)
 	if pool == null:
 		return false
@@ -132,7 +132,7 @@ static func actor_is_recharging(actor: Commandable) -> bool:
 
 
 #region Private helpers
-static func _pool_of(actor: Commandable) -> Abilities:
+static func _pool_of(actor: Actor) -> Abilities:
 	return actor.get_node_or_null("Abilities") as Abilities if actor != null else null
 
 
@@ -154,7 +154,7 @@ static func _ability_of(message: CommandMessage) -> StringName:
 #region State updates
 ## Walk toward the point, unless walking cannot help — a reach that is not a distance is not
 ## closed by moving, and a gun that stayed put is better than one that wanders.
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	return range_closes_by_moving() and not can_act(a_actor)
 
 
@@ -162,7 +162,7 @@ func should_move(a_actor: Commandable) -> bool:
 ## null when the spend fails, and a null return DROPS the command (CommandReceiver sets
 ## `_command = null`) — so without this a queued ability whose charge was spent was silently
 ## thrown away the moment the actor arrived, instead of waiting out the reload.
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	var pool: Abilities = _pool_of(a_actor)
 	var ability_id: StringName = _ability_of(message)
 	if pool == null or ability_id == &"" or not pool.is_ready(ability_id):
@@ -171,7 +171,7 @@ func can_act(a_actor: Commandable) -> bool:
 
 
 ## Spend a charge and throw the payload. Null ends the command: one order, one use.
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	var ability_id: StringName = _ability_of(message)
 	if not consume(a_actor, ability_id):
 		return null
@@ -182,7 +182,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 ## Take the charge this use costs, and anything else the ability spends. False aborts the
 ## use without emitting. Subclasses extend it — the Bombard also burns the beacon that gave
 ## it its firing solution.
-func consume(a_actor: Commandable, a_ability_id: StringName) -> bool:
+func consume(a_actor: Actor, a_ability_id: StringName) -> bool:
 	var pool: Abilities = _pool_of(a_actor)
 	return pool != null and a_ability_id != &"" and pool.spend(a_ability_id)
 
@@ -191,13 +191,13 @@ func consume(a_actor: Commandable, a_ability_id: StringName) -> bool:
 ## added directly via initialize() rather than map.add_entity — that path runs
 ## unit-placement spreading and expects a MOVEMENT_OBSTRUCTION shape projectiles do not
 ## have. Returns false when the ability emits nothing.
-func emit(a_actor: Commandable, a_ability_id: StringName, a_target_position: Vector3) -> bool:
+func emit(a_actor: Actor, a_ability_id: StringName, a_target_position: Vector3) -> bool:
 	return launch_emission(a_actor, a_ability_id, a_target_position) != null
 
 
 ## Throw the ability's payload at `a_target` — a point, or an Entity to pursue (see
 ## Emitter.launch) — and return the emission, or null when the ability emits nothing.
-func launch_emission(a_actor: Commandable, a_ability_id: StringName, a_target: Variant) -> Entity:
+func launch_emission(a_actor: Actor, a_ability_id: StringName, a_target: Variant) -> Entity:
 	var scene: PackedScene = AbilityCatalog.emission_of(a_ability_id)
 	if scene == null:
 		push_error("ability '%s' emits nothing to lay down" % a_ability_id)

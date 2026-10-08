@@ -33,7 +33,7 @@ hands a `HitShape` to every scene that inherits it, Godot cannot remove an inher
 so `hit_shape != null` is unanswerable — asserting on it crashed six shipped pieces on their
 first shot, and `hitscan` had to be made authoritative over it.
 [entity-scene-hierarchy](entity-scene-hierarchy.md) reached it from the piece side: a scene
-inherits from exactly one base, so "a piece with both `Structure` and `Movement`" cannot be
+inherits from exactly one base, so "a piece with both `Fixture` and `Movement`" cannot be
 expressed, and "a piece with no model" can only be expressed by refusing to inherit anything
 at all — which three scenes in the roster already do.
 
@@ -125,7 +125,7 @@ for it". Several of its current verdicts are answers to the old question.
 
 ### Activation, for components that own external registrations
 
-Some components hold state outside themselves: `Structure` owns grid cells and a navmesh hole,
+Some components hold state outside themselves: `Fixture` owns grid cells and a navmesh hole,
 `Movement` owns a nav agent and an avoidance entry. Those gain an **active/inactive** axis so
 that two mutually-exclusive components can coexist on one piece with exactly one live.
 
@@ -263,7 +263,7 @@ Role itself comes from the discriminating keys below.
 
 | Key present                                        | Derives                                                                                      |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `footprint:` (terrain-grid occupation)             | occupies the grid → `Structure`, the `"structure"` group, footprint-adjacent command routing |
+| `footprint:` (terrain-grid occupation)             | occupies the grid → `Fixture`, the `"structure"` group, footprint-adjacent command routing |
 | `movement:`                                        | can be driven → `Movement`, the `"unit"` group, nav agent + avoidance                        |
 | `phases:`                                          | a token moved by its phase list → a `PhasedLocomotion` and a `Payload` on an `Entity` root, no command queue, no selection |
 | `vision:`                                          | contributes fog reveal → `VisionRange`, the `"los"` group                                    |
@@ -286,7 +286,7 @@ Both are authoring mistakes and both should abort the import, in keeping with th
 
 **Ambiguous pairs get a stated precedence, not a guess.** `phases:` together with `movement:`
 is refused rather than resolved: an emission that also wants a command queue is a
-`Commandable` that a weapon emitted, which the emitter interface already covers.
+`Actor` that a weapon emitted, which the emitter interface already covers.
 
 ### The doc's SHAPE is part of the model, not decoration
 
@@ -413,7 +413,7 @@ code that genuinely talks to the navigated strategy asks that).
    aim, a waypoint chain); everything else that reads `movement` genuinely talks to the navigated
    strategy — facing, the nav target and class, avoidance, speed — or to flight and docking, which
    step 4 moves. Accepted by the emission trace (byte-identical) and the unit traces.
-4. `Aerial` and `Docking` come out of `Movement` and `Commandable`, and the call sites move once,
+4. `Aerial` and `Docking` come out of `Movement` and `Actor`, and the call sites move once,
    to their final home. **Built 2026-09-26**, on Alex's two answers: the flight values have their
    own key (`aerial: {mode, orbit_radius, orbit_speed}`, per the one-key-per-component rule), and
    docking is DECLARED (`docking: true`), not derived from flying. Every aircraft doc was migrated
@@ -440,7 +440,7 @@ responds to an order. Today that refusal is the only way to say so, which is why
 of the three hand-rolled outliers and why "structure" and "commandable" are welded together.
 
 Under composition they come apart: **a command queue, `Selectable`, and the command routing
-in `Commandable._process_commands` are a component set like any other, and a doc says
+in `Actor._process_commands` are a component set like any other, and a doc says
 whether the piece gets them.** That is what lets the extraction site, `shelter` and `scout`
 stop being hand-rolled scenes and become ordinary docs — §Step 4 already claims exactly
 that for the three outliers, and this is the key that makes the claim literally true rather
@@ -455,10 +455,9 @@ that gives `repairs:` and `stealth:` bare bools — presence IS the capability.
 overwhelming majority are commandable and map furniture is the exception that should have to
 say so.
 
-Two interactions to carry forward: `Commandable` stops being a class in the inheritance
-chain and becomes a component set (a step 4 concern, not before), and §Blast radius gains
-the `Commandable.is_built` and `can_rally` sites, which today assume every structure is
-commandable.
+Two interactions carried forward: order-taking became the `Orders` component (2026-10-08, §Step
+4), and §Blast radius gains the `Actor.is_built` and `can_rally` sites, which assume every
+structure is commandable.
 
 ---
 
@@ -534,7 +533,7 @@ re-asking when the emission rework changes what a weapon's reach means.
 
 ### Step 1 — the activation axis
 
-A two-form piece — `Structure` and `Movement` both present — has exactly one live: see
+A two-form piece — `Fixture` and `Movement` both present — has exactly one live: see
 `Entity.deploy` / `undeploy` / `set_deployed`, `Movement.set_active`, and
 `tests/test_TwoFormPiece.gd`. Two choices the code shows but does not argue:
 
@@ -576,7 +575,7 @@ old categories are refused with their replacement named, and a lowercase class n
 casing rule explained. A piece's role — fixture or figure, built or trained — is derived from
 `footprint:` and `movement:` (`SpecSchema.is_fixture`, `SpecGenerators._is_built`), a piece
 with neither nor `senses.vision:` is refused, and a new skeleton inherits the mobile base when
-the doc names `movement:`, gaining a `Structure` there if it also names a footprint. Validation
+the doc names `movement:`, gaining a `Fixture` there if it also names a footprint. Validation
 was already selected by the keys a doc declares; only the family switch remains, and it follows
 the class.
 
@@ -608,7 +607,7 @@ An ability doc is `kind: AbilityDefinition`, the class `AbilityCatalog` builds i
   so a structure stops carrying nav machinery it cannot use and `abstract_structure.tscn`
   stops having to override `MovementBody`'s shape because it cannot delete the node.
 - **The three hand-rolled outliers stop being outliers.** The extraction site, `shelter` and
-  `scout` hand-roll `Ownership` / `Structure` / `FootprintVisualizer` on a bare body precisely
+  `scout` hand-roll `Ownership` / `Fixture` / `FootprintVisualizer` on a bare body precisely
   because they could not accept everything their base would have given them. After
   composition there is nothing to refuse: each becomes an ordinary doc naming a shorter
   component list. This step should **start** with those three, not end with them — they are the
@@ -632,7 +631,7 @@ that inherited `projectile.tscn` and the one that inherited `irregular_bullet.ts
   `HurtboxShape` directly.
 - The three outliers are ordinary docs: the extraction site and shelter say
   `commandable: false`, which makes them features on an `Entity` root; the Recon Drone keeps a
-  `Commandable` root because it can be damaged.
+  `Actor` root because it can be damaged.
 - `SpecSceneSync.INHERITANCE_BASES` is gone (a step 5 item, done here because nothing is left
   to protect), so the generic `projectile.tscn` now gets its phases and can be fired.
 
@@ -649,23 +648,26 @@ spans (`TscnDoc._prop_span`).
 **Still to do in step 4:**
 - The shared locomotion core (§Locomotion is bigger than `Movement` §Order) is built, its own
   step 4 (`Aerial` / `Docking`) included; the Recon Drone keeps a speed-0 `Movement` by decision.
-- TODO: `Commandable` as a component set rather than a class (§Commandability is a capability) —
-  not started; today the root class is derived (Actor or feature) instead.
+- Taking orders is a component (§Commandability is a capability), built 2026-10-08: `Orders`
+  holds the command queue, the rally queue, what an incoming order is admitted as and the
+  per-tick command processing, and composition adds it to a piece unless its doc says
+  `commandable: false`. `Actor` keeps its order methods as forwards that do nothing without it,
+  so callers did not change. The Recon Drone, damageable but never ordered, carries none.
 - `Emitter.launch` is the one call for an emission, and an emitted UNIT is built (2026-09-29):
   it is handed an order — attack the Entity it was launched at, or attack-move to the point —
   instead of a flight (`tests/test_EmittedUnit.gd`). TODO: only an ability's `emits:` may name
   a unit; the importer still requires a weapon's to be a projectile, and no piece emits one.
 - The `"structure"` group is split (2026-09-29): `"fixture"` for every fixture, `"structure"`
   only for one that takes orders ([piece-vocabulary](piece-vocabulary.md) §Where today's code
-  disagrees). PLANNED there, still: the `Commandable` → `Actor` and `Structure` → fixture
-  component class renames.
-- TODO: re-derive the [get-node-or-null-audit](get-node-or-null-audit.md) verdicts against the
-  composed tiers.
+  disagrees). The class renames followed on 2026-10-08: the Actor class is `Actor` and the
+  fixture component is `Fixture`.
+- The [get-node-or-null-audit](get-node-or-null-audit.md) verdicts are re-derived against the
+  composed tiers (2026-10-08).
 
 **Built 2026-09-19: no piece has a root script of its own.** The four that did were folded into
 components on a derived root, the way the shelter already was: `ExtractionSite`, `Extractor`
 and `Beacon` are component nodes found with `X.of(piece)`, and the Recon Drone's empty `Scout`
-subclass is gone (its root is `Commandable`). A `Beacon` signals `spent` as its host is freed,
+subclass is gone (its root is `Actor`). A `Beacon` signals `spent` as its host is freed,
 so no piece overrides `Entity.expire` any more.
 
 **Identity components are declared by PRESENCE only** (decided 2026-09-19): `shelter: true`,
@@ -731,7 +733,7 @@ for and the new one gets from one doc.
 Nothing stops it once the **emitter interface** exists (step 4's companion): instantiate,
 initialise against the owner, hand it its initial intent. The weapon names a piece id in
 `emits:`; the emitter routes on what that id resolves to — a phase-moved token gets its phase list, a
-`Commandable` gets a command. The emission class never learns that units exist, which is the
+`Actor` gets a command. The emission class never learns that units exist, which is the
 property worth protecting.
 
 **What an emitted unit costs, and what it outlives** (decided 2026-09-28):

@@ -2,6 +2,9 @@
 kind: Entity
 title: Barracks
 scene: res://scenes/entities/structures/cl/cl_barracks.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 300

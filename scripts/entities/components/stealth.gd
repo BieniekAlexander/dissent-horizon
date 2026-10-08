@@ -36,7 +36,7 @@ const UNSTEALTH_DURATION_TICKS: int = 90
 #endregion
 
 #region Properties
-## Current visibility state. Read by Commandable._process (sprite alpha) and the
+## Current visibility state. Read by Actor._process (sprite alpha) and the
 ## controller's cursor (STEALTHED enemies are unclickable / untargetable).
 var state: State = State.STEALTHED
 
@@ -58,7 +58,7 @@ func _ready() -> void:
 		entity.collision_layer |= CollisionLayers.Mask.STEALTH
 	# Gaining stealth holds fire, whether the piece was authored with it or granted it later —
 	# idle aggro would otherwise spend the stealth on whatever wandered past.
-	var actor := entity as Commandable
+	var actor := entity as Actor
 	if actor != null:
 		actor.is_holding_fire = true
 
@@ -81,7 +81,7 @@ func unstealth() -> void:
 
 
 ## Advance stealth state by one physics tick. Must be called once per tick from
-## Commandable._update_state().
+## Actor._update_state().
 func tick() -> void:
 	var detected := Engine.get_physics_frames() == _last_detected_frame
 

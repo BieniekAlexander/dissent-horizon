@@ -2,6 +2,9 @@
 kind: Entity
 title: Badger
 scene: res://scenes/entities/units/cl/cl_bioLight_antiMech.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 200

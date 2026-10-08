@@ -56,8 +56,8 @@ func _at(a_xz: Vector2) -> Vector3:
 	return Vector3(a_xz.x, 0.0, a_xz.y)
 
 
-func _piece(a_options: Dictionary, a_commander_id: int, a_xz: Vector2) -> Commandable:
-	var piece: Commandable = FakePieces.make(a_options)
+func _piece(a_options: Dictionary, a_commander_id: int, a_xz: Vector2) -> Actor:
+	var piece: Actor = FakePieces.make(a_options)
 	_commander(a_commander_id).add_child(piece)
 	autofree(piece)
 	piece.top_level = true
@@ -178,7 +178,7 @@ func test_a_shell_outliving_its_beacon_is_harmless() -> void:
 # --- The Bombard fires on a beacon --------------------------------------------------
 
 
-func _gun() -> Commandable:
+func _gun() -> Actor:
 	_commander(OWN).add_infrastructure(1000)
 	var gun := _piece(
 		{
@@ -217,7 +217,7 @@ func test_firing_on_ground_a_range_covers_claims_no_beacon() -> void:
 # --- Spotting a unit ------------------------------------------------------------------
 
 
-func _recruit(a_xz: Vector2) -> Commandable:
+func _recruit(a_xz: Vector2) -> Actor:
 	var recruit := _piece(BIO_GROUND, OWN, a_xz)
 	if _map == null:
 		_map = StubMap.new()
@@ -225,7 +225,7 @@ func _recruit(a_xz: Vector2) -> Commandable:
 	return recruit
 
 
-func _spot(a_actor: Commandable, a_target: Entity) -> Spot:
+func _spot(a_actor: Actor, a_target: Entity) -> Spot:
 	var order := Spot.new(CommandMessage.new(null, a_target, null, a_target.global_position))
 	for _i: int in Spot.channel_ticks():
 		order.fulfill_action(a_actor)

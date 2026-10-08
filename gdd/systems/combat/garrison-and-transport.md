@@ -123,7 +123,7 @@ This replaced a dedicated `ABDUCT` `Interaction`, which was removed outright. Wh
 
 **Capacity gates the capture, never the crush.** `Garrison.can_capture(captor, captive)` is the whole rule of who may be taken — a non-friendly, non-structure, LIGHT-armoured BIOLOGICAL unit, when the captor has a capturing hold with room. A full truck answers *no*, and the contact then falls straight through to the ordinary crush: it flattens the enemy soldier under its wheels exactly as any other vehicle would. Nothing about being a carrier makes a truck gentler. A NEUTRAL it cannot take is simply left alone, because neutrals were never crushable — the capture arm is the only reason a neutral is ever run over.
 
-**Neutrals qualify, which is why the rule asks `is_friendly_to` and not `is_enemy_of`.** Taking a [Shelter](../../../scripts/entities/components/shelter.gd)'s Terrestrials is the Colonial half of the population race, and a Terrestrial is nobody's enemy. That single distinction propagates: `Commandable._can_run_over` — "would driving into this come to anything?" — is `outsizes it AND (it is an enemy OR it is prey I have room for)`, and both halves of the crush mechanic ask it. The avoidance half in particular must, or the truck would politely steer around every Terrestrial it was sent to collect and never make contact.
+**Neutrals qualify, which is why the rule asks `is_friendly_to` and not `is_enemy_of`.** Taking a [Shelter](../../../scripts/entities/components/shelter.gd)'s Terrestrials is the Colonial half of the population race, and a Terrestrial is nobody's enemy. That single distinction propagates: `Actor._can_run_over` — "would driving into this come to anything?" — is `outsizes it AND (it is an enemy OR it is prey I have room for)`, and both halves of the crush mechanic ask it. The avoidance half in particular must, or the truck would politely steer around every Terrestrial it was sent to collect and never make contact.
 
 **The truck had to become a crusher for any of this to work.** Its `crush_class` is `MEDIUM`, matching every other vehicle in the game; before this it was the default `SMALL` and could not run over anything at all.
 
@@ -145,7 +145,7 @@ Scoping the scan to the aggro range therefore silenced the mechanic on exactly t
 
 Tests: `tests/test_CrushAvoidance.gd`.
 
-**Crushing is not a weapon, and the order table says so.** `command_attack_move` is offered on `CommandContextParser._is_armed` — a `Loadout` actually holding a `Weapon` — not on the presence of a `Loadout` node, which an unarmed vehicle carries empty. An attack-move click that lands on a Commandable resolves to `Attack`, and `Attack` on a weaponless actor can neither act nor move, so the unit stood still holding an order it could never carry out. Being able to flatten something is not being able to shoot it.
+**Crushing is not a weapon, and the order table says so.** `command_attack_move` is offered on `CommandContextParser._is_armed` — a `Loadout` actually holding a `Weapon` — not on the presence of a `Loadout` node, which an unarmed vehicle carries empty. An attack-move click that lands on a Actor resolves to `Attack`, and `Attack` on a weaponless actor can neither act nor move, so the unit stood still holding an order it could never carry out. Being able to flatten something is not being able to shoot it.
 
 ### Open: the crush-class table decides who is capturable, and it is inconsistent
 
@@ -189,7 +189,7 @@ the selected occupant then takes orders like any other unit.
 Two things had to change for that to work at all, and both are about the same confusion —
 **a garrisoned unit is REMOVED FROM THE TREE, which is exactly what a dead one looks like.**
 
-1. **`Commandable.garrisoned_in` tells held from gone.** `RTSController` prunes any selected
+1. **`Actor.garrisoned_in` tells held from gone.** `RTSController` prunes any selected
    node that is not `is_inside_tree()` every frame, which silently dropped an occupant one
    frame after its card selected it. Nothing else could have distinguished them: off-the-tree
    is what dying and boarding have in common. The prune now keeps a unit that
@@ -235,7 +235,14 @@ timed.** `Garrison.deposit_from` moves each captive directly into the sink's `_g
 use), unconverted, and starts a `sentence_length`-second countdown on it (`garrison()`'s own
 bookkeeping — every occupant of a garrison with a positive `sentence_length` is timed, not
 only deposited ones). Partial deposits are allowed: the loop stops when the camp fills and the
-carrier keeps the rest. Ownership never changes hands: a captive's `Ownership` still names the
+carrier keeps the rest.
+
+**The carrier unloads one captive at a time** (decided 2026-10-08). Its `garrison.unload_time:`
+(seconds per captive, 1 on the Stock Truck) is the interval: the first captive goes over when
+the deposit interaction completes, then one each interval (`Interact._unload_step`), until the
+carrier is empty or the Compound full. The order stays live throughout, so re-ordering the truck
+stops the unload with the rest still aboard. The number is the CARRIER's, so more trucks unload
+faster; a carrier with none hands its whole load over at once. Ownership never changes hands: a captive's `Ownership` still names the
 side it was taken from throughout its term.
 
 Three consequences worth knowing:
@@ -254,7 +261,7 @@ Three consequences worth knowing:
   walk back out as a Servant. `Occupy` refuses it exactly as the truck's cage does.
 
 Release is garrison logic too, with no second code path: a destroyed host runs
-`Commandable._on_death` → `evacuate` / `kill_occupants` per `preserve_occupants`, and each
+`Actor._on_death` → `evacuate` / `kill_occupants` per `preserve_occupants`, and each
 occupant returns to **its own** commander mid-term — so destroying a Compound *rescues* its
 prisoners rather than merely denying the income. A Servant delivered alongside the prisoners
 serves a sentence too, and is the one occupant an order can let out before it ends (§The two

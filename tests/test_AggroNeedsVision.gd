@@ -9,7 +9,7 @@ extends GutTest
 ## the radius, fogged or not. The vision gate is what makes reach-past-vision pieces
 ## (artillery) depend on spotters: with it, a target outside the side's vision is not a
 ## candidate however close it stands. Pinned for both readers of the aggro volume — the
-## piece's own idle pickup (Commandable.get_aggro_near_position) and the bot's retreat gate
+## piece's own idle pickup (Actor.get_aggro_near_position) and the bot's retreat gate
 ## (Bot.get_enemies_in_aggro_range). Why: gdd/systems/combat/range-buckets.md §Aggro.
 ##
 ## PATHS, not preloads (see CLAUDE.md).
@@ -36,8 +36,8 @@ func _commander(a_id: int, a_bot: bool = false) -> Commander:
 	return c
 
 
-func _unit(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Commandable:
-	var u: Commandable = FakePieces.unit(a_options)
+func _unit(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Actor:
+	var u: Actor = FakePieces.unit(a_options)
 	add_child_autofree(u)
 	u.ownership.commander = a_commander
 	u.global_position = a_at
@@ -54,15 +54,15 @@ func _blind(a_id: int) -> void:
 
 ## A recruit for SEER beside an irregular for HIDDEN, well inside the recruit's aggro.
 func _pair(a_seer: Commander) -> Array:
-	var shooter: Commandable = _unit(RECRUIT, a_seer, Vector3.ZERO)
-	var target: Commandable = _unit(IRREGULAR, _commander(HIDDEN), Vector3(2.0, 0.0, 0.0))
+	var shooter: Actor = _unit(RECRUIT, a_seer, Vector3.ZERO)
+	var target: Actor = _unit(IRREGULAR, _commander(HIDDEN), Vector3(2.0, 0.0, 0.0))
 	await wait_physics_frames(2)
 	return [shooter, target]
 
 
 func test_a_visible_enemy_in_aggro_is_picked_up() -> void:
 	var pair: Array = await _pair(_commander(SEER))
-	var cmd: MoveCommand = (pair[0] as Commandable).get_aggro_near_position()
+	var cmd: MoveCommand = (pair[0] as Actor).get_aggro_near_position()
 	assert_not_null(cmd, "guards the fixture: no fog, so the enemy is in plain sight")
 	assert_eq(cmd.message.target, pair[1])
 
@@ -71,7 +71,7 @@ func test_an_enemy_out_of_vision_is_not_picked_up() -> void:
 	var pair: Array = await _pair(_commander(SEER))
 	_blind(SEER)
 	assert_null(
-		(pair[0] as Commandable).get_aggro_near_position(),
+		(pair[0] as Actor).get_aggro_near_position(),
 		"inside the aggro radius but outside the side's vision: not a candidate"
 	)
 

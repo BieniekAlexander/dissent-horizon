@@ -2,6 +2,9 @@
 kind: Entity
 title: Extractor
 scene: res://scenes/entities/structures/nt/nt_extractor.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 500}
   time: 20

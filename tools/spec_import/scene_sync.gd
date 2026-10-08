@@ -70,7 +70,7 @@ const SCRIPT_GARRISON: String = "res://scripts/entities/components/garrison.gd"
 const SCRIPT_EFFECT_APPLICATOR: String = "res://scripts/entities/effects/effect_applicator.gd"
 const SCRIPT_FACTION: String = "res://scripts/interface/commander/faction.gd"
 const SCRIPT_STATUS_EFFECT: String = "res://scripts/entities/effects/status_effect.gd"
-const SCRIPT_STRUCTURE: String = "res://scripts/entities/components/structure.gd"
+const SCRIPT_FIXTURE: String = "res://scripts/entities/components/fixture.gd"
 ## IDENTITY components — behaviour one piece (or a named handful) has, like the Shelter.
 ## Doc key -> [node name, script]. The doc declares only PRESENCE; the component's tuning is
 ## scene-authored, because a mechanic this specific does not earn a doc schema until it is
@@ -338,12 +338,12 @@ func _sync_editor_description(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	_set_prop(a_ctx, "", "editor_description", current, target, TscnDoc.fmt_string(target))
 
 
-## Copies the optional `description`/`verbose` spec keys into Commandable's own exported
+## Copies the optional `description`/`verbose` spec keys into Actor's own exported
 ## fields — the player-facing HUD flavor text (NOT the engine's editor-only
 ## `editor_description`; see _sync_editor_description for that one). Guarded by `in`
-## rather than `is Commandable`, since a "piece" doc's scene root can be a non-Commandable
+## rather than `is Actor`, since a "piece" doc's scene root can be a non-Actor
 ## Entity (e.g. ExtractionSite). Omitted key -> untouched; a piece with neither key falls back to
-## Commandable's own runtime "obnoxious TODO" placeholder rather than being synced here.
+## Actor's own runtime "obnoxious TODO" placeholder rather than being synced here.
 func _sync_flavor_text(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	if a_spec.has("description") and "description" in a_ctx.inst:
 		var target: String = str(a_spec["description"])
@@ -753,15 +753,15 @@ func _sync_docking(a_ctx: Ctx, a_spec: Dictionary) -> void:
 ## an override section of the base's Structure is left alone, since the node is inherited.
 func _sync_footprint(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	if not a_spec.has("footprint"):
-		if a_ctx.doc.find_node("Structure").get("attrs", {}).has("type"):
-			_remove_component(a_ctx, "Structure")
+		if a_ctx.doc.find_node("Fixture").get("attrs", {}).has("type"):
+			_remove_component(a_ctx, "Fixture")
 		return
-	_ensure_component(a_ctx, "Structure", "Node", SCRIPT_STRUCTURE)
-	var structure: Node = _live_node(a_ctx, "Structure")
+	_ensure_component(a_ctx, "Fixture", "Node", SCRIPT_FIXTURE)
+	var structure: Node = _live_node(a_ctx, "Fixture")
 	var target: Vector2i = Vector2i(int(a_spec["footprint"][0]), int(a_spec["footprint"][1]))
 	_set_prop(
 		a_ctx,
-		"Structure",
+		"Fixture",
 		"dimensions",
 		structure.dimensions if structure != null else Vector2i.ZERO,
 		target,
@@ -772,7 +772,7 @@ func _sync_footprint(a_ctx: Ctx, a_spec: Dictionary) -> void:
 ## The keys that belong to the ROOT node rather than to any component.
 ##
 ## A family member's `infrastructure:` is TEMPLATE data — what the piece grants once it is built
-## as another piece — so it is never written here: Commandable.infrastructure is credited to
+## as another piece — so it is never written here: Actor.infrastructure is credited to
 ## whichever commander owns the node, and a neutral building (or one a garrison captured) must
 ## grant nothing. It is published through families.json instead.
 func _sync_root_properties(a_ctx: Ctx, a_spec: Dictionary) -> void:
@@ -1018,6 +1018,16 @@ func _sync_garrison(a_ctx: Ctx, a_g: Variant) -> void:
 	_sync_reach_by_piece(a_ctx, node, g)
 	_sync_occupiable_ids(a_ctx, node, g)
 	_sync_sentence_length(a_ctx, node, g)
+	if g.has("unload_time"):
+		var unload: float = float(g["unload_time"])
+		_set_prop(
+			a_ctx,
+			"Garrison",
+			"unload_time",
+			node.unload_time if node != null else -1.0,
+			unload,
+			TscnDoc.fmt_float(unload)
+		)
 	# A closed hold is every mask cleared; validation already refused it alongside any
 	# occupancy list, so the two branches can never both apply.
 	if bool(g.get("closed", false)):
@@ -1231,6 +1241,7 @@ func _sync_one_weapon(a_ctx: Ctx, a_name: String, a_w: Dictionary, a_node: Node)
 	var cur_clip: int = a_node.clip_size if a_node != null else -1
 	var cur_mask: int = a_node.target_mask if a_node != null else -1
 	var cur_charged: bool = a_node.charged if a_node != null else false
+	var cur_self_destruct: bool = a_node.self_destruct if a_node != null else false
 	var cur_turret: bool = a_node.turret if a_node != null else false
 	var cur_turret_rate: float = a_node.turret_turn_rate if a_node != null else -1.0
 	var cur_range_origin: int = a_node.range_origin if a_node != null else -1
@@ -1242,6 +1253,18 @@ func _sync_one_weapon(a_ctx: Ctx, a_name: String, a_w: Dictionary, a_node: Node)
 	if a_w.has("charged"):
 		var charged: bool = bool(a_w["charged"])
 		_set_prop(a_ctx, wpath, "charged", cur_charged, charged, "true" if charged else "false")
+	# `self_destruct: true`: firing kills the wielder, whose death sets the emission off (see
+	# Weapon.self_destruct); written whenever the key is present, like `charged`.
+	if a_w.has("self_destruct"):
+		var is_self_destruct: bool = bool(a_w["self_destruct"])
+		_set_prop(
+			a_ctx,
+			wpath,
+			"self_destruct",
+			cur_self_destruct,
+			is_self_destruct,
+			"true" if is_self_destruct else "false"
+		)
 
 	# `turret: true` makes the weapon aim on its own yaw instead of the body's (see
 	# Weapon.turret); written whenever the key is present, false included, like `charged`.
@@ -2392,7 +2415,7 @@ func _sync_piece_visuals(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	var visual_class: int = VisualDefaults.classify_piece(
 		_piece_frame_type(a_ctx, a_spec),
 		_piece_movement_mode(a_ctx, a_spec),
-		a_ctx.inst.has_node("Structure")
+		a_ctx.inst.has_node("Fixture")
 	)
 	var footprint: Vector2i = _piece_footprint(a_ctx, a_spec)
 	var measurement: Dictionary = VisualMeasure.measure(a_ctx.inst)
@@ -2416,7 +2439,7 @@ func _sync_piece_visuals(a_ctx: Ctx, a_spec: Dictionary) -> void:
 		visual_class,
 		measurement,
 		footprint,
-		a_spec.has("footprint") or a_ctx.inst.has_node("Structure")
+		a_spec.has("footprint") or a_ctx.inst.has_node("Fixture")
 	)
 	_bake_hp_bar(a_ctx, measurement)
 	_keep_hurtbox_editable(a_ctx)
@@ -2705,7 +2728,7 @@ func _piece_movement_mode(a_ctx: Ctx, a_spec: Dictionary) -> int:
 func _piece_footprint(a_ctx: Ctx, a_spec: Dictionary) -> Vector2i:
 	if a_spec.has("footprint"):
 		return Vector2i(int(a_spec["footprint"][0]), int(a_spec["footprint"][1]))
-	var structure: Node = a_ctx.inst.get_node_or_null("Structure")
+	var structure: Node = a_ctx.inst.get_node_or_null("Fixture")
 	return structure.dimensions if structure != null else Vector2i.ONE
 
 

@@ -27,8 +27,8 @@ func _commanded(a_id: int) -> Commander:
 	return c
 
 
-func _entity(a_options: Dictionary) -> Commandable:
-	var e := FakePieces.make(a_options) as Commandable
+func _entity(a_options: Dictionary) -> Actor:
+	var e := FakePieces.make(a_options) as Actor
 	add_child_autofree(e)
 	e.ownership.commander = _commanded(1)
 	return e

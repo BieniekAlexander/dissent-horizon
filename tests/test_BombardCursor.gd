@@ -33,12 +33,12 @@ func before_each() -> void:
 	add_child_autofree(_commander)
 
 
-func _bombard() -> Commandable:
+func _bombard() -> Actor:
 	# The gun costs 75 infrastructure of upkeep, and a commander with only
 	# BASE_INFRASTRUCTURE cannot cover two of them — an unpowered building casts nothing
 	# (see tests/test_InfrastructureStrain.gd), which is not what is under test here.
 	_commander.add_infrastructure(1000)
-	var gun: Commandable = FakePieces.structure(GUN)
+	var gun: Actor = FakePieces.structure(GUN)
 	_commander.add_child(gun)
 	autofree(gun)
 	gun.top_level = true

@@ -109,7 +109,7 @@ What `Commander.has_anything_in_play()` counts is three exclusions:
 | --- | --- |
 | `is_queued_for_deletion()` nodes | `queue_free()` is end-of-frame; without this the check resolves a frame late (same reason `ConditionGroupCount` skips them) |
 | Blueprints (`Entity.is_planned`) | a plan needs a builder, and a commander with a builder has a unit — counting one means "you are alive because you have a plan" |
-| non-`Commandable` entities | a `Scout` (`EventRevealRegion` with `clears_fog`, `EventRadarScan`) is an `Entity` parented to the commander; widening this to `Entity` would let a permanent reveal make its owner immortal |
+| non-`Actor` entities | a `Scout` (`EventRevealRegion` with `clears_fog`, `EventRadarScan`) is an `Entity` parented to the commander; widening this to `Entity` would let a permanent reveal make its owner immortal |
 
 Garrisoned units don't count either, and that falls out of the mechanic rather than a rule here: `Garrison` holds occupants as orphaned nodes, so a unit in an enemy Compound has left its commander's subtree. **Being reduced to POWs is being eliminated** — they aren't yours to command until something frees them.
 
@@ -141,7 +141,7 @@ Unlike the rest of this game's HUD it is an **authored scene** — `scenes/inter
  * Blueprints (Entity.is_planned). A planned structure needs a builder to become real,
    and a commander with a builder still has a unit; counting one would mean "you are
    alive because you have a plan".
- * Non-Commandable entities. Commandable, not Entity, and that is load-bearing: a Scout
+ * Non-Actor entities. Actor, not Entity, and that is load-bearing: a Scout
    (EventRevealRegion with clears_fog, EventRadarScan) is an Entity parented here, so
    widening this would let a permanent reveal keep a wiped-out commander alive forever.
 

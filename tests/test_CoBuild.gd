@@ -105,11 +105,11 @@ func _make_map() -> StubMap:
 
 
 ## A real builder unit, instanced from its scene rather than built from a bare
-## Commandable: the tick path resolves several required children with `$` (HPBar,
+## Actor: the tick path resolves several required children with `$` (HPBar,
 ## Veterancy, AvoidanceObstacle), so a hand-assembled stand-in errors its way through
 ## every frame. `buildable_types` is widened to the structure under test.
-func _make_builder(a_at: Vector2) -> Commandable:
-	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
+func _make_builder(a_at: Vector2) -> Actor:
+	var builder: Actor = FakePieces.make(BUILDER_SCENE) as Actor
 	_world.add_child(builder)
 	var builds := builder.get_node("Builds") as Builds
 	builds.buildable_types = [BUILD_TYPE]
@@ -157,12 +157,12 @@ func test_every_builder_registers_but_the_second_buys_no_tempo() -> void:
 		a._process_commands()
 		b._process_commands()
 
-	var structure: Commandable = _map.placed[0]["structure"]
+	var structure: Actor = _map.placed[0]["structure"]
 	assert_eq(structure._active_builders.size(), 2, "both builders are registered on the structure")
 
 	# Both contribute, but the SECOND one buys no tempo: MARGINAL_BUILDER_EFFICIENCY is 0,
 	# so the site advances at 1/T per tick however many builders are on it (see
-	# Commandable.effective_build_increment).
+	# Actor.effective_build_increment).
 	var before: float = structure.build_progress
 	a._process_commands()
 	b._process_commands()
@@ -189,7 +189,7 @@ func test_co_building_survives_the_post_placement_displacement() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	var structure: Commandable = _map.placed[0]["structure"]
+	var structure: Actor = _map.placed[0]["structure"]
 	var before: float = structure.build_progress
 	for i: int in 3:
 		a._process_commands()
@@ -211,7 +211,7 @@ class ArrivedMovement:
 
 ## Replace `unit`'s Movement with the always-arrived double, keeping the node name so the
 ## @onready lookups and `movement` field still resolve.
-func _force_arrived(a_unit: Commandable) -> void:
+func _force_arrived(a_unit: Actor) -> void:
 	var old: Movement = a_unit.movement
 	var stub := ArrivedMovement.new()
 	stub.name = "MovementStub"
@@ -294,7 +294,7 @@ func test_an_out_of_range_builder_converts_to_assemble() -> void:
 
 
 ## A structure on the map, with the tech entry `effective_build_increment` prices it from.
-func _placed_site() -> Commandable:
+func _placed_site() -> Actor:
 	var site := Vector2(4.0, 4.0)
 	var message := _order(site)
 	var builder := _make_builder(site)
@@ -305,17 +305,17 @@ func _placed_site() -> Commandable:
 
 ## Register `a_crew` stand-in builders on `a_site` and return the site's total progress for
 ## one tick in which `a_acting` of them work. Bare Commandables: the rate only counts them.
-func _rate_with_crew(a_site: Commandable, a_crew: int, a_acting: int) -> float:
+func _rate_with_crew(a_site: Actor, a_crew: int, a_acting: int) -> float:
 	a_site._active_builders.clear()
 	for _i: int in a_crew:
-		var stand_in := Commandable.new()
+		var stand_in := Actor.new()
 		autofree(stand_in)
 		a_site._active_builders.append(stand_in)
 	return float(a_acting) * a_site.effective_build_increment()
 
 
 func test_a_full_crew_builds_at_one_builders_rate_however_big_it_is() -> void:
-	var site: Commandable = _placed_site()
+	var site: Actor = _placed_site()
 	var expected: float = 1.0 / float(_commander.technology_mapping[site.id].creation_time)
 	for crew: int in [1, 2, 3, 5, 8]:
 		assert_almost_eq(
@@ -329,14 +329,14 @@ func test_a_full_crew_builds_at_one_builders_rate_however_big_it_is() -> void:
 func test_a_staggered_builder_does_not_stop_the_others() -> void:
 	# The reason multi-builder support is kept at all: lose one to a stagger (or to death)
 	# and the site keeps going up, at the share the survivors carry.
-	var site: Commandable = _placed_site()
+	var site: Actor = _placed_site()
 	assert_gt(_rate_with_crew(site, 3, 2), 0.0, "two of three still make progress")
 
 
 func test_the_marginal_factor_is_what_makes_the_curve_flat() -> void:
 	# MARGINAL_BUILDER_EFFICIENCY is the single revert point: at 1.0 the rate would be the
 	# plain AOE2 curve, (n+2)/(3T), which for n=2 is 4/3 of a lone builder's.
-	var site: Commandable = _placed_site()
+	var site: Actor = _placed_site()
 	var solo: float = 1.0 / float(_commander.technology_mapping[site.id].creation_time)
-	assert_eq(Commandable.MARGINAL_BUILDER_EFFICIENCY, 0.0, "extra builders buy no tempo")
+	assert_eq(Actor.MARGINAL_BUILDER_EFFICIENCY, 0.0, "extra builders buy no tempo")
 	assert_almost_eq(_rate_with_crew(site, 2, 2), solo, 1e-6, "so two builders match one")

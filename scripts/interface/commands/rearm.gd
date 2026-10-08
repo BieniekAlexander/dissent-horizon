@@ -85,7 +85,7 @@ static func requires_position() -> bool:
 ## for a full garrison. Having ammo is not checked either, so a player can top a unit up
 ## before it is dry, which is most of what a manual rearm order is for.
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if actor == null or actor.docking == null or actor.aerial == null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -107,9 +107,9 @@ static func meets_precondition(
 ## is_instance_valid guard one line away and unreachable. See CLAUDE.md §A freed object
 ## cannot be passed to a typed parameter.
 static func _bay_of(target: Variant) -> DockingBay:
-	if not is_instance_valid(target) or not (target is Commandable):
+	if not is_instance_valid(target) or not (target is Actor):
 		return null
-	return (target as Commandable).get_node_or_null("DockingBay") as DockingBay
+	return (target as Actor).get_node_or_null("DockingBay") as DockingBay
 
 
 #endregion
@@ -126,7 +126,7 @@ var _pad: DockingPad = null
 ## The actor holding the pad and the collision exception, captured while it is alive.
 ## PREDELETE runs at an arbitrary moment (see MoveCommand._notification), so the teardown
 ## there cannot go looking for the actor — it has to have been remembered.
-var _claiming_actor: Commandable = null
+var _claiming_actor: Actor = null
 
 ## Whether we have excluded the airfield's body from the actor's collisions. A parked
 ## aircraft sits inside the structure's footprint, which its MOVEMENT_OBSTRUCTION body
@@ -149,13 +149,13 @@ var _finished_docked: bool = false
 ## back to the airfield — the "circle the field until a space frees" case that makes a full
 ## bay a QUEUE rather than a refusal.
 ## Why: gdd/systems/combat/aerial-operations/runways.md §The approach fix.
-func movement_destination(a_actor: Commandable) -> Variant:
+func movement_destination(a_actor: Actor) -> Variant:
 	if state != DockState.APPROACH or _pad == null or a_actor == null or a_actor.movement == null:
 		return null
 	return _approach_position(a_actor)
 
 
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	return state == DockState.APPROACH
 
 
@@ -172,7 +172,7 @@ func ends_on_arrival() -> bool:
 ## The reservation is retried every tick until it succeeds, which is how a full bay
 ## becomes a queue: the aircraft simply keeps flying at the airfield (message.position)
 ## until a pad frees up, then latches onto it.
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	var bay: DockingBay = _bay_of(message.target)
 	if bay == null:
 		_release_pad()
@@ -191,7 +191,7 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 
 ## Everything past the approach is "acting": the descent, the wait on the deck, and the
 ## climb out all advance in fulfill_action. During the approach this is the arrival test.
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	if _pad == null:
 		return false
 	if state != DockState.APPROACH:
@@ -213,7 +213,7 @@ func can_act(a_actor: Commandable) -> bool:
 ## Advance one step of the docking sequence. Returns `self` while the sequence is running
 ## — which the receiver reads as "keep this command" — and null once the aircraft is back
 ## at altitude, at which point whatever was queued behind this order resumes.
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	match state:
 		DockState.APPROACH:
 			_ensure_collision_exception(a_actor)
@@ -265,7 +265,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 ##
 ## A bay with no runway put the aircraft on its pad during the descent, so the path is empty
 ## and this resolves on the first tick.
-func _tick_taxi_in(a_actor: Commandable) -> void:
+func _tick_taxi_in(a_actor: Actor) -> void:
 	if a_actor.aerial.is_taxiing():
 		return
 	if state != DockState.TAXI_IN:
@@ -285,7 +285,7 @@ func _tick_taxi_in(a_actor: Commandable) -> void:
 ## to face the taxiway, leaving through leave_dock — goes through Docking.docked_pad, so
 ## holding it on the command until the clip was full meant an aircraft spent its whole
 ## refuelling stop still owning the runway and still pointing the way it landed.
-func _park(a_actor: Commandable) -> void:
+func _park(a_actor: Actor) -> void:
 	if not is_instance_valid(a_actor):
 		return
 	_hold_on_pad(a_actor)
@@ -298,14 +298,14 @@ func _park(a_actor: Commandable) -> void:
 ## The climb-out is no longer this command's business — an aircraft leaves a pad through
 ## Docking.leave_dock, which taxis it to a threshold and hands over to Aerial. Kept
 ## only so an interrupted sequence has somewhere to fall through to.
-func _tick_taxi_out(a_actor: Commandable) -> void:
+func _tick_taxi_out(a_actor: Actor) -> void:
 	a_actor.docking.leave_dock()
 	state = DockState.ASCEND
 
 
 ## Take the strip this aircraft is about to land on. True when it has it (or there is no
 ## runway to take, which is the descend-onto-the-pad fallback).
-func _claim_runway(a_actor: Commandable) -> bool:
+func _claim_runway(a_actor: Actor) -> bool:
 	var strip: Runway = _runway_for_pad()
 	if strip == null:
 		return true
@@ -325,7 +325,7 @@ func _runway_for_pad() -> Runway:
 
 
 ## Where the DESCENT ends: the runway threshold, or the pad itself on a bay with no runway.
-func _touchdown_position(a_actor: Commandable) -> Vector3:
+func _touchdown_position(a_actor: Actor) -> Vector3:
 	var strip: Runway = _runway_for_pad()
 	var pos: Vector3 = strip.takeoff_point() if strip != null else _pad.dock_position()
 	if a_actor.map != null:
@@ -342,7 +342,7 @@ func _touchdown_position(a_actor: Commandable) -> Vector3:
 ## from the distance still to run (Movement._descend_to_touchdown), the fix only has to be
 ## far enough out for the aircraft to be POINTED down the strip when it gets there, which
 ## is a couple of turn radii.
-func _lineup_distance(a_actor: Commandable) -> float:
+func _lineup_distance(a_actor: Actor) -> float:
 	return maxf(MIN_LINEUP_DISTANCE, a_actor.movement.turn_radius() * LINEUP_TURN_RADII)
 
 
@@ -353,7 +353,7 @@ func _lineup_distance(a_actor: Commandable) -> float:
 ## from wherever the aircraft happened to be let it come down across the runway, or back to
 ## front; lining it up first means it always meets the tarmac pointing the way a real one
 ## would. A bay with no runway keeps the old behaviour and simply descends onto the pad.
-func _approach_position(a_actor: Commandable) -> Vector3:
+func _approach_position(a_actor: Actor) -> Vector3:
 	var strip: Runway = _runway_for_pad()
 	if strip == null:
 		return _touchdown_position(a_actor)
@@ -367,12 +367,12 @@ func _approach_position(a_actor: Commandable) -> Vector3:
 ##
 ## Position rather than velocity, because velocity cannot do it: Movement.set_velocity is
 ## suppressed outright while GROUNDED_TEMP, so a zeroed velocity is a no-op in exactly the
-## state this needs to hold. The vertical needs no help either — Commandable rewrites world
+## state this needs to hold. The vertical needs no help either — Actor rewrites world
 ## Y every tick from the terrain plus the height offset — so pinning XZ is the whole job,
 ## and without it a parked aircraft creeps off its space under any residual drift.
 ## `a_pad` is untyped for the same reason _bay_of's target is: callers pass
 ## `Docking.docked_pad`, which is a freed reference once the airfield under it is gone.
-func _hold_on_pad(a_actor: Commandable, a_pad: Variant = null) -> void:
+func _hold_on_pad(a_actor: Actor, a_pad: Variant = null) -> void:
 	var pad: DockingPad = a_pad if is_instance_valid(a_pad) else _pad
 	if pad == null or not is_instance_valid(pad):
 		return
@@ -384,7 +384,7 @@ func _hold_on_pad(a_actor: Commandable, a_pad: Variant = null) -> void:
 ## The pad's world position with Y resolved against the terrain beneath it, which is the
 ## frame Movement's landing works in (it descends a height OFFSET above the terrain, not
 ## to an absolute altitude).
-func _pad_world_position(a_actor: Commandable) -> Vector3:
+func _pad_world_position(a_actor: Actor) -> Vector3:
 	var pos: Vector3 = _pad.dock_position()
 	if a_actor.map != null:
 		pos.y = a_actor.map.terrain_height_at(VU.in_xz(pos))
@@ -404,7 +404,7 @@ func _pad_world_position(a_actor: Commandable) -> Vector3:
 ##
 ## A bay with no runway keeps the old point-proximity rule — there is no centreline to be
 ## established on, and a HOVERING dock descends from directly overhead anyway.
-func _is_established_on_final(a_actor: Commandable) -> bool:
+func _is_established_on_final(a_actor: Actor) -> bool:
 	var strip: Runway = _runway_for_pad()
 	if strip == null:
 		return _distance_to_approach(a_actor) <= _approach_radius(a_actor)
@@ -428,7 +428,7 @@ func _is_established_on_final(a_actor: Commandable) -> bool:
 ## Distance to where the descent is aimed — the runway, not the pad. Measuring to the pad
 ## would start the glide by the wrong margin on any airfield whose runway is not on top of
 ## its parking, which is every airfield with room to taxi across.
-func _distance_to_approach(a_actor: Commandable) -> float:
+func _distance_to_approach(a_actor: Actor) -> float:
 	return VU.in_xz(a_actor.global_position).distance_to(VU.in_xz(_approach_position(a_actor)))
 
 
@@ -438,7 +438,7 @@ func _distance_to_approach(a_actor: Commandable) -> float:
 ## from the unit's own speed rather than authored, so a faster airframe commits earlier
 ## instead of overshooting — the reasoning behind Movement._dive_commit_distance.
 ## Why: gdd/systems/combat/aerial-operations/runways.md.
-func _approach_radius(a_actor: Commandable) -> float:
+func _approach_radius(a_actor: Actor) -> float:
 	# With a runway, the glide budget lives in WHERE the fix is (_approach_position), so what
 	# is left here is an arrival tolerance. Without one there is no fix to fly to, the old
 	# rule stands, and the descent commits a full glide out from the pad.
@@ -463,7 +463,7 @@ func _release_pad() -> void:
 ## Let the aircraft cross into the airfield's footprint. Its MOVEMENT_OBSTRUCTION body
 ## would otherwise stop it short of the deck — the same approach Occupy takes for a unit
 ## walking into a garrison host.
-func _ensure_collision_exception(a_actor: Commandable) -> void:
+func _ensure_collision_exception(a_actor: Actor) -> void:
 	if _excluded:
 		return
 	if (
@@ -503,7 +503,7 @@ func _clear_collision_exception() -> void:
 ## process outright, with no GDScript error. MoveCommand._notification documents the same
 ## trap for the group-move speed cap, which is what on_released was added for; this is the
 ## second thing to fall into it.
-func on_released(a_actor: Commandable) -> void:
+func on_released(a_actor: Actor) -> void:
 	_clear_collision_exception()
 	# The pad is NOT released on a completed rearm: the aircraft is still standing on it, and
 	# handing the space to somebody else would land a second aircraft on top of it. It goes

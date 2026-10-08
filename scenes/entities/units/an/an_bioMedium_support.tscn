@@ -1,6 +1,6 @@
-[gd_scene load_steps=31 format=3 uid="uid://bojvhrjr8b7qu"]
+[gd_scene load_steps=32 format=3 uid="uid://bojvhrjr8b7qu"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_3pvj2"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_3pvj2"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="1_spec"]
 [ext_resource type="Script" uid="uid://b458bow20gdnj" path="res://scripts/entities/components/interactor.gd" id="2_intor"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_small.tres" id="2_spec"]
@@ -25,6 +25,7 @@
 [ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="19_p3b4u"]
 [ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="20_e57ul"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="21_0i6vq"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="4_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_43ldo"]
 height = 0.9
@@ -97,6 +98,9 @@ script = ExtResource("11_87dhc")
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
 shape = SubResource("CylinderShape3D_43ldo")
 metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("4_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=380891274]
 

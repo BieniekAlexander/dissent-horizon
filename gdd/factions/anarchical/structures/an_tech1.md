@@ -2,6 +2,9 @@
 kind: Entity
 title: Stockpile
 scene: res://scenes/entities/structures/an/an_tech1.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 800}
   time: 25

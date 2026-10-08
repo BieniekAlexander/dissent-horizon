@@ -122,8 +122,8 @@ func _occupy(a_origin: Vector2i, a_dims: Vector2i) -> Entity:
 	return host
 
 
-func _make_builder(a_at: Vector3) -> Commandable:
-	var builder: Commandable = FakePieces.make(BUILDER_SCENE) as Commandable
+func _make_builder(a_at: Vector3) -> Actor:
+	var builder: Actor = FakePieces.make(BUILDER_SCENE) as Actor
 	_world.add_child(builder)
 	builder.ownership.commander = _commander
 	builder.map = _map
@@ -139,7 +139,7 @@ func _build(a_tool: Tool, a_at: Vector3) -> Build:
 ## — concentric_structure only reports a host whose footprint is centred on the same point.
 func _extractor_dimensions() -> Vector2i:
 	var preview: Node = _commander.get_build_preview_instance(EXTRACTOR_TOOL)
-	return (preview.get_node("Structure") as Structure).dimensions
+	return (preview.get_node("Fixture") as Fixture).dimensions
 
 
 ## A neutral nt_building registered through Map.add_structure on `a_origin`, so it is a real
@@ -156,7 +156,7 @@ func _neutral_building(a_origin: Vector2i) -> Entity:
 	for tracked in get_errors():
 		if tracked.contains_text("entered the tree with no"):
 			tracked.handled = true
-	var dims: Vector2i = (building.get_node("Structure") as Structure).dimensions
+	var dims: Vector2i = (building.get_node("Fixture") as Fixture).dimensions
 	_map.add_structure(building, VU.in_xz(_map.footprint_centroid(a_origin, dims)))
 	return building
 
@@ -238,7 +238,7 @@ func test_a_second_builder_joins_the_extractor_already_on_the_site() -> void:
 	var site: Vector3 = _map.footprint_centroid(origin, dims)
 	var tool: Tool = EXTRACTOR_TOOL
 
-	var bound: Commandable = tool.packed_scene.instantiate() as Commandable
+	var bound: Actor = tool.packed_scene.instantiate() as Actor
 	bound.begin_construction()
 	_world.add_child(bound)
 	bound.ownership.commander = _commander

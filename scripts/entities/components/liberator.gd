@@ -45,11 +45,11 @@ const QUERY_LIMIT: int = 32
 #region Public API
 ## Convert up to [MAX_PER_TICK] of the liberatable units currently in reach; any
 ## beyond that are picked up on following ticks. Called once per physics frame from
-## Commandable._update_state (same contract as DominionGenerator.tick).
+## Actor._update_state (same contract as DominionGenerator.tick).
 func tick() -> void:
 	if converted_scene == null:
 		return
-	var host: Commandable = get_parent() as Commandable
+	var host: Actor = get_parent() as Actor
 	if host == null or host.map == null or host.commander == null:
 		return
 	var reach: CollisionShape3D = _reach_shape(host)
@@ -80,7 +80,7 @@ func tick() -> void:
 
 
 #region Private helpers
-func _reach_shape(a_host: Commandable) -> CollisionShape3D:
+func _reach_shape(a_host: Actor) -> CollisionShape3D:
 	return a_host.get_node_or_null("LiberationRange") as CollisionShape3D
 
 
@@ -99,16 +99,16 @@ func _is_liberatable(a_entity: Entity) -> bool:
 ## The original is removed from the tree BEFORE the replacement is placed, so its body
 ## no longer counts as an obstruction when Map.add_entity picks a non-overlapping spot
 ## — the recruit lands where the terrestrial stood rather than being nudged aside.
-func _liberate(a_host: Commandable, a_entity: Entity) -> void:
+func _liberate(a_host: Actor, a_entity: Entity) -> void:
 	var spot: Vector2 = VU.in_xz(a_entity.global_position)
 	var parent: Node = a_entity.get_parent()
 	if parent != null:
 		parent.remove_child(a_entity)
 	a_entity.queue_free()
 
-	var recruit := converted_scene.instantiate() as Commandable
+	var recruit := converted_scene.instantiate() as Actor
 	if recruit == null:
-		push_error("Liberator: converted_scene is not a Commandable")
+		push_error("Liberator: converted_scene is not a Actor")
 		return
 	a_host.map.add_entity(recruit, spot, a_host.commander)
 	_follow(recruit, a_host)
@@ -123,7 +123,7 @@ func _liberate(a_host: Commandable, a_entity: Entity) -> void:
 ## Issued after add_entity so the recruit's Movement is already configured for the map;
 ## load_destination primes the nav target, which a freshly-spawned agent otherwise
 ## leaves at (0, 0, 0).
-func _follow(a_recruit: Commandable, a_host: Commandable) -> void:
+func _follow(a_recruit: Actor, a_host: Actor) -> void:
 	var follow := MoveCommand.new(CommandMessage.new(a_host.map, a_host))
 	a_recruit.update_commands(follow)
 	a_recruit.load_destination(follow)

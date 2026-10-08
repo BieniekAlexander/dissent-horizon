@@ -174,7 +174,7 @@ What the state does change is the two things that genuinely differ while falling
 
 - **`Entity.height_offset()` reports the remaining altitude** (`Movement.descent_altitude`:
   the canopy stays on the ground unit's locomotion, since a piece that falls has no `Aerial`).
-  `Commandable`'s per-tick Y snap is already `terrain_height + height_offset()`, so the descent
+  `Actor`'s per-tick Y snap is already `terrain_height + height_offset()`, so the descent
   needs no second code path — and `Garrison.evacuate` places each evacuee at exactly that height, which is why
   `AirDropRun` starts the descent *before* it evacuates. The units appear at the
   transport's cruising height and float down from there, using the garrison's ordinary
@@ -216,14 +216,14 @@ order would be thrown away by the first target. The sortie sits beside the queue
 
 - **It flies the transit legs as `SortieLeg` orders**, and re-issues one if anything takes it
   away — a cleared queue arrives as a null order, which nothing can refuse.
-- **It gates admission** (`Sortie.admit`, called from `Commandable.update_commands` beside
+- **It gates admission** (`Sortie.admit`, called from `Actor.update_commands` beside
   `Deployable.admit`): in transit only its own leg; on station only Attack, FocusFire and Stop.
-  A piece carrying a sortie is ON RAILS (`Commandable.is_on_rails`): Move, Patrol and Defend
+  A piece carrying a sortie is ON RAILS (`Actor.is_on_rails`): Move, Patrol and Defend
   are not on its card, and a right-click on ground resolves to a move and is silently refused.
   Attack-move stays on the card as the way to attack a chosen target — a friendly included —
   since clicked on a target it resolves to Attack; clicked on ground it is refused with the
   refusal cursor (`AttackMove.meets_precondition`).
-- **It keeps the weapon cold off station** through `Commandable.can_use_weapons`, which every
+- **It keeps the weapon cold off station** through `Actor.can_use_weapons`, which every
   firing path already asks — so idle aggro, retaliation and Attack all stand down together.
 - **Its targets never move it.** Its weapon measures reach from the centre of its orbit
   (`range_from: orbit`), so an Attack — ordered or picked up — changes only what it shoots at;

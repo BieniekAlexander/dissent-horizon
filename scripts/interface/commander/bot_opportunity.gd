@@ -12,7 +12,7 @@ extends RefCounted
 
 ## The owned unit that would carry out this action. The opportunist lets each actor
 ## take at most one opportunity per tick, so this doubles as the conflict key.
-var actor: Commandable
+var actor: Actor
 
 
 ## Estimated net value (gain minus cost) of taking this action right now, expressed in

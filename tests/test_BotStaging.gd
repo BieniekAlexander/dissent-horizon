@@ -3,21 +3,22 @@ extends GutTest
 ## Staged reinforcements and the wave gates — BotMilitary's answer to an army that arrived
 ## one unit at a time (gdd/systems/ai/squads-and-relations.md §What started it).
 ##
-## The fixture is the same stub piece test_BotClaimsInManagers builds: a Commandable with a
+## The fixture is the same stub piece test_BotClaimsInManagers builds: a Actor with a
 ## weapon and a Movement, owned by a Bot in a bare Scenario, so _combat_units admits it. The
 ## Bot overrides the senses the military reads — a unit's price, where home is, army value —
 ## because they come from the world and a unit test has none.
 
 
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
 		for pair: Array in [
 			["Ownership", Ownership.new()],
 			["AvoidanceObstacle", NavigationObstacle3D.new()],
-			["Veterancy", Veterancy.new()]
+			["Veterancy", Veterancy.new()],
+			["Orders", Orders.new()]
 		]:
 			var node: Node = pair[1]
 			node.name = pair[0]
@@ -69,7 +70,7 @@ class FakeBot:
 		return producers
 
 	var under_threat: bool = false
-	var threatened: Commandable = null
+	var threatened: Actor = null
 	## What base_threats answers: [{"enemy", "structure", "value"}].
 	var threats: Array = []
 	## Units whose matchup against anything is 0; every other unit's is 1.
@@ -78,13 +79,13 @@ class FakeBot:
 	func base_threats(_a_threat_radius: float = 30.0, _a_centre_radius: float = -1.0) -> Array:
 		return threats
 
-	func matchup(a_attacker: Commandable, _a_target: Commandable) -> float:
+	func matchup(a_attacker: Actor, _a_target: Actor) -> float:
 		return 0.0 if harmless.has(a_attacker) else 1.0
 
 	func is_base_under_threat(_a_threat_radius: float = 30.0) -> bool:
 		return under_threat
 
-	func most_threatened_structure(_a_threat_radius: float = 30.0) -> Commandable:
+	func most_threatened_structure(_a_threat_radius: float = 30.0) -> Actor:
 		return threatened
 
 
@@ -135,7 +136,7 @@ func before_each() -> void:
 	_military = BotMilitary.new(_bot, _act)
 
 
-func _armed_unit(a_at: Vector3 = Vector3.ZERO) -> Commandable:
+func _armed_unit(a_at: Vector3 = Vector3.ZERO) -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	_bot.add_child(piece)
 	piece.ownership.commander = _bot
@@ -161,7 +162,7 @@ func _launch_wave(a_members: Array, a_value: float) -> void:
 		_bot, _act, OBJECTIVE, null, 0, BotMilitary.OBJECTIVE_EPSILON
 	)
 	_military._main._issued = _military._main.policy
-	for unit: Commandable in a_members:
+	for unit: Actor in a_members:
 		_military._main._reached[unit.get_instance_id()] = true
 
 
@@ -171,11 +172,11 @@ func _tick_attack() -> void:
 	_military._tick_squads()
 
 
-func _is_wave_member(a_unit: Commandable) -> bool:
+func _is_wave_member(a_unit: Actor) -> bool:
 	return _military._main.has(a_unit)
 
 
-func _destinations_of(a_unit: Commandable) -> Array:
+func _destinations_of(a_unit: Actor) -> Array:
 	var out: Array = []
 	for call: Dictionary in _act.attack_moves:
 		if call["units"].has(a_unit):
@@ -238,7 +239,7 @@ func test_the_reserve_is_released_as_a_body_once_it_is_worth_sending() -> void:
 	for i: int in 4:
 		reserve.append(_armed_unit(FakeBot.HOME))
 	_tick_attack()
-	for unit: Commandable in reserve:
+	for unit: Actor in reserve:
 		assert_false(_is_wave_member(unit), "400 of 500: still staging")
 	# The fifth tips it, and ALL five go together in one order.
 	reserve.append(_armed_unit(FakeBot.HOME))
@@ -248,7 +249,7 @@ func test_the_reserve_is_released_as_a_body_once_it_is_worth_sending() -> void:
 		func(call: Dictionary) -> bool: return call["to"] == OBJECTIVE and call["units"].size() == 5
 	)
 	assert_eq(release.size(), 1, "one order carrying the whole reserve to the objective")
-	for unit: Commandable in reserve:
+	for unit: Actor in reserve:
 		assert_true(_is_wave_member(unit), "released units are the wave's now")
 
 
@@ -289,7 +290,7 @@ func test_a_cap_of_one_squad_is_the_trickle_whatever_the_fraction_says() -> void
 ## A raid on home while the wave is out: a structure behind home comes under threat.
 ## A raider of `a_value` beside a building at home; returns the raider, which is where a
 ## guard is sent.
-func _raid_at_home(a_value: float = float(FakeBot.UNIT_PRICE)) -> Commandable:
+func _raid_at_home(a_value: float = float(FakeBot.UNIT_PRICE)) -> Actor:
 	var building: StubPiece = StubPiece.make()
 	add_child_autofree(building)
 	building.global_position = FakeBot.HOME + Vector3(-30.0, 0.0, 0.0)
@@ -316,7 +317,7 @@ func test_under_a_cap_of_three_the_reserve_answers_a_raid_while_the_wave_is_out(
 	var recruit := _armed_unit(FakeBot.HOME)
 	_tick_attack()
 	assert_true(_military._reserve.has(recruit), "staged, like any reserve")
-	var raider: Commandable = _raid_at_home()
+	var raider: Actor = _raid_at_home()
 	_act.attack_moves.clear()
 	_tick_attack()
 	assert_true(_military._guard.has(recruit), "the reserve is the guard now")
@@ -353,7 +354,7 @@ func test_the_guard_takes_only_what_the_threat_needs_and_the_rest_reinforces() -
 	_tick_attack()
 	assert_eq(_military._guard.size(), 2, "enough to beat the raid, and no more")
 	assert_eq(_military._reserve.size(), 2, "the rest is still the wave's reserve")
-	for unit: Commandable in recruits:
+	for unit: Actor in recruits:
 		assert_true(_military._guard.has(unit) or _military._reserve.has(unit))
 
 
@@ -490,8 +491,8 @@ func test_a_producer_without_a_rally_gets_the_standing_one() -> void:
 
 ## A bot that owns structures: the fake's HOME is still the centroid it reports, and the
 ## structures are what frontmost_structure walks.
-func _structure_at(a_at: Vector3) -> Commandable:
-	var piece: Commandable = FakePieces.structure({})
+func _structure_at(a_at: Vector3) -> Actor:
+	var piece: Actor = FakePieces.structure({})
 	_bot.add_child(piece)
 	piece.ownership.commander = _bot
 	piece.global_position = a_at
@@ -595,7 +596,7 @@ func test_a_wave_launch_collects_the_bunkered_units() -> void:
 ## Make `a_building` the wave's objective the way _objective_for does: the reference for the
 ## Attack order, and the BELIEF that says it is still standing — which is what
 ## AssaultPolicy.is_target_standing asks, never the node.
-func _set_objective(a_building: Commandable) -> void:
+func _set_objective(a_building: Actor) -> void:
 	if _bot.blackboard == null:
 		_bot.blackboard = CommanderBlackboard.new(_bot)
 	_bot.blackboard._upsert(a_building, 0.0)
@@ -703,7 +704,7 @@ func test_an_objective_that_drifts_a_little_does_not_relaunch_the_wave() -> void
 	# the think rate (observed 2026-10-06 on main).
 	var military := SteeredMilitary.new(_bot, _act)
 	_armed_unit(FakeBot.HOME)
-	_bot.holding_hosts = [autofree(Commandable.new())]
+	_bot.holding_hosts = [autofree(Actor.new())]
 	military.objective = OBJECTIVE
 	military.tick()
 	assert_eq(_act.attack_moves.size(), 1, "launched once")
@@ -727,7 +728,7 @@ func test_a_drift_that_adds_up_re_points_the_wave_without_relaunching_it() -> vo
 	# the objective had crept away from.
 	var military := SteeredMilitary.new(_bot, _act)
 	_armed_unit(FakeBot.HOME)
-	_bot.holding_hosts = [autofree(Commandable.new())]
+	_bot.holding_hosts = [autofree(Actor.new())]
 	military.objective = OBJECTIVE
 	military.tick()
 	var step: Vector3 = Vector3(BotMilitary.OBJECTIVE_EPSILON * 0.4, 0.0, 0.0)

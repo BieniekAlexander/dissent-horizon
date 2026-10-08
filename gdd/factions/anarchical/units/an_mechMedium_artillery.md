@@ -2,6 +2,9 @@
 kind: Entity
 title: MLRS
 scene: res://scenes/entities/units/an/an_mechMedium_artillery.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 750}
   time: 15

@@ -80,7 +80,7 @@ func _trace(
 		"%s %s" % [a_path.get_file().get_basename(), "ground" if a_aimed_at_ground else "target"]
 	)
 	var centre: Vector2 = a_map.play_area().center
-	var targets: Array[Commandable] = []
+	var targets: Array[Actor] = []
 	for offset: Vector2 in [Vector2.ZERO] + BYSTANDER_OFFSETS:
 		targets.append(_spawn_target(a_map, a_enemy, centre + offset, targets.size(), label))
 	await get_tree().physics_frame
@@ -92,7 +92,7 @@ func _trace(
 	emission.global_position = Vector3(
 		origin_xz.x, a_map.terrain_height_at(origin_xz) + LAUNCH_HEIGHT_METRES, origin_xz.y
 	)
-	for target: Commandable in targets:
+	for target: Actor in targets:
 		target.set_meta(&"trace_launch", _tick)
 	Emitter.launch(emission, null, targets[0].global_position if a_aimed_at_ground else targets[0])
 
@@ -108,15 +108,15 @@ func _trace(
 	)
 	if is_instance_valid(emission):
 		emission.queue_free()
-	for target: Commandable in targets:
+	for target: Actor in targets:
 		target.queue_free()
 	await get_tree().physics_frame
 
 
 func _spawn_target(
 	a_map: Map, a_enemy: Commander, a_xz: Vector2, a_index: int, a_label: String
-) -> Commandable:
-	var target: Commandable = (load(TARGET_SCENE) as PackedScene).instantiate() as Commandable
+) -> Actor:
+	var target: Actor = (load(TARGET_SCENE) as PackedScene).instantiate() as Actor
 	target.initialize(a_map, a_enemy)
 	target.global_position = Vector3(a_xz.x, a_map.terrain_height_at(a_xz), a_xz.y)
 	target.defense.hp_max = TARGET_HP

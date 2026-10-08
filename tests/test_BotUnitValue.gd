@@ -24,10 +24,10 @@ class FakeBot:
 	func unit_cost(a_type) -> int:
 		return costs.get(a_type, 0)
 
-	func unit_effectiveness_vs(_a_type, _a_target: Commandable) -> float:
+	func unit_effectiveness_vs(_a_type, _a_target: Actor) -> float:
 		return 1.0
 
-	func _incoming_multiplier(_a_attacker: Commandable, a_victim: Node) -> float:
+	func _incoming_multiplier(_a_attacker: Actor, a_victim: Node) -> float:
 		for type: StringName in previews:
 			if previews[type] == a_victim:
 				return incoming.get(type, 1.0)
@@ -35,7 +35,7 @@ class FakeBot:
 
 
 var _bot: FakeBot
-var _target: Commandable
+var _target: Actor
 
 
 func before_each() -> void:
@@ -46,20 +46,20 @@ func before_each() -> void:
 
 
 ## A preview of a unit with `a_hp` and a gun of `a_damage` a hit, costing `a_cost`.
-func _type(a_type: StringName, a_hp: float, a_damage: float, a_cost: int) -> Commandable:
-	var preview: Commandable = FakePieces.unit({"hp": a_hp, "weapon": {"damage": a_damage}})
+func _type(a_type: StringName, a_hp: float, a_damage: float, a_cost: int) -> Actor:
+	var preview: Actor = FakePieces.unit({"hp": a_hp, "weapon": {"damage": a_damage}})
 	autofree(preview)
 	_bot.previews[a_type] = preview
 	_bot.costs[a_type] = a_cost
 	return preview
 
 
-func _dps(a_preview: Commandable) -> float:
+func _dps(a_preview: Actor) -> float:
 	return (a_preview.get_node("Loadout") as Loadout).get_weapons()[0].approximate_dps()
 
 
 func test_the_value_is_the_root_of_dps_times_toughness_over_cost() -> void:
-	var cheap: Commandable = _type(CHEAP, 120.0, 7.5, 100)
+	var cheap: Actor = _type(CHEAP, 120.0, 7.5, 100)
 	_bot.incoming[CHEAP] = 0.5
 	assert_almost_eq(
 		_bot.unit_strength_per_energy_vs(CHEAP, _target),

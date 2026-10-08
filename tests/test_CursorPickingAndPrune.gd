@@ -1,13 +1,13 @@
 extends GutTest
 
-## Two selection bugs from `gdd/tasks.md` §Bugs.
+## Two reported selection bugs.
 ##
 ## 1. **Cursor picking prefers a UNIT to a structure.** The camera looks down at an angle and
 ##    structure selection shapes are tall, so a structure routinely covers units standing
 ##    behind it and the nearest-hit rule made those units unclickable. The reverse (a
 ##    structure buried behind units) is accepted as unreachable in practice and is NOT handled
 ##    — the tests pin that asymmetry so nobody "fixes" it later.
-## 2. **A freed entry in `selection` must not be touched.** `entity is Commandable` on a freed
+## 2. **A freed entry in `selection` must not be touched.** `entity is Actor` on a freed
 ##    instance raises "Left operand of 'is' is a previously freed instance" — the reported
 ##    crash — because the type check ran BEFORE the validity guard. Order is the fix.
 ##

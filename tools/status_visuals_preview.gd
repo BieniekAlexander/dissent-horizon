@@ -42,7 +42,7 @@ func _ready() -> void:
 	commander.id = RTSController.PLAYER_COMMANDER_ID
 	add_child(commander)
 	for i: int in CASES.size():
-		var unit := (load(CASES[i][0]) as PackedScene).instantiate() as Commandable
+		var unit := (load(CASES[i][0]) as PackedScene).instantiate() as Actor
 		add_child(unit)
 		# No Map here, so the physics tick (terrain snapping, navigation) has nothing to run
 		# against — this harness only wants the entity DRAWN.

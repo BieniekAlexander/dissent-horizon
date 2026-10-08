@@ -1,6 +1,6 @@
-[gd_scene load_steps=33 format=3 uid="uid://bmartyrunit01"]
+[gd_scene load_steps=34 format=3 uid="uid://bmartyrunit01"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_7br2d"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_7br2d"]
 [ext_resource type="Script" uid="uid://cben1rmf76xst" path="res://scripts/entities/components/abilities.gd" id="1_spec"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/ground_range_melee.tres" id="2_spec"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_xs7nb"]
@@ -8,7 +8,7 @@
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/air_range_melee.tres" id="3_spec"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_uio2a"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_24a70"]
-[ext_resource type="PackedScene" uid="uid://cmrtyrbomb001" path="res://scenes/entities/projectiles/an/kamikaze_bomb.tscn" id="4_bomb"]
+[ext_resource type="PackedScene" uid="uid://cmrtyrbomb001" path="res://scenes/entities/projectiles/an/kamikaze_blast.tscn" id="4_bomb"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_aerial_medium.tres" id="4_spec"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_2wge0"]
 [ext_resource type="PackedScene" uid="uid://bwsv1l2akk5kn" path="res://assets/meshes/triangular_prism.blend" id="5_k4201"]
@@ -29,6 +29,7 @@
 [ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="26_dkef4"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="27_s4nkn"]
 [ext_resource type="Script" uid="uid://04yfk0mkmwom" path="res://scripts/entities/components/aerial.gd" id="5_spec"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="6_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_3bom3"]
 height = 0.5596924
@@ -45,6 +46,8 @@ height = 0.53142
 [node name="Kamikaze" type="CharacterBody3D" unique_id=693884101 groups=["piece", "unit"]]
 script = ExtResource("1_7br2d")
 id = &"an_aircraftLight_antiMech"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=976176080]
 
@@ -91,6 +94,7 @@ script = ExtResource("5_wpn")
 projectile_scene = ExtResource("4_bomb")
 melee_damage = 0.0
 target_mask = 6
+self_destruct = true
 
 [node name="AttackRangeGround" type="CollisionShape3D" parent="Loadout/BombWeapon" unique_id=1423865480 groups=["debug_shape_attack_range"]]
 visible = false
@@ -118,6 +122,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16574097, 0)
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
 shape = SubResource("CylinderShape3D_oucw7")
 metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("6_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=669812850]
 

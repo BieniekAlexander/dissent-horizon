@@ -54,8 +54,8 @@ func _at(a_xz: Vector2) -> Vector3:
 	return Vector3(a_xz.x, 0.0, a_xz.y)
 
 
-func _piece(a_options: Dictionary, a_commander_id: int, a_xz: Vector2) -> Commandable:
-	var piece: Commandable = FakePieces.make(a_options)
+func _piece(a_options: Dictionary, a_commander_id: int, a_xz: Vector2) -> Actor:
+	var piece: Actor = FakePieces.make(a_options)
 	_commander(a_commander_id).add_child(piece)
 	autofree(piece)
 	piece.top_level = true
@@ -66,7 +66,7 @@ func _piece(a_options: Dictionary, a_commander_id: int, a_xz: Vector2) -> Comman
 
 
 ## A finished, loaded gun. No BeaconRange, so only a beacon spots for it.
-func _gun(a_xz: Vector2, a_commander_id: int = OWN) -> Commandable:
+func _gun(a_xz: Vector2, a_commander_id: int = OWN) -> Actor:
 	var gun := _piece(
 		{
 			"structure": true,
@@ -80,7 +80,7 @@ func _gun(a_xz: Vector2, a_commander_id: int = OWN) -> Commandable:
 	return gun
 
 
-func _pool(a_piece: Commandable) -> Abilities:
+func _pool(a_piece: Actor) -> Abilities:
 	return a_piece.get_node("Abilities") as Abilities
 
 

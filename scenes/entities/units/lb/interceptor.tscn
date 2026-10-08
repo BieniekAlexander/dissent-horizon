@@ -1,6 +1,6 @@
 [gd_scene load_steps=25 format=3 uid="uid://b2qyn8ktx0f56"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_4am00"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_4am00"]
 [ext_resource type="PackedScene" uid="uid://cxk04wu0mkt2s" path="res://assets/meshes/hexagonal_prism.blend" id="2_hexprism"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="2_ir35r"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_d8cpg"]

@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Drop
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [0, 1], factions: [colonial]}
 hud_button: true
 column: 0

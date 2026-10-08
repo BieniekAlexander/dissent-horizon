@@ -74,7 +74,7 @@ static func covering_range(commander: Commander, world_position: Vector3) -> Bea
 	if commander == null:
 		return null
 	for child: Node in commander.get_children():
-		var entity := child as Commandable
+		var entity := child as Actor
 		if (
 			entity == null
 			or entity.is_queued_for_deletion()

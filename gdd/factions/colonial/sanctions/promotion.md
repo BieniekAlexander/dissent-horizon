@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Promotion
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [1, 0], factions: [colonial]}
 hud_button: true
 column: 0

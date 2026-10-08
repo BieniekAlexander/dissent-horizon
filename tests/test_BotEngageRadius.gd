@@ -39,8 +39,8 @@ func _shape(a_radius: float) -> CollisionShape3D:
 
 ## A unit with an aggro shape of `a_aggro` (0 for none) carrying one weapon reaching
 ## `a_reach` (0 for unarmed).
-func _unit(a_aggro: float, a_reach: float) -> Commandable:
-	var unit: Commandable = autofree(Commandable.new()) as Commandable
+func _unit(a_aggro: float, a_reach: float) -> Actor:
+	var unit: Actor = autofree(Actor.new()) as Actor
 	if a_aggro > 0.0:
 		unit.aggro_shape_ground = _shape(a_aggro)
 	if a_reach > 0.0:
@@ -73,7 +73,7 @@ func test_a_unit_with_neither_gets_the_configured_scan_radius() -> void:
 
 
 func test_the_longest_weapon_is_the_one_that_counts() -> void:
-	var unit: Commandable = _unit(1.0, 4.0)
+	var unit: Actor = _unit(1.0, 4.0)
 	var sniper := Weapon.new()
 	sniper.attack_range_shape_ground = _shape(11.0)
 	unit.weapon_inventory.add_child(sniper)

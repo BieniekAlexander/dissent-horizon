@@ -16,8 +16,8 @@ func before_each() -> void:
 	_claims = BotClaims.new()
 
 
-func _unit() -> Commandable:
-	return autofree(Commandable.new()) as Commandable
+func _unit() -> Actor:
+	return autofree(Actor.new()) as Actor
 
 
 func test_an_unclaimed_unit_is_the_armys() -> void:
@@ -75,7 +75,7 @@ func test_only_the_owner_can_release() -> void:
 
 
 func test_a_freed_unit_drops_its_claim() -> void:
-	var unit := Commandable.new()
+	var unit := Actor.new()
 	_claims.claim(unit, SCOUT, BotClaims.Priority.SCOUT)
 	unit.free()
 	assert_false(_claims.owns(unit, SCOUT), "a freed unit is owned by nobody")

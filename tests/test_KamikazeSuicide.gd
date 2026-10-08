@@ -1,15 +1,13 @@
 extends GutTest
 
 ## End-to-end cover for the kamikaze's suicide run: order the drone onto a target and
-## assert it actually fires its bomb AND dies to it.
+## assert it dies on contact AND leaves its blast behind.
 ##
-## Worth an explicit test because the mechanic is load-bearing on geometry that nothing
-## else enforces. SuicideStatusEffect kills the projectile's FIRER, but EffectApplicator
-## skips application entirely when the blast catches nobody — so the drone only dies if
-## its bomb lands on at least one recipient. SuicideStatusEffect's own docstring flags
-## this ("if that geometry changes, this effect can silently stop firing"), and a silent
-## failure here looks like a drone that attacks forever without detonating rather than
-## like an error. These assertions turn that into a red test.
+## Worth an explicit test because the run leans on geometry nothing else enforces: the dive
+## has to bring the drone down to within reach of its target's TOP before it may strike
+## (Attack._dive_contact_made), and the strike is what spends the airframe (Weapon.self_destruct).
+## A drone that never gets low enough looks like one that attacks forever without detonating,
+## rather than like an error. These assertions turn that into a red test.
 ##
 ## Boots the real game via the authored kamikaze scenario, then issues the Attack
 ## directly rather than waiting for the bot, so the test exercises the weapon/projectile/
@@ -39,10 +37,10 @@ const APPROACH_DISTANCE: float = 6.0
 
 
 func _find_units() -> Dictionary:
-	var kamikaze: Commandable = null
-	var victim: Commandable = null
+	var kamikaze: Actor = null
+	var victim: Actor = null
 	for node: Node in get_tree().get_nodes_in_group("unit"):
-		var c := node as Commandable
+		var c := node as Actor
 		if c == null:
 			continue
 		if c.id == EntityIds.AN_AIRCRAFT_LIGHT_ANTI_MECH:
@@ -63,15 +61,15 @@ func test_kamikaze_detonates_and_dies_to_its_own_blast() -> void:
 	# and the drone spawns inside aggro of the cluster, so left to itself it latches on and
 	# detonates within the boot window. The Attack below releases the hold.
 	_silence_brains(scenario)
-	var spawned_drone: Commandable = _find_units()["kamikaze"]
+	var spawned_drone: Actor = _find_units()["kamikaze"]
 	if spawned_drone != null:
 		spawned_drone.is_holding_fire = true
 	for i in BOOT_TICKS:
 		await get_tree().physics_frame
 
 	var units: Dictionary = _find_units()
-	var kamikaze: Commandable = units["kamikaze"]
-	var victim: Commandable = units["victim"]
+	var kamikaze: Actor = units["kamikaze"]
+	var victim: Actor = units["victim"]
 	assert_not_null(kamikaze, "the scenario provides a kamikaze")
 	assert_not_null(victim, "the scenario provides an enemy target")
 	if kamikaze == null or victim == null:
@@ -88,58 +86,41 @@ func test_kamikaze_detonates_and_dies_to_its_own_blast() -> void:
 	kamikaze.update_commands(Attack.new(msg))
 
 	var reach: float = kamikaze.weapon_inventory.get_weapons()[0].reach_for(victim)
-	var fired: bool = false
+	var top: float = victim.top_height()
 	var died_at: int = -1
-	## The altitude the drone was at when it committed.
-	##
-	## Sampled ONE TICK BEHIND the bomb's first appearance, and that is not a fudge. The bomb
-	## exists at the END of the frame the weapon fired in, by which point Movement has already
-	## begun easing the drone back up (request_dive self-clears once the run resolves), so the
-	## altitude read on the frame the projectile is first VISIBLE is the altitude the drone had
-	## climbed to afterwards — not the one it fired from. The old reading was a frame late and
-	## landed on the boundary exactly (0.50 <= 0.50), which is what made the assertion a
-	## knife edge rather than a measurement.
-	var altitude_at_launch: float = -1.0
-	var previous_altitude: float = kamikaze.aerial.height_offset()
+	## The drone's altitude as it died: read in its own death notice, which fires on the tick
+	## it struck, before teardown.
+	var strike: Dictionary = {"altitude": -1.0}
+	var aerial: Aerial = kamikaze.aerial
+	kamikaze.entity_occurrence.connect(
+		func(a_occurrence: Entity.EntityOccurrence, _a_source: Entity) -> void:
+			if a_occurrence == Entity.EntityOccurrence.ON_DEATH:
+				strike["altitude"] = aerial.height_offset()
+	)
 	for i in RUN_TICKS:
-		if not is_instance_valid(kamikaze):
+		if not is_instance_valid(kamikaze) or kamikaze.is_queued_for_deletion():
 			died_at = i
 			break
-		if not fired and _live_projectile_count(kamikaze.commander) > 0:
-			fired = true
-			altitude_at_launch = previous_altitude
-		previous_altitude = kamikaze.aerial.height_offset()
 		await get_tree().physics_frame
+	var altitude_at_strike: float = strike["altitude"]
+	var blasts: int = _live_projectile_count(scenario)
 	gut.error_tracker.disabled = false
 
-	assert_true(fired, "the drone actually fired its bomb")
+	assert_true(died_at >= 0, "the drone spent itself within %d ticks" % RUN_TICKS)
+	assert_gt(blasts, 0, "and left its blast behind")
+	# A ramming attack happens ON the target — at its top, not six units above it and not
+	# burrowed through it to the ground. Every AttackRange is a 100-tall cylinder, so the range
+	# check alone said "in range" from cruise altitude and the drone detonated in mid-air.
 	assert_true(
-		died_at >= 0,
+		altitude_at_strike >= 0.0 and altitude_at_strike - top <= reach,
 		(
-			(
-				"the drone died to its own blast within %d ticks (still alive = the blast caught "
-				% RUN_TICKS
-			)
-			+ "nobody, so SuicideStatusEffect never ran)"
-		)
-	)
-	# The point of the dive rework: a ramming attack has to happen ON the target, not six
-	# units above it. Every AttackRange is a 100-tall cylinder, so the range check alone
-	# said "in range" from cruise altitude and the drone detonated in mid-air.
-	assert_true(
-		altitude_at_launch >= 0.0 and altitude_at_launch <= reach,
-		(
-			"detonated in contact (altitude %.2f <= reach %.2f), not from cruise altitude"
-			% [altitude_at_launch, reach]
+			"struck in contact with the target's top (altitude %.2f, top %.2f, reach %.2f)"
+			% [altitude_at_strike, top, reach]
 		)
 	)
 
 
-## Emissions currently alive under `a_root`. Bombs are parented to the FIRING COMMANDER,
-## and this is asked of the drone's commander alone rather than of the whole scenario for
-## that reason: scanning the scenario counted the defenders' return fire too, and their first
-## bullet arrives while the drone is still on its way in — so "the drone has fired" read true
-## several ticks early and the altitude sample was taken mid-approach.
+## Emissions currently alive anywhere under `a_root`.
 func _live_projectile_count(a_root: Node) -> int:
 	var count: int = 0
 	var stack: Array[Node] = [a_root]

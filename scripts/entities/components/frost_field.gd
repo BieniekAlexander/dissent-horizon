@@ -59,10 +59,10 @@ func _on_phase_ticking(_a_phase: EmissionPhase) -> void:
 
 ## One tick of exposure, given the units standing in the field now. Public so a test can
 ## drive it without a physics world.
-func tick_exposure(a_inside: Array[Commandable]) -> void:
+func tick_exposure(a_inside: Array[Actor]) -> void:
 	var threshold: int = threshold_ticks()
 	var inside_ids: Dictionary = {}
-	for unit: Commandable in a_inside:
+	for unit: Actor in a_inside:
 		var id: int = unit.get_instance_id()
 		inside_ids[id] = unit
 		_exposure[id] = mini(int(_exposure.get(id, 0)) + 1, threshold)
@@ -80,7 +80,7 @@ func tick_exposure(a_inside: Array[Commandable]) -> void:
 
 ## Freeze `a_unit`, or keep its freeze at full time. A freeze this field was holding that is
 ## gone while the unit still stands here was broken, so the unit's exposure starts over.
-func _hold_freeze(a_unit: Commandable, a_id: int) -> void:
+func _hold_freeze(a_unit: Actor, a_id: int) -> void:
 	var freeze: FreezeStatusEffect = _freeze_on(a_unit)
 	if freeze != null:
 		freeze.hold_for(_freeze_ticks())
@@ -92,7 +92,7 @@ func _hold_freeze(a_unit: Commandable, a_id: int) -> void:
 		return
 	var effect: FreezeStatusEffect = freeze_effect.instantiate() as FreezeStatusEffect
 	var source: Variant = instance_from_id(_source_id) if _source_id != 0 else null
-	effect.apply_to(a_unit, source as Commandable if is_instance_valid(source) else null)
+	effect.apply_to(a_unit, source as Actor if is_instance_valid(source) else null)
 	if effect.is_active():
 		_held[a_id] = true
 
@@ -121,7 +121,7 @@ func _freeze_ticks() -> int:
 	return FreezeStatusEffect.freeze_ticks()
 
 
-static func _freeze_on(a_unit: Commandable) -> FreezeStatusEffect:
+static func _freeze_on(a_unit: Actor) -> FreezeStatusEffect:
 	for child: Node in a_unit.get_children():
 		if child is FreezeStatusEffect and (child as FreezeStatusEffect).is_active():
 			return child as FreezeStatusEffect
@@ -130,9 +130,9 @@ static func _freeze_on(a_unit: Commandable) -> FreezeStatusEffect:
 
 ## The units in the field's volume that a freeze would take: structures and STRONG pieces
 ## are never frozen by a field.
-func _units_inside() -> Array[Commandable]:
+func _units_inside() -> Array[Actor]:
 	var shape: CollisionShape3D = host().get_node_or_null("HitShape") as CollisionShape3D
-	var units: Array[Commandable] = []
+	var units: Array[Actor] = []
 	if shape == null or shape.shape == null:
 		return units
 	# Upright, whatever the emission's last heading, as a blast is (Payload._blast_victims).
@@ -146,7 +146,7 @@ func _units_inside() -> Array[Commandable]:
 		[host()],
 		max_victims
 	):
-		var unit := entity as Commandable
+		var unit := entity as Actor
 		if unit != null and unit.is_in_group("unit") and FreezeStatusEffect.can_freeze(unit):
 			units.append(unit)
 	return units

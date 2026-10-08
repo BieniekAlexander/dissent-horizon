@@ -273,7 +273,7 @@ func settle(a_anchor: Variant = null) -> void:
 
 
 ## Full-speed velocity toward the next path point, flattened to XZ so RVO avoidance receives a
-## clean 2D input; vertical terrain tracking is Commandable's, per tick.
+## clean 2D input; vertical terrain tracking is Actor's, per tick.
 func velocity_toward_next_path_position() -> Vector3:
 	var owner_node: Node3D = _owner_node()
 	var velocity: Vector3 = (
@@ -500,7 +500,7 @@ func can_crush(a_other: Movement) -> bool:
 
 
 ## True when this unit outranks the SMALLEST class by the crush gap — i.e. there is
-## some unit it could crush. Lets Commandable skip the whole per-tick crush scan for
+## some unit it could crush. Lets Actor skip the whole per-tick crush scan for
 ## the majority of units, which can never crush anything whatever is next to them.
 ## Aerial units are excluded wholesale for the reason above, which also spares them the
 ## scan entirely.
@@ -557,7 +557,7 @@ var _saved_avoidance_layers: int = 0
 var _saved_obstacle_layers: int = 0
 
 ## NavigationObstacle3D that broadcasts this unit as an obstacle for cross-team
-## one-sided avoidance. Assigned by Commandable._ready after both nodes exist.
+## one-sided avoidance. Assigned by Actor._ready after both nodes exist.
 var avoidance_obstacle: NavigationObstacle3D = null
 
 ## The commandable this unit currently ignores in RVO — the one it is following, or the
@@ -594,7 +594,7 @@ const AVOIDANCE_PRIORITY_STANDING: float = 0.5
 
 
 ## Rank this unit in same-team RVO: ENGAGED above TRAVELLING above STANDING. Called every
-## tick from Commandable._physics_process, which says whether the current order is holding
+## tick from Actor._physics_process, which says whether the current order is holding
 ## ground (MoveCommand.holds_ground).
 ##
 ## Why it works this way:
@@ -617,7 +617,7 @@ func update_avoidance_priority(a_is_holding_ground: bool) -> void:
 ## different target (or null) drops the previous exception first, so this can be
 ## driven straight from the per-tick command state. No-op in HOVERING mode or when
 ## either side lacks an AvoidanceAgent3D.
-func set_avoidance_follow_target(a_other: Commandable) -> void:
+func set_avoidance_follow_target(a_other: Actor) -> void:
 	var agent := avoidance_agent()
 	if mode != Mode.GROUNDED or agent == null or a_other == _avoidance_follow:
 		return
@@ -633,9 +633,9 @@ func set_avoidance_follow_target(a_other: Commandable) -> void:
 ## `a_c`'s avoidance agent, or null for nothing, a freed piece or one with no movement. Untyped
 ## for the reason `_avoidance_follow` is.
 func _follow_agent(a_c: Variant) -> AvoidanceAgent3D:
-	if not is_instance_valid(a_c) or not (a_c is Commandable) or a_c.movement == null:
+	if not is_instance_valid(a_c) or not (a_c is Actor) or a_c.movement == null:
 		return null
-	return (a_c as Commandable).movement.avoidance_agent()
+	return (a_c as Actor).movement.avoidance_agent()
 
 
 ## Zero this agent's broadcast layers and its obstacle layers so no other agent
@@ -679,7 +679,7 @@ func set_agent_radius(a_radius: float) -> void:
 ## navmesh via the agent's navigation_layers. The agent STAYS on the shared default
 ## navigation map (every class mesh is a region on it), so RVO avoidance still sees
 ## all units regardless of size — only the pathfinding layer differs. Called once the
-## unit's Map (hence its NavManager) is known — see Commandable.initialize. The
+## unit's Map (hence its NavManager) is known — see Actor.initialize. The
 ## navmesh wiring is a no-op in HOVERING mode, but _map is stored for all modes so
 ## HOVERING units can use it for the landing snap and ascent obstruction cap.
 ## A* polygon budget per path query. Godot defaults NavigationAgent3D to 4096, which is FEWER

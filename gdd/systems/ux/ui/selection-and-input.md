@@ -9,7 +9,7 @@ type: system-note
 
 
 `RTSController` is a `CanvasLayer` in `scenes/player.tscn`. It owns:
-- **Selection**: box-select (drag) or click; selection stored as `Array[Node]` (Commandable instances). See §Box-select drags below for the drag lifecycle — it is driven per-frame from the live cursor, not from MouseMotion events
+- **Selection**: box-select (drag) or click; selection stored as `Array[Node]` (Actor instances). See §Box-select drags below for the drag lifecycle — it is driven per-frame from the live cursor, not from MouseMotion events
 - **`pending_command_name`**: arms a sub-mode (e.g., `"command_attack_move"` → next right-click resolves to `AttackMove`/`Attack`)
 - **`_available_commands`**: recomputed via `CommandContextParser.commands_for_selection()` on every selection change; HUD button visibility and hotkey gate read from this
 - **Build preview ghost**: a translucent copy of the structure's `MeshVisual` (or its `Sprite3D`, for billboard art) duplicated from `Commander.get_build_preview_instance(tool)`; snapped to the footprint centre each frame, tinted red on invalid placement
@@ -175,9 +175,13 @@ Consequences worth stating:
   [control-matrices](control-matrices.md)).
 - **A bare press on an empty group still clears the selection.** Pressing a group is a
   statement about what you want selected, and "nothing, yet" is an answer to it.
-- **A recall moves the camera** on the same rule a selector does (`_look_at_selection`, only
-  when nothing selected is already visible). A group can be anywhere on the map, and
-  selecting something you cannot see is worse than selecting nothing.
+- **Only a double tap moves the camera.** One press reads the group into the selection and
+  leaves the view where it is; a second press of the SAME group within `DOUBLE_CLICK_SECONDS`
+  centres the camera on it, whatever was already on screen (`RTSController.is_double_tap`).
+  That holds for both reading gestures and for the panel's buttons, which apply the same
+  gestures. A write between the two presses breaks the pair. Before 2026-10-08 a single
+  press moved the camera on the selectors' rule (only when nothing selected was visible),
+  which pulled the view away on every routine recall.
 - **Membership is pruned on READ, not watched for.** A group is only ever consulted on a
   keypress, so hooking every member's `tree_exiting` to keep ten arrays exact would be a lot
   of bookkeeping for a filter. A group that has lost members to the fighting is corrected by

@@ -55,7 +55,7 @@ class StubMap:
 		a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0, _a_rebake: bool = true
 	) -> void:
 		placed.append(a_structure)
-		var obs := a_structure.get_node("Structure") as Structure
+		var obs := a_structure.get_node("Fixture") as Fixture
 		var footprint: Array[Vector2i] = footprint_cells(a_world_center, obs.dimensions)
 		for cell: Vector2i in footprint:
 			cell_grid[cell.x][cell.y] = a_structure
@@ -75,7 +75,7 @@ var _map: StubMap
 var _commander: Commander
 var _neutral: Commander
 var _controller: RTSController
-var _builder: Commandable
+var _builder: Actor
 
 
 func after_each() -> void:
@@ -120,7 +120,7 @@ func before_each() -> void:
 		&"fake_form_a": FakePieces.tech(),
 		&"fake_form_b": FakePieces.tech()
 	}
-	_builder = FakePieces.make(BUILDER_SCENE) as Commandable
+	_builder = FakePieces.make(BUILDER_SCENE) as Actor
 	_world.add_child(_builder)
 	var builds := _builder.get_node("Builds") as Builds
 	builds.buildable_types = [_base_tool().type, Tool.for_name(PLAIN_TOOL_NAME).type]
@@ -162,9 +162,9 @@ func _armed() -> Tool:
 	return _controller.command_message.tool
 
 
-func _neutral_building(a_id: StringName) -> Commandable:
+func _neutral_building(a_id: StringName) -> Actor:
 	var template: PieceFamilies.Template = PieceFamilies.template(a_id)
-	var building: Commandable = template.load_scene().instantiate() as Commandable
+	var building: Actor = template.load_scene().instantiate() as Actor
 	_neutral.add_child(building)
 	building.initialize(_map, _neutral)
 	for tracked in get_errors():
@@ -174,7 +174,7 @@ func _neutral_building(a_id: StringName) -> Commandable:
 			or tracked.contains_text("entered the tree with no")
 		):
 			tracked.handled = true
-	var dims: Vector2i = (building.get_node("Structure") as Structure).dimensions
+	var dims: Vector2i = (building.get_node("Fixture") as Fixture).dimensions
 	_map.add_structure(building, VU.in_xz(_map.footprint_centroid(NEUTRAL_ORIGIN, dims)))
 	return building
 
@@ -276,7 +276,7 @@ func test_the_controller_reports_the_armed_variants_label_and_follows_a_cycle() 
 
 #region Conversion
 ## Aim the armed tool at `a_building` as the frame loop would have.
-func _aim_at(a_building: Commandable) -> void:
+func _aim_at(a_building: Actor) -> void:
 	_controller.current_command_type = Build
 	_controller.command_message.world_position = a_building.global_position
 
@@ -286,7 +286,7 @@ func test_aiming_at_a_neutral_building_finds_and_discounts_its_conversion() -> v
 	for template: PieceFamilies.Template in PieceFamilies.templates_of(
 		PieceFamilies.NEUTRAL_BUILDING
 	):
-		var building: Commandable = _neutral_building(template.id)
+		var building: Actor = _neutral_building(template.id)
 		_aim_at(building)
 		assert_eq(_controller.armed_conversion_target(), building, "%s is the target" % template.id)
 		assert_eq(_controller.previewed_conversion_energy(), Build.conversion_energy(building))
@@ -311,7 +311,7 @@ func test_aimed_at_empty_ground_there_is_no_conversion_and_no_override() -> void
 
 func test_a_conversion_is_only_previewed_by_the_conversion_tool() -> void:
 	_controller.process_command(PLAIN_TOOL_NAME)
-	var building: Commandable = _neutral_building(
+	var building: Actor = _neutral_building(
 		PieceFamilies.templates_of(PieceFamilies.NEUTRAL_BUILDING)[0].id
 	)
 	_aim_at(building)
@@ -321,7 +321,7 @@ func test_a_conversion_is_only_previewed_by_the_conversion_tool() -> void:
 
 func test_hovering_a_button_previews_that_buttons_price_not_the_conversion() -> void:
 	_controller.process_command(TOOL_NAME)
-	var building: Commandable = _neutral_building(
+	var building: Actor = _neutral_building(
 		PieceFamilies.templates_of(PieceFamilies.NEUTRAL_BUILDING)[0].id
 	)
 	_aim_at(building)
@@ -334,7 +334,7 @@ func test_hovering_a_button_previews_that_buttons_price_not_the_conversion() -> 
 
 func test_the_conversion_target_wears_the_marker_and_loses_it_when_aim_moves_off() -> void:
 	_controller.process_command(TOOL_NAME)
-	var building: Commandable = _neutral_building(
+	var building: Actor = _neutral_building(
 		PieceFamilies.templates_of(PieceFamilies.NEUTRAL_BUILDING)[0].id
 	)
 	var marker := building.get_node_or_null("TargetIndicator") as Node3D

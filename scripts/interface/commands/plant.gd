@@ -28,7 +28,7 @@ const REACH: float = 1.5
 ## A unit granted Plant with its charge ready. Where it plants is not a precondition's
 ## business: a piece that cannot carry a charge has one planted at its feet instead.
 static func meets_precondition(
-	actor: Commandable, _message: CommandMessage
+	actor: Actor, _message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	var pool := actor.get_node_or_null("Abilities") as Abilities if actor != null else null
 	if pool == null or not pool.grants(ABILITY_ID):
@@ -43,7 +43,7 @@ static func default_cast_arity(_message: CommandMessage) -> CastArity:
 
 
 ## Free unless already planting — the job rule (MoveCommand.is_free_to_take).
-static func is_free_to_take(actor: Commandable) -> bool:
+static func is_free_to_take(actor: Actor) -> bool:
 	return holds_none_of(actor, [Plant])
 
 
@@ -58,12 +58,12 @@ var _worked: int = 0
 
 #region State updates
 ## Rigging a charge is a channeled action: a hit interrupts it as it interrupts building.
-func blocked_by_stagger(_a_actor: Commandable) -> bool:
+func blocked_by_stagger(_a_actor: Actor) -> bool:
 	return true
 
 
 ## The order ends if the piece it named has gone, or the charge was spent meanwhile.
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	if message.target != null and not is_instance_valid(message.target):
 		return null
 	if meets_precondition(a_actor, message) != PreconditionFailureCause.NONE:
@@ -75,8 +75,8 @@ func ends_on_arrival() -> bool:
 	return false
 
 
-func can_act(a_actor: Commandable) -> bool:
-	var carrier: Commandable = _carrier_of(a_actor)
+func can_act(a_actor: Actor) -> bool:
+	var carrier: Actor = _carrier_of(a_actor)
 	var in_reach: bool
 	if carrier != null and carrier.is_in_group("fixture"):
 		in_reach = SU.unit_is_close_to_target(a_actor, carrier)
@@ -87,7 +87,7 @@ func can_act(a_actor: Commandable) -> bool:
 	return in_reach
 
 
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	_worked += 1
 	if _worked < _required_ticks(a_actor):
 		return self
@@ -103,22 +103,22 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 
 #region Private helpers
 ## The piece the charge will ride on, or null for a charge on the ground.
-func _carrier_of(_a_actor: Commandable) -> Commandable:
-	return message.target as Commandable if PlantedCharge.can_carry(message.target) else null
+func _carrier_of(_a_actor: Actor) -> Actor:
+	return message.target as Actor if PlantedCharge.can_carry(message.target) else null
 
 
-func _required_ticks(a_actor: Commandable) -> int:
-	var carrier: Commandable = _carrier_of(a_actor)
+func _required_ticks(a_actor: Actor) -> int:
+	var carrier: Actor = _carrier_of(a_actor)
 	if carrier == null or carrier.defense == null:
 		return GROUND_CHANNEL_TICKS
 	return maxi(1, ceili(TICKS_PER_TARGET_HP * carrier.defense.hp))
 
 
-func _place_charge(a_actor: Commandable) -> void:
+func _place_charge(a_actor: Actor) -> void:
 	var map: Map = message.map if message.map != null else a_actor.map
 	if map == null or a_actor.commander == null:
 		return
-	var piece := (load(CHARGE_SCENE_PATH) as PackedScene).instantiate() as Commandable
+	var piece := (load(CHARGE_SCENE_PATH) as PackedScene).instantiate() as Actor
 	piece.initialize(map, a_actor.commander)
 	var xz: Vector2 = message.xz_position
 	piece.global_position = Vector3(xz.x, map.terrain_height_at(xz), xz.y)

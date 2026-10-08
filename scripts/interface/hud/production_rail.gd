@@ -216,7 +216,7 @@ static func is_in_scope(a_transaction: PurchaseTransaction, a_scope: Array) -> b
 	if a_transaction.kind != PurchaseTransaction.Kind.TRAIN:
 		return false
 	return a_transaction.candidate_producers().any(
-		func(producer: Commandable) -> bool: return a_scope.has(producer)
+		func(producer: Actor) -> bool: return a_scope.has(producer)
 	)
 
 
@@ -237,6 +237,8 @@ func _wire_pending_selection(a_card: CommandableCard) -> void:
 		return
 	if not a_card.pending_selected.is_connected(_on_pending_selected):
 		a_card.pending_selected.connect(_on_pending_selected)
+	if not a_card.cancel_all_requested.is_connected(cancel_all_of_type):
+		a_card.cancel_all_requested.connect(cancel_all_of_type)
 
 
 ## A right click on a purchase card. `a_all_of_type` is the broaden modifier: take every
@@ -368,8 +370,8 @@ func _busy_producers() -> Array:
 		func(producer: Variant) -> bool:
 			return (
 				is_instance_valid(producer)
-				and (producer as Commandable).production != null
-				and (producer as Commandable).production.job_count() > 0
+				and (producer as Actor).production != null
+				and (producer as Actor).production.job_count() > 0
 			)
 	)
 
@@ -380,7 +382,7 @@ func _build_signature(a_queue: ProductionQueue, a_busy: Array) -> String:
 	var signature: String = ""
 	for transaction: PurchaseTransaction in a_queue.entries:
 		signature += "%d:%d:%d|" % [transaction.id, transaction.state, transaction.sequence]
-	for producer: Commandable in a_busy:
+	for producer: Actor in a_busy:
 		signature += "j%d:%s|" % [producer.get_instance_id(), producer.production.job_type(0)]
 	if is_scoped:
 		for producer: Variant in _scope:
@@ -418,7 +420,7 @@ func _rebuild(a_queue: ProductionQueue, a_busy: Array) -> void:
 ## is producing. A left click cancels the job (the card does that itself).
 func _rebuild_producing(a_busy: Array) -> void:
 	_clear(_producing_cards)
-	for producer: Commandable in a_busy:
+	for producer: Actor in a_busy:
 		var card := CommandableCard.new()
 		_producing_cards.add_child(card)
 		card.set_card_size(HEAD_CHIP_SIZE)
@@ -792,12 +794,41 @@ func _on_clear_standing_pressed() -> void:
 	_cancel_each(_ring)
 
 
+## Broaden + left click on a purchase card: cancel every purchase of `a_type` the rail SHOWS,
+## standing ones too — the whole queue in the global view, the selection's share in the scoped
+## one, by the same rule as the clear buttons.
+func cancel_all_of_type(a_type: StringName) -> void:
+	var of_type: Array[PurchaseTransaction] = []
+	of_type.assign(
+		(_one_offs + _ring).filter(
+			func(entry: PurchaseTransaction) -> bool: return entry.type == a_type
+		)
+	)
+	_cancel_each(of_type)
+
+
 func _cancel_each(a_transactions: Array[PurchaseTransaction]) -> void:
 	var queue: ProductionQueue = _queue()
-	if queue == null:
+	if queue == null or a_transactions.is_empty():
 		return
-	for transaction: PurchaseTransaction in a_transactions.duplicate():
-		queue.cancel(transaction)
+	# One order on the scenario's stream, so a replay cancels them too
+	# (recording-and-replay.md §The order stream); at once outside a scenario.
+	var stream: OrderStream = OrderStream.of(self)
+	if stream == null:
+		for transaction: PurchaseTransaction in a_transactions.duplicate():
+			queue.cancel(transaction)
+		return
+	var owner: int = a_transactions[0].commander.id if a_transactions[0].commander != null else 0
+	stream.submit(
+		PlayerOrder.new(
+			PlayerOrder.Kind.CANCEL_PURCHASE,
+			owner,
+			{
+				"owner": owner,
+				"purchases": a_transactions.map(func(t: PurchaseTransaction) -> int: return t.id)
+			}
+		)
+	)
 
 
 ## Detaches children immediately (so they aren't laid out for a stale frame) and frees them.

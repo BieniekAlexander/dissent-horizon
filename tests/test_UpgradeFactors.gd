@@ -44,8 +44,8 @@ func _make_commander(a_id: int) -> Commander:
 
 
 ## A piece owned by `a_commander`; ownership is assigned directly, as test_Upgrades does.
-func _owned(a_options: Dictionary, a_id: StringName, a_commander: Commander = null) -> Commandable:
-	var piece: Commandable = FakePieces.make(a_options)
+func _owned(a_options: Dictionary, a_id: StringName, a_commander: Commander = null) -> Actor:
+	var piece: Actor = FakePieces.make(a_options)
 	piece.id = a_id
 	add_child_autofree(piece)
 	piece.ownership.commander = a_commander if a_commander != null else _commander
@@ -56,7 +56,7 @@ func _owned(a_options: Dictionary, a_id: StringName, a_commander: Commander = nu
 
 
 func test_a_hit_point_upgrade_raises_the_maximum_and_the_hit_points_of_a_fielded_unit() -> void:
-	var unit: Commandable = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, HARDY)
+	var unit: Actor = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, HARDY)
 	unit.defense.hp = 60.0
 	_commander.complete_upgrade(TOUGH)
 	assert_almost_eq(unit.defense.hp_max, 125.0, 0.001)
@@ -66,21 +66,21 @@ func test_a_hit_point_upgrade_raises_the_maximum_and_the_hit_points_of_a_fielded
 
 func test_a_unit_joining_an_upgraded_commander_starts_at_the_raised_maximum() -> void:
 	_commander.complete_upgrade(TOUGH)
-	var unit: Commandable = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, HARDY)
+	var unit: Actor = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, HARDY)
 	assert_almost_eq(unit.defense.hp_max, 125.0, 0.001)
 	assert_almost_eq(unit.defense.hp, 125.0, 0.001)
 
 
 func test_a_hit_point_upgrade_leaves_other_pieces_alone() -> void:
-	var other: Commandable = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, &"other")
+	var other: Actor = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, &"other")
 	_commander.complete_upgrade(TOUGH)
 	assert_almost_eq(other.defense.hp_max, 100.0, 0.001)
 
 
 func test_a_frame_upgrade_reaches_every_unit_of_that_frame_and_no_structure() -> void:
-	var bio_unit: Commandable = _owned({"hp": 100.0, "frame": Defense.FrameType.BIO}, &"a")
-	var mech_unit: Commandable = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, &"b")
-	var bio_structure: Commandable = _owned(
+	var bio_unit: Actor = _owned({"hp": 100.0, "frame": Defense.FrameType.BIO}, &"a")
+	var mech_unit: Actor = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, &"b")
+	var bio_structure: Actor = _owned(
 		{"hp": 100.0, "frame": Defense.FrameType.BIO, "structure": true}, &"c"
 	)
 	_commander.complete_upgrade(BIO_TOUGH)
@@ -90,14 +90,14 @@ func test_a_frame_upgrade_reaches_every_unit_of_that_frame_and_no_structure() ->
 
 
 func test_hit_point_factors_stack_whatever_order_they_arrive_in() -> void:
-	var unit: Commandable = _owned({"hp": 100.0, "frame": Defense.FrameType.BIO}, HARDY)
+	var unit: Actor = _owned({"hp": 100.0, "frame": Defense.FrameType.BIO}, HARDY)
 	_commander.complete_upgrade(BIO_TOUGH)
 	_commander.complete_upgrade(TOUGH)
 	assert_almost_eq(unit.defense.hp_max, 150.0, 0.001, "1.25 x 1.2")
 
 
 func test_a_piece_captured_by_a_commander_without_the_upgrade_loses_it() -> void:
-	var unit: Commandable = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, HARDY)
+	var unit: Actor = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, HARDY)
 	_commander.complete_upgrade(TOUGH)
 	unit.defense.hp = 100.0
 	unit.ownership.commander = _make_commander(2)
@@ -106,7 +106,7 @@ func test_a_piece_captured_by_a_commander_without_the_upgrade_loses_it() -> void
 
 
 func test_the_old_commanders_later_research_no_longer_reaches_a_captured_piece() -> void:
-	var unit: Commandable = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, HARDY)
+	var unit: Actor = _owned({"hp": 100.0, "frame": Defense.FrameType.MECH}, HARDY)
 	unit.ownership.commander = _make_commander(2)
 	_commander.complete_upgrade(TOUGH)
 	assert_almost_eq(unit.defense.hp_max, 100.0, 0.001)
@@ -115,7 +115,7 @@ func test_the_old_commanders_later_research_no_longer_reaches_a_captured_piece()
 # --- Ability recharge -----------------------------------------------------------
 
 
-func _gun() -> Commandable:
+func _gun() -> Actor:
 	return _owned(
 		{
 			"structure": true,
@@ -167,9 +167,9 @@ const AIRCRAFT: Dictionary = {
 
 ## Ticks a docked, empty aircraft of `a_id` takes to refill at a fresh airfield.
 func _rearm_ticks(a_id: StringName) -> int:
-	var field: Commandable = _owned(AIRFIELD, &"fake_field")
+	var field: Actor = _owned(AIRFIELD, &"fake_field")
 	field.build_progress = 1.0
-	var plane: Commandable = _owned(AIRCRAFT, a_id)
+	var plane: Actor = _owned(AIRCRAFT, a_id)
 	assert_true((field.get_node("Production") as Production)._spawn_on_pad(field, plane), "parked")
 	var weapon: Weapon = plane.weapon_inventory.get_weapons()[0]
 	for _i: int in weapon.clip_size:

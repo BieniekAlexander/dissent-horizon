@@ -24,5 +24,5 @@ func _on_tick() -> void:
 	# at tick_rate 10 lands at ticks 10, 20, … 100 — never a free hit at tick 0, which
 	# the projectile's own impact damage already covers).
 	if (_elapsed + 1) % tick_rate == 0:
-		var src: Commandable = source if (source != null and is_instance_valid(source)) else null
+		var src: Actor = source if (source != null and is_instance_valid(source)) else null
 		victim.receive_damage(Damage.new(damage_per_tick * _stacks, damage_type), src)

@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Terminology
 
-**Garrison (verb / noun)** — the mechanic by which one entity is *inside* another: a unit enters a Commandable that has a `Garrison` component. The `Garrison` component is the host; `Occupy` is the command issued by the entering unit, and `Embark` is the order given to the HOST that hands one out (it never puts a unit inside anything itself). Which units may enter is three per-host bitmasks (frame / armour / locomotion), and how much of the host each one fills is the occupant's own `Entity.occupancy_size` — see §Garrison occupancy.
+**Garrison (verb / noun)** — the mechanic by which one entity is *inside* another: a unit enters a Actor that has a `Garrison` component. The `Garrison` component is the host; `Occupy` is the command issued by the entering unit, and `Embark` is the order given to the HOST that hands one out (it never puts a unit inside anything itself). Which units may enter is three per-host bitmasks (frame / armour / locomotion), and how much of the host each one fills is the occupant's own `Entity.occupancy_size` — see §Garrison occupancy.
 
 **Closed garrison (noun)** — a garrison with every occupancy mask cleared, so nothing can be ordered INTO it. A HOLD, filled only by capture, deposit, or scenario authoring: the Compound (again, as of 2026-09-17). The stock truck's cage is NOT closed: it admits Servants by order, and fills with prisoners by capture. `Garrison.is_closed()`. Closure says nothing about getting OUT: that is `Garrison.can_release()`, true by default even for a hold, and an order only ever releases the host's own side, never a captive (`Garrison.can_release_occupant`) — see §Garrison occupancy.
 
 **Intern (verb) / internment (noun) / sentence (noun)** — what a garrison naming a positive `sentence_length` does to a captive deposited in it: the captive is held AS ITSELF, off the tree, for that many seconds — paying dominion per cycle like any other occupant — and then CONSUMED. `Garrison.can_intern()` is what marks a deposit target, and it is the Compound's whole role in the Colonial POW loop — see §Garrison occupancy.
 
-**Actor / fixture / structure / feature / unit / token / obstruction / emission** are defined terms. An **Actor** takes orders (today's `Commandable`); a **fixture** claims terrain-grid cells. structure = Actor fixture, feature = uncommandable fixture, a **figure** is any non-fixture: unit = Actor figure, token = uncommandable figure. An **obstruction** is a fixture that blocks navigation, and an **emission** is anything an emitter put into the world. "Building" is one specific piece, not a category. Each noun is a conjunction of component facets, and code tests the facets, never the noun. → [`gdd/systems/authoring/piece-vocabulary.md`](gdd/systems/authoring/piece-vocabulary.md)
+**Actor / fixture / structure / feature / unit / token / obstruction / emission** are defined terms. An **Actor** takes orders (today's `Actor`); a **fixture** claims terrain-grid cells. structure = Actor fixture, feature = uncommandable fixture, a **figure** is any non-fixture: unit = Actor figure, token = uncommandable figure. An **obstruction** is a fixture that blocks navigation, and an **emission** is anything an emitter put into the world. "Building" is one specific piece, not a category. Each noun is a conjunction of component facets, and code tests the facets, never the noun. → [`gdd/systems/authoring/piece-vocabulary.md`](gdd/systems/authoring/piece-vocabulary.md)
 
 **Shelter (noun)** — a specific game structure with resource significance (distinct from the generic garrison mechanic). Do not use "shelter" as a synonym for a garrison host.
 
@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Dissent Horizon is a Godot 4.7 RTS game written in GDScript. Isometric perspective, 3D world with 2D sprites on `CharacterBody3D` nodes. The game has fog of war, a build/train economy, multiple unit types, and an AI opponent. The main scene is `scenes/scenarios/s1.tscn`. Physics runs at 30 ticks/second.
 
-Current state: playable prototype. Terrain is a single `TerrainData` resource holding per-corner heights + a per-cell ground-material layer (see `gdd/systems/terrain-and-navigation/map-composition.md`), authored in-editor with the `terrain_brush` plugin (paint materials; raise/lower/smooth/set height). Unit/Structure class hierarchy was recently collapsed into a single `Commandable` class using component children (see §Entity hierarchy below).
+Current state: playable prototype. Terrain is a single `TerrainData` resource holding per-corner heights + a per-cell ground-material layer (see `gdd/systems/terrain-and-navigation/map-composition.md`), authored in-editor with the `terrain_brush` plugin (paint materials; raise/lower/smooth/set height). Unit/Structure class hierarchy was recently collapsed into a single `Actor` class using component children (see §Entity hierarchy below).
 
 ---
 
@@ -126,7 +126,7 @@ Three rules follow:
   eleven tests drive the event against a synthetic group it creates itself. The one test that
   reached into `s1.tscn` to count camps was deleted; it told you nothing the eleven did not.
 - **Build pieces with `FakePieces`, never by loading a shipped scene.** `tests/_fake_pieces.gd`
-  makes a `Commandable` (or feature, or emission) with exactly the components a test names —
+  makes a `Actor` (or feature, or emission) with exactly the components a test names —
   `FakePieces.unit({"speed": 2.0, "weapon": {"ground": 6.0}})` — plus fake tools, families,
   technology and abilities for the code that looks those up (`register_tool`, `install_families`,
   `install_ability`; each has a `restore_*` for `after_each`). A test that loads
@@ -259,7 +259,7 @@ Append a question callout under the item. Don't ask me in chat.
 > 2. Silhouette the host, tinted while it holds occupants.
 > 3. Expose occupant meshes to the silhouette pass — needs a new `Garrison` accessor.
 >
-> **Leaning:** 1 — smallest change, and consistent with the task's "only entities without a `Structure` component" note.
+> **Leaning:** 1 — smallest change, and consistent with the task's "only entities without a `Fixture` component" note.
 >
 > **Answer:**
 
@@ -351,7 +351,7 @@ scripts/
   scenario.gd                     — root node for a game session
   entities/
 	entity.gd                     — base class (CharacterBody3D)
-	commandable.gd                 — entity that accepts commands (units + structures)
+	actor.gd                       — Actor: a piece that takes orders or can be damaged (units + structures)
 	command_receiver.gd            — manages the command queue (RefCounted)
 	hit_box.gd
 	components/                   — optional node-children bolted onto entities
@@ -368,6 +368,7 @@ scripts/
 	  energy_extractor.gd
 	  ownership.gd                — commander relationship + team tint signal
 	  production.gd               — training queue; also has producible_types
+	  orders.gd                   — the order-taking half of an Actor: command queue, rally queue, routing
 	  garrison.gd                 — holds occupants; Occupy enters, Evacuate releases; occupancy masks + sizes
 	  repairs.gd                  — marks a unit able to repair (doc key `repairs: true`); presence is the check
 	  selectable.gd
@@ -510,8 +511,10 @@ Entity (CharacterBody3D)           — type enum, @export default_commander_id, 
   @onready vision_range_shape: CollisionShape3D
   @onready aggro_shape_ground / aggro_shape_air: CollisionShape3D   — derived from reach (RangeShapes)
 
-  └── Commandable (Entity)         — command queue, HP bar, aggro logic, _physics_process
-    @onready command_receiver: CommandReceiver   (RefCounted, not a Node)
+  └── Actor (Entity)         — HP bar, aggro logic, _physics_process
+    @onready orders: Orders            — the order-taking component (command queue, rally, routing);
+                                         null on `commandable: false`, and every order is then a no-op
+    command_receiver: CommandReceiver  — Orders.receiver (RefCounted, not a Node)
     @onready selectable: Selectable
     @onready production: Production    (get_node_or_null; null = can't train)
         @onready energy_extractor: EnergyExtractor
@@ -530,7 +533,7 @@ Use `entity.is_in_group("unit")` / `is_in_group("fixture")` / `is_in_group("stru
 
 ### Piece ids (`Entity.id` — the old `Entity.Type` enum is gone)
 
-Every game piece is identified by a snake_case StringName `Entity.id` (e.g. `&"warlord"`), which is the id of its spec doc in `gdd/` (see §Spec importer). Hand-written code references ids through the GENERATED `EntityIds` constants (`EntityIds.WARLORD`) — never raw strings. An empty id marks an abstract inheritance-base scene (`Entity.is_abstract()`). Unit-vs-structure is group membership / the `Structure` component, never the id.
+Every game piece is identified by a snake_case StringName `Entity.id` (e.g. `&"warlord"`), which is the id of its spec doc in `gdd/` (see §Spec importer). Hand-written code references ids through the GENERATED `EntityIds` constants (`EntityIds.WARLORD`) — never raw strings. An empty id marks an abstract inheritance-base scene (`Entity.is_abstract()`). Unit-vs-structure is group membership / the `Fixture` component, never the id.
 - Commander id `0` = neutral/world-owned (unchanged)
 
 ### Component attachment pattern
@@ -546,7 +549,7 @@ Required nodes use `$NodeName` directly or assert. See `gdd/systems/authoring/ge
 
 ## Command system
 
-Commands are the primary game-action abstraction. Each command is a `RefCounted`-subclass instance. The per-tick lifecycle (driven by `CommandReceiver._update_state()` → `Commandable._process_commands()`):
+Commands are the primary game-action abstraction. Each command is a `RefCounted`-subclass instance. The per-tick lifecycle (driven by `CommandReceiver._update_state()` → `Actor._process_commands()`):
 
 1. `get_updated_state(actor)` — may reactively swap to a new command (e.g., interrupt with attack)
 2. `can_act(actor)` — checks if the action is ready (in range, timer elapsed, etc.)
@@ -557,6 +560,11 @@ Commands are the primary game-action abstraction. Each command is a `RefCounted`
 **`ends_on_arrival()` (defaults true) is what separates "go there" from "go there and then do something".** A plain move is finished by arriving. `Build`, `Assemble`, `Repair` and `Interact` travel in order to act in range, so they return false and `can_act` — not the navigation agent — decides when they are done.
 
 **A unit wider than a cell reaches a building differently.** Its class navmesh is eroded back from every wall, so it can neither stand in a cell touching a footprint nor path through a one-cell gap — which is why "close to a structure" allows a size-class standoff, and why the approach cell is chosen by a real path rather than by distance. → [`gdd/systems/terrain-and-navigation/agent-size-classes.md`](gdd/systems/terrain-and-navigation/agent-size-classes.md) §Reaching a building
+
+**A player's order reaches the simulation as a `PlayerOrder` on the scenario's `OrderStream`,
+applied by `OrderDispatcher` at the start of the next tick** — never by UI code touching pieces
+directly, or a replay of the match drifts. Pieces in an order are named by `Entity.spawn_serial`.
+→ [`gdd/systems/commands/recording-and-replay.md`](gdd/systems/commands/recording-and-replay.md)
 
 Build, Assemble and Repair — the construction and repair command family.
 → **[`gdd/systems/commands/construction.md`](gdd/systems/commands/construction.md)**
@@ -835,14 +843,14 @@ entity.is_in_group("unit")        # unit-flavored (not "is Unit")
 
 1. Player selects Build, picks tool → `command_message.tool` set
 2. `RTSController._resolve_command_class()` returns `Build`
-3. `Build.meets_precondition()` checks: resources, tech prereqs, `Structure.valid_placement(msg, dims)` (all cells in the `Structure.dimensions` footprint are in-bounds and unoccupied)
+3. `Build.meets_precondition()` checks: resources, tech prereqs, `Fixture.valid_placement(msg, dims)` (all cells in the `Fixture.dimensions` footprint are in-bounds and unoccupied)
 4. On right-click: `Build.fulfill_action()` → `map.add_entity()` → `map.add_structure()` → `TerrainGrid.place_building()` → `cells_changed` → `NavManager` rebuilds navmesh
 
 ### Terrain height snapping for units
 
 Units snap to terrain Y every physics tick in two places:
-1. `Commandable._on_velocity_computed()` — after `move_and_slide()`, snaps to `map.terrain_height_at(xz)`
-2. `Commandable._physics_process()` — unconditional snap at the end of each tick
+1. `Actor._on_velocity_computed()` — after `move_and_slide()`, snaps to `map.terrain_height_at(xz)`
+2. `Actor._physics_process()` — unconditional snap at the end of each tick
 
 Velocity sent to `NavigationAgent3D` is XZ-only (Y zeroed) to keep RVO avoidance stable. Terrain tracking is handled separately.
 
@@ -928,7 +936,7 @@ work rather than deriving something.
 
 **`get_node_or_null` for optional components**: the `@onready` optional-component pattern is intentional. Don't change optional components to hard `$` references without checking all call sites gate on null. See `gdd/systems/authoring/get-node-or-null-audit.md` for verdicts on each occurrence.
 
-**`Commandable._process_commands()` routing**: structures intercept `Train`, and stationary `can_rally()` commandables intercept base `MoveCommand` (rally), here before they reach `CommandReceiver._process_commands()`. Calling `command_receiver._process_commands()` directly (bypassing `Commandable._process_commands()`) breaks structure training and rally points.
+**`Actor._process_commands()` routing**: structures intercept `Train`, and stationary `can_rally()` commandables intercept base `MoveCommand` (rally), here before they reach `CommandReceiver._process_commands()`. Calling `command_receiver._process_commands()` directly (bypassing `Actor._process_commands()`) breaks structure training and rally points.
 
 **Commander_id = 0 is neutral/world**: fog hides enemies (id != player_id), aggro checks gate on `commander_id > 0 and != self.commander_id`. Don't conflate "unowned" with "player-owned."
 

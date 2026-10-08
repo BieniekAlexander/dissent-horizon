@@ -41,7 +41,7 @@ func _init(a_bot: Bot, a_act: BotActuator) -> void:
 ## Returns the work units spent.
 func tick() -> int:
 	var priced: int = 0
-	for structure: Commandable in _bot.get_research_structures():
+	for structure: Actor in _bot.get_research_structures():
 		if not structure.production.is_free():
 			continue
 		var scores: Dictionary = {}

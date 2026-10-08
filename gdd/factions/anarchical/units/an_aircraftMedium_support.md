@@ -2,6 +2,9 @@
 kind: Entity
 title: Condor
 scene: res://scenes/entities/units/an/an_aircraftMedium_support.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 1200}
   time: 30

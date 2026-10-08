@@ -14,14 +14,14 @@ extends RefCounted
 ## scene it resolves). Nothing emits a unit yet — see composition-rework §The emitted unit.
 
 
-## Launch `a_emission`, fired by `a_from` (a Commandable, or null for an unattributed shot) at
+## Launch `a_emission`, fired by `a_from` (a Actor, or null for an unattributed shot) at
 ## `a_target` — an Entity to pursue, or a Vector3 to land at.
 static func launch(a_emission: Entity, a_from: Variant, a_target: Variant) -> void:
-	var from: Commandable = a_from if a_from is Commandable else null
+	var from: Actor = a_from if a_from is Actor else null
 	if from != null:
 		from.action_tracker.cue(ActionTracker.CUE_EMITTED, a_emission)
-	if a_emission is Commandable:
-		_command(a_emission as Commandable, a_target)
+	if a_emission is Actor:
+		_command(a_emission as Actor, a_target)
 		return
 	var target: Entity = a_target if a_target is Entity else null
 	var destination: Vector3 = target.global_position if target != null else a_target
@@ -50,7 +50,7 @@ static func launch(a_emission: Entity, a_from: Variant, a_target: Variant) -> vo
 
 ## An emitted unit's initial intent, as an order: attack an Entity it was launched at, or
 ## attack-move to a point — so it fights on the way, as any unit sent somewhere would.
-static func _command(a_unit: Commandable, a_target: Variant) -> void:
+static func _command(a_unit: Actor, a_target: Variant) -> void:
 	var target: Entity = a_target if a_target is Entity else null
 	var command: MoveCommand
 	if target != null:

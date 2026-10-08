@@ -76,12 +76,10 @@ static func check_column_coverage(catalog: DamageCatalog) -> Array[String]:
 	return violations
 
 
-## §6.5/§5.2: any weapon whose damage type profile has a STRONG multiplier of
-## 1.0 must be tech tier 2 or later. No per-faction weapon carries a tech tier
-## in this codebase yet — that assignment is explicitly out of this task's
-## scope (see gdd/tasks.md §Scope) — so this is a pure function for whatever
-## weapon-authoring validation is built later to call per weapon, rather than
-## a catalog-wide scan over data that doesn't exist.
+## Any weapon whose damage type profile has a STRONG multiplier of 1.0 must be tech
+## tier 2 or later. No per-faction weapon carries a tech tier in this codebase yet,
+## so this is a pure function for whatever weapon-authoring validation is built later
+## to call per weapon, rather than a catalog-wide scan over data that doesn't exist.
 static func check_tech_gate(profile: DamageProfile, weapon_tech_tier: int) -> bool:
 	if profile.strong_multiplier == 1.0:
 		return weapon_tech_tier >= 2

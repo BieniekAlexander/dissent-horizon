@@ -129,7 +129,7 @@ const ALL_KINDS: Array = [
 #region Queries
 ## Every StatusEffect currently acting on `a_entity`. Effects are children of the entity
 ## they act on (see StatusEffect.apply_to), so this is a scan of its own children — the same
-## shape StatusVisuals and Commandable.is_stunned() use.
+## shape StatusVisuals and Actor.is_stunned() use.
 static func active_effects(a_entity: Entity) -> Array[StatusEffect]:
 	var out: Array[StatusEffect] = []
 	if a_entity == null or not is_instance_valid(a_entity):

@@ -3,6 +3,9 @@ kind: Entity
 title: terrestrial
 scene: res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn
 editor_description: Neutral inhabitant spawned by a Shelter. Unarmed, cannot build.
+flavor:
+  description: potato
+  verbose: potato
 defense:
   hp: 80
   armour: LIGHT

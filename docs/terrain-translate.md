@@ -20,7 +20,7 @@ Every terrain write is followed by an **entity reconciliation pass** (§4): scen
 Four things this doc originally got wrong, found while building:
 
 1. **`Map.footprint_cells` is unusable at author time.** It filters through `grid_coordinates_in_bounds`, which reads `cell_grid` — and `Map._ready` returns early in the editor, leaving `cell_grid` empty, so it returns *no cells at all*. Footprints are computed in `Map.entity_terrain_cells` instead. `terrain_grid` and `nav_manager` are equally absent while authoring, which is why the support predicate lives on `TerrainData` (§4b).
-2. **The flatness cull is per-structure, not universal.** `Structure.allow_uneven` already exists and `Structure.valid_placement` honours it, so the cull must too — otherwise it deletes buildings the game would happily have let the player place.
+2. **The flatness cull is per-structure, not universal.** `Fixture.allow_uneven` already exists and `Fixture.valid_placement` honours it, so the cull must too — otherwise it deletes buildings the game would happily have let the player place.
 3. **The clipboard is a source rectangle, not an extracted buffer** (§3a). This makes a Move non-destructive until it actually lands.
 4. **The paste preview is an outline, not a translucent ghost** of the region's contents — rendering the latter would mean generating a second terrain mesh on every cursor move.
 
@@ -135,7 +135,7 @@ Terrain is not authored in isolation — scenario scenes place structures, extra
 
 `Map._ready` early-returns in the editor (`map.gd:430-433`), so at author time `terrain_grid`, `cell_grid` and `nav_manager` **do not exist**. `TerrainGrid.is_passable` / `is_too_steep` / `is_flat` and `Map.cell_grid` are all unavailable to this feature, and their rules are evaluated directly against `terrain_data`'s arrays by `TerrainData.cell_supports_entity`. It reads `TerrainGrid.MAX_SLOPE_DIFF` (a `const` on the class, readable without an instance) rather than restating `0.5`, so the two can't drift apart.
 
-**This same early-return is a live trap for anything else added here.** `Map.footprint_cells` looks like the obvious way to get a structure's footprint, but it filters every cell through `grid_coordinates_in_bounds`, which reads the empty editor-time `cell_grid` and therefore returns **an empty array at author time** — a cull built on it would silently never fire. `Map.entity_terrain_cells` computes the footprint from `footprint_origin` (which reads `height_map`, and *is* populated in the editor via `_sync_from_terrain_data`) plus the `Structure` component's `dimensions`, with no `cell_grid` involvement.
+**This same early-return is a live trap for anything else added here.** `Map.footprint_cells` looks like the obvious way to get a structure's footprint, but it filters every cell through `grid_coordinates_in_bounds`, which reads the empty editor-time `cell_grid` and therefore returns **an empty array at author time** — a cull built on it would silently never fire. `Map.entity_terrain_cells` computes the footprint from `footprint_origin` (which reads `height_map`, and *is* populated in the editor via `_sync_from_terrain_data`) plus the `Fixture` component's `dimensions`, with no `cell_grid` involvement.
 
 A cell fails to support anything when any of these holds:
 
@@ -149,11 +149,11 @@ A cell fails to support anything when any of these holds:
 
 ### 4c. Per-kind rules
 
-**Units** (commandables not carrying a `Structure` component) occupy the single cell under `Map.world_to_grid(xz)`. Culled when that cell fails the table above.
+**Units** (commandables not carrying a `Fixture` component) occupy the single cell under `Map.world_to_grid(xz)`. Culled when that cell fails the table above.
 
-**Structures** occupy the footprint from `Map.entity_terrain_cells` (see the `footprint_cells` trap in §4b), with `dims` from the `Structure` component (1×1 fallback, as `add_structure` already does at `map.gd:329-330`). Culled when **any** footprint cell fails the table, **or** — unless the structure sets `Structure.allow_uneven` — when the footprint is no longer flat.
+**Structures** occupy the footprint from `Map.entity_terrain_cells` (see the `footprint_cells` trap in §4b), with `dims` from the `Fixture` component (1×1 fallback, as `add_structure` already does at `map.gd:329-330`). Culled when **any** footprint cell fails the table, **or** — unless the structure sets `Fixture.allow_uneven` — when the footprint is no longer flat.
 
-That `allow_uneven` exemption is load-bearing and this doc originally missed it. `TerrainGrid.is_flat` (`terrain_grid.gd:120-128`) requires all four of a cell's corners to be *identical*, so pasting any slope under a barracks invalidates it even though a unit could still walk there — but `Structure.valid_placement` already honours `allow_uneven` when the player places a building, and a cull that ignored it would delete structures the game would happily have allowed. The cull is only permitted to be as strict as placement is.
+That `allow_uneven` exemption is load-bearing and this doc originally missed it. `TerrainGrid.is_flat` (`terrain_grid.gd:120-128`) requires all four of a cell's corners to be *identical*, so pasting any slope under a barracks invalidates it even though a unit could still walk there — but `Fixture.valid_placement` already honours `allow_uneven` when the player places a building, and a cull that ignored it would delete structures the game would happily have allowed. The cull is only permitted to be as strict as placement is.
 
 Usefully, per-cell flatness is sufficient for a multi-cell footprint: adjacent cells share corners, so a contiguous rectangle of individually-flat cells is transitively all one height.
 

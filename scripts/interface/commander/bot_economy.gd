@@ -258,6 +258,11 @@ var _allowance: int = BotJob.UNLIMITED_WORK_UNITS
 ## the rung that asked stops, and the search resumes on the next tick.
 const SEARCH_PENDING: StringName = &"search_pending"
 
+## The quarter turn each spot _find_build_spot returned is to be built at, keyed by the spot, for
+## _issue_build to read. A side table rather than a second return value because a dozen callers
+## and their test doubles pass the spot on as a plain Vector3. Only the latest answer is kept.
+var _spot_turns: Dictionary = {}
+
 ## A build-spot search that ran out of allowance: the type it is for, its ranked candidates, how
 ## far through them it got, and what they were ranked against. A resumable sweep's cursor (see
 ## BotJob) — checking ranked candidates one by one cost over 100 ms on a crowded base. Empty
@@ -309,8 +314,8 @@ func _release_finished_jobs() -> void:
 
 
 ## Order `a_builder` to build, and claim it for the job when the order is issued.
-func _issue_build(a_builder: Commandable, a_type: StringName, a_spot: Vector3) -> bool:
-	var issued: bool = _act.build(a_builder, a_type, a_spot)
+func _issue_build(a_builder: Actor, a_type: StringName, a_spot: Vector3) -> bool:
+	var issued: bool = _act.build(a_builder, a_type, a_spot, int(_spot_turns.get(a_spot, 0)))
 	if issued:
 		claims.claim(a_builder, CLAIM_OWNER, BotClaims.Priority.ERRAND)
 		_bot.savings.spent(a_type)
@@ -339,7 +344,7 @@ func _decide() -> void:
 	):
 		return
 
-	var builder: Commandable = _pick_builder()
+	var builder: Actor = _pick_builder()
 	if builder == null:
 		return
 
@@ -450,7 +455,7 @@ func _decide() -> void:
 ## is the defence whose gun best answers the enemy UNITS the bot has seen, and it is anchored
 ## on the region that asked for it. True when the think should end here: a build issued, or a
 ## spot still being sought.
-func _defence_rung(a_builder: Commandable) -> bool:
+func _defence_rung(a_builder: Actor) -> bool:
 	if not _owns_a_producer():
 		return false
 	var read: Dictionary = _defence_demand()
@@ -473,7 +478,7 @@ func _defence_rung(a_builder: Commandable) -> bool:
 ## surplus branch, because it is the same kind of spend: throughput of a better unit rather
 ## than more of the same. Measured 2026-10-04 before this rung existed: over twelve HARD slots
 ## not one tech or support structure was considered. True as _defence_rung is.
-func _tech_rung(a_builder: Commandable) -> bool:
+func _tech_rung(a_builder: Actor) -> bool:
 	var ttype: Variant = _tech_structure_to_build()
 	if ttype == null:
 		return false
@@ -606,7 +611,7 @@ func _best_tech(a_affordable: bool) -> Dictionary:
 ## unlock for THIS bot, as opposed to for the faction.
 func _owned_producible_types() -> Array:
 	var out: Array = []
-	for s: Commandable in _bot.get_production_structures():
+	for s: Actor in _bot.get_production_structures():
 		for t: StringName in s.production.producible_types:
 			if not out.has(t):
 				out.append(t)
@@ -711,19 +716,19 @@ func _defence_demand() -> Dictionary:
 ## in energy. A region with no tension is left out — it wants nothing.
 func defence_demand_by_region() -> Array:
 	var standing: Array = _bot.get_structures().filter(
-		func(s: Commandable) -> bool: return s.is_built
+		func(s: Actor) -> bool: return s.is_built
 	)
 	if standing.is_empty():
 		return []
 	var own_armed: Array = _bot.get_units().filter(
-		func(u: Commandable) -> bool: return _bot.unit_can_attack(u.id)
+		func(u: Actor) -> bool: return _bot.unit_can_attack(u.id)
 	)
 	own_armed.append_array(
-		standing.filter(func(s: Commandable) -> bool: return _bot.unit_can_attack(s.id))
+		standing.filter(func(s: Actor) -> bool: return _bot.unit_can_attack(s.id))
 	)
 	var enemies: Array = _bot.believed_armed_enemies()  # [{"position": Vector3, "type": ...}]
 	var regions: Array = []
-	for structure: Commandable in standing:
+	for structure: Actor in standing:
 		var centre: Vector3 = structure.global_position
 		var value: float = _cost_within(standing, centre)
 		var own: float = _cost_within(own_armed, centre)
@@ -751,7 +756,7 @@ func defence_demand_by_region() -> Array:
 
 func _cost_within(a_pieces: Array, a_centre: Vector3) -> float:
 	var total: float = 0.0
-	for piece: Commandable in a_pieces:
+	for piece: Actor in a_pieces:
 		if _within_region(piece.global_position, a_centre):
 			total += float(_bot.unit_cost(piece.id))
 	return total
@@ -765,7 +770,7 @@ static func _within_region(a_point: Vector3, a_centre: Vector3) -> bool:
 ## one unit of importance per unit fielded, a live instance of each type as its rep.
 func _mirror_demand() -> Dictionary:
 	var mirror: Dictionary = {}
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		if not _bot.unit_can_attack(unit.id):
 			continue
 		if mirror.has(unit.id):
@@ -914,7 +919,7 @@ func _dominion_structure_to_build() -> Variant:
 ## Technocratic Lab) has no site to price: each one adds a whole source. Its gate is instead
 ## whether the dominion has a use (Bot.dominion_demand): a Lab turns a site's energy into
 ## dominion, and dominion that buys nothing is a site thrown away.
-func _extend_dominion(a_builder: Commandable) -> bool:
+func _extend_dominion(a_builder: Actor) -> bool:
 	var under_way: Array[StringName] = _types_under_way()
 	var route: DominionRoute = _bot.dominion_route()
 	var stacks: bool = route != null and route.another_source_adds_income()
@@ -994,7 +999,7 @@ func _dominion_site(a_type: StringName, a_min_fraction: float) -> Variant:
 func _dominion_survey(a_type: StringName) -> Variant:
 	var owned: Array = _bot._owned_structures()
 	var key: Array = [
-		a_type, owned.size(), owned.filter(func(o: Commandable) -> bool: return o.is_built).size()
+		a_type, owned.size(), owned.filter(func(o: Actor) -> bool: return o.is_built).size()
 	]
 	if _dominion_search.get("key", []) != key:
 		_dominion_search = _new_dominion_search(a_type, key)
@@ -1071,7 +1076,7 @@ func _infrastructure_unit_trainable() -> bool:
 	var source: StringName = _bot.infrastructure_source_type()
 	if not _bot.has_tech_for(source):
 		return false
-	for s: Commandable in _bot.get_production_structures():
+	for s: Actor in _bot.get_production_structures():
 		if s.production.can_produce(source):
 			return true
 	return false
@@ -1129,7 +1134,7 @@ func _has_resource_surplus() -> bool:
 ## caps. Also what keeps the military from yanking an active builder back into the fight.
 func _construction_job_count() -> int:
 	var count: int = 0
-	for u: Commandable in _bot.get_units():
+	for u: Actor in _bot.get_units():
 		if _is_constructing(u):
 			count += 1
 	return count
@@ -1144,7 +1149,7 @@ func _construction_job_count() -> int:
 func _release_stalled_construction() -> void:
 	var now: float = _bot.seconds_elapsed()
 	var live: Dictionary = {}
-	for u: Commandable in _bot.get_units():
+	for u: Actor in _bot.get_units():
 		if not _is_constructing(u):
 			continue
 		var key: int = u.get_instance_id()
@@ -1168,7 +1173,7 @@ func _release_stalled_construction() -> void:
 ## The claim is released with the order, so the army may have the unit back; the spot is
 ## remembered as contested so the next think does not send it straight back.
 func _abort_contested_jobs() -> void:
-	for u: Commandable in _bot.get_units():
+	for u: Actor in _bot.get_units():
 		if not _is_constructing(u) or not (u.current_command() is Build):
 			continue
 		var target: Variant = _construction_target(u)
@@ -1184,7 +1189,7 @@ func _abort_contested_jobs() -> void:
 ## Fog-limited like every threat sense: a defender the bot has not seen is one it walks into.
 func _site_is_contested(a_site: Vector3) -> bool:
 	return _bot.visible_enemies_near(a_site, defend_threat_radius).any(
-		func(enemy: Commandable) -> bool: return _bot.unit_can_attack(enemy.id)
+		func(enemy: Actor) -> bool: return _bot.unit_can_attack(enemy.id)
 	)
 
 
@@ -1211,7 +1216,7 @@ func _is_contested_spot(a_world: Vector3) -> bool:
 
 
 ## Where `unit`'s current construction order was aimed, or null when it has none.
-func _construction_target(a_unit: Commandable) -> Variant:
+func _construction_target(a_unit: Actor) -> Variant:
 	if not a_unit.has_command():
 		return null
 	var cmd: MoveCommand = a_unit.current_command()
@@ -1246,7 +1251,7 @@ func debug_spots() -> Dictionary:
 ## site. That was harmless while only one job ever ran.
 func _claimed_spots() -> Array[Vector3]:
 	var spots: Array[Vector3] = []
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		if not _is_constructing(unit):
 			continue
 		var target: Variant = _construction_target(unit)
@@ -1268,7 +1273,7 @@ func _is_claimed_spot(a_world: Vector3) -> bool:
 ## building as already handled instead of ordering it twice.
 func _types_under_way() -> Array[StringName]:
 	var types: Array[StringName] = []
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		if not _is_constructing(unit):
 			continue
 		var command: MoveCommand = unit.current_command()
@@ -1282,7 +1287,7 @@ func _types_under_way() -> Array[StringName]:
 	return types
 
 
-static func _is_constructing(u: Commandable) -> bool:
+static func _is_constructing(u: Actor) -> bool:
 	if not u.has_command():
 		return false
 	var c: MoveCommand = u.current_command()
@@ -1294,9 +1299,9 @@ static func _is_constructing(u: Commandable) -> bool:
 ## prefer an idle one to minimise disrupting the army; if none is idle we pull a
 ## fighter (it rejoins combat once the structure is finished). Returns null when
 ## the bot owns no builder yet.
-func _pick_builder() -> Commandable:
-	var busy_builder: Commandable = null
-	for u: Commandable in _bot.get_units():
+func _pick_builder() -> Actor:
+	var busy_builder: Actor = null
+	for u: Actor in _bot.get_units():
 		if not u.has_node("Builds"):
 			continue
 		# Don't yank a unit mid-opportunity (e.g. a truck capturing/depositing) onto a
@@ -1398,7 +1403,7 @@ func _nearest_workable_pond_spot() -> Variant:
 ## Better not to spend the builder in the first place.
 func _ponds_under_way() -> Array:
 	var ponds: Array = []
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		if not _is_constructing(unit):
 			continue
 		var target: Variant = _construction_target(unit)
@@ -1425,7 +1430,11 @@ func _pond_spot_in(a_body: WaterBody, a_dims: Vector2i) -> Variant:
 		if _is_abandoned_spot(world) or _is_claimed_spot(world) or _is_contested_spot(world):
 			continue
 		if EnergyExtractor.fits_in_pond(
-			CommandMessage.new(_bot.map, null, null, world), a_dims, true, true
+			CommandMessage.new(_bot.map, null, null, world),
+			a_dims,
+			true,
+			true,
+			PlacementKnowledge.of(_bot, _bot.map)
 		):
 			return world
 	return null
@@ -1492,7 +1501,7 @@ func _believes_pond_claimed(a_body: WaterBody) -> bool:
 func _is_claim_known(a_claimant: Variant) -> bool:
 	if a_claimant == null or not is_instance_valid(a_claimant):
 		return false
-	var claimant: Commandable = a_claimant as Commandable
+	var claimant: Actor = a_claimant as Actor
 	return (
 		claimant != null
 		and (claimant.commander_id == _bot.id or _bot.has_vision_at(claimant.global_position))
@@ -1563,19 +1572,38 @@ func _find_build_spot(a_type: StringName) -> Variant:
 		if _work >= _allowance and cursor > start:
 			search["cursor"] = cursor
 			return SEARCH_PENDING
-		var index: int = candidates[cursor] & 0xFFFFF
+		var packed: int = candidates[cursor]
 		cursor += 1
 		_work += PLACEMENT_CHECK_WORK_UNITS
-		var origin: Vector2i = Vector2i(index % width, index / width)
-		if _placement_ok(_bot.map.footprint_centroid(origin, dims), dims, search["region"]):
+		var is_turned: bool = (packed & RANK_TURNED_BIT) != 0
+		var oriented: Vector2i = Fixture.oriented_dimensions(dims, 1 if is_turned else 0)
+		var origin: Vector2i = ranked_origin(packed, width)
+		var spot: Vector3 = _bot.map.footprint_centroid(origin, oriented)
+		if _placement_ok(spot, oriented, search["region"]):
 			_spot_search = {}
-			return _bot.map.footprint_centroid(origin, dims)
+			_spot_turns = {spot: facing_turns(is_turned, search["forward"])}
+			return spot
 	_spot_search = {}
 	return null
 
 
+## The quarter turn a structure is laid at, given whether its footprint is TURNED (dimensions
+## swapped, an odd count) and the bot's forward axis: of the two counts that claim those cells,
+## the one whose facing points more toward the threat. Chosen in the bot's frame, so it moves
+## with any isometry of the bot's situation; in an exact tie (forward square to both facings)
+## the lower count wins. A count's facing turns +Z by that many quarter turns about +Y.
+static func facing_turns(is_turned: bool, forward: Vector2) -> int:
+	var first: int = 1 if is_turned else 0
+	var facing: Vector2 = Vector2(sin(first * PI / 2.0), cos(first * PI / 2.0))
+	return first + 2 if facing.dot(forward) < 0.0 else first
+
+
 ## A fresh build-spot search for `a_type`: its candidate ranking (not yet run) and what it
 ## needs to check the candidates.
+##
+## A NON-SQUARE footprint is ranked at both orientations, as one list: the turned candidates are
+## scored exactly as the others, and between two that tie the one whose long axis lies ACROSS
+## the bot's forward axis comes first (footprint-rotation.md §Slices, slice 4).
 func _new_spot_search(a_type: StringName) -> Dictionary:
 	var dims: Vector2i = _dims_for_type(a_type)
 	var anchor: Vector2 = (
@@ -1583,13 +1611,41 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 		if a_type in _bot.buildable_defence_structure_types()
 		else VU.in_xz(_bot.base_centroid())
 	)
+	var forward: Vector2 = _forward_direction(anchor)
+	var bearing: float = _bearing_for(a_type)
+	var rankings: Array[Dictionary] = [
+		_start_ranking(anchor, forward, bearing, dims, _orientation_bits(dims, false, forward))
+	]
+	if dims.x != dims.y:
+		var turned: Vector2i = Fixture.oriented_dimensions(dims, 1)
+		rankings.append(
+			_start_ranking(
+				anchor, forward, bearing, turned, _orientation_bits(turned, true, forward)
+			)
+		)
 	return {
 		"type": a_type,
 		"dims": dims,
+		"forward": forward,
 		"region": _home_region(),
 		"cursor": 0,
-		"ranking": _start_ranking(anchor, _forward_direction(anchor), _bearing_for(a_type), dims)
+		"ranking": {"parts": rankings, "out": PackedInt64Array(), "done": false},
 	}
+
+
+## The bits a candidate of `a_dims` carries above its cell index: RANK_TURNED_BIT for a turned
+## footprint, and RANK_ALONG_BIT when its long axis lies more ALONG the forward axis than across
+## it, which ranks it after an otherwise equal candidate whose long axis lies across. A square
+## footprint has no long axis and carries neither.
+static func _orientation_bits(a_dims: Vector2i, a_is_turned: bool, a_forward: Vector2) -> int:
+	var bits: int = RANK_TURNED_BIT if a_is_turned else 0
+	if a_dims.x == a_dims.y:
+		return bits
+	var long_axis: Vector2 = Vector2(1.0, 0.0) if a_dims.x > a_dims.y else Vector2(0.0, 1.0)
+	var across: Vector2 = Vector2(long_axis.y, long_axis.x)
+	if absf(long_axis.dot(a_forward)) > absf(across.dot(a_forward)):
+		bits |= RANK_ALONG_BIT
+	return bits
 
 
 ## The region the demand read last asked a turret for (XZ), or null before it has asked:
@@ -1609,10 +1665,10 @@ func _defence_anchor() -> Vector2:
 		return _demanded_anchor
 	var origin: Vector2 = VU.in_xz(_bot.base_centroid())
 	var toward: Vector2 = _bot.threat_direction(origin)
-	var guarded: Commandable = null
+	var guarded: Actor = null
 	if _bot.win_condition() == Scenario.WinCondition.HEGEMONY:
 		var best_along: float = -INF
-		for centre: Commandable in _bot.owned_command_centres():
+		for centre: Actor in _bot.owned_command_centres():
 			var along: float = (VU.in_xz(centre.global_position) - origin).dot(toward)
 			if along > best_along:
 				best_along = along
@@ -1712,7 +1768,7 @@ static func ranked_cost(a_packed: int) -> float:
 
 ## The footprint origin a ranked candidate stands for, on a grid `a_grid_width` cells wide.
 static func ranked_origin(a_packed: int, a_grid_width: int) -> Vector2i:
-	var index: int = a_packed & 0xFFFFF
+	var index: int = a_packed & RANK_INDEX_MASK
 	return Vector2i(index % a_grid_width, index / a_grid_width)
 
 
@@ -1743,9 +1799,13 @@ func _scored_candidates(
 ## The state of one ranking: what every candidate is scored against, fixed when it starts, the
 ## row of origins it has reached, and the candidates found so far. See _scored_candidates.
 func _start_ranking(
-	a_anchor: Vector2, a_forward: Vector2, a_bearing: float, a_dims: Vector2i
+	a_anchor: Vector2, a_forward: Vector2, a_bearing: float, a_dims: Vector2i, a_bits: int = 0
 ) -> Dictionary:
 	var map: Map = _bot.map
+	assert(
+		map.terrain_grid.grid_width() * map.terrain_grid.grid_depth() <= RANK_INDEX_MASK + 1,
+		"BotEconomy: the map has more cells than a ranked candidate's index can hold"
+	)
 
 	# A CANDIDATE IS A FOOTPRINT ORIGIN, NOT A CELL, and that distinction is load-bearing.
 	# Map.footprint_origin resolves an EVEN footprint by rounding in absolute grid coordinates,
@@ -1771,6 +1831,7 @@ func _start_ranking(
 		"basis_z":
 		VU.in_xz(map.footprint_centroid(seed_origin + Vector2i(0, 1), a_dims)) - world_seed,
 		"row": -SEARCH_MAX_RING - 1,
+		"bits": a_bits,
 		"out": PackedInt64Array(),
 		"done": false,
 	}
@@ -1782,6 +1843,8 @@ func _start_ranking(
 func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 	if a_ranking["done"]:
 		return true
+	if a_ranking.has("parts"):
+		return _continue_rankings(a_ranking, a_allowance)
 	var grid: TerrainGrid = _bot.map.terrain_grid
 	var width: int = grid.grid_width()
 	var depth: int = grid.grid_depth()
@@ -1837,10 +1900,30 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 				- bearing * along
 				- place_corridor_weight * float(clearance)
 			)
-			out.append(_pack(cost, along, offset.dot(right), origin_z * width + origin_x))
+			out.append(
+				_pack(
+					cost, along, offset.dot(right), origin_z * width + origin_x, a_ranking["bits"]
+				)
+			)
 	out.sort()
 	_work += out.size() * CANDIDATE_WORK_UNITS
 	a_ranking["out"] = out
+	a_ranking["done"] = true
+	return true
+
+
+## Continue every ranking in a composite one (both orientations of a footprint) in turn; once
+## all are done, merge their candidates into one best-first list.
+func _continue_rankings(a_ranking: Dictionary, a_allowance: int) -> bool:
+	var budget_end: int = _work + a_allowance
+	for part: Dictionary in a_ranking["parts"]:
+		if not _continue_ranking(part, maxi(budget_end - _work, 0)):
+			return false
+	var merged: PackedInt64Array = PackedInt64Array()
+	for part: Dictionary in a_ranking["parts"]:
+		merged.append_array(part["out"])
+	merged.sort()
+	a_ranking["out"] = merged
 	a_ranking["done"] = true
 	return true
 
@@ -1857,11 +1940,28 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 ## and the order is TOTAL — which is what makes corresponding candidates land at
 ## corresponding ranks in both bots' lists. The cell index rides in the low 20 bits purely so
 ## the winner can be turned back into a position.
-static func _pack(a_cost: float, a_along: float, a_lateral: float, a_cell_index: int) -> int:
+##
+## Below the lateral field: RANK_ALONG_BIT and RANK_TURNED_BIT (see _orientation_bits), then the
+## cell index in the low RANK_INDEX_BITS.
+static func _pack(
+	a_cost: float, a_along: float, a_lateral: float, a_cell_index: int, a_bits: int = 0
+) -> int:
 	var cost: int = clampi(roundi(a_cost * 100.0) + 8192, 0, 16383)
 	var along: int = clampi(roundi(-a_along * 100.0) + 2048, 0, 4095)
 	var lateral: int = clampi(roundi(a_lateral * 100.0) + 2048, 0, 4095)
-	return (cost << 44) | (along << 32) | (lateral << 20) | (a_cell_index & 0xFFFFF)
+	return (
+		(cost << 44) | (along << 32) | (lateral << 20) | a_bits | (a_cell_index & RANK_INDEX_MASK)
+	)
+
+
+## How many low bits of a ranked candidate hold its cell index: 262,144 cells, against the
+## largest map's 230 × 230 = 52,900 (asserted when a ranking starts).
+const RANK_INDEX_BITS: int = 18
+const RANK_INDEX_MASK: int = (1 << RANK_INDEX_BITS) - 1
+## A candidate whose footprint is turned a quarter (dimensions swapped).
+const RANK_TURNED_BIT: int = 1 << RANK_INDEX_BITS
+## A candidate whose long axis lies along the forward axis: ranked after an equal one across it.
+const RANK_ALONG_BIT: int = 1 << (RANK_INDEX_BITS + 1)
 
 
 ## THE REGION OF THE MAP THE BOT LIVES ON, as a TerrainGrid component id.
@@ -1874,7 +1974,7 @@ static func _pack(a_cost: float, a_along: float, a_lateral: float, a_cell_index:
 func _home_region() -> int:
 	var grid: TerrainGrid = _bot.map.terrain_grid
 	var tally: Dictionary = {}
-	for u: Commandable in _bot.get_units():
+	for u: Actor in _bot.get_units():
 		var region: int = grid.component_at(_bot.map.world_to_grid(VU.in_xz(u.global_position)))
 		if region >= 0:
 			tally[region] = int(tally.get(region, 0)) + 1
@@ -1896,8 +1996,9 @@ const PLACEMENT_NAV_CLASS: int = NavAgentClass.Size.LARGE
 
 ## Whether a structure of `a_dims` centred at `a_world` may actually be built there.
 ##
-## Cheapest test first: the geometry (in bounds, unoccupied, flat), then the written-off
-## list, then the two NAVIGATION rules, which live in the map layer because they are facts
+## Cheapest test first: the geometry (in bounds, flat, and unoccupied as far as the bot knows —
+## Build judges by the same knowledge, so a spot found here is not refused there), then the
+## written-off list, then the two NAVIGATION rules, which live in the map layer because they are facts
 ## about the map rather than bot preferences — see NavPlacement.
 ##
 ## EVERY structure the bot places is required to keep a side on the navmesh, not only the
@@ -1906,8 +2007,12 @@ const PLACEMENT_NAV_CLASS: int = NavAgentClass.Size.LARGE
 ## narrower "production only" reading of the rule is available to other callers as
 ## NavPlacement.accepts' `a_needs_access` flag.
 func _placement_ok(a_world: Vector3, a_dims: Vector2i, a_region: int = -1) -> bool:
-	if not Structure.valid_placement(
-		CommandMessage.new(_bot.map, null, null, a_world), a_dims, false
+	if not Fixture.valid_placement(
+		CommandMessage.new(_bot.map, null, null, a_world),
+		a_dims,
+		false,
+		false,
+		PlacementKnowledge.of(_bot, _bot.map)
 	):
 		return false
 	if _is_abandoned_spot(a_world):
@@ -1930,8 +2035,8 @@ func _dims_for_type(a_type: StringName) -> Vector2i:
 	var tool: Tool = Tool.for_type(a_type)
 	if tool != null:
 		var preview: Node = _bot.get_build_preview_instance(tool)
-		var s: Structure = (
-			preview.get_node_or_null("Structure") as Structure if preview != null else null
+		var s: Fixture = (
+			preview.get_node_or_null("Fixture") as Fixture if preview != null else null
 		)
 		if s != null:
 			return s.dimensions

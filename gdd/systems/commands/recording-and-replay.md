@@ -5,17 +5,60 @@ type: system-note
 
 # Recording and replay
 
-**PLANNED** — scoped 2026-09-29, awaiting the go-ahead to build. Step 4 of "Seeded
-pseudo-randomness, for deterministic replay" (`gdd/tasks.md`). Steps 1–3 are built: one seed
-makes one match, tick for tick ([ai/selfplay-harness](../ai/selfplay-harness.md) §Determinism,
-[terrain-and-navigation/navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md)
+Scoped 2026-09-29; the recording side and the order boundary are built (2026-10-08), playback
+has a programmatic entry and a regression test, and the rest — the remaining order kinds and
+every screen a player watches a replay through — is `PLANNED` below (`gdd/tasks.md` T-037). One
+seed makes one match, tick for tick ([ai/selfplay-harness](../ai/selfplay-harness.md)
+§Determinism, [terrain-and-navigation/navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md)
 §Navigation is synchronous, for replay).
+
+## What is built
+
+- **Orders are `PlayerOrder`s, applied by `OrderDispatcher` at the start of a tick.** The
+  controller builds an order from the selection, the message and the modifiers held, and submits
+  it to the scenario's `OrderStream`, which applies it at the start of the next tick, live and
+  replayed alike. With no stream (a bare controller in a test) the dispatcher applies it at once.
+  The controller previews through the dispatcher's own rules (`recipients`, `narrowed`,
+  `line_destinations`), so what it shows and what is applied agree. Every way a player changes
+  the simulation is a kind: COMMAND (everything through `assign_command_to_units`: moves,
+  attacks, builds, training purchases, casts and sanctions), HOLD_FIRE, AUTOCAST,
+  CANCEL_PURCHASE and CANCEL_JOB (the cards and the rail), RELEASE_OCCUPANT, UNLOCK_SANCTION,
+  DROP (the start-of-round drop; its pieces are selected when it lands), PENDING_COMMAND (an
+  order stored on a purchase whose unit does not exist yet) and DIALOG.
+- **A dialog's order applies through a pause**, since a dialog is what pauses the world: the
+  stream runs while paused and applies DIALOG orders alone, everything else waiting for the
+  world to resume. A dialog is named by the serial the trigger manager gives it when raised
+  (`ScenarioTriggerManager.raise_dialog`), and the view closes it whenever it resolves.
+- **Purchase ids restart at 1 each match** (`PurchaseTransaction.reset_ids`), so a replay in the
+  same session names its purchases as the recording did.
+- **Spawn serials**: `Entity.spawn_serial`, taken from `Scenario.register_piece` as a piece first
+  enters the tree; `Scenario.piece_by_serial` finds a piece, garrisoned or not.
+- **The file**: `ReplayFile` (header, JSON lines in gzip, version stamp, refusal of another
+  version), `ReplayNames` (autosave names and the keep-three rotation, kept-name rules).
+- **The recorder**: `ReplayRecorder` keeps every applied order and a `SimulationDigest` every
+  second, taken at the start of a tick before its orders; in playback it compares and reports the
+  first differing tick. It writes the autosave when the match ends or the scenario is left —
+  except in a headless run (the test suite, self-play), which would otherwise rotate a player's
+  own autosaves out of `user://`.
+- **Debug mode ends the recording** (`Scenario.note_debug_change`): a debug piece, debug delete,
+  a bot switched or retuned, a piece retuned, or an order to another commander's piece.
+- **Playback**: a scenario given `replay_to_play` before entering the tree takes the recording's
+  seed and its orders, and ignores anything submitted. `tests/test_ReplayRoundTrip.gd` records a
+  minute of play and requires the playback to match every digest — and a playback with an order
+  removed to report drift.
+- **The wall-clock scan** in `tests/test_SeededRandomness.gd`, with its allow-list.
 
 A replay is the scenario, its seed and slots, and the stream of **orders the human players
 gave**. Playback re-runs the simulation from the seed and feeds the orders back in on the ticks
 they landed. Bots are not recorded: they re-derive their orders from the same seed.
 
 ## The plan
+
+PLANNED, not yet built:
+
+- **Everything under §Watching** — the replay panel, Save replay, perspective, the HUD for looking,
+  replay keys — and launching a playback from the start screen.
+- **The header's start points** per slot.
 
 ### The order stream (Commands)
 

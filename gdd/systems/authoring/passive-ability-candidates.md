@@ -85,7 +85,7 @@ not a ring.
 | Mechanic | Lives in | Valence | Note |
 |---|---|---|---|
 | **Stealth** — the piece is hidden until it acts | `Stealth` | BOON | Already drawn in the world by `StatusVisuals` (a fade). A card would name the BREAK condition, which the fade cannot. Piece-specific, so a card rather than a widget. |
-| **Unpowered** — a structure's weapons and abilities are off while its commander is infrastructure-strained | `Commandable.is_unpowered` | BANE | Cheap and high-value: the state exists, has a HUD blocker already, and is currently only visible by pressing a dark button. The obvious first BANE card that is not a status effect. |
+| **Unpowered** — a structure's weapons and abilities are off while its commander is infrastructure-strained | `Actor.is_unpowered` | BANE | Cheap and high-value: the state exists, has a HUD blocker already, and is currently only visible by pressing a dark button. The obvious first BANE card that is not a status effect. |
 | **Veterancy rank** — accumulated experience raising a piece's stats | `Veterancy` | BOON | Drawn in the world as chevrons. A card could carry the actual bonuses, which the chevrons cannot. Note it is a SCALE, not a flag — three ranks means either three abilities or a card that reads its own level. |
 
 ## Deliberately NOT candidates

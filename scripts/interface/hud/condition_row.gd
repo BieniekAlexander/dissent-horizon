@@ -15,7 +15,7 @@ extends HFlowContainer
 ##   * ACTIVE STATUS EFFECTS — nodes on the host, temporary, drawn with a depletion sweep.
 ##     The world already floats an icon over an affected unit (StatusVisuals); a billboard
 ##     says *something is on it* and only a card can say WHAT, so the two share their art.
-##   * HOLD FIRE — the piece's own Commandable.is_holding_fire, persistent and neutral, drawn
+##   * HOLD FIRE — the piece's own Actor.is_holding_fire, persistent and neutral, drawn
 ##     with the same badge StatusVisuals floats over it. Its owner's to see only.
 ##   * PRODUCTION — an extractor's energy, a generator's dominion. Persistent, so no sweep,
 ##     and badged with what it is banking per cycle. These have no card of their own anywhere
@@ -50,15 +50,15 @@ signal ranges_unhovered
 ## The set of cards currently drawn, so an unchanged set costs no rebuild.
 var _drawn: String = ""
 ## The piece the cards belong to — the host of any range a hover asks for.
-var _host: Commandable = null
+var _host: Actor = null
 #endregion
 
 
 #region Public API
-## Redraw for `a_selection`. Anything other than exactly one Commandable empties the row, and
+## Redraw for `a_selection`. Anything other than exactly one Actor empties the row, and
 ## a piece with nothing to say hides it entirely rather than leaving a gap in the panel.
 func update(a_selection: Array) -> void:
-	_host = a_selection[0] as Commandable if a_selection.size() == 1 else null
+	_host = a_selection[0] as Actor if a_selection.size() == 1 else null
 	var effects: Array[StatusEffect] = EntityRanges.active_effects(_host)
 	var signature: String = _signature(effects)
 	visible = not effects.is_empty() or _produces(_host) or _holds_fire(_host)
@@ -79,7 +79,7 @@ static func letter_for(a_effect: StatusEffect) -> String:
 
 
 ## Whether `a_piece` banks anything on a cycle — i.e. whether it gets a production card.
-static func _produces(a_piece: Commandable) -> bool:
+static func _produces(a_piece: Actor) -> bool:
 	return (
 		a_piece != null
 		and is_instance_valid(a_piece)
@@ -88,7 +88,7 @@ static func _produces(a_piece: Commandable) -> bool:
 
 
 ## Whether `a_piece` gets a hold-fire card: it is holding, and it is the player's.
-static func _holds_fire(a_piece: Commandable) -> bool:
+static func _holds_fire(a_piece: Actor) -> bool:
 	return (
 		a_piece != null
 		and is_instance_valid(a_piece)
@@ -98,11 +98,11 @@ static func _holds_fire(a_piece: Commandable) -> bool:
 	)
 
 
-static func _extractor_of(a_piece: Commandable) -> EnergyExtractor:
+static func _extractor_of(a_piece: Actor) -> EnergyExtractor:
 	return a_piece.get_node_or_null("EnergyExtractor") as EnergyExtractor
 
 
-static func _generator_of(a_piece: Commandable) -> DominionGenerator:
+static func _generator_of(a_piece: Actor) -> DominionGenerator:
 	return a_piece.get_node_or_null("DominionGenerator") as DominionGenerator
 
 

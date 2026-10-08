@@ -52,14 +52,14 @@ var origin: CommandMessage = null
 var transaction: PurchaseTransaction = null
 
 ## BUILD only — the blueprint this order raised at its site: a real, owned, selectable
-## structure in the PLANNED state (see Commandable.plan_construction), which the builder
+## structure in the PLANNED state (see Actor.plan_construction), which the builder
 ## commits in place on arrival instead of instantiating a new one. Like `transaction` it
 ## is SHARED by every builder's snapshot, so one order means one blueprint however many
 ## units are walking toward it. Null for a build issued outside the HUD (scenario events,
 ## tests), which instantiate their structure at placement time as before.
-var planned_structure: Commandable = null
+var planned_structure: Actor = null
 
-## BUILD only — how the structure is to be turned when it is laid, as Structure.quarter_turns
+## BUILD only — how the structure is to be turned when it is laid, as Fixture.quarter_turns
 ## (0…3, counter-clockwise from above; 0 faces +Z). The footprint the order claims is the tool's
 ## dimensions turned by this. An integer, so a recorded order carries no float. Default 0 is what
 ## every order that never chose a facing — scenario events, the bot — has always meant.
@@ -88,7 +88,7 @@ var match_group_speed: bool = false
 ## Entity.target_priority ranks WORSE (higher-valued) than this is ignored. Defaults to
 ## NON_COMBAT_UNITS, so aggro chases armed things and unarmed units but skips unarmed
 ## structures unless a command explicitly widens it (Defend always does — Defend._init).
-## See Commandable.get_aggro_near_position.
+## See Actor.get_aggro_near_position.
 var target_priority: Entity.TargetPriority = Entity.TargetPriority.NON_COMBAT_UNITS
 
 ## When true, the commandable pursues this command to completion regardless of the
@@ -164,7 +164,7 @@ func clear() -> void:
 
 static func deep_copy(message: CommandMessage) -> CommandMessage:
 	# `target` can go stale: rally_commands are long-lived templates (kept until the player
-	# re-authors the rally point — see Commandable.rally_commands), so a rallied MoveCommand's
+	# re-authors the rally point — see Actor.rally_commands), so a rallied MoveCommand's
 	# target can die and be FREED long before the template is ever duplicated. Unlike a plain
 	# null check, passing an already-freed Object straight into CommandMessage.new()'s typed
 	# `a_target: Entity` parameter crashes outright ("previously freed... not a subclass of the

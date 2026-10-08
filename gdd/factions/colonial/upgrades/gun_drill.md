@@ -3,6 +3,7 @@ kind: Upgrade
 title: Gun Drill
 flavor:
   description: Bombard crews reload in two thirds the time.
+  verbose: potato
 build:
   cost: {energy: 1000}
   time: 50

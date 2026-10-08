@@ -2,6 +2,9 @@
 kind: Entity
 title: Bombard
 scene: res://scenes/entities/structures/cl/cl_defense_antiStructure.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost:
     energy: 1000

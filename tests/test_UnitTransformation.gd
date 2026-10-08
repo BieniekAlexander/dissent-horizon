@@ -19,8 +19,8 @@ var IRREGULAR: Dictionary:
 const WARLORD: Dictionary = {"speed": 2.0}
 
 
-func _unit(a_options: Dictionary) -> Commandable:
-	var unit: Commandable = FakePieces.unit(a_options)
+func _unit(a_options: Dictionary) -> Actor:
+	var unit: Actor = FakePieces.unit(a_options)
 	add_child_autofree(unit)
 	unit.top_level = true
 	return unit
@@ -73,7 +73,7 @@ func test_both_can_move() -> void:
 # --- The chain ------------------------------------------------------------------
 
 
-func _queue(a_unit: Commandable, a_commands: Array[MoveCommand]) -> void:
+func _queue(a_unit: Actor, a_commands: Array[MoveCommand]) -> void:
 	a_unit.command_receiver.update_commands(a_commands)
 
 

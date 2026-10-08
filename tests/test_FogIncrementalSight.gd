@@ -24,7 +24,7 @@ const STEPS: int = 200
 const SEED: int = 20260926
 
 var _fog: Fog
-var _sources: Array[Commandable] = []
+var _sources: Array[Actor] = []
 var _viewer: Commander
 var _other: Commander
 ## The reference fog's explored bytes: every pixel ever in sight, rebuilt the old way.
@@ -60,8 +60,8 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _unit(a_owner: Commander, a_at: Vector3) -> Commandable:
-	var u := FakePieces.make(IRREGULAR) as Commandable
+func _unit(a_owner: Commander, a_at: Vector3) -> Actor:
+	var u := FakePieces.make(IRREGULAR) as Actor
 	add_child_autofree(u)
 	u.ownership.commander = a_owner
 	u.global_position = a_at
@@ -101,7 +101,7 @@ func _random_point(a_rng: RandomNumberGenerator) -> Vector3:
 
 ## One random change a vision source can undergo.
 func _mutate(a_rng: RandomNumberGenerator) -> void:
-	var unit: Commandable = _sources[a_rng.randi_range(0, _sources.size() - 1)]
+	var unit: Actor = _sources[a_rng.randi_range(0, _sources.size() - 1)]
 	match a_rng.randi_range(0, 5):
 		0, 1:
 			unit.global_position = _random_point(a_rng)
@@ -148,7 +148,7 @@ func test_every_count_returns_to_zero_when_every_source_is_gone() -> void:
 	for step: int in STEPS:
 		_mutate(rng)
 		_fog._update_sight(_los())
-	for unit: Commandable in _sources:
+	for unit: Actor in _sources:
 		unit.remove_from_group("los")
 	_fog._update_sight(_los())
 	var nonzero: int = 0

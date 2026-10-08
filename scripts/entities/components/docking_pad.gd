@@ -24,7 +24,7 @@ extends Marker3D
 ## Never read directly; ask through is_free() / claimed_by(), which also treat a freed
 ## unit as gone. A pad's claimant can be destroyed mid-approach, and a freed reference
 ## reads as null in Godot only for `== null`, not for a typed field's other uses.
-var _claimant: Commandable = null
+var _claimant: Actor = null
 #endregion
 
 
@@ -37,14 +37,14 @@ func is_free() -> bool:
 
 ## The live unit holding this pad, or null. Collapses the freed-claimant case so callers
 ## never have to repeat the validity check.
-func claimed_by() -> Commandable:
+func claimed_by() -> Actor:
 	return _claimant if is_instance_valid(_claimant) else null
 
 
 ## Claim this pad for `unit`. Returns false, changing nothing, when someone else holds it
 ## — the caller (DockingBay.reserve) is expected to have picked a free pad, so a refusal
 ## here means two claims raced within one tick.
-func claim(a_unit: Commandable) -> bool:
+func claim(a_unit: Actor) -> bool:
 	if not is_free() and claimed_by() != a_unit:
 		return false
 	_claimant = a_unit
@@ -54,14 +54,14 @@ func claim(a_unit: Commandable) -> bool:
 ## Drop `unit`'s claim. A no-op when someone else holds the pad, so a stale release — from
 ## a Rearm command being torn down after its aircraft already left and another arrived —
 ## cannot evict the current occupant.
-func release(a_unit: Commandable) -> void:
+func release(a_unit: Actor) -> void:
 	if claimed_by() == a_unit or not is_instance_valid(_claimant):
 		_claimant = null
 
 
 ## Where an aircraft parked here sits, in world space. XZ is the marker's own position;
 ## Y is left to the caller, which resolves it from the terrain plus deck_height (aerial
-## units have their world Y driven per-tick by Commandable, so a fixed Y here would be
+## units have their world Y driven per-tick by Actor, so a fixed Y here would be
 ## overwritten immediately).
 func dock_position() -> Vector3:
 	return global_position

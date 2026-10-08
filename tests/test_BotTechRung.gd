@@ -51,11 +51,11 @@ class FakeBot:
 	func unit_can_attack(_a_type) -> bool:
 		return true
 
-	var _producer: Commandable = null
+	var _producer: Actor = null
 
 	func get_production_structures() -> Array:
 		if _producer == null:
-			_producer = Commandable.new()
+			_producer = Actor.new()
 			_producer.production = Production.new()
 			_producer.add_child(_producer.production)
 		_producer.production.producible_types.assign(producible)
@@ -71,14 +71,16 @@ class StubActuator:
 	extends BotActuator
 	var builds: Array = []
 
-	func build(_a_builder: Commandable, a_type: StringName, _a_pos: Vector3) -> bool:
+	func build(
+		_a_builder: Actor, a_type: StringName, _a_pos: Vector3, _a_quarter_turns: int = 0
+	) -> bool:
 		builds.append(a_type)
 		return true
 
 
 class StubEconomy:
 	extends BotEconomy
-	var builder: Commandable
+	var builder: Actor
 
 	func _construction_job_count() -> int:
 		return 0
@@ -86,7 +88,7 @@ class StubEconomy:
 	func _release_stalled_construction() -> void:
 		pass
 
-	func _pick_builder() -> Commandable:
+	func _pick_builder() -> Actor:
 		return builder
 
 	func _dominion_structure_to_build() -> Variant:
@@ -95,7 +97,7 @@ class StubEconomy:
 	func _infrastructure_structure_to_build() -> Variant:
 		return null
 
-	func _extend_dominion(_a_builder: Commandable) -> bool:
+	func _extend_dominion(_a_builder: Actor) -> bool:
 		return false
 
 	func _income_structure_to_build() -> Variant:
@@ -135,7 +137,7 @@ func _economy() -> StubEconomy:
 	economy.reserve = RESERVE
 	economy.income_structure_target = 0
 	economy.tech_value_margin = 1.3
-	economy.builder = autofree(Commandable.new()) as Commandable
+	economy.builder = autofree(Actor.new()) as Actor
 	economy._prev_energy = _bot.energy  # in surplus, so the capacity rung is live
 	return economy
 

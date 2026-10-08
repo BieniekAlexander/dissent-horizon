@@ -17,14 +17,14 @@ func _controller() -> RTSController:
 	return autofree(RTSController.new()) as RTSController
 
 
-## A real unit standing at `a_xz`, owned by `a_commander`. A bare `Commandable.new()` will not
+## A real unit standing at `a_xz`, owned by `a_commander`. A bare `Actor.new()` will not
 ## do — the class has required `@onready` children (an HP bar, a Selectable) and errors
 ## without them — and the gesture genuinely needs both a world position and a live Selectable.
 ##
 ## Ownership is assigned
 ## directly rather than through initialize(), so no Map is needed (see test_Garrison).
-func _unit_at(a_xz: Vector2, a_commander: Commander) -> Commandable:
-	var unit: Commandable = FakePieces.unit(FakePieces.PLAIN)
+func _unit_at(a_xz: Vector2, a_commander: Commander) -> Actor:
+	var unit: Actor = FakePieces.unit(FakePieces.PLAIN)
 	add_child_autofree(unit)
 	unit.ownership.commander = a_commander
 	unit.global_position = VU.from_xz(a_xz)
@@ -66,8 +66,8 @@ func test_a_narrow_rect_removes_only_what_it_covers() -> void:
 func test_it_never_selects_anything() -> void:
 	var controller: RTSController = _controller()
 	var commander: Commander = _player()
-	var selected: Commandable = _unit_at(Vector2(50, 0), commander)
-	var bystander: Commandable = _unit_at(Vector2(0, 0), commander)
+	var selected: Actor = _unit_at(Vector2(50, 0), commander)
+	var bystander: Actor = _unit_at(Vector2(0, 0), commander)
 	controller.selection = [selected] as Array[Node]
 
 	controller._deselect_in_world_rect(Rect2(Vector2(-1, -1), Vector2(10, 2)))
@@ -84,7 +84,7 @@ func test_it_never_selects_anything() -> void:
 func test_a_rect_over_nothing_selected_changes_nothing() -> void:
 	var controller: RTSController = _controller()
 	var commander: Commander = _player()
-	var kept: Commandable = _unit_at(Vector2(50, 0), commander)
+	var kept: Actor = _unit_at(Vector2(50, 0), commander)
 	controller.selection = [kept] as Array[Node]
 	controller._deselect_in_world_rect(Rect2(Vector2(-100, -100), Vector2(1, 1)))
 	assert_eq(controller.selection, [kept] as Array[Node])
@@ -136,6 +136,6 @@ func test_one_press_buys_one_without_the_modifier() -> void:
 
 func test_the_batch_size_is_a_named_constant() -> void:
 	assert_gt(
-		RTSController.BULK_PURCHASE_COUNT, 1, "a batch of one would make the modifier a no-op"
+		OrderDispatcher.BULK_PURCHASE_COUNT, 1, "a batch of one would make the modifier a no-op"
 	)
 #endregion

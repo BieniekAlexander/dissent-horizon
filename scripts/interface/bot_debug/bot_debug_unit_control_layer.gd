@@ -27,7 +27,7 @@ func draw(a_bot: Bot, a_pen: BotDebugPen) -> void:
 	var brain: BotBrain = brain_of(a_bot)
 	if brain == null:
 		return
-	for unit: Commandable in a_bot.get_units():
+	for unit: Actor in a_bot.get_units():
 		if not unit.is_inside_tree():
 			continue
 		var owner: StringName = brain.claims.owner_of(unit)
@@ -44,7 +44,7 @@ func readout(a_bot: Bot) -> PackedStringArray:
 	if brain == null:
 		return PackedStringArray(["no brain"])
 	var counts: Dictionary = {}
-	for unit: Commandable in a_bot.get_units():
+	for unit: Actor in a_bot.get_units():
 		var owner: StringName = brain.claims.owner_of(unit)
 		counts[owner] = int(counts.get(owner, 0)) + 1
 	var lines: PackedStringArray = PackedStringArray(["units: %d" % a_bot.get_units().size()])

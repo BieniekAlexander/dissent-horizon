@@ -179,7 +179,7 @@ func _value_of(a_side: Dictionary) -> float:
 ## wounded survivor is worth less than a fresh one.
 func _value_left(a_arena: SimArena, a_group: String) -> float:
 	var total: float = 0.0
-	for entity: Commandable in a_arena.roster.living(a_group):
+	for entity: Actor in a_arena.roster.living(a_group):
 		var fraction: float = 1.0
 		if entity.defense != null and entity.defense.hp_max > 0.0:
 			fraction = clampf(entity.defense.hp / entity.defense.hp_max, 0.0, 1.0)

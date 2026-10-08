@@ -20,8 +20,8 @@ func _commanded(a_id: int) -> Commander:
 
 
 ## A live unit (a fake: tests/_fake_pieces.gd).
-func _unit(a_commander: Commander) -> Commandable:
-	var unit: Commandable = FakePieces.unit(FakePieces.PLAIN)
+func _unit(a_commander: Commander) -> Actor:
+	var unit: Actor = FakePieces.unit(FakePieces.PLAIN)
 	add_child_autofree(unit)
 	unit.ownership.commander = a_commander
 	return unit
@@ -43,8 +43,8 @@ func _destinations(a_chain: Array) -> Array:
 ## one must not tip it out of the vehicle — the order waits.
 func test_ordering_an_occupant_leaves_it_inside() -> void:
 	var commander: Commander = _commanded(1)
-	var host: Commandable = _unit(commander)
-	var occupant: Commandable = _unit(commander)
+	var host: Actor = _unit(commander)
+	var occupant: Actor = _unit(commander)
 	var garrison := Garrison.new()
 	garrison.capacity = 4
 	host.add_child(garrison)
@@ -72,8 +72,8 @@ func test_ordering_an_occupant_leaves_it_inside() -> void:
 ## could: off-the-tree is exactly what dying and boarding have in common.
 func test_a_garrisoned_unit_knows_it_is_held() -> void:
 	var commander: Commander = _commanded(1)
-	var host: Commandable = _unit(commander)
-	var occupant: Commandable = _unit(commander)
+	var host: Actor = _unit(commander)
+	var occupant: Actor = _unit(commander)
 	var garrison := Garrison.new()
 	garrison.name = "Garrison"
 	garrison.capacity = 4
@@ -87,8 +87,8 @@ func test_a_garrisoned_unit_knows_it_is_held() -> void:
 
 func test_releasing_clears_the_back_pointer() -> void:
 	var commander: Commander = _commanded(1)
-	var host: Commandable = _unit(commander)
-	var occupant: Commandable = _unit(commander)
+	var host: Actor = _unit(commander)
+	var occupant: Actor = _unit(commander)
 	var garrison := Garrison.new()
 	garrison.name = "Garrison"
 	garrison.capacity = 4
@@ -110,8 +110,8 @@ func test_releasing_clears_the_back_pointer() -> void:
 ## Garrisoning now clears the flag on the way in, mirroring what release does on the way out.
 func test_a_unit_selected_when_it_boards_can_still_be_selected_inside() -> void:
 	var commander: Commander = _commanded(1)
-	var host: Commandable = _unit(commander)
-	var occupant: Commandable = _unit(commander)
+	var host: Actor = _unit(commander)
+	var occupant: Actor = _unit(commander)
 	var garrison := Garrison.new()
 	garrison.capacity = 4
 	host.add_child(garrison)
@@ -130,8 +130,8 @@ func test_a_unit_selected_when_it_boards_can_still_be_selected_inside() -> void:
 
 func test_an_unselected_occupant_selects_too() -> void:
 	var commander: Commander = _commanded(1)
-	var host: Commandable = _unit(commander)
-	var occupant: Commandable = _unit(commander)
+	var host: Actor = _unit(commander)
+	var occupant: Actor = _unit(commander)
 	var garrison := Garrison.new()
 	garrison.capacity = 4
 	host.add_child(garrison)
@@ -150,8 +150,8 @@ func test_an_unselected_occupant_selects_too() -> void:
 ## a player order and its producer's rally.
 func test_its_own_orders_win_over_the_hosts_rally() -> void:
 	var commander: Commander = _commanded(1)
-	var host: Commandable = _unit(commander)
-	var occupant: Commandable = _unit(commander)
+	var host: Actor = _unit(commander)
+	var occupant: Actor = _unit(commander)
 	host.update_commands(_order(Vector2(1, 1)))  # the host's rally
 	occupant.update_commands(_order(Vector2(9, 9)))  # the occupant's own
 
@@ -168,8 +168,8 @@ func test_its_own_orders_win_over_the_hosts_rally() -> void:
 ## than a replacement for the old behaviour.
 func test_an_unordered_occupant_follows_the_host() -> void:
 	var commander: Commander = _commanded(1)
-	var host: Commandable = _unit(commander)
-	var occupant: Commandable = _unit(commander)
+	var host: Actor = _unit(commander)
+	var occupant: Actor = _unit(commander)
 	host.update_commands(_order(Vector2(1, 1)))
 
 	var chain: Array = Garrison._release_commands(occupant, host, null, Vector3(2, 0, 2))
@@ -183,8 +183,8 @@ func test_an_unordered_occupant_follows_the_host() -> void:
 
 func test_no_orders_anywhere_is_just_the_exit_move() -> void:
 	var commander: Commander = _commanded(1)
-	var host: Commandable = _unit(commander)
-	var occupant: Commandable = _unit(commander)
+	var host: Actor = _unit(commander)
+	var occupant: Actor = _unit(commander)
 	var chain: Array = Garrison._release_commands(occupant, host, null, Vector3(2, 0, 2))
 	assert_eq(_destinations(chain), [Vector2(2, 2)], "it clears the host and stands there")
 
@@ -193,8 +193,8 @@ func test_no_orders_anywhere_is_just_the_exit_move() -> void:
 ## the rule that already held for the host's rally, extended to the occupant's own chain.
 func test_the_released_chain_is_copies() -> void:
 	var commander: Commander = _commanded(1)
-	var host: Commandable = _unit(commander)
-	var occupant: Commandable = _unit(commander)
+	var host: Actor = _unit(commander)
+	var occupant: Actor = _unit(commander)
 	var mine: MoveCommand = _order(Vector2(9, 9))
 	occupant.update_commands(mine)
 

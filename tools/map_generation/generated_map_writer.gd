@@ -75,7 +75,7 @@ func apply_piece_facts(a_params: MapGenerationParams) -> void:
 func _piece_from(a_path: String, a_weight: float) -> MapPiece:
 	var scene := load(a_path) as PackedScene
 	var entity := scene.instantiate() as Entity
-	var footprint: Vector2i = (entity.get_node("Structure") as Structure).dimensions
+	var footprint: Vector2i = (entity.get_node("Fixture") as Fixture).dimensions
 	var garrison := entity.get_node_or_null("Garrison") as Garrison
 	var capacity: int = garrison.capacity if garrison != null else 0
 	var piece := MapPiece.of(entity.id, footprint, a_weight, capacity)

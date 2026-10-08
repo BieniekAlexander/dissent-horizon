@@ -2,6 +2,9 @@
 kind: Entity
 title: EMP Device
 scene: res://scenes/entities/structures/an/an_support3.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 2000}
   time: 60

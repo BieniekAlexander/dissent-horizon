@@ -100,7 +100,7 @@ func tick() -> int:
 		# The charge belongs to a BUILDING now, so the bot picks one that can fire rather than
 		# asking the sanction whether it is ready. No caster owned (or all recharging) means
 		# the bot simply has not got this ability available, exactly as for the player.
-		var caster: Commandable = _ready_caster(sanction)
+		var caster: Actor = _ready_caster(sanction)
 		if caster == null:
 			continue
 		if sanction.targeting_needs_engagement() and not zone_sought:
@@ -127,8 +127,8 @@ func tick() -> int:
 		# points are derived from currently-visible enemies, so this normally passes; when it
 		# does not — a cluster centroid that falls in a gap between two units' vision, say —
 		# the order is not issued and the charge is simply held for the next tick.
-		if target is Commandable:
-			_act.use_sanction(caster, sanction, (target as Commandable).global_position, target)
+		if target is Actor:
+			_act.use_sanction(caster, sanction, (target as Actor).global_position, target)
 		elif _act.use_sanction(caster, sanction, target as Vector3):
 			if sanction.targeting == Sanction.Targeting.REVEAL and scout != null:
 				scout.mark_revealed(target as Vector3, sanction.area_radius())
@@ -165,8 +165,8 @@ func _unlock_affordable() -> void:
 ## A caster already carrying a UseSanction is skipped: the charge is not spent until the
 ## command fulfils, so without this the bot would re-order the same cast every think until
 ## it fired.
-func _ready_caster(a_sanction: Sanction) -> Commandable:
-	for caster: Commandable in _bot.casters_of(a_sanction):
+func _ready_caster(a_sanction: Sanction) -> Actor:
+	for caster: Actor in _bot.casters_of(a_sanction):
 		var store: Abilities = _store_of(caster)
 		if (
 			store != null
@@ -177,15 +177,15 @@ func _ready_caster(a_sanction: Sanction) -> Commandable:
 	return null
 
 
-func _store_of(a_caster: Commandable) -> Abilities:
+func _store_of(a_caster: Actor) -> Abilities:
 	return a_caster.get_node_or_null("Abilities") as Abilities if a_caster != null else null
 
 
 ## The current engagement to focus sanctions on, as
-## { "mode": Mode, "enemies": Array[Commandable], "anchor": Vector3 }, or null when
+## { "mode": Mode, "enemies": Array[Actor], "anchor": Vector3 }, or null when
 ## neither defence nor a worthwhile attack applies (hold).
 func _engagement_zone() -> Variant:
-	var threatened: Commandable = _bot.most_threatened_structure(defend_threat_radius)
+	var threatened: Actor = _bot.most_threatened_structure(defend_threat_radius)
 	if threatened != null:
 		var defenders: Array = _enemy_units(
 			_bot.visible_enemies_near(threatened.global_position, defend_threat_radius)
@@ -255,9 +255,9 @@ func _reveal_target() -> Variant:
 ## ENDANGERED_HP_FRACTION that the sanction's event will accept. Null when none is.
 func _endangered_friend(a_sanction: Sanction, a_zone: Dictionary) -> Variant:
 	var anchor: Vector3 = a_zone["anchor"]
-	var best: Commandable = null
+	var best: Actor = null
 	var best_value: float = 0.0
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		if unit.defense == null or unit.defense.hp_max <= 0.0:
 			continue
 		var fraction: float = unit.defense.hp / unit.defense.hp_max
@@ -276,9 +276,9 @@ func _endangered_friend(a_sanction: Sanction, a_zone: Dictionary) -> Variant:
 
 ## The bot's own dearest unit the sanction's event will accept, or null.
 func _valuable_friend(a_sanction: Sanction) -> Variant:
-	var best: Commandable = null
+	var best: Actor = null
 	var best_cost: int = -1
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		if not a_sanction.accepts_target(unit, _bot):
 			continue
 		var cost: int = _bot.unit_cost(unit.id)
@@ -290,7 +290,7 @@ func _valuable_friend(a_sanction: Sanction) -> Variant:
 
 ## Mobile enemy units only (drop structures) from a list of commandables.
 func _enemy_units(a_enemies: Array) -> Array:
-	return a_enemies.filter(func(e: Commandable): return not e.structure_is_active())
+	return a_enemies.filter(func(e: Actor): return not e.structure_is_active())
 
 
 ## The enemy cluster a single `radius` drop would catch most of:

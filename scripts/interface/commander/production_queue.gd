@@ -325,7 +325,7 @@ func has_pending_train(a_id: StringName) -> bool:
 	return false
 
 
-func pending_count_for(a_producer: Commandable) -> int:
+func pending_count_for(a_producer: Actor) -> int:
 	var count: int = 0
 	for transaction: PurchaseTransaction in entries:
 		if (
@@ -429,7 +429,7 @@ func _dispatch(a_transaction: PurchaseTransaction) -> DispatchResult:
 				# rather than block the queue on something nothing can fulfil.
 				a_transaction.cancel()
 				return DispatchResult.ADVANCE
-			var producer: Commandable = _free_producer(a_transaction)
+			var producer: Actor = _free_producer(a_transaction)
 			if producer == null:
 				# Candidates exist but none is free: still under construction, or already
 				# building its one unit. The purchase waits — that wait is what replaced the
@@ -480,11 +480,11 @@ func _dispatch(a_transaction: PurchaseTransaction) -> DispatchResult:
 ## it must have a pad to put the result on. An airfield with all four spaces occupied is
 ## busy in exactly the way a barracks mid-job is busy, so the purchase waits here rather
 ## than being refused when the player asked for it.
-func _free_producer(a_transaction: PurchaseTransaction) -> Commandable:
+func _free_producer(a_transaction: PurchaseTransaction) -> Actor:
 	var tool: Tool = (
 		a_transaction.tool if a_transaction.tool != null else Tool.for_id(a_transaction.type)
 	)
-	for producer: Commandable in a_transaction.ready_producers():
+	for producer: Actor in a_transaction.ready_producers():
 		if producer.production.is_free() and Train.has_free_pad_for(producer, tool):
 			return producer
 	return null

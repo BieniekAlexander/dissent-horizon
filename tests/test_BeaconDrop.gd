@@ -59,8 +59,8 @@ func _at(a_xz: Vector2) -> Vector3:
 	return Vector3(a_xz.x, 0.0, a_xz.y)
 
 
-func _piece(a_options: Dictionary, a_commander_id: int, a_xz: Vector2) -> Commandable:
-	var piece: Commandable = FakePieces.make(a_options)
+func _piece(a_options: Dictionary, a_commander_id: int, a_xz: Vector2) -> Actor:
+	var piece: Actor = FakePieces.make(a_options)
 	_commander(a_commander_id).add_child(piece)
 	autofree(piece)
 	piece.top_level = true
@@ -133,7 +133,7 @@ func test_a_beacon_can_be_pointed_at_but_not_selected() -> void:
 # --- Repaired away -------------------------------------------------------------------
 
 
-func _repairer(a_commander_id: int) -> Commandable:
+func _repairer(a_commander_id: int) -> Actor:
 	return _piece({"speed": 2.0, "repairs": true}, a_commander_id, Vector2(1, 0))
 
 
@@ -141,7 +141,7 @@ func test_an_enemy_repairer_takes_away_a_beacon_it_can_see() -> void:
 	var beacon: Beacon = _drop(OWN, Vector2.ZERO)
 	beacon.host().stealth.reveal()
 	beacon._physics_process(0.0)
-	var repairer: Commandable = _repairer(FOE)
+	var repairer: Actor = _repairer(FOE)
 	assert_true(Repair.can_repair(repairer, beacon.host()))
 	var message := CommandMessage.new(_map, beacon.host())
 	Repair.new(message).fulfill_action(repairer)

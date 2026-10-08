@@ -7,7 +7,7 @@ extends GutTest
 ## Godot editor save under the per-user editor setting `text_editor/behavior/indent/type =
 ## tabs`. Godot refuses a file whose statement indentation changes style mid-block, so
 ## `damage_profile.gd` stopped parsing — and then `DamageTable` (an AUTOLOAD) failed to
-## instantiate, and `Map`, `Commandable`, `Commander` and `Bot` all failed to compile behind
+## instantiate, and `Map`, `Actor`, `Commander` and `Bot` all failed to compile behind
 ## it. The project was dead for hours. Nobody ran a formatter. A tool regenerated files from a
 ## setting nobody had looked at. See CLAUDE.md §Regenerating data.
 ##

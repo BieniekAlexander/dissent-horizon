@@ -1,6 +1,6 @@
 extends GutTest
 
-## HealthBarGradient: the green -> yellow -> red ramp Commandable._on_hp_changed
+## HealthBarGradient: the green -> yellow -> red ramp Actor._on_hp_changed
 ## applies to the HP bar's fill (as `modulate`, over a white texture).
 ##
 ## Run with:

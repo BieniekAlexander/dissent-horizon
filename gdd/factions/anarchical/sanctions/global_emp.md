@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Global EMP
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [1, 2], factions: [anarchists]}
 hud_button: true
 column: 2

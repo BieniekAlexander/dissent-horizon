@@ -33,7 +33,7 @@ func _ready() -> void:
 	add_child(commander)
 	var origin: float = -CASE_SPACING * (CASES.size() - 1) / 2.0
 	for i: int in CASES.size():
-		var piece: Commandable = (load(CASES[i]) as PackedScene).instantiate() as Commandable
+		var piece: Actor = (load(CASES[i]) as PackedScene).instantiate() as Actor
 		add_child(piece)
 		# No Map here, so the physics tick has nothing to run against — this harness only
 		# wants the entity DRAWN.

@@ -4,7 +4,7 @@ extends GutTest
 ## orders it takes while planting, planted and packing up. See
 ## gdd/systems/commands/deploying.md.
 ##
-## The soldier scene is only a HARNESS — a Commandable with Movement and Defense. The test gives
+## The soldier scene is only a HARNESS — a Actor with Movement and Defense. The test gives
 ## it a Deployable of its own, so nothing here depends on which pieces deploy or how long for.
 ##
 ## Run with:
@@ -16,8 +16,8 @@ const DEPLOY_TICKS: int = 3
 const UNDEPLOY_TICKS: int = 2
 
 
-func _unit(a_is_cancellable: bool = false) -> Commandable:
-	var unit := FakePieces.make(SOLDIER_PATH) as Commandable
+func _unit(a_is_cancellable: bool = false) -> Actor:
+	var unit := FakePieces.make(SOLDIER_PATH) as Actor
 	var deployable := Deployable.new()
 	deployable.name = "Deployable"
 	deployable.deploy_ticks = DEPLOY_TICKS
@@ -33,7 +33,7 @@ func _unit(a_is_cancellable: bool = false) -> Commandable:
 	return unit
 
 
-func _tick(a_unit: Commandable, a_times: int) -> void:
+func _tick(a_unit: Actor, a_times: int) -> void:
 	for _i: int in a_times:
 		a_unit.command_receiver._process_commands()
 
@@ -46,13 +46,13 @@ func _move() -> MoveCommand:
 	return MoveCommand.new(_message())
 
 
-func _deployed(a_unit: Commandable) -> Commandable:
+func _deployed(a_unit: Actor) -> Actor:
 	a_unit.update_commands(Deploy.new(_message()))
 	_tick(a_unit, DEPLOY_TICKS + 1)
 	return a_unit
 
 
-func _chain_names(a_unit: Commandable) -> Array:
+func _chain_names(a_unit: Actor) -> Array:
 	return a_unit.command_receiver.get_command_chain().map(
 		func(command: MoveCommand) -> String: return str(command)
 	)
@@ -60,7 +60,7 @@ func _chain_names(a_unit: Commandable) -> Array:
 
 #region The transition
 func test_a_deploy_plants_the_unit_after_its_time() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	var deployable: Deployable = unit.deployable
 	unit.update_commands(Deploy.new(_message()))
 	_tick(unit, DEPLOY_TICKS - 1)
@@ -79,7 +79,7 @@ func test_a_deploy_plants_the_unit_after_its_time() -> void:
 
 
 func test_weapons_are_offline_only_mid_transition() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	unit.update_commands(Deploy.new(_message()))
 	_tick(unit, 1)
 	assert_false(unit.deployable.can_use_weapons())
@@ -89,7 +89,7 @@ func test_weapons_are_offline_only_mid_transition() -> void:
 
 
 func test_an_undeploy_gives_the_armour_back_at_once_and_frees_the_unit_after() -> void:
-	var unit: Commandable = _deployed(_unit())
+	var unit: Actor = _deployed(_unit())
 	var layers_before: int = AvoidanceAgent3D.obstacle_bit(1)
 	unit.update_commands(Undeploy.new(_message()))
 	_tick(unit, 1)
@@ -107,14 +107,14 @@ func test_an_undeploy_gives_the_armour_back_at_once_and_frees_the_unit_after() -
 
 
 func test_armour_never_steps_past_the_top_class() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	unit.defense.armour_type = Defense.ArmourType.STRONG
 	_deployed(unit)
 	assert_eq(unit.defense.armour_type, Defense.ArmourType.STRONG)
 
 
 func test_a_unit_torn_down_mid_deploy_stands_back_up() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	unit.update_commands(Deploy.new(_message()))
 	_tick(unit, 1)
 	unit.update_commands(null)
@@ -126,7 +126,7 @@ func test_a_unit_torn_down_mid_deploy_stands_back_up() -> void:
 
 #region Orders while deploying
 func test_an_uncancellable_deploy_ignores_a_move() -> void:
-	var unit: Commandable = _unit(false)
+	var unit: Actor = _unit(false)
 	unit.update_commands(Deploy.new(_message()))
 	_tick(unit, 1)
 	unit.update_commands(_move())
@@ -136,7 +136,7 @@ func test_an_uncancellable_deploy_ignores_a_move() -> void:
 
 
 func test_a_cancellable_deploy_gives_way_to_a_move() -> void:
-	var unit: Commandable = _unit(true)
+	var unit: Actor = _unit(true)
 	unit.update_commands(Deploy.new(_message()))
 	_tick(unit, 1)
 	var move: MoveCommand = _move()
@@ -147,7 +147,7 @@ func test_a_cancellable_deploy_gives_way_to_a_move() -> void:
 
 
 func test_a_cancellable_deploy_gives_way_to_an_attack_move() -> void:
-	var unit: Commandable = _unit(true)
+	var unit: Actor = _unit(true)
 	unit.update_commands(Deploy.new(_message()))
 	_tick(unit, 1)
 	unit.update_commands(AttackMove.new(_message()))
@@ -155,7 +155,7 @@ func test_a_cancellable_deploy_gives_way_to_an_attack_move() -> void:
 
 
 func test_a_queued_move_does_not_cancel_a_deploy() -> void:
-	var unit: Commandable = _unit(true)
+	var unit: Actor = _unit(true)
 	unit.update_commands(Deploy.new(_message()))
 	_tick(unit, 1)
 	unit.update_commands(_move(), true)
@@ -165,7 +165,7 @@ func test_a_queued_move_does_not_cancel_a_deploy() -> void:
 
 ## Anything else given plainly waits behind the transition, judged against the planted form.
 func test_a_plain_stop_waits_behind_a_deploy() -> void:
-	var unit: Commandable = _unit(true)
+	var unit: Actor = _unit(true)
 	unit.update_commands(Deploy.new(_message()))
 	_tick(unit, 1)
 	unit.update_commands(Stop.new(_message()))
@@ -178,7 +178,7 @@ func test_a_plain_stop_waits_behind_a_deploy() -> void:
 
 #region Orders once deployed
 func test_a_deployed_unit_ignores_moves_plain_or_queued() -> void:
-	var unit: Commandable = _deployed(_unit())
+	var unit: Actor = _deployed(_unit())
 	unit.update_commands(_move())
 	unit.update_commands(_move(), true)
 	unit.update_commands(AttackMove.new(_message()), true)
@@ -187,14 +187,14 @@ func test_a_deployed_unit_ignores_moves_plain_or_queued() -> void:
 
 
 func test_a_move_queued_after_an_undeploy_is_kept() -> void:
-	var unit: Commandable = _deployed(_unit())
+	var unit: Actor = _deployed(_unit())
 	unit.update_commands(Undeploy.new(_message()))
 	unit.update_commands(_move(), true)
 	assert_eq(_chain_names(unit).size(), 2, "the unit will be mobile by then")
 
 
 func test_a_plain_move_during_an_undeploy_follows_it() -> void:
-	var unit: Commandable = _deployed(_unit())
+	var unit: Actor = _deployed(_unit())
 	unit.update_commands(Undeploy.new(_message()))
 	_tick(unit, 1)
 	var move: MoveCommand = _move()
@@ -207,7 +207,7 @@ func test_a_plain_move_during_an_undeploy_follows_it() -> void:
 
 
 func test_a_move_queued_behind_a_queued_deploy_is_dumped() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	unit.update_commands(_move())
 	unit.update_commands(Deploy.new(_message()), true)
 	unit.update_commands(_move(), true)
@@ -219,7 +219,7 @@ func test_a_move_queued_behind_a_queued_deploy_is_dumped() -> void:
 
 #region The command card
 func test_a_unit_offers_the_command_for_the_form_it_is_heading_for() -> void:
-	var unit: Commandable = _unit()
+	var unit: Actor = _unit()
 	assert_true(CommandContextParser.commands_for(unit).has("command_deploy"))
 	assert_false(CommandContextParser.commands_for(unit).has("command_undeploy"))
 	unit.update_commands(Deploy.new(_message()))
@@ -232,8 +232,8 @@ func test_a_unit_offers_the_command_for_the_form_it_is_heading_for() -> void:
 
 
 func test_only_mobile_units_take_deploy_and_only_deployed_ones_undeploy() -> void:
-	var mobile: Commandable = _unit()
-	var planted: Commandable = _deployed(_unit())
+	var mobile: Actor = _unit()
+	var planted: Actor = _deployed(_unit())
 	var none := MoveCommand.PreconditionFailureCause.NONE
 	assert_eq(Deploy.meets_precondition(mobile, _message()), none)
 	assert_ne(Deploy.meets_precondition(planted, _message()), none)

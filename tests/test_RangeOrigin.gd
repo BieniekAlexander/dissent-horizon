@@ -37,8 +37,8 @@ func _commander(a_id: int) -> Commander:
 	return commander
 
 
-func _piece(a_options: Dictionary, a_commander_id: int, a_at: Vector3) -> Commandable:
-	var piece := FakePieces.make(a_options) as Commandable
+func _piece(a_options: Dictionary, a_commander_id: int, a_at: Vector3) -> Actor:
+	var piece := FakePieces.make(a_options) as Actor
 	add_child_autofree(piece)
 	piece.ownership.commander = _commander(a_commander_id)
 	piece.global_position = a_at
@@ -46,18 +46,18 @@ func _piece(a_options: Dictionary, a_commander_id: int, a_at: Vector3) -> Comman
 
 
 ## An aircraft flying at AWAY, circling ORBIT_CENTRE, its weapon measuring from `a_origin`.
-func _aircraft(a_origin: Weapon.RangeOrigin = Weapon.RangeOrigin.ORBIT) -> Commandable:
-	var aircraft: Commandable = _piece(GUNSHIP, OWN, AWAY)
+func _aircraft(a_origin: Weapon.RangeOrigin = Weapon.RangeOrigin.ORBIT) -> Actor:
+	var aircraft: Actor = _piece(GUNSHIP, OWN, AWAY)
 	_weapon(aircraft).range_origin = a_origin
 	aircraft.aerial.set_anchor(ORBIT_CENTRE)
 	return aircraft
 
 
-func _weapon(a_piece: Commandable) -> Weapon:
+func _weapon(a_piece: Actor) -> Weapon:
 	return a_piece.weapon_inventory.get_weapons()[0]
 
 
-func _attack(a_target: Commandable) -> Attack:
+func _attack(a_target: Actor) -> Attack:
 	return Attack.new(CommandMessage.new(null, a_target, null))
 
 
@@ -74,7 +74,7 @@ func test_an_orbit_weapon_measures_from_the_orbit_centre() -> void:
 
 
 func test_an_orbit_weapon_on_a_piece_that_does_not_orbit_measures_from_its_hull() -> void:
-	var soldier: Commandable = _piece({"speed": 2.0, "weapon": {"ground": REACH}}, OWN, AWAY)
+	var soldier: Actor = _piece({"speed": 2.0, "weapon": {"ground": REACH}}, OWN, AWAY)
 	_weapon(soldier).range_origin = Weapon.RangeOrigin.ORBIT
 	assert_null(_weapon(soldier).orbit_origin(soldier))
 	assert_false(soldier.fights_from_orbit())
@@ -82,8 +82,8 @@ func test_an_orbit_weapon_on_a_piece_that_does_not_orbit_measures_from_its_hull(
 
 func test_in_range_means_the_range_shape_at_the_orbit_centre_touches_the_hurtbox() -> void:
 	var aircraft := _aircraft()
-	var near_centre: Commandable = _piece(SOLDIER, ENEMY, ORBIT_CENTRE + Vector3(REACH, 0, 0))
-	var near_aircraft: Commandable = _piece(SOLDIER, ENEMY, AWAY + Vector3(1.0, 0, 0))
+	var near_centre: Actor = _piece(SOLDIER, ENEMY, ORBIT_CENTRE + Vector3(REACH, 0, 0))
+	var near_aircraft: Actor = _piece(SOLDIER, ENEMY, AWAY + Vector3(1.0, 0, 0))
 	await wait_physics_frames(2)
 	assert_true(
 		SU.is_in_attack_range(_weapon(aircraft), aircraft, near_centre), "reached from the centre"
@@ -96,14 +96,14 @@ func test_in_range_means_the_range_shape_at_the_orbit_centre_touches_the_hurtbox
 
 func test_a_hull_weapon_still_measures_from_its_wielder() -> void:
 	var aircraft := _aircraft(Weapon.RangeOrigin.HULL)
-	var near_aircraft: Commandable = _piece(SOLDIER, ENEMY, AWAY + Vector3(1.0, 0, 0))
+	var near_aircraft: Actor = _piece(SOLDIER, ENEMY, AWAY + Vector3(1.0, 0, 0))
 	await wait_physics_frames(2)
 	assert_true(SU.is_in_attack_range(_weapon(aircraft), aircraft, near_aircraft))
 
 
 func test_it_picks_up_targets_around_the_orbit_centre_not_itself() -> void:
 	var aircraft := _aircraft()
-	var near_centre: Commandable = _piece(SOLDIER, ENEMY, ORBIT_CENTRE)
+	var near_centre: Actor = _piece(SOLDIER, ENEMY, ORBIT_CENTRE)
 	_piece(SOLDIER, ENEMY, AWAY + Vector3(1.0, 0, 0))
 	await wait_physics_frames(2)
 	var pickup: MoveCommand = aircraft.get_aggro_near_position()
@@ -113,7 +113,7 @@ func test_it_picks_up_targets_around_the_orbit_centre_not_itself() -> void:
 
 func test_an_attack_never_steers_it() -> void:
 	var aircraft := _aircraft()
-	var target: Commandable = _piece(SOLDIER, ENEMY, ORBIT_CENTRE + Vector3(3.0 * REACH, 0, 0))
+	var target: Actor = _piece(SOLDIER, ENEMY, ORBIT_CENTRE + Vector3(3.0 * REACH, 0, 0))
 	await wait_physics_frames(2)
 	var order := _attack(target)
 	assert_false(order.should_move(aircraft), "moving would close nothing")
@@ -122,7 +122,7 @@ func test_an_attack_never_steers_it() -> void:
 
 func test_an_aircraft_measuring_from_its_hull_still_flies_at_its_target() -> void:
 	var aircraft := _aircraft(Weapon.RangeOrigin.HULL)
-	var target: Commandable = _piece(SOLDIER, ENEMY, ORBIT_CENTRE)
+	var target: Actor = _piece(SOLDIER, ENEMY, ORBIT_CENTRE)
 	await wait_physics_frames(2)
 	var order := _attack(target)
 	assert_true(order.should_move(aircraft))
@@ -131,7 +131,7 @@ func test_an_aircraft_measuring_from_its_hull_still_flies_at_its_target() -> voi
 
 func test_attacking_leaves_its_orbit_centre_where_it_was() -> void:
 	var aircraft := _aircraft()
-	var target: Commandable = _piece(SOLDIER, ENEMY, ORBIT_CENTRE + Vector3(REACH, 0, 0))
+	var target: Actor = _piece(SOLDIER, ENEMY, ORBIT_CENTRE + Vector3(REACH, 0, 0))
 	await wait_physics_frames(2)
 	aircraft.update_commands(_attack(target))
 	for _i: int in 5:
@@ -142,7 +142,7 @@ func test_attacking_leaves_its_orbit_centre_where_it_was() -> void:
 
 func test_a_target_that_leaves_the_range_shape_is_let_go() -> void:
 	var aircraft := _aircraft()
-	var target: Commandable = _piece(SOLDIER, ENEMY, ORBIT_CENTRE)
+	var target: Actor = _piece(SOLDIER, ENEMY, ORBIT_CENTRE)
 	await wait_physics_frames(2)
 	var order := _attack(target)
 	order.message.persist = true

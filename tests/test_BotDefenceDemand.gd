@@ -68,8 +68,8 @@ func before_each() -> void:
 	_economy = BotEconomy.new(_bot, BotActuator.new(null))
 
 
-func _structure(a_id: StringName, a_at: Vector3) -> Commandable:
-	var piece: Commandable = FakePieces.structure({})
+func _structure(a_id: StringName, a_at: Vector3) -> Actor:
+	var piece: Actor = FakePieces.structure({})
 	_bot.add_child(piece)
 	piece.id = a_id
 	piece.global_position = a_at
@@ -78,7 +78,7 @@ func _structure(a_id: StringName, a_at: Vector3) -> Commandable:
 
 
 func _soldier(a_at: Vector3) -> void:
-	var piece: Commandable = FakePieces.unit({})
+	var piece: Actor = FakePieces.unit({})
 	_bot.add_child(piece)
 	piece.id = SOLDIER
 	piece.global_position = a_at

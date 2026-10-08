@@ -1,6 +1,9 @@
 ---
 kind: AbilityDefinition
 title: Blizzard
+flavor:
+  description: potato
+  verbose: potato
 ui: {grid: [1, 2], factions: [colonial]}
 hud_button: true
 column: 2

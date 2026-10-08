@@ -49,12 +49,12 @@ func _piece(a_options: Dictionary, a_commander_id: int, a_at: Vector3) -> Entity
 	return e
 
 
-func _defend(a_defender: Commandable) -> Defend:
+func _defend(a_defender: Actor) -> Defend:
 	return Defend.new(CommandMessage.new(null, null, null, a_defender.global_position))
 
 
 ## What a Defend order at the defender's own feet picks up this tick, or null.
-func _defend_pick(a_defender: Commandable) -> Entity:
+func _defend_pick(a_defender: Actor) -> Entity:
 	var next: Variant = _defend(a_defender).get_updated_state(a_defender)
 	if next is Attack:
 		return (next as Attack).message.target
@@ -73,7 +73,7 @@ func test_the_constructor_widens_the_floor_to_every_structure() -> void:
 
 
 func test_a_defender_takes_an_unarmed_enemy_structure() -> void:
-	var defender := _piece(RECRUIT, DEFENDER, Vector3.ZERO) as Commandable
+	var defender := _piece(RECRUIT, DEFENDER, Vector3.ZERO) as Actor
 	var stockpile: Entity = _piece(STOCKPILE, ENEMY, Vector3(3.0, 0.0, 0.0))
 	await wait_physics_frames(2)
 	assert_eq(
@@ -85,7 +85,7 @@ func test_a_defender_takes_an_unarmed_enemy_structure() -> void:
 
 
 func test_an_idle_unit_beside_the_same_structure_still_ignores_it() -> void:
-	var defender := _piece(RECRUIT, DEFENDER, Vector3.ZERO) as Commandable
+	var defender := _piece(RECRUIT, DEFENDER, Vector3.ZERO) as Actor
 	_piece(STOCKPILE, ENEMY, Vector3(3.0, 0.0, 0.0))
 	await wait_physics_frames(2)
 	assert_null(
@@ -95,7 +95,7 @@ func test_an_idle_unit_beside_the_same_structure_still_ignores_it() -> void:
 
 
 func test_a_unit_is_still_taken_before_the_structure() -> void:
-	var defender := _piece(RECRUIT, DEFENDER, Vector3.ZERO) as Commandable
+	var defender := _piece(RECRUIT, DEFENDER, Vector3.ZERO) as Actor
 	_piece(STOCKPILE, ENEMY, Vector3(3.0, 0.0, 0.0))
 	# Farther away than the structure, so rank — not distance — is what picks it.
 	var intruder: Entity = _piece(IRREGULAR, ENEMY, Vector3(-5.0, 0.0, 0.0))
@@ -104,7 +104,7 @@ func test_a_unit_is_still_taken_before_the_structure() -> void:
 
 
 func test_a_neutral_structure_is_never_taken() -> void:
-	var defender := _piece(RECRUIT, DEFENDER, Vector3.ZERO) as Commandable
+	var defender := _piece(RECRUIT, DEFENDER, Vector3.ZERO) as Actor
 	_piece(NEUTRAL_BUILDING, 0, Vector3(3.0, 0.0, 0.0))
 	await wait_physics_frames(2)
 	assert_null(_defend_pick(defender))

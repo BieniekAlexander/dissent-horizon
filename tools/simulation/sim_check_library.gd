@@ -117,7 +117,7 @@ static func _build_hp_fraction(a_check: SimSpec.Check, a_roster: SimGroupRoster)
 		var alive: Array = a_roster.living(a_check.group_ref, a_check.piece)
 		if alive.is_empty():
 			return false
-		for entity: Commandable in alive:
+		for entity: Actor in alive:
 			if entity.defense == null or entity.defense.hp_max <= 0.0:
 				continue  # nothing to measure; a piece with no Defense cannot be hurt
 			var fraction: float = entity.defense.hp / entity.defense.hp_max
@@ -137,7 +137,7 @@ static func _build_owner(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Ca
 		var alive: Array = a_roster.living(a_check.group_ref, a_check.piece)
 		if alive.is_empty():
 			return false
-		for entity: Commandable in alive:
+		for entity: Actor in alive:
 			if a_roster.slot_of(entity.commander_id) != wanted:
 				return false
 		return true
@@ -174,7 +174,7 @@ static func _build_command(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> 
 			return false
 		var target_ids: Array = a_roster.member_ids(target_ref) if target_ref != "" else []
 		var there: Variant = a_roster.centroid(near_ref) if near_ref != "" else null
-		for entity: Commandable in alive:
+		for entity: Actor in alive:
 			var command: MoveCommand = entity.current_command()
 			if command == null or SimCheckLibrary._command_name(command) != wanted:
 				return false
@@ -198,7 +198,7 @@ static func _build_idle(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Cal
 		var alive: Array = a_roster.living(a_check.group_ref, a_check.piece)
 		if alive.is_empty():
 			return false
-		for entity: Commandable in alive:
+		for entity: Actor in alive:
 			if entity.has_command():
 				return false
 		return true
@@ -213,7 +213,7 @@ static func _build_garrisoned_in(a_check: SimSpec.Check, a_roster: SimGroupRoste
 		var hosts: Array = a_roster.living(host_ref)
 		if hosts.is_empty():
 			return false
-		for entity: Commandable in alive:
+		for entity: Actor in alive:
 			if not entity.is_garrisoned():
 				return false
 			# A Garrison is a component child, so the host is its parent.
@@ -354,7 +354,7 @@ static func _build_claimed(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> 
 		var alive: Array = a_roster.living(a_check.group_ref, a_check.piece)
 		if alive.is_empty():
 			return false
-		for entity: Commandable in alive:
+		for entity: Actor in alive:
 			var brain: BotBrain = a_roster.brain_of(a_roster.slot_of(entity.commander_id))
 			if brain == null or brain.claims.owner_of(entity) != holder:
 				return false

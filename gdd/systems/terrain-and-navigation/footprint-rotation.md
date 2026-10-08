@@ -7,7 +7,8 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**BUILT 2026-09-30 (slices 1–3 and the control); the bot and replay recording are still PLANNED.** Indexed as
+**BUILT: slices 1–3 and the control (2026-09-30), the bot and replay recording (2026-10-08).** Only
+two-form pieces remain (§Deferred). Indexed as
 [`tasks.md`](../../tasks.md) T-058. The control is decided: `[` / `]` turn the structure and
 `command_issue` is a press-drag-release gesture — see [construction](../commands/construction.md)
 §Placing and turning a structure, which owns those rules.
@@ -22,15 +23,15 @@ The footprint itself is already **rotation-shaped**, which is why this is smalle
 - Every footprint function on `Map` — `footprint_origin`, `footprint_cells`, `footprint_centroid` —
   takes the dimensions as an ARGUMENT (`a_dims: Vector2i`) and reads nothing from the piece. So the
   Map API needs no new signature: a rotated footprint is the same call with swapped dimensions.
-- The **dimensions** come from one place, `Structure.dimensions`, written by the spec importer from
+- The **dimensions** come from one place, `Fixture.dimensions`, written by the spec importer from
   the doc's `footprint:` (`SceneSync._sync_footprint`). The doc's value is the footprint at rotation 0.
 - `Entity.hull()` already builds its rectangle from the HurtboxShape's **global basis**, so a piece
   whose root is yawed a quarter turn already measures every range from the rotated rectangle. Ranges,
   aggro, reach and interaction need no change.
-- Facing is the root node's `rotation.y` (`Movement.get_facing`, `Commandable._drive_mesh_visual`),
+- Facing is the root node's `rotation.y` (`Movement.get_facing`, `Actor._drive_mesh_visual`),
   and `MeshVisual`, the selection shape and the baked placeholder mesh are children that inherit it.
 
-What is **not** rotation-shaped is every caller that reads `Structure.dimensions` and hands it to one
+What is **not** rotation-shaped is every caller that reads `Fixture.dimensions` and hands it to one
 of those functions. About twenty sites do (`build.gd` ×8, `map.gd` ×8, `energy_extractor.gd` ×4,
 `rts_controller.gd`, `entity.gd`, `deployment.gd`, `commander.gd`, `bot_economy.gd`,
 `footprint_visualizer.gd`, `producer_affinity_indicator.gd`, `scenario_highlight.gd`,
@@ -46,19 +47,19 @@ non-square piece, and every neutral-building variant a player can build as `an_i
 (square 4×4, long 3×5), is affected the same way.
 
 **Every footprint is a rectangle, and that is not going to change.** So this note has no offset list,
-no irregular-shape case and no per-cell rotation: a footprint is `Structure.dimensions` and nothing
+no irregular-shape case and no per-cell rotation: a footprint is `Fixture.dimensions` and nothing
 more. (The offset-list proposal in [structure-footprints](structure-footprints.md) §2 is superseded
 by that decision, not by this note.)
 
 ## Decisions
 
-**Rotation is a QUARTER TURN count, an `int` in 0…3, held on `Structure` as `quarter_turns`.**
+**Rotation is a QUARTER TURN count, an `int` in 0…3, held on `Fixture` as `quarter_turns`.**
 Not a float angle and not a free yaw: the grid is registered in integers, and a float `rotation.y`
-that drifts by an epsilon must never change which cells a building holds. `Structure` writes the
+that drifts by an epsilon must never change which cells a building holds. `Fixture` writes the
 root's `rotation.y` from it when the piece is registered; the visual follows the count, never the
 other way round. 0 is the unrotated doc footprint.
 
-**Dimensions are oriented in one function.** `Structure.oriented_dimensions(dimensions, quarter_turns)`
+**Dimensions are oriented in one function.** `Fixture.oriented_dimensions(dimensions, quarter_turns)`
 (static, pure) returns `Vector2i(dimensions.y, dimensions.x)` for an odd count and `dimensions` for an
 even one. It is the ONLY place that swaps, exactly as `Map.footprint_origin` is the only place that
 resolves parity. A caller that needs the footprint asks for oriented dimensions and passes them on;
@@ -67,7 +68,7 @@ none re-derives them.
 **Rotation is state of the placed piece, not of the tool.** The doc's `footprint:` stays the rotation-0
 size and `Tool` stays rotation-free. What travels is the count: on the `CommandMessage` (as
 `quarter_turns`, beside `xz_position`), on a planned structure (a blueprint remembers how it was
-laid), and on the `Structure` once registered. An `int` in an order is also what a replay stream
+laid), and on the `Fixture` once registered. An `int` in an order is also what a replay stream
 records ([recording-and-replay](../commands/recording-and-replay.md)), so this adds no float to the
 determinism surface.
 
@@ -95,21 +96,24 @@ Runway geometry and pad layout are audited for that in slice 2.
 The interface between the control and the rest is **`CommandMessage.quarter_turns`, and a preview
 that shows the footprint at that count.** The controller holds one `placement_quarter_turns`
 (`RTSController`), reset to 0 whenever the tool is put down; the ghost, the placement grid and
-`Build` all read oriented dimensions from `Structure.oriented_dimensions`.
+`Build` all read oriented dimensions from `Fixture.oriented_dimensions`.
 
 ## Slices, in order
 
-Slices 1–3 and the control half of 5 are built (`tests/test_FootprintRotation.gd`,
-`tests/test_PlacementRotation.gd`). Left: slice 4 (the bot) and the replay half of slice 5. The editor
-`terrain_snap` plugin reads a node's yaw as a quarter turn, as `Entity._auto_initialize` does.
+All five slices are built (`tests/test_FootprintRotation.gd`, `tests/test_PlacementRotation.gd`,
+`tests/test_BotPlacementEquivariance.gd`). The editor `terrain_snap` plugin reads a node's yaw as a
+quarter turn, as `Entity._auto_initialize` does. The bot ranks a non-square footprint at both
+orientations in one list; between two candidates that tie, the one whose long axis lies across its
+forward axis comes first, and within the orientation chosen it faces up the threat axis
+(`BotEconomy.facing_turns`). An order carries `quarter_turns`, so a replay lays it the same way.
 
 Each slice ends green and is useful alone. All tests build their own fixtures (a synthetic Map, a
 synthetic structure) — none reads an authored scene, per CLAUDE.md §A unit test does not assert facts
 about authored content.
 
-1. **The core, headless.** `Structure.quarter_turns`, `oriented_dimensions`, and `add_structure`
+1. **The core, headless.** `Fixture.quarter_turns`, `oriented_dimensions`, and `add_structure`
    honouring its (now un-underscored) rotation argument: registers the oriented cells, centres on the
-   oriented centroid, and writes the root yaw. `Structure.valid_placement`, `EnergyExtractor`'s
+   oriented centroid, and writes the root yaw. `Fixture.valid_placement`, `EnergyExtractor`'s
    overloads and `Entity.valid_placement` take the count. Tests: every count over an odd×odd, an
    even×even and a mixed (2×3) footprint; **idempotence** (snapping, reading the position back and
    snapping again yields the same origin — the property `footprint_origin` documents); an out-of-bounds
@@ -127,10 +131,10 @@ about authored content.
    the editor before any player-facing control exists.
 4. **The bot.** `BotEconomy._find_build_spot` considers both orientations of a non-square footprint
    and scores them like any other candidate; **mirror equivariance** (`tests/test_BotPlacementEquivariance`)
-   extends to rotation: mirroring a map maps a quarter-turn count `t` to `−t` (mod 4).
-   Until then the bot places at 0 and is correct, only less flexible.
-5. **The control, and replay.** Wire the controller to the seam once the new controls exist; record
-   the count in the order stream if 2.46 has landed.
+   extends to rotation: an isometry of the bot's situation carries its count with it (a quarter
+   turn adds one, a point reflection two, a mirror maps `t` to `−t`).
+5. **The control, and replay.** The controller is wired to the seam, and the count rides in the
+   order stream's message.
 
 ## Interactions to get right, not to defer
 

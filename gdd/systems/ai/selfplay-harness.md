@@ -270,16 +270,22 @@ harness does nothing of its own — see [navigation-and-pathing](../terrain-and-
 The same regions carry every later rebuild — each structure a bot places — so this was also
 the likeliest source of the long-run drift once blamed on the RVO avoidance thread pool.
 
-REJECTED: `avoidance_use_multiple_threads = false` as the fix. It used to live in an
-`override.cfg` at the project root, which was unscoped (every play and editor session in the
-checkout paid for it) and not gitignored. The harness still sets it at the top of `_ready`
-(`_force_single_threaded_avoidance`), but the engine reads it when a navigation map is
-created, and the world map exists before any script runs, so it most likely does not bind —
-and the runs above matched anyway. Per-agent avoidance reads its neighbours and writes only
-its own velocity, which is order-independent; the earlier table that credited this setting
-measured one 300-second pair, before the chunk regions were found.
+**RVO avoidance is single-threaded, project-wide** (`project.godot`,
+`navigation/avoidance/thread_model/avoidance_use_multiple_threads = false`, 2026-10-08). It had
+been REJECTED as a fix on the reasoning that the setting does not bind once the world map
+exists and that per-agent avoidance is order-independent. Both were wrong: booting one scenario
+three times in three processes, the same seed gave three different digests within a second
+with multi-threaded avoidance, and three identical runs with it off. The harness had always
+forced it off itself (`_force_single_threaded_avoidance`), which is why its runs matched and
+the game's would not have.
 
-PLANNED: `_state_digest` moves into game code, shared with replay's drift check — see
+**A scenario must enter the tree at the same point in the frame to reproduce.** Added during
+the physics step, its pieces first process a tick later than when added at idle time, and the
+whole match runs a tick out of phase. The game starts scenarios through the scene loader,
+always at idle time; a test or probe that boots one twice in a process must do the same
+(`await get_tree().process_frame` before `add_child`).
+
+The digest is `SimulationDigest` (game code), shared with replay's drift check — see
 [commands/recording-and-replay](../commands/recording-and-replay.md) §Detecting drift.
 
 **Debugging a divergence:** set `state_dump_path` and diff the two runs' dumps. Each line is a

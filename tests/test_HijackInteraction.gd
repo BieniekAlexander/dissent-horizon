@@ -34,8 +34,8 @@ func _commanded(a_id: int) -> Commander:
 
 ## A live entity owned by [a_commander_id]. Ownership is assigned directly rather than
 ## through initialize(), so no Map is needed — the fixture test_Interaction uses.
-func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var u := FakePieces.make(a_options) as Commandable
+func _unit(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var u := FakePieces.make(a_options) as Actor
 	add_child_autofree(u)
 	u.ownership.commander = _commanded(a_commander_id)
 	return u
@@ -45,7 +45,7 @@ func _message_for(a_target: Entity) -> CommandMessage:
 	return CommandMessage.new(null, a_target)
 
 
-func _applies(a_actor: Commandable, a_target: Entity) -> bool:
+func _applies(a_actor: Actor, a_target: Entity) -> bool:
 	return (
 		a_actor.interactor != null
 		and a_actor.interactor.can_interact(a_actor, _message_for(a_target))
@@ -110,7 +110,7 @@ func test_does_not_apply_to_a_structure() -> void:
 
 ## Run the interaction to completion: fulfill_action accrues one tick per call and fires
 ## the effect once required_ticks is reached.
-func _run_to_completion(a_actor: Commandable, a_target: Entity) -> void:
+func _run_to_completion(a_actor: Actor, a_target: Entity) -> void:
 	var command := Interact.new(_message_for(a_target))
 	var interaction: Interaction = a_actor.interactor.applicable_interaction(
 		a_actor, command.message

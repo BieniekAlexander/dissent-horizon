@@ -44,8 +44,8 @@ func _commander(a_id: int) -> Commander:
 	return c
 
 
-func _piece(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Commandable:
-	var p := FakePieces.make(a_options) as Commandable
+func _piece(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Actor:
+	var p := FakePieces.make(a_options) as Actor
 	add_child_autofree(p)
 	p.ownership.commander = a_commander
 	p.global_position = a_at
@@ -63,8 +63,8 @@ func _blind(a_id: int) -> Fog:
 
 ## A recruit and an enemy standing `a_gap` apart, both settled into physics.
 func _pair(a_gap: float) -> Array:
-	var shooter: Commandable = _piece(RECRUIT, _commander(OWN), Vector3.ZERO)
-	var attacker: Commandable = _piece(IRREGULAR, _commander(ENEMY), Vector3(a_gap, 0.0, 0.0))
+	var shooter: Actor = _piece(RECRUIT, _commander(OWN), Vector3.ZERO)
+	var attacker: Actor = _piece(IRREGULAR, _commander(ENEMY), Vector3(a_gap, 0.0, 0.0))
 	await wait_physics_frames(2)
 	return [shooter, attacker]
 
@@ -76,7 +76,7 @@ func _is_attack_on(a_command: MoveCommand, a_target: Entity) -> bool:
 #region Who answers
 func test_an_idle_unit_answers_an_attacker_past_its_aggro() -> void:
 	var pair: Array = await _pair(FAR)
-	var shooter: Commandable = pair[0]
+	var shooter: Actor = pair[0]
 	assert_gt(
 		VU.in_xz(shooter.global_position).distance_to(VU.in_xz(pair[1].global_position)),
 		shooter.aggro_radius(),
@@ -88,7 +88,7 @@ func test_an_idle_unit_answers_an_attacker_past_its_aggro() -> void:
 
 func test_a_unit_holding_fire_does_not_answer() -> void:
 	var pair: Array = await _pair(FAR)
-	var shooter: Commandable = pair[0]
+	var shooter: Actor = pair[0]
 	shooter.is_holding_fire = true
 	shooter.receive_damage(Damage.new(1.0), pair[1])
 	assert_null(shooter.current_command())
@@ -96,8 +96,8 @@ func test_a_unit_holding_fire_does_not_answer() -> void:
 
 func test_a_busy_unit_keeps_its_order() -> void:
 	var pair: Array = await _pair(FAR)
-	var shooter: Commandable = pair[0]
-	var other: Commandable = _piece(IRREGULAR, _commander(ENEMY), Vector3(0.0, 0.0, 3.0))
+	var shooter: Actor = pair[0]
+	var other: Actor = _piece(IRREGULAR, _commander(ENEMY), Vector3(0.0, 0.0, 3.0))
 	shooter.update_commands(Attack.new(CommandMessage.new(null, other, null)))
 	shooter.receive_damage(Damage.new(1.0), pair[1])
 	assert_true(_is_attack_on(shooter.current_command(), other), "its own order stands")
@@ -106,12 +106,12 @@ func test_a_busy_unit_keeps_its_order() -> void:
 func test_an_attacker_out_of_the_side_s_vision_is_not_answered() -> void:
 	var pair: Array = await _pair(FAR)
 	_blind(OWN)
-	assert_null((pair[0] as Commandable)._retaliation_against(pair[1]))
+	assert_null((pair[0] as Actor)._retaliation_against(pair[1]))
 
 
 func test_a_friendly_hit_is_not_answered() -> void:
-	var shooter: Commandable = _piece(RECRUIT, _commander(OWN), Vector3.ZERO)
-	var friend: Commandable = _piece(IRREGULAR, shooter.ownership.commander, Vector3(FAR, 0, 0))
+	var shooter: Actor = _piece(RECRUIT, _commander(OWN), Vector3.ZERO)
+	var friend: Actor = _piece(IRREGULAR, shooter.ownership.commander, Vector3(FAR, 0, 0))
 	await wait_physics_frames(2)
 	assert_null(shooter._retaliation_against(friend))
 
@@ -121,25 +121,25 @@ func test_a_friendly_hit_is_not_answered() -> void:
 
 #region A piece that cannot move
 func test_a_turret_answers_an_attacker_it_reaches() -> void:
-	var turret: Commandable = _piece(TURRET, _commander(OWN), Vector3.ZERO)
+	var turret: Actor = _piece(TURRET, _commander(OWN), Vector3.ZERO)
 	var reach: float = turret.weapon_inventory.get_weapons()[0].ground_reach()
-	var attacker: Commandable = _piece(IRREGULAR, _commander(ENEMY), Vector3(reach * 0.5, 0, 0))
+	var attacker: Actor = _piece(IRREGULAR, _commander(ENEMY), Vector3(reach * 0.5, 0, 0))
 	await wait_physics_frames(2)
 	assert_false(turret.can_move(), "guards the fixture")
 	assert_true(_is_attack_on(turret._retaliation_against(attacker), attacker))
 
 
 func test_a_turret_ignores_an_attacker_out_of_its_reach() -> void:
-	var turret: Commandable = _piece(TURRET, _commander(OWN), Vector3.ZERO)
-	var attacker: Commandable = _piece(IRREGULAR, _commander(ENEMY), Vector3(FAR, 0, 0))
+	var turret: Actor = _piece(TURRET, _commander(OWN), Vector3.ZERO)
+	var attacker: Actor = _piece(IRREGULAR, _commander(ENEMY), Vector3(FAR, 0, 0))
 	await wait_physics_frames(2)
 	assert_null(turret._retaliation_against(attacker))
 
 
 ## An unarmed shelter answers through its occupants, at their reach plus its bonus.
-func _manned_shelter(a_occupant: Dictionary = RECRUIT) -> Commandable:
-	var shelter: Commandable = _piece(SHELTER, _commander(OWN), Vector3.ZERO)
-	var occupant: Commandable = _piece(a_occupant, shelter.ownership.commander, Vector3(0, 0, FAR))
+func _manned_shelter(a_occupant: Dictionary = RECRUIT) -> Actor:
+	var shelter: Actor = _piece(SHELTER, _commander(OWN), Vector3.ZERO)
+	var occupant: Actor = _piece(a_occupant, shelter.ownership.commander, Vector3(0, 0, FAR))
 	await wait_physics_frames(2)  # let the occupant's deferred initialisation run in the tree
 	shelter.garrison.garrison(occupant)
 	autofree(occupant)
@@ -147,15 +147,15 @@ func _manned_shelter(a_occupant: Dictionary = RECRUIT) -> Commandable:
 
 
 func test_a_manned_shelter_answers_through_its_occupants() -> void:
-	var shelter: Commandable = await _manned_shelter()
-	var attacker: Commandable = _piece(IRREGULAR, _commander(ENEMY), Vector3(3.0, 0, 3.0))
+	var shelter: Actor = await _manned_shelter()
+	var attacker: Actor = _piece(IRREGULAR, _commander(ENEMY), Vector3(3.0, 0, 3.0))
 	await wait_physics_frames(2)
 	assert_true(_is_attack_on(shelter._retaliation_against(attacker), attacker))
 
 
 func test_a_manned_shelter_ignores_what_its_occupants_cannot_reach() -> void:
-	var shelter: Commandable = await _manned_shelter()
-	var attacker: Commandable = _piece(IRREGULAR, _commander(ENEMY), Vector3(FAR, 0, 0))
+	var shelter: Actor = await _manned_shelter()
+	var attacker: Actor = _piece(IRREGULAR, _commander(ENEMY), Vector3(FAR, 0, 0))
 	await wait_physics_frames(2)
 	assert_null(shelter._retaliation_against(attacker))
 
@@ -168,7 +168,7 @@ func test_a_manned_shelter_ignores_what_its_occupants_cannot_reach() -> void:
 ## which is capped below long reach: an order on an enemy standing at the occupants' full
 ## reach was dropped on its first tick.
 func test_a_bunker_keeps_an_order_on_a_target_its_occupants_reach() -> void:
-	var shelter: Commandable = await _manned_shelter(BADGER)
+	var shelter: Actor = await _manned_shelter(BADGER)
 	var reach: float = shelter.reach_on_layer(CollisionLayers.Mask.TARGETABLE_GROUND)
 	var at: float = reach - 1.0
 	assert_gt(
@@ -176,7 +176,7 @@ func test_a_bunker_keeps_an_order_on_a_target_its_occupants_reach() -> void:
 		shelter.aggro_radius() * Attack._LEASH_HYSTERESIS,
 		"guards the fixture: past where an aggro-based leash would let go"
 	)
-	var foe: Commandable = _piece(IRREGULAR, _commander(ENEMY), Vector3(at, 0, 0))
+	var foe: Actor = _piece(IRREGULAR, _commander(ENEMY), Vector3(at, 0, 0))
 	await wait_physics_frames(2)
 	assert_true(shelter.garrison.can_reach(shelter, foe), "guards the fixture: within reach")
 	var attack := Attack.new(CommandMessage.new(null, foe, null))

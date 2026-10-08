@@ -5,7 +5,7 @@ extends GutTest
 ## Run with:
 ## godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_AggroIgnoresAllies.gd -gexit
 ##
-## The aggro query is capped (Commandable.AGGRO_SCAN_MAX_RESULTS) before any script filter
+## The aggro query is capped (Actor.AGGRO_SCAN_MAX_RESULTS) before any script filter
 ## runs, and a physics query is not nearest-first, so when it returned allies too a crowd of
 ## friendly bodies could fill the cap and hide an enemy standing in plain sight. Each
 ## Hurtbox now carries a per-side bit, and the query masks out the asker's own side and
@@ -39,8 +39,8 @@ func _commander(a_id: int, a_bot: bool = false) -> Commander:
 	return c
 
 
-func _unit(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Commandable:
-	var u := FakePieces.make(a_options) as Commandable
+func _unit(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Actor:
+	var u := FakePieces.make(a_options) as Actor
 	add_child_autofree(u)
 	u.ownership.commander = a_commander
 	u.global_position = a_at
@@ -51,8 +51,8 @@ func _unit(a_options: Dictionary, a_commander: Commander, a_at: Vector3) -> Comm
 ## FIRST: the physics query lists bodies newest-first, so an unfiltered scan capped at
 ## AGGRO_SCAN_MAX_RESULTS returns only allies — the failure this file pins.
 func _crowd(a_own: Commander) -> Array:
-	var enemy: Commandable = _unit(IRREGULAR, _commander(FOE), Vector3(3.0, 0.0, 0.0))
-	var shooter: Commandable = _unit(RECRUIT, a_own, Vector3.ZERO)
+	var enemy: Actor = _unit(IRREGULAR, _commander(FOE), Vector3(3.0, 0.0, 0.0))
+	var shooter: Actor = _unit(RECRUIT, a_own, Vector3.ZERO)
 	for i: int in ALLY_COUNT:
 		var angle: float = TAU * i / ALLY_COUNT
 		_unit(RECRUIT, a_own, Vector3(cos(angle), 0.0, sin(angle)) * 1.5)
@@ -89,7 +89,7 @@ func test_neutral_has_no_side() -> void:
 
 
 func test_a_hurtbox_carries_its_owners_side_and_follows_a_capture() -> void:
-	var unit: Commandable = _unit(RECRUIT, _commander(OWN), Vector3.ZERO)
+	var unit: Actor = _unit(RECRUIT, _commander(OWN), Vector3.ZERO)
 	var layer: int = unit.hurtbox.collision_layer
 	assert_ne(layer & CollisionLayers.side_bits(GROUND, OWN), 0)
 	assert_eq(unit.targetable_layers(), GROUND, "the generic bits are unchanged")
@@ -101,8 +101,8 @@ func test_a_hurtbox_carries_its_owners_side_and_follows_a_capture() -> void:
 
 func test_allies_never_fill_the_aggro_scan() -> void:
 	var pair: Array = await _crowd(_commander(OWN))
-	var shooter: Commandable = pair[0]
-	var found: Array[Entity] = shooter.hostiles_in_aggro(Commandable.AGGRO_SCAN_MAX_RESULTS)
+	var shooter: Actor = pair[0]
+	var found: Array[Entity] = shooter.hostiles_in_aggro(Actor.AGGRO_SCAN_MAX_RESULTS)
 	assert_eq(found.size(), 1, "no ally comes back from the query")
 	assert_true(found.has(pair[1]))
 	var cmd: MoveCommand = shooter.get_aggro_near_position()
@@ -112,7 +112,7 @@ func test_allies_never_fill_the_aggro_scan() -> void:
 
 func test_a_caller_supplied_region_ignores_allies_too() -> void:
 	var pair: Array = await _crowd(_commander(OWN))
-	var shooter: Commandable = pair[0]
+	var shooter: Actor = pair[0]
 	var cmd: MoveCommand = shooter.get_aggro_near_position(null, shooter.aggro_shape_ground)
 	assert_not_null(cmd)
 	assert_eq(cmd.message.target, pair[1])

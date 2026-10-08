@@ -11,8 +11,8 @@ extends GutTest
 const TOLERANCE: float = 0.001
 
 
-func _unit_at(a_position: Vector3) -> Commandable:
-	var unit: Commandable = FakePieces.unit()
+func _unit_at(a_position: Vector3) -> Actor:
+	var unit: Actor = FakePieces.unit()
 	add_child_autofree(unit)
 	unit.global_position = a_position
 	return unit
@@ -23,7 +23,7 @@ func _target_shape(a_piece: Entity) -> CollisionShape3D:
 
 
 func test_a_steered_weapon_aims_at_the_hurtbox_centre() -> void:
-	var unit: Commandable = _unit_at(Vector3(3.0, 0.0, 2.0))
+	var unit: Actor = _unit_at(Vector3(3.0, 0.0, 2.0))
 	assert_eq(unit.aim_point(), _target_shape(unit).global_position)
 	assert_gt(unit.aim_point().y, unit.global_position.y, "above the ground, not at the feet")
 
@@ -39,7 +39,7 @@ func test_a_piece_without_a_hurtbox_is_aimed_at_its_origin() -> void:
 
 
 func test_a_steered_phase_arrives_at_the_hurtbox_centre_not_the_feet() -> void:
-	var unit: Commandable = _unit_at(Vector3.ZERO)
+	var unit: Actor = _unit_at(Vector3.ZERO)
 	var phase: EmissionPhase = EmissionPhase.new()
 	phase.speed = 12.0
 	phase.turn_rate_degrees_per_second = 90.0

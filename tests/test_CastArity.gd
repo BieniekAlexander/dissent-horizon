@@ -135,10 +135,10 @@ func test_the_preview_and_the_order_ask_the_same_question() -> void:
 # an order of that job, current or queued. See ui/control-matrices.md §Cast arity.
 
 
-func _worker(a_x: float) -> Commandable:
+func _worker(a_x: float) -> Actor:
 	var commander := Commander.new()
 	add_child_autofree(commander)
-	var worker: Commandable = FakePieces.make({"speed": 2.0})
+	var worker: Actor = FakePieces.make({"speed": 2.0})
 	commander.add_child(worker)
 	autofree(worker)
 	worker.top_level = true

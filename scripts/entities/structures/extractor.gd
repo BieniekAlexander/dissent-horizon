@@ -43,8 +43,8 @@ static func works_ponds(a_piece: Node) -> bool:
 
 
 ## The extractor piece this component belongs to.
-func host() -> Commandable:
-	return get_parent() as Commandable
+func host() -> Actor:
+	return get_parent() as Actor
 
 
 ## Link the host to its site, both directions. The host OVERLAYS the site and becomes the

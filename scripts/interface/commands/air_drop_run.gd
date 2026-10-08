@@ -49,7 +49,7 @@ var _egress_point: Vector3 = Vector3.ZERO
 
 #region State updates
 ## Always flying — a transport on a delivery run has no idle state.
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	return true
 
 
@@ -62,11 +62,11 @@ func ends_on_arrival() -> bool:
 
 ## APPROACH flies to the drop point (message.position, the usual resolution); EGRESS flies
 ## to the point past the far edge computed when the cargo went out.
-func movement_destination(_a_actor: Commandable) -> Variant:
+func movement_destination(_a_actor: Actor) -> Variant:
 	return _egress_point if _phase == Phase.EGRESS else null
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	if _phase == Phase.APPROACH:
 		return a_actor.xz_position.distance_to(message.xz_position) <= DROP_RADIUS
 	return OffMapArrival.has_left(message.map, a_actor.xz_position)
@@ -74,7 +74,7 @@ func can_act(a_actor: Commandable) -> bool:
 
 ## APPROACH: release the cargo and turn the run into its outbound leg, keeping the command.
 ## EGRESS: the transport is off the board — remove it, and end.
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	if _phase == Phase.EGRESS:
 		a_actor.queue_free()
 		return null
@@ -96,12 +96,12 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 ## altitude. So the units appear at the transport's cruising height and float down from
 ## there, using the garrison's ordinary spread-onto-free-ground placement rather than a
 ## second copy of it.
-func _release_cargo(a_actor: Commandable) -> void:
+func _release_cargo(a_actor: Actor) -> void:
 	var hold: Garrison = a_actor.get_node_or_null("Garrison") as Garrison
 	if hold == null:
 		return
 	var altitude: float = a_actor.height_offset()
-	for unit: Commandable in hold.occupants():
+	for unit: Actor in hold.occupants():
 		if unit.movement == null:
 			continue
 		var canopy: Node3D = _attach_canopy(unit)
@@ -115,7 +115,7 @@ func _release_cargo(a_actor: Commandable) -> void:
 ## The heading comes from the aircraft's own facing rather than from the entry point,
 ## which this command was never told. They are the same line — the transport has flown
 ## straight down it — and the facing is the one the player can see.
-func _resolve_egress_point(a_actor: Commandable) -> Vector3:
+func _resolve_egress_point(a_actor: Actor) -> Vector3:
 	var heading: Vector2 = (
 		VU.in_xz(a_actor.movement.get_facing()) if a_actor.movement != null else Vector2.ZERO
 	)
@@ -132,7 +132,7 @@ func _resolve_egress_point(a_actor: Commandable) -> Vector3:
 ## rather than to its MeshVisual, so it plays no part in the tint, the shading or
 ## `model_top_offset()`. Why:
 ## gdd/systems/macroeconomics/sanctions/off-map-abilities.md §The canopy is a prop.
-func _attach_canopy(a_unit: Commandable) -> Node3D:
+func _attach_canopy(a_unit: Actor) -> Node3D:
 	var canopy: Node3D = CANOPY_SCENE.instantiate() as Node3D
 	if canopy == null:
 		return null

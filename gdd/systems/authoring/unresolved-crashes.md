@@ -63,3 +63,16 @@ prefix of other files, to find which one corrupts memory. Crash reports in
 `~/Library/Logs/DiagnosticReports/Godot-*.ips` carry no symbols; the shard log's
 `handle_crash` backtrace is the better lead. Whether it can happen in a game, not just in GUT,
 is unknown.
+
+## TODO: GUT shards crash at random tests, at HEAD too
+
+**Seen:** 2026-10-08, in about half of `gut_shards.py` runs. One shard dies at a different test
+each time (a fog test, a map-generation shelter test, …), sometimes with signal 11 (once with
+the backtrace in MoltenVK's `SPIRVToMSLConverter::convert`, a shader compile under the headless
+renderer) and sometimes with exit -9, a SIGKILL. Four runs at HEAD (f64d14b6) in a detached
+worktree crashed all four times, so no working-tree change caused it. Every test that ran passed,
+and each crashed file passes alone. No editor was open. The machine had about 2 GB free while
+four Godot processes ran, so memory pressure is a suspect for the SIGKILLs at least.
+
+**Where to start if it recurs:** run with fewer shards (does two crash?), and watch memory while
+the suite runs. The shard log (`.godot/gut_shards/shard_N.log`) has the backtrace.

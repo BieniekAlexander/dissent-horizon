@@ -1,6 +1,6 @@
-[gd_scene load_steps=28 format=3 uid="uid://5r417qcowjbk"]
+[gd_scene load_steps=29 format=3 uid="uid://5r417qcowjbk"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="1_spec"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="2_spec"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="3_spec"]
@@ -24,6 +24,7 @@
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="21_spec"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_aerial_large.tres" id="22_spec"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="23_spec"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="24_spec"]
 
 [sub_resource type="PrismMesh" id="PrismMesh_placeholder"]
 size = Vector3(1.2, 0.25, 1.4)
@@ -96,6 +97,9 @@ script = ExtResource("11_spec")
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("CylinderShape3D_selection")
 metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("24_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="."]
 

@@ -66,8 +66,8 @@ func test_repair_is_blocked_by_stagger():
 ## affected — advance_build_progress writes hp directly.
 
 
-func _wounded_patient() -> Commandable:
-	var patient: Commandable = FakePieces.unit({"hp": 80.0})
+func _wounded_patient() -> Actor:
+	var patient: Actor = FakePieces.unit({"hp": 80.0})
 	add_child_autofree(patient)
 	patient.defense.hp = patient.defense.hp_max * 0.5
 	return patient
@@ -84,7 +84,7 @@ func test_restore_is_refused_while_staggered():
 
 func test_restore_resumes_once_the_stagger_wears_off():
 	# Cleared directly rather than by ticking out STAGGER_SECONDS of physics: the countdown
-	# itself is Commandable's, and what is under test here is the gate on restore.
+	# itself is Actor's, and what is under test here is the gate on restore.
 	var patient := _wounded_patient()
 	patient.receive_damage(Damage.new(1.0))
 	patient._stagger_ticks = 0

@@ -2,6 +2,9 @@
 kind: Entity
 title: Collective
 scene: res://scenes/entities/units/an/an_mechLight_transport.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 400}
   time: 10

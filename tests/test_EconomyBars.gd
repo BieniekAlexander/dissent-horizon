@@ -754,7 +754,7 @@ func _make_tasked_commander() -> Commander:
 	shelter.top_level = true
 	(shelter.get_node("Shelter") as Shelter).spawn_interval = 10.0
 
-	var compound: Commandable = FakePieces.make(FakePieces.COMPOUND) as Commandable
+	var compound: Actor = FakePieces.make(FakePieces.COMPOUND) as Actor
 	world.add_child(compound)
 	compound.set_physics_process(false)
 	compound.top_level = true
@@ -763,7 +763,7 @@ func _make_tasked_commander() -> Commander:
 	compound.garrison.capacity = 100
 	(compound.get_node("DominionGenerator") as OccupantDominionGenerator).dominion_per_unit = 8
 
-	var truck: Commandable = FakePieces.make(FakePieces.TRUCK) as Commandable
+	var truck: Actor = FakePieces.make(FakePieces.TRUCK) as Actor
 	world.add_child(truck)
 	truck.set_physics_process(false)
 	truck.top_level = true
@@ -821,7 +821,7 @@ func test_an_enormous_income_rate_fills_the_rest_of_the_bar_without_growing_it()
 	commander.dominion = 100
 	# Blow the projected rate up without touching the transport/regeneration math above —
 	# only the per-occupant payout needs to be enormous for this test's purpose.
-	for c: Commandable in commander.get_deposit_structures():
+	for c: Actor in commander.get_deposit_structures():
 		(c.get_node("DominionGenerator") as OccupantDominionGenerator).dominion_per_unit = 100_000
 	bar.commander = commander
 	var capacity_before: float = bar._capacity()

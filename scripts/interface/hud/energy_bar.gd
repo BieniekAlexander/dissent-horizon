@@ -7,9 +7,9 @@ extends EconomyBar
 ##
 ## The fill is scaled against ResourcePressure.ENERGY_SURPLUS_THRESHOLD, and painted as a
 ## SINGLE flat colour — chosen from where the fill currently sits on a three-stop
-## lithium-pond gradient, not painted as a ramp across the fill itself (gdd/tasks.md
-## "UI Updates"). Past the threshold the fill oscillates toward a lightened version of
-## itself, the "state you should act on now" idiom every bar in this family uses.
+## lithium-pond gradient, not painted as a ramp across the fill itself. Past the threshold the
+## fill oscillates toward a lightened version of itself, the "state you should act on now"
+## idiom every bar in this family uses.
 ##
 ## Hovering a purchase that costs energy dims a preview of the cost against this bar — see
 ## EconomyBar._preview_regions() and gdd/systems/ux/ui/economy-bars.md §Hover previews. Energy
@@ -23,7 +23,7 @@ extends EconomyBar
 
 #region Constants
 ## Tiffany blue → seafoam green → canary gold, the visual progression from a lithium pond at
-## low concentration to high (gdd/tasks.md "UI Updates"). A real Gradient, the same idiom
+## low concentration to high (economy-bars.md §Energy). A real Gradient, the same idiom
 ## HealthBarGradient holds its HP ramp in, rather than a hand-rolled lerp — see BarGradient.
 ## Picked as ordinary reference values for those three named colours; with_saturation_ramp is
 ## what does the "increase in saturation" the task asked for, not these on their own.

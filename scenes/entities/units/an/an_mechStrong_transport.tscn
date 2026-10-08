@@ -1,6 +1,6 @@
-[gd_scene load_steps=27 format=3 uid="uid://beurhqsrdi45w"]
+[gd_scene load_steps=28 format=3 uid="uid://beurhqsrdi45w"]
 
-[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/commandable.gd" id="1_poh5y"]
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_poh5y"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="1_spec"]
 [ext_resource type="PackedScene" uid="uid://bhjcpnh5cknd3" path="res://assets/meshes/entities/an_mechStrong_transport.blend" id="2_6hm2s"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="2_baaro"]
@@ -23,6 +23,7 @@
 [ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="21_cbmi3"]
 [ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="22_tv88h"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="23_6bdmx"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="2_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_u2o6g"]
 radius = 0.8
@@ -38,6 +39,8 @@ size = Vector3(0.90824, 0.716779, 1.68067)
 script = ExtResource("1_poh5y")
 id = &"an_mechStrong_transport"
 occupancy_size = 2
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=694930461]
 
@@ -91,6 +94,9 @@ metadata/_custom_type_script = "uid://dlhe01nj6efuh"
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
 shape = SubResource("CylinderShape3D_fc8gh")
 metadata/_visual_default_selection = "CylinderShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("2_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=2047586574]
 

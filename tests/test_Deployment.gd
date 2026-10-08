@@ -74,9 +74,9 @@ class TestDeployment:
 	func units_on(_a_area: Rect2) -> Array:
 		return []
 
-	func _land(_a_scene: PackedScene, a_centre: Vector2) -> Commandable:
+	func _land(_a_scene: PackedScene, a_centre: Vector2) -> Actor:
 		landed_at.append(a_centre)
-		return Commandable.new()
+		return Actor.new()
 
 	func _land_site(a_centre: Vector2) -> void:
 		sites_at.append(a_centre)
@@ -109,8 +109,8 @@ func before_each() -> void:
 ## A packed stand-in for the faction's command centre: only its footprint is ever read.
 func _centre_scene() -> PackedScene:
 	var root := Node3D.new()
-	var structure := Structure.new()
-	structure.name = "Structure"
+	var structure := Fixture.new()
+	structure.name = "Fixture"
 	structure.dimensions = CENTRE_DIMS
 	root.add_child(structure)
 	structure.owner = root
@@ -213,10 +213,10 @@ func test_the_footprint_area_covers_exactly_its_cells() -> void:
 
 func test_the_command_centre_landing_credits_the_bank_and_grants_two_extractor_drops() -> void:
 	watch_signals(_deployment)
-	var landed: Array[Commandable] = _deployment.drop(
+	var landed: Array[Actor] = _deployment.drop(
 		Deployment.Drop.COMMAND_CENTRE, _aim(Vector2i(8, 8))
 	)
-	for actor: Commandable in landed:
+	for actor: Actor in landed:
 		autofree(actor)
 	assert_eq(landed.size(), 1, "the command centre is what it put in play")
 	assert_almost_eq(_deployment.landed_at[0], _aim(Vector2i(8, 8)), Vector2.ONE * 1e-4)
@@ -230,7 +230,7 @@ func test_the_command_centre_landing_credits_the_bank_and_grants_two_extractor_d
 
 func test_a_refused_drop_changes_nothing() -> void:
 	_commander.seen = Rect2i()
-	var landed: Array[Commandable] = _deployment.drop(
+	var landed: Array[Actor] = _deployment.drop(
 		Deployment.Drop.COMMAND_CENTRE, _aim(Vector2i(8, 8))
 	)
 	assert_true(landed.is_empty())

@@ -2,6 +2,9 @@
 kind: Entity
 title: Shock Trooper
 scene: res://scenes/entities/units/an/an_bioMedium_antiMech.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 400}
   time: 20

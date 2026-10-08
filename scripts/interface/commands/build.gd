@@ -36,7 +36,7 @@ static func tool_applies_to(command_tool_name: String, entity: Entity) -> bool:
 ## a shack can be converted with the long variant armed. What counts as aiming at a building is
 ## its footprint, not the reach of its selection collider, which is the same thing the placement
 ## check reads. The node keeps its own footprint, so there is no "offset" conversion to guard.
-static func _conversion_target(commander: Commander, message: CommandMessage) -> Commandable:
+static func _conversion_target(commander: Commander, message: CommandMessage) -> Actor:
 	if commander == null or message == null or message.map == null:
 		return null
 	if message.tool == null or message.tool.type != EntityIds.AN_INFRASTRUCTURE:
@@ -44,7 +44,7 @@ static func _conversion_target(commander: Commander, message: CommandMessage) ->
 	var cell: Vector2i = message.map.world_to_grid(message.xz_position)
 	if not message.map.grid_coordinates_in_bounds(cell):
 		return null
-	var host := message.map.cell_grid[cell.x][cell.y] as Commandable
+	var host := message.map.cell_grid[cell.x][cell.y] as Actor
 	if host == null or not is_instance_valid(host):
 		return null
 	return (
@@ -58,7 +58,7 @@ static func _conversion_target(commander: Commander, message: CommandMessage) ->
 
 
 ## The building `message` would convert, for the HUD: what to mark, and whose price to preview.
-static func conversion_target(a_commander: Commander, a_message: CommandMessage) -> Commandable:
+static func conversion_target(a_commander: Commander, a_message: CommandMessage) -> Actor:
 	return _conversion_target(a_commander, a_message)
 
 
@@ -69,13 +69,13 @@ static func _is_conversion(commander: Commander, message: CommandMessage) -> boo
 
 
 ## What converting `a_target` costs: its own listed energy price, discounted.
-static func conversion_energy(a_target: Commandable) -> int:
+static func conversion_energy(a_target: Actor) -> int:
 	var template: PieceFamilies.Template = PieceFamilies.template(a_target.id)
 	return roundi(float(template.energy_cost) * ENERGY_DISCOUNT) if template != null else 0
 
 
 ## How long converting `a_target` takes, in seconds: its own listed build time, discounted.
-static func conversion_seconds(a_target: Commandable) -> float:
+static func conversion_seconds(a_target: Actor) -> float:
 	var template: PieceFamilies.Template = PieceFamilies.template(a_target.id)
 	if template == null:
 		return 0.0
@@ -91,7 +91,7 @@ static func places_new_structure(commander: Commander, message: CommandMessage) 
 
 
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if message.tool == null:
 		# Build is entered but the player hasn't chosen which structure to place
@@ -115,7 +115,7 @@ static func meets_precondition(
 	# through get_blocking_need: this purchase is priced ad-hoc (PurchaseTransaction.for_cost)
 	# and has no technology_mapping entry, so asking the commander about the tool would gate
 	# on the wrong number.
-	var conversion: Commandable = _conversion_target(actor.commander, message)
+	var conversion: Actor = _conversion_target(actor.commander, message)
 	if conversion != null:
 		if (
 			not message.defer_if_unaffordable
@@ -130,9 +130,9 @@ static func meets_precondition(
 	# circuit ahead of it would suppress that cue and confuse the player. So resolve
 	# placement first, then fall through to the resource/tech gate.
 	var preview := actor.commander.get_build_preview_instance(message.tool)
-	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
+	var obs := preview.get_node_or_null("Fixture") as Fixture if preview != null else null
 	# What the order claims is the tool's footprint turned the way the player set it.
-	var dims: Vector2i = Structure.oriented_dimensions(obs.dimensions, message.quarter_turns)
+	var dims: Vector2i = Fixture.oriented_dimensions(obs.dimensions, message.quarter_turns)
 
 	# A Extractor is asked a DIFFERENT placement question, because it has two kinds of home. On
 	# an ExtractionSite it is an OVERLAY: the site stays the cells' occupant and the extractor
@@ -141,16 +141,29 @@ static func meets_precondition(
 	# lithium pond it occupies its cells like anything else. EnergyExtractor.valid_placement
 	# is what knows which case applies; it is used INSTEAD of the generic check, not in
 	# addition to it. An overlay piece that draws no energy (the Lab) has only the site case.
+	#
+	# Both are judged against what the commander KNOWS, never the true grid, so a refusal
+	# cannot reveal what stands in the fog; fulfill_action catches a placement that proves
+	# false on arrival. gdd/systems/commands/construction.md §Placement is judged against what
+	# the commander knows.
+	var knowledge: PlacementKnowledge = PlacementKnowledge.of(actor.commander, message.map)
 	if Extractor.of(preview) != null:
 		if not EnergyExtractor.valid_placement(
-			message, dims, obs.allow_uneven, obs.allow_submerged, Extractor.works_ponds(preview)
+			message,
+			dims,
+			obs.allow_uneven,
+			obs.allow_submerged,
+			Extractor.works_ponds(preview),
+			knowledge
 		):
 			return PreconditionFailureCause.INVALID_PLACEMENT
-	elif not Structure.valid_placement(message, dims, obs.allow_uneven, obs.allow_submerged):
+	elif not Fixture.valid_placement(
+		message, dims, obs.allow_uneven, obs.allow_submerged, knowledge
+	):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 
 	# The cells can be geometrically legal and still be a bad idea: NavPlacement asks what
-	# Structure.valid_placement does not — would this footprint split the walkable surface,
+	# Fixture.valid_placement does not — would this footprint split the walkable surface,
 	# and, for a structure that trains units, does it still leave itself a side to put them
 	# on. The bot has asked both since bot-economy's build-spot search; player placement
 	# wants the same answers, so a wall-in the bot could never create should not be one the
@@ -188,7 +201,7 @@ static func meets_precondition(
 static func submit_purchase(commander: Commander, message: CommandMessage) -> PurchaseTransaction:
 	if commander == null or message.tool == null:
 		return null
-	var conversion: Commandable = _conversion_target(commander, message)
+	var conversion: Actor = _conversion_target(commander, message)
 	var transaction: PurchaseTransaction = (
 		PurchaseTransaction.for_cost(
 			commander, PurchaseTransaction.Kind.BUILD, message.tool, conversion_energy(conversion)
@@ -203,7 +216,7 @@ static func submit_purchase(commander: Commander, message: CommandMessage) -> Pu
 
 
 ## Raise the BLUEPRINT for the order `a_message` describes: an instance of the structure
-## itself, in the PLANNED state (see Commandable.plan_construction), standing on the
+## itself, in the PLANNED state (see Actor.plan_construction), standing on the
 ## footprint the builders are walking to. Called ONCE per order, right after
 ## submit_purchase, and stamped on the message so every builder's snapshot shares the
 ## one blueprint (CommandMessage.deep_copy passes the reference through).
@@ -215,12 +228,12 @@ static func submit_purchase(commander: Commander, message: CommandMessage) -> Pu
 ##
 ## Returns null (and raises nothing) for a conversion, which transitions a
 ## building that already stands there, and for an order with no map/tool/commander.
-static func plan_structure(commander: Commander, message: CommandMessage) -> Commandable:
+static func plan_structure(commander: Commander, message: CommandMessage) -> Actor:
 	if not places_new_structure(commander, message) or commander == null or message.map == null:
 		return null
 	if message.tool.packed_scene == null:
 		return null
-	var blueprint: Commandable = message.tool.instantiate() as Commandable
+	var blueprint: Actor = message.tool.instantiate() as Actor
 	if blueprint == null:
 		return null
 	# BEFORE initialize(): _ready and _on_commander_changed both read is_planned to skip
@@ -231,7 +244,7 @@ static func plan_structure(commander: Commander, message: CommandMessage) -> Com
 	# Map.add_structure will resolve when the builder commits it.
 	# Turn it the way the order says BEFORE reading the footprint, so the blueprint stands on the
 	# oriented cells, faces the right way, and commit_construction registers exactly these.
-	var blueprint_structure := blueprint.get_node_or_null("Structure") as Structure
+	var blueprint_structure := blueprint.get_node_or_null("Fixture") as Fixture
 	if blueprint_structure != null:
 		blueprint_structure.quarter_turns = message.quarter_turns
 	var dims: Vector2i = _tool_dimensions(commander, message.tool, message.quarter_turns)
@@ -265,9 +278,9 @@ static func _tool_dimensions(
 	commander: Commander, tool: Tool, a_quarter_turns: int = 0
 ) -> Vector2i:
 	var preview: Node = commander.get_build_preview_instance(tool)
-	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
+	var obs := preview.get_node_or_null("Fixture") as Fixture if preview != null else null
 	return (
-		Structure.oriented_dimensions(obs.dimensions, a_quarter_turns)
+		Fixture.oriented_dimensions(obs.dimensions, a_quarter_turns)
 		if obs != null
 		else Vector2i.ONE
 	)
@@ -311,7 +324,7 @@ static func _placement_keeps_navmesh_access(
 ## it wait here would strand orders that used to place immediately. Only a player order can
 ## have been let through by the incoming-prerequisite deferral, so only a player order has
 ## anything to wait for.
-func _prerequisites_met(a_actor: Commandable) -> bool:
+func _prerequisites_met(a_actor: Actor) -> bool:
 	if message.transaction == null:
 		return true
 	if a_actor.commander == null or message.tool == null:
@@ -331,7 +344,7 @@ func _is_funded() -> bool:
 ## Settle the cost at the moment the structure is actually laid down: spend the
 ## reservation the queue made, or — for a directly-issued build with no transaction —
 ## deduct inline, exactly as before.
-func _pay(a_actor: Commandable) -> void:
+func _pay(a_actor: Actor) -> void:
 	if message.transaction != null:
 		message.transaction.consume()
 	else:
@@ -347,7 +360,7 @@ func _pay(a_actor: Commandable) -> void:
 ## add_structure will register. The builder's "close enough" check measures against
 ## these, so being in range to place guarantees being in range to start building
 ## (Assemble, which checks the registered footprint, then agrees by construction).
-func _target_footprint(a_actor: Commandable) -> Array:
+func _target_footprint(a_actor: Actor) -> Array:
 	# An OVERLAY structure (an Extractor) sits ON an existing host (an ExtractionSite), whose
 	# footprint it takes as its own once placed. Measure reach against the host's footprint so
 	# being in range to place matches being in range to build.
@@ -364,7 +377,7 @@ func _target_footprint(a_actor: Commandable) -> Array:
 ## standing on the target cells. Null for every ordinary build, which has no host.
 ## Resolved through the same concentric rule the placement check uses, so the host
 ## reached for is the one that made the placement legal.
-func _target_host(a_actor: Commandable) -> Entity:
+func _target_host(a_actor: Actor) -> Entity:
 	if message.map == null or message.tool == null:
 		return null
 	if Extractor.of(a_actor.commander.get_build_preview_instance(message.tool)) == null:
@@ -380,7 +393,7 @@ func _target_host(a_actor: Commandable) -> Entity:
 ## False for anything that is not an extractor, and for an extractor bound for an
 ## ExtractionSite rather than water — `water_body_under` answers null off water, and the site
 ## rule lives in EnergyExtractor.valid_placement.
-func _target_pond_is_taken(a_actor: Commandable) -> bool:
+func _target_pond_is_taken(a_actor: Actor) -> bool:
 	if message.map == null or message.tool == null or a_actor.commander == null:
 		return false
 	if Extractor.of(a_actor.commander.get_build_preview_instance(message.tool)) == null:
@@ -402,7 +415,7 @@ func _target_pond_is_taken(a_actor: Commandable) -> bool:
 ## already bound to that host", not "is anything on these cells" — because its target cells
 ## are legitimately occupied by the host it binds onto. Why, and what skipping extractors cost:
 ## CLAUDE.md §Command system.
-func _structure_on_target_footprint(a_actor: Commandable) -> Entity:
+func _structure_on_target_footprint(a_actor: Actor) -> Entity:
 	if message.map == null or message.tool == null:
 		return null
 	var host: Entity = _target_host(a_actor)
@@ -421,10 +434,10 @@ func _structure_on_target_footprint(a_actor: Commandable) -> Entity:
 ## by a co-builder and still under construction — i.e. safe to join repairing rather than
 ## re-placing. Foreign, finished, or different-type occupants fail the check, so the
 ## builder aborts instead of double-placing.
-func _is_our_cobuilt_structure(a_occupant: Entity, a_actor: Commandable) -> bool:
-	if not (a_occupant is Commandable):
+func _is_our_cobuilt_structure(a_occupant: Entity, a_actor: Actor) -> bool:
+	if not (a_occupant is Actor):
 		return false
-	var s := a_occupant as Commandable
+	var s := a_occupant as Actor
 	return (
 		not s.is_built
 		and s.commander == a_actor.commander
@@ -454,7 +467,7 @@ func _is_our_cobuilt_structure(a_occupant: Entity, a_actor: Commandable) -> bool
 ## need no handling here: each such builder's fulfill_action now detects the placed
 ## structure on arrival and joins repairing it (see _structure_on_target_footprint),
 ## so the whole selection co-builds ONE structure instead of double-placing.
-func _after_placement(a_new_structure: Commandable, a_map: Map) -> void:
+func _after_placement(a_new_structure: Actor, a_map: Map) -> void:
 	if not is_instance_valid(a_new_structure) or a_map == null:
 		return
 	var placed_footprint: Array = a_map.structure_cell_map.get(a_new_structure, [])
@@ -466,7 +479,7 @@ func _after_placement(a_new_structure: Commandable, a_map: Map) -> void:
 
 	# Prepend a move command to every unit standing inside the blocked footprint.
 	for node in a_map.get_tree().get_nodes_in_group("piece"):
-		var unit: Commandable = node as Commandable
+		var unit: Actor = node as Actor
 		if (
 			unit == null
 			or not unit.is_in_group("unit")
@@ -507,13 +520,13 @@ static func default_cast_arity(_message: CommandMessage) -> CastArity:
 
 ## Free unless already building — the job rule (MoveCommand.is_free_to_take). A Build turns
 ## into an Assemble once its structure stands, so both are the one job.
-static func is_free_to_take(actor: Commandable) -> bool:
+static func is_free_to_take(actor: Actor) -> bool:
 	return holds_none_of(actor, [Build, Assemble])
 
 
 ## Building is a channeled action: a hit staggers the builder, pausing placement/build
 ## progress until the stagger wears off.
-func blocked_by_stagger(_a_actor: Commandable) -> bool:
+func blocked_by_stagger(_a_actor: Actor) -> bool:
 	return true
 
 
@@ -525,7 +538,7 @@ func blocked_by_stagger(_a_actor: Commandable) -> bool:
 ## positive co-build case is handled here — an occupied-by-something-else footprint is still
 ## fulfill_action's call to abort, so this cannot turn a walk into a silent cancellation.
 ## The deadlock in full: CLAUDE.md §Command system.
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	if not _is_conversion(a_actor.commander, message):
 		var existing: Entity = _structure_on_target_footprint(a_actor)
 		if existing != null and _is_our_cobuilt_structure(existing, a_actor):
@@ -533,20 +546,20 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 	return super(a_actor)
 
 
-func acting_action(_a_actor: Commandable) -> ActionTracker.Action:
+func acting_action(_a_actor: Actor) -> ActionTracker.Action:
 	return ActionTracker.Action.BUILDING
 
 
-func can_act(a_actor: Commandable) -> bool:
+func can_act(a_actor: Actor) -> bool:
 	# A conversion works against the existing building's footprint, not a
 	# would-be placement footprint.
-	var conversion: Commandable = _conversion_target(a_actor.commander, message)
+	var conversion: Actor = _conversion_target(a_actor.commander, message)
 	if conversion != null:
 		return SU.unit_is_close_to_structure(a_actor, conversion)
 	return SU.unit_is_close_to_footprint(a_actor, message.map, _target_footprint(a_actor))
 
 
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	# Conversion: spend the cost once, work for the target's discounted build time, then
 	# transition the building in place. Handled before the placement logic below, which
 	# doesn't apply (nothing new is built).
@@ -612,7 +625,7 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 	if _enemy_on_footprint(a_actor):
 		return null
 
-	var new_structure: Commandable = _place_structure(a_actor)
+	var new_structure: Actor = _place_structure(a_actor)
 	# Deferred: this runs AFTER the command receiver swaps this Build for the
 	# Assemble we return below. See _after_placement for why that ordering matters.
 	_after_placement.call_deferred(new_structure, message.map)
@@ -622,12 +635,12 @@ func fulfill_action(a_actor: Commandable) -> Variant:
 
 ## Whether a unit hostile to `a_actor` stands on this build's footprint — on the ground there,
 ## not held inside something and not flying over.
-func _enemy_on_footprint(a_actor: Commandable) -> bool:
+func _enemy_on_footprint(a_actor: Actor) -> bool:
 	var cells: Dictionary = {}
 	for cell: Vector2i in _target_footprint(a_actor):
 		cells[cell] = true
 	for node: Node in a_actor.get_tree().get_nodes_in_group("unit"):
-		var unit := node as Commandable
+		var unit := node as Actor
 		# Airborne enemies overfly the site rather than stand on it.
 		if (
 			unit != null
@@ -650,20 +663,20 @@ func _enemy_on_footprint(a_actor: Commandable) -> bool:
 ##
 ## Pays first either way: consuming the purchase releases its claim on the blueprint, so
 ## a later cancel can't free a building that now exists.
-func _place_structure(a_actor: Commandable) -> Commandable:
-	var blueprint: Commandable = message.planned_structure
+func _place_structure(a_actor: Actor) -> Actor:
+	var blueprint: Actor = message.planned_structure
 	if blueprint != null and is_instance_valid(blueprint) and blueprint.is_planned:
 		_pay(a_actor)
 		blueprint.commit_construction(message.map, message.xz_position)
 		_report_fulfilment(blueprint)
 		return blueprint
 
-	var new_structure: Commandable = message.tool.instantiate()
+	var new_structure: Actor = message.tool.instantiate()
 	# Mark as under construction before add_entity so that _ready → _on_commander_changed
 	# → add_structure → proc_technology all see is_built = false. begin_construction sets
 	# build_progress (not @onready) so this survives _ready() without being overwritten.
 	new_structure.begin_construction()
-	var new_structure_component := new_structure.get_node_or_null("Structure") as Structure
+	var new_structure_component := new_structure.get_node_or_null("Fixture") as Fixture
 	if new_structure_component != null:
 		new_structure_component.quarter_turns = message.quarter_turns
 	_pay(a_actor)
@@ -681,7 +694,7 @@ func _place_structure(a_actor: Commandable) -> Commandable:
 ## bought now stands here". The TRAIN half is Production._spawn_unit. Nothing listens
 ## today; the event exists so anything that later depends on this purchase is told at the
 ## moment the thing exists, rather than inferring it from the transaction disappearing.
-func _report_fulfilment(a_structure: Commandable) -> void:
+func _report_fulfilment(a_structure: Actor) -> void:
 	if message.transaction != null:
 		message.transaction.complete(a_structure)
 
@@ -695,7 +708,7 @@ func _report_fulfilment(a_structure: Commandable) -> void:
 ## structure-targeted command through SU.nearest_footprint_adjacent_cell), so placing and
 ## then building happen from one spot. Null when nothing adjacent is passable — the order
 ## then keeps the default rather than being silently dropped.
-func movement_destination(a_actor: Commandable) -> Variant:
+func movement_destination(a_actor: Actor) -> Variant:
 	var host: Entity = _obstructing_host(a_actor)
 	if host == null:
 		return null
@@ -713,10 +726,10 @@ func movement_destination(a_actor: Commandable) -> Variant:
 ## The structure this build is aimed on top of, if it blocks movement: the building a conversion
 ## targets, else the one standing concentric with the build's footprint. Null when the target is
 ## open ground or a walkable fixture such as an extraction site.
-func _obstructing_host(a_actor: Commandable) -> Entity:
+func _obstructing_host(a_actor: Actor) -> Entity:
 	if message.map == null or message.tool == null:
 		return null
-	var conversion: Commandable = _conversion_target(a_actor.commander, message)
+	var conversion: Actor = _conversion_target(a_actor.commander, message)
 	if conversion != null:
 		return conversion if conversion.is_grid_obstruction() else null
 	var host: Entity = message.map.concentric_structure(
@@ -726,7 +739,7 @@ func _obstructing_host(a_actor: Commandable) -> Entity:
 	return host if host != null and host.is_grid_obstruction() else null
 
 
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	# Keep approaching until adjacent to the would-be footprint. Because the
 	# footprint cells are the same ones Assemble checks, the builder stops exactly
 	# where it can both place AND continue building — no "placed but out of range".
@@ -746,8 +759,8 @@ func ends_on_arrival() -> bool:
 ## time, and transition the building once its discounted build time has elapsed. Returns self
 ## while still working, null when done (or the target is no longer a convertible
 ## building — e.g. another builder finished it first).
-func _fulfill_conversion(a_actor: Commandable) -> Variant:
-	var target: Commandable = _conversion_target(a_actor.commander, message)
+func _fulfill_conversion(a_actor: Actor) -> Variant:
+	var target: Actor = _conversion_target(a_actor.commander, message)
 	if target == null:
 		return null
 	if not _conversion_paid:
@@ -776,8 +789,8 @@ func _fulfill_conversion(a_actor: Commandable) -> Variant:
 ## The ORDER is the point. The neutral commander's registry entry is under the building's old id,
 ## so it is withdrawn before the id changes; the ownership transfer comes LAST, because it is what
 ## registers the node under its new id with the commander and credits the infrastructure the
-## node now carries (Commandable._on_commander_changed), tracked so a later loss withdraws it.
-func _convert_building(a_building: Commandable, a_commander: Commander) -> void:
+## node now carries (Actor._on_commander_changed), tracked so a later loss withdraws it.
+func _convert_building(a_building: Actor, a_commander: Commander) -> void:
 	if not is_instance_valid(a_building) or a_commander == null:
 		return
 	var neutral: Commander = a_building.commander

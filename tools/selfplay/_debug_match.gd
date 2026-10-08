@@ -9,7 +9,7 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		return base
 	var bot: Bot = a_brain.bot
 	var military: BotMilitary = a_brain._military
-	var target: Commandable = bot.nearest_enemy_structure_to_base()
+	var target: Actor = bot.nearest_enemy_structure_to_base()
 	base["enemy_commanders"] = bot._enemy_commanders().map(func(c: Commander): return c.id)
 	base["n_enemy_structures"] = bot.get_enemy_structures().size()
 	base["n_enemy_units"] = bot.get_enemy_units().size()
@@ -26,9 +26,9 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		base["has_objective"] = military._has_objective
 		base["wave_active"] = military._wave_active
 		base["combat_units"] = military._combat_units(bot.get_units()).size()
-	var probe: Commandable = target
+	var probe: Actor = target
 	var lines: Array = []
-	for u: Commandable in bot.get_units():
+	for u: Actor in bot.get_units():
 		var cmd: Variant = u.current_command() if u.has_command() else null
 		var armed: bool = u.weapon_inventory != null and u.weapon_inventory.has_weapons()
 		var canhit: String = "-"
@@ -86,7 +86,7 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 				if sc._scout_grid[idx] < thr:
 					unseen_expired += 1
 		var sl2: Array = []
-		for u2: Commandable in sc._scouts:
+		for u2: Actor in sc._scouts:
 			var c2: Variant = u2.current_command() if u2.has_command() else null
 			sl2.append(
 				(

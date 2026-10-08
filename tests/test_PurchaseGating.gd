@@ -10,7 +10,7 @@ extends GutTest
 ##   * Commander.get_blocking_need(type, allow_deferral) — the gate itself;
 ##   * CommandMessage.defer_if_unaffordable → Train/Build.meets_precondition — the wiring
 ##     that carries the player's mode down to it;
-##   * Commandable.awaiting_funds → MeshVisual shade — the world-space tell that a
+##   * Actor.awaiting_funds → MeshVisual shade — the world-space tell that a
 ##     blueprint is queued rather than ready to start.
 ##
 ## Everything is built out of tree (a Commander that was never added to the scene, bare
@@ -36,8 +36,8 @@ func _make_commander(a_energy: int = 0) -> Commander:
 ## A stand-in production structure owned by `a_commander`. Both components are assigned
 ## to their fields directly as well as added as children: the @onready shims never
 ## resolve out of tree, and `Entity.commander` delegates through the `ownership` one.
-func _make_producer(a_types: Array[StringName], a_commander: Commander) -> Commandable:
-	var producer := autofree(Commandable.new()) as Commandable
+func _make_producer(a_types: Array[StringName], a_commander: Commander) -> Actor:
+	var producer := autofree(Actor.new()) as Actor
 	var production := Production.new()
 	production.producible_types = a_types
 	producer.add_child(production)
@@ -166,7 +166,7 @@ func test_train_precondition_accepts_affordable_order_without_the_modifier() -> 
 
 
 func test_shade_reflects_awaiting_funds() -> void:
-	var blueprint := autofree(Commandable.new()) as Commandable
+	var blueprint := autofree(Actor.new()) as Actor
 	assert_eq(blueprint.construction_shade(), MeshVisual.SHADE_NORMAL)
 	blueprint.set_awaiting_funds(true)
 	assert_eq(
@@ -180,7 +180,7 @@ func test_funding_clears_the_awaiting_funds_shade() -> void:
 	# The blueprint has no back-reference to its purchase; fund() is the one moment the
 	# cost is committed, so it is what tells the blueprint to brighten.
 	var commander := _make_commander(100)
-	var blueprint := autofree(Commandable.new()) as Commandable
+	var blueprint := autofree(Actor.new()) as Actor
 	blueprint.set_awaiting_funds(true)
 	var transaction := PurchaseTransaction.for_cost(
 		commander, PurchaseTransaction.Kind.BUILD, _make_tool(TRAINEE), 20

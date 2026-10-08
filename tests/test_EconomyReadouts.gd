@@ -34,8 +34,8 @@ func _make_commander(a_energy: int = 0) -> Commander:
 	return commander
 
 
-func _make_producer(a_commander: Commander, a_types: Array[StringName]) -> Commandable:
-	var producer := autofree(Commandable.new()) as Commandable
+func _make_producer(a_commander: Commander, a_types: Array[StringName]) -> Actor:
+	var producer := autofree(Actor.new()) as Actor
 	var production := Production.new()
 	production.producible_types = a_types
 	producer.add_child(production)
@@ -117,7 +117,7 @@ func test_no_extractors_collect_nothing() -> void:
 func test_extractors_sum_into_a_per_second_rate() -> void:
 	var commander := _make_commander()
 	for rate: int in [25, 10]:
-		var extractor := autofree(Commandable.new()) as Commandable
+		var extractor := autofree(Actor.new()) as Actor
 		var energy_extractor := EnergyExtractor.new()
 		energy_extractor.name = "EnergyExtractor"
 		energy_extractor.energy_rate = rate
@@ -130,7 +130,7 @@ func test_a_blueprint_collects_nothing() -> void:
 	# A plan neither collects nor spends — counting one would report income from an extractor
 	# that has not been built.
 	var commander := _make_commander()
-	var extractor := autofree(Commandable.new()) as Commandable
+	var extractor := autofree(Actor.new()) as Actor
 	var energy_extractor := EnergyExtractor.new()
 	energy_extractor.name = "EnergyExtractor"
 	extractor.add_child(energy_extractor)
@@ -142,7 +142,7 @@ func test_a_blueprint_collects_nothing() -> void:
 func test_a_blueprint_extractor_is_pending_income() -> void:
 	# ...but it is income ORDERED, which the energy bar draws as pending.
 	var commander := _make_commander()
-	var extractor := autofree(Commandable.new()) as Commandable
+	var extractor := autofree(Actor.new()) as Actor
 	var energy_extractor := EnergyExtractor.new()
 	energy_extractor.name = "EnergyExtractor"
 	energy_extractor.energy_rate = 25
@@ -191,8 +191,8 @@ func test_a_queued_purchase_is_not_yet_a_spend() -> void:
 ## readings contradict each other.
 
 
-func _make_extractor(a_commander: Commander, a_rate: int = 25) -> Commandable:
-	var extractor := autofree(Commandable.new()) as Commandable
+func _make_extractor(a_commander: Commander, a_rate: int = 25) -> Actor:
+	var extractor := autofree(Actor.new()) as Actor
 	var energy_extractor := EnergyExtractor.new()
 	energy_extractor.name = "EnergyExtractor"
 	energy_extractor.energy_rate = a_rate
@@ -201,8 +201,8 @@ func _make_extractor(a_commander: Commander, a_rate: int = 25) -> Commandable:
 	return extractor
 
 
-func _make_dominion_source(a_commander: Commander, a_rate: int = 10) -> Commandable:
-	var source := autofree(Commandable.new()) as Commandable
+func _make_dominion_source(a_commander: Commander, a_rate: int = 10) -> Actor:
+	var source := autofree(Actor.new()) as Actor
 	var generator := DominionGenerator.new()
 	generator.name = "DominionGenerator"
 	generator.dominion_rate = a_rate
@@ -256,8 +256,8 @@ func test_a_commander_with_no_generators_reports_no_dominion_source() -> void:
 
 func _make_occupant_dominion_source(
 	a_commander: Commander, a_dominion_per_unit: int, a_occupant_count: int
-) -> Commandable:
-	var host := autofree(Commandable.new()) as Commandable
+) -> Actor:
+	var host := autofree(Actor.new()) as Actor
 	var garrison := Garrison.new()
 	garrison.name = "Garrison"
 	host.add_child(garrison)
@@ -267,7 +267,7 @@ func _make_occupant_dominion_source(
 	host.add_child(generator)
 	a_commander.add_child(host)
 	for i: int in a_occupant_count:
-		garrison._garrisoned.append(autofree(Commandable.new()) as Commandable)
+		garrison._garrisoned.append(autofree(Actor.new()) as Actor)
 	return host
 
 
@@ -300,7 +300,7 @@ func test_the_rate_does_not_read_the_unused_inherited_flat_default() -> void:
 func test_occupant_generators_contribute_their_head_count() -> void:
 	var commander := _make_commander()
 	for held: int in [3, 1]:
-		var camp := autofree(Commandable.new()) as Commandable
+		var camp := autofree(Actor.new()) as Actor
 		# Ownership is wired to the field directly, like `production` elsewhere in this file:
 		# the @onready never resolves for a node built out of tree, and Garrison reads the
 		# host's commander_id when it takes an occupant.
@@ -320,7 +320,7 @@ func test_occupant_generators_contribute_their_head_count() -> void:
 		camp.add_child(generator)
 		commander.add_child(camp)
 		for i in held:
-			var prisoner := autofree(Commandable.new()) as Commandable
+			var prisoner := autofree(Actor.new()) as Actor
 			garrison.garrison(prisoner)
 	assert_eq(
 		commander.dominion_contributor_count(),
@@ -365,8 +365,8 @@ func test_no_net_income_never_clears() -> void:
 ## assumed from a faction constant.
 
 
-func _make_infrastructure_provider(a_commander: Commander, a_grant: int) -> Commandable:
-	var provider := autofree(Commandable.new()) as Commandable
+func _make_infrastructure_provider(a_commander: Commander, a_grant: int) -> Actor:
+	var provider := autofree(Actor.new()) as Actor
 	provider.infrastructure = a_grant
 	a_commander.add_child(provider)
 	return provider
@@ -389,7 +389,7 @@ func test_the_grant_is_the_dedicated_providers_whether_or_not_one_stands() -> vo
 		FakePieces.tool(PROVIDER_ID, {"structure": true, "infrastructure": 40})
 	)
 	var own_grant: int = (
-		(commander.get_build_preview_instance(Tool.for_type(PROVIDER_ID)) as Commandable)
+		(commander.get_build_preview_instance(Tool.for_type(PROVIDER_ID)) as Actor)
 		. infrastructure
 	)
 	assert_gt(own_grant, 0, "guards the fixture: the source provides")

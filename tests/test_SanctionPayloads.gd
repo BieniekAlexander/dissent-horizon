@@ -50,9 +50,9 @@ func _commander(a_id: int) -> Commander:
 	return _commanders[a_id]
 
 
-## A real unit — irregular.tscn — rather than a hand-built Commandable: the class hard-
+## A real unit — irregular.tscn — rather than a hand-built Actor: the class hard-
 ## requires a scene rig (an HP bar, an AvoidanceObstacle, an Ownership) that a bare
-## `Commandable.new()` has no way to supply, and assembling a fake one only tests the
+## `Actor.new()` has no way to supply, and assembling a fake one only tests the
 ## fake. Armour, frame and owner are overridden afterwards, which is all these payloads
 ## read; the piece it happens to be is irrelevant except to Informant's tier-1
 ## eligibility, which these tests do not exercise.
@@ -61,8 +61,8 @@ func _unit(
 	a_at: Vector2,
 	a_armour: Defense.ArmourType = Defense.ArmourType.LIGHT,
 	a_frame: Defense.FrameType = Defense.FrameType.BIO
-) -> Commandable:
-	var unit: Commandable = FakePieces.make(UNIT_SCENE)
+) -> Actor:
+	var unit: Actor = FakePieces.make(UNIT_SCENE)
 	add_child_autofree(unit)
 	unit.top_level = true
 	unit.ownership.commander = _commander(a_commander_id)
@@ -74,7 +74,7 @@ func _unit(
 	return unit
 
 
-func _run(a_event: EventTargetUnit, a_target: Commandable) -> void:
+func _run(a_event: EventTargetUnit, a_target: Actor) -> void:
 	add_child_autofree(a_event)
 	a_event.commander_id = OWN
 	a_event.target_unit = a_target
@@ -186,7 +186,7 @@ func test_informant_refuses_an_already_stealthed_unit() -> void:
 # --- Overcharge ------------------------------------------------------------------
 
 
-func _emp(a_unit: Commandable) -> void:
+func _emp(a_unit: Actor) -> void:
 	var effect := EmpStatusEffect.new()
 	effect.affects_frames = Garrison.FRAME_ANY
 	effect.duration_ticks = 300

@@ -12,7 +12,7 @@ extends Node
 ## A toggle rather than a hold, so the view can be left up while both hands are on the game.
 ##
 ## Created by Scenario._ready as a child. The node exists only to receive the key; the state
-## is static because its readers — every Commandable, each Fog, the minimap, HUD labels — have
+## is static because its readers — every Actor, each Fog, the minimap, HUD labels — have
 ## no path to their Scenario, and one session runs at a time (as with Fog.active_commander_id).
 
 ## The key that shows and hides the debug view.

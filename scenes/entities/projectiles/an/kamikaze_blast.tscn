@@ -1,0 +1,46 @@
+[gd_scene load_steps=9 format=3 uid="uid://cmrtyrbomb001"]
+
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_proj"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_own"]
+[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="1_spec"]
+[ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="2_spec"]
+[ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="mig_payload"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_blast"]
+radius = 2.0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_placeholder"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 0.5
+
+[node name="KamikazeBlast" type="CharacterBody3D" unique_id=440011001]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_proj")
+
+[node name="HitShape" type="CollisionShape3D" parent="." unique_id=440011003]
+shape = SubResource("SphereShape3D_blast")
+
+[node name="Ownership" type="Node" parent="." unique_id=440011004]
+script = ExtResource("2_own")
+metadata/_custom_type_script = "uid://cw7pigc81a8s6"
+
+[node name="Blast" type="Node3D" parent="."]
+script = ExtResource("1_spec")
+ends_on_arrival = false
+lifespan_seconds = 1.0
+applies_payload = true
+visuals = Array[NodePath]([NodePath("InFlightMesh")])
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("2_spec")
+
+[node name="Payload" type="Node" parent="."]
+script = ExtResource("mig_payload")
+base_damage = 150.0
+damage_type = 6
+
+[node name="InFlightMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("CylinderMesh_placeholder")
+metadata/_visual_default_mesh = "linear projectile"

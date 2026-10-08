@@ -2,6 +2,9 @@
 kind: Entity
 title: Assembler
 scene: res://scenes/entities/structures/lb/lb_barracks.tscn
+flavor:
+  description: potato
+  verbose: potato
 build:
   cost: {energy: 300}
   time: 30

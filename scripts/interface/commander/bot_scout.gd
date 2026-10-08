@@ -376,7 +376,7 @@ func _grid_world_pos(a_idx: Vector2i) -> Vector3:
 ## is the vision radius in grid steps plus one step of slack, because the unit stands anywhere
 ## between grid points. Testing the whole grid for every unit cost O(units × grid) per pass,
 ## which scaled with map area and was most of the bot's decision cost (bot-performance.md).
-func _mark_seen_by(a_unit: Commandable) -> int:
+func _mark_seen_by(a_unit: Actor) -> int:
 	var vision: float = _bot.vision_radius(a_unit)
 	if vision <= 0.0:
 		return 0
@@ -440,7 +440,7 @@ func _update_scouts(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 	var now: float = _bot.seconds_elapsed()
 	# THE VALIDITY SWEEP GOES THROUGH A VARIANT, and it has to: Godot type-checks an object
 	# against a typed local on ASSIGNMENT, and a freed instance fails that check before any
-	# is_instance_valid() guard in the body can run — so `var held: Commandable = _scouts[i]`
+	# is_instance_valid() guard in the body can run — so `var held: Actor = _scouts[i]`
 	# errors out and takes the whole think pass with it the first time a scout dies
 	# (CLAUDE.md §A freed object cannot be passed to a typed parameter).
 	var live: Array = []
@@ -448,7 +448,7 @@ func _update_scouts(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 		# GARRISONED counts as gone too, and not only as a tidiness matter: a unit taken into a
 		# garrison (run over by a Stock Truck, or ordered to occupy one) is a valid object that
 		# has left the scene tree, so it has no global_position for the stall test to measure
-		# progress against and warns every think for the rest of the match. Commandable.
+		# progress against and warns every think for the rest of the match. Actor.
 		# is_garrisoned is the right question rather than is_inside_tree(), which cannot tell a
 		# held unit from a dead one (commandable.gd §garrisoned_in).
 		#
@@ -456,7 +456,7 @@ func _update_scouts(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 		# now, and this module learns so here rather than by having run first.
 		if (
 			is_instance_valid(entry)
-			and not (entry as Commandable).is_garrisoned()
+			and not (entry as Actor).is_garrisoned()
 			and not _taken_by_another(entry)
 		):
 			live.append(entry)
@@ -486,7 +486,7 @@ func _update_scouts(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 	# out from under us, or has stopped making ground toward it — which are the same situation
 	# as far as this module is concerned: the waypoint is not going to be reached, and standing
 	# there sees nothing.
-	for scout: Commandable in _scouts:
+	for scout: Actor in _scouts:
 		if (
 			(not scout.has_command() or _was_retasked(scout) or _is_stalled(scout, now))
 			and not _dispatch_queue.has(scout)
@@ -510,7 +510,7 @@ func _drain_dispatch(a_allowance: int) -> void:
 			_dispatch_queue.pop_front()
 			_errand = {}
 			continue
-		var scout: Commandable = head
+		var scout: Actor = head
 		if _errand.is_empty() or _errand["scout"] != scout:
 			_errand = _start_errand_search(scout, true)
 		if not _continue_errand_search(_errand, a_allowance - _work):
@@ -527,7 +527,7 @@ func _drain_dispatch(a_allowance: int) -> void:
 
 
 ## True when another manager holds `a_unit` — it was taken from this module by a stronger claim.
-func _taken_by_another(a_unit: Commandable) -> bool:
+func _taken_by_another(a_unit: Actor) -> bool:
 	return claims.is_claimed(a_unit) and not claims.owns(a_unit, CLAIM_OWNER)
 
 
@@ -545,7 +545,7 @@ func _taken_by_another(a_unit: Commandable) -> bool:
 func _still_scouting(a_scout: Variant, a_rank: int) -> bool:
 	if not is_instance_valid(a_scout):
 		return false
-	var scout: Commandable = a_scout
+	var scout: Actor = a_scout
 	if scout.is_garrisoned():
 		return false
 	if _yields_to_errand(scout):
@@ -557,14 +557,14 @@ func _still_scouting(a_scout: Variant, a_rank: int) -> bool:
 ## _next_scout_point never re-selects the same cell — for this scout if its arrival leaves
 ## the point's fog pixel uncleared at the disc's edge, and for the OTHER scouts, which is
 ## what keeps two of them from walking to the same place.
-func _send_to_next_point(a_scout: Commandable, a_now: float) -> void:
+func _send_to_next_point(a_scout: Actor, a_now: float) -> void:
 	var next_idx: Variant = _next_scout_point(a_scout)
 	if next_idx != null:
 		_send_to(a_scout, next_idx, a_now)
 
 
 ## Stamp grid point `a_idx` as visited and send `a_scout` to it — see _send_to_next_point.
-func _send_to(a_scout: Commandable, a_idx: Vector2i, a_now: float) -> void:
+func _send_to(a_scout: Actor, a_idx: Vector2i, a_now: float) -> void:
 	_scout_grid[a_idx] = a_now
 	_act.move([a_scout], _scout_grid_positions[a_idx])
 	# A fresh waypoint restarts the stall clock: the scout has not failed at this one yet.
@@ -576,7 +576,7 @@ func _send_to(a_scout: Commandable, a_idx: Vector2i, a_now: float) -> void:
 ## True when `a_scout` has held its waypoint for SCOUT_STALL_SECONDS without covering
 ## SCOUT_STALL_DISTANCE — i.e. it is not going to get there. Records progress as a side
 ## effect, so calling it once per think is what keeps the measurement honest.
-func _is_stalled(a_scout: Commandable, a_now: float) -> bool:
+func _is_stalled(a_scout: Actor, a_now: float) -> bool:
 	var key: int = a_scout.get_instance_id()
 	var record: Variant = _scout_progress.get(key)
 	if record == null or a_scout.global_position.distance_to(record["at"]) > SCOUT_STALL_DISTANCE:
@@ -590,7 +590,7 @@ func _is_stalled(a_scout: Commandable, a_now: float) -> bool:
 ## live scout set rather than growing for the length of a match.
 func _prune_progress() -> void:
 	var live: Dictionary = {}
-	for scout: Commandable in _scouts:
+	for scout: Actor in _scouts:
 		live[scout.get_instance_id()] = true
 	for key: int in _scout_progress.keys():
 		if not live.has(key):
@@ -614,7 +614,7 @@ func _prune_progress() -> void:
 ## question is now asked of a scout already in the field, to decide whether keeping it out
 ## still pays; asking that with the claim-time divisor would price every held scout as if it
 ## were an additional one and release them all.
-func _scouting_is_worth_it(a_candidate: Commandable, a_rank: int = 0) -> bool:
+func _scouting_is_worth_it(a_candidate: Actor, a_rank: int = 0) -> bool:
 	var rank: int = a_rank if a_rank > 0 else _scouts.size() + 1
 	var value: float = INFORMATION_VALUE_ENERGY * stale_fraction() / float(rank)
 	return value > float(_bot.unit_cost(a_candidate.id)) * ABSENCE_RISK
@@ -636,7 +636,7 @@ func stale_fraction() -> float:
 ## True when a scout's command is no longer the plain move this module gave it — something
 ## else has re-tasked it, so its waypoint needs re-issuing. NOT the same question as whether
 ## the scout is still ours: see _yields_to_errand.
-func _was_retasked(a_scout: Commandable) -> bool:
+func _was_retasked(a_scout: Actor) -> bool:
 	if not a_scout.has_command():
 		return false  # idle after reaching a waypoint, still ours
 	var c: MoveCommand = a_scout.current_command()
@@ -662,7 +662,7 @@ func _was_retasked(a_scout: Commandable) -> bool:
 ## army on every posture or objective change, including the MASS posture's "come and stand at
 ## home", so it is a standing rally rather than a decision about this unit. Yielding to it is
 ## what cost the bot its best scout on the first think of every match.
-func _yields_to_errand(a_scout: Commandable) -> bool:
+func _yields_to_errand(a_scout: Actor) -> bool:
 	if not a_scout.has_command():
 		return false
 	var c: MoveCommand = a_scout.current_command()
@@ -693,7 +693,7 @@ func _yields_to_errand(a_scout: Commandable) -> bool:
 ## (gdd/systems/ai/bot-architecture.md §Scouting).
 func _pick_scout() -> Variant:
 	var candidates: Array = _bot.get_units().filter(
-		func(u: Commandable) -> bool:
+		func(u: Actor) -> bool:
 			if not u.can_move():
 				return false
 			# AOE-suicide drones are reserved for BotKamikaze (which alone commits them to a
@@ -719,13 +719,13 @@ func _pick_scout() -> Variant:
 	# Ranked by a draw at the bot's temperature rather than by a sort, so which unit goes
 	# looking varies by match; with no generator or at 0 it is the sort it was.
 	var scores: Array = candidates.map(
-		func(u: Commandable) -> float: return _scout_score(u, scales)
+		func(u: Actor) -> float: return _scout_score(u, scales)
 	)
 	var ranked: Array = []
 	for i: int in BotSampling.order(scores, decision_temperature, rng):
 		ranked.append(candidates[i])
 	var rank: int = _scouts.size() + 1
-	for u: Commandable in ranked:
+	for u: Actor in ranked:
 		if _scouting_is_worth_it(u, rank):
 			return u
 	return null
@@ -736,7 +736,7 @@ func _pick_scout() -> Variant:
 ## dividing by zero.
 func _score_scales(a_candidates: Array) -> Dictionary:
 	var scales: Dictionary = {"speed": 1.0, "vision": 1.0, "cost": 1.0, "build_time": 1.0}
-	for u: Commandable in a_candidates:
+	for u: Actor in a_candidates:
 		scales["speed"] = maxf(scales["speed"], u.movement.speed)
 		scales["vision"] = maxf(scales["vision"], _bot.vision_radius(u))
 		scales["cost"] = maxf(scales["cost"], float(_bot.unit_cost(u.id)))
@@ -762,7 +762,7 @@ func _score_scales(a_candidates: Array) -> Dictionary:
 ## The WEIGHTS are placeholders on the same footing as the difficulty ramp — the shape is
 ## settled, the numbers are what the self-play harness exists to search
 ## (gdd/systems/ai/bot-roadmap.md §The training harness). Do not balance against them.
-func _scout_score(a_unit: Commandable, a_scales: Dictionary) -> float:
+func _scout_score(a_unit: Actor, a_scales: Dictionary) -> float:
 	var speed: float = a_unit.movement.speed / a_scales["speed"]
 	var vision: float = _bot.vision_radius(a_unit) / a_scales["vision"]
 	var cost: float = float(_bot.unit_cost(a_unit.id)) / a_scales["cost"]
@@ -790,7 +790,7 @@ func _scout_score(a_unit: Commandable, a_scales: Dictionary) -> float:
 ## the enemy base" is the cross-domain currency the roadmap has not settled
 ## (gdd/systems/ai/bot-roadmap.md §Then: arbitration, not sequence); a count needs no such
 ## currency because every candidate here is being asked the same single question.
-func _applicable_responsibility_count(a_unit: Commandable) -> int:
+func _applicable_responsibility_count(a_unit: Actor) -> int:
 	var count: int = 0
 	# ARMED, deliberately, and not Bot.unit_has_combat_utility — even though BotMilitary now
 	# marches crushers too. The question here is whether a unit is NEEDED ELSEWHERE, and
@@ -814,11 +814,11 @@ func _applicable_responsibility_count(a_unit: Commandable) -> int:
 ## How many build-capable units the bot owns — what decides whether pulling this one away
 ## would leave the economy with no builder at all.
 func _builder_count() -> int:
-	return _bot.get_units().filter(func(u: Commandable): return u.has_node("Builds")).size()
+	return _bot.get_units().filter(func(u: Actor): return u.has_node("Builds")).size()
 
 
 ## True when a unit is unoccupied and safe to draft as a scout.
-func _unit_is_available(a_u: Commandable) -> bool:
+func _unit_is_available(a_u: Actor) -> bool:
 	if not a_u.has_command():
 		return true
 	var c: MoveCommand = a_u.current_command()
@@ -880,7 +880,7 @@ func _unit_is_available(a_u: Commandable) -> bool:
 ## frontier cell from trapping the scout: _send_to_next_point optimistically stamps the point
 ## it dispatches to, so a cell walked at and not actually seen drops out of the candidate set
 ## for a full expiry window instead of being re-picked every think.
-func _next_scout_point(a_scout: Commandable) -> Variant:
+func _next_scout_point(a_scout: Actor) -> Variant:
 	if not is_instance_valid(a_scout):
 		return null
 	var from_xz: Vector2 = VU.in_xz(a_scout.global_position)
@@ -909,7 +909,7 @@ func _best_errand(
 
 
 ## A fresh errand search for `a_scout`, from where it stands now — see _errand_search.
-func _start_errand_search(a_scout: Commandable, a_unseen_only: bool) -> Dictionary:
+func _start_errand_search(a_scout: Actor, a_unseen_only: bool) -> Dictionary:
 	var speed: float = maxf(0.1, a_scout.movement.speed) if a_scout.movement != null else 1.0
 	return _errand_search(
 		a_scout,

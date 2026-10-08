@@ -124,7 +124,7 @@ down.
 
 - A **fixture** shows the build ghost and follows the footprint rule `Build` does — grid bounds,
   occupancy, an overlay's host — against the TRUE grid. Cost and technology are not checked,
-  and neither is the planned fog-knowledge rule
+  and neither is the fog-knowledge rule
   ([construction](../../commands/construction.md) §Placement is judged against what the
   commander knows): the debug view has lifted the fog.
 - A **ground unit** is placed only where its OWN size class's navmesh reaches. Elsewhere the

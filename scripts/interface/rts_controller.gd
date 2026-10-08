@@ -18,12 +18,6 @@ static var PLAYER_COMMANDER_ID: int = 1
 # release whose cursor sits inside any of them is NOT interpreted as unit selection
 # (see _pointer_over_blocking_ui). Add future HUD panels (MapSection, InfoSection,
 # CommandsSection, …) to this group in the scene to have them ignored the same way.
-## Floor on the radius a group order scatters destinations within, so a small group
-## still fans out enough to stop units stacking on one point.
-const MIN_FAN_OUT_RADIUS: float = 5.0
-
-## Scatter radius contributed per unit, as a multiple of the group's body radius.
-const FAN_OUT_RADIUS_PER_UNIT: float = 2.5
 
 const SELECTION_BLOCKING_UI_GROUP: StringName = &"selection_blocking_ui"
 
@@ -83,10 +77,6 @@ const CMD_SELECT_PRODUCTION: String = "command_select_production"
 ## by polling, never off the event's modifier flags, for exactly that reason.
 const MODIFIER_NARROW: String = "modifier_narrow"
 const MODIFIER_BROADEN: String = "modifier_broaden"
-
-## How many units one `modifier_broaden` press of a train button buys. Five is the RTS
-## convention for a batch key and is short enough that a mis-press is cheap to cancel.
-const BULK_PURCHASE_COUNT: int = 5
 
 ## The command name of the Cancel button on the READY card — the only button that card draws.
 ## Named here rather than in the grid because the controller both offers it and answers it.
@@ -232,7 +222,7 @@ var _select_command_handlers: Dictionary = {}
 ## already chose with the rotate keys.
 const PLACEMENT_ROTATE_DEADZONE: float = 1.0
 
-## How the structure about to be placed is turned, as Structure.quarter_turns (0…3, counter-
+## How the structure about to be placed is turned, as Fixture.quarter_turns (0…3, counter-
 ## clockwise from above; 0 faces +Z). Held while a Build tool stays armed and put back to 0 when
 ## it is put down. Written by the rotate keys and by a placement drag; what an order actually
 ## carries is command_message.quarter_turns, which is this where rotation applies at all.
@@ -443,6 +433,8 @@ func _ready():
 	# get carried out until the world resumes (execution is _physics_process work). Every
 	# child Control inherits this, which is what keeps the info panel and minimap live too.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if _order_stream() != null:
+		_order_stream().order_applied.connect(_on_order_applied)
 	ControlScheme.apply()
 	PlatformModifiers.apply()
 	_register_hud_cursor()
@@ -709,7 +701,7 @@ func _placement_bands() -> Array[RangeIndicator.Band]:
 	if Input.is_action_pressed("ui_verbose"):
 		kinds.append(EntityRanges.Kind.VISION)
 	var centre: Vector2 = VU.in_xz(_build_preview.global_position)
-	var neighbours: Array[Commandable] = _placement_neighbours()
+	var neighbours: Array[Actor] = _placement_neighbours()
 	for kind: int in kinds:
 		var reach: Array[float] = _distinct_radii(source, kind)
 		for radius: float in reach:
@@ -721,7 +713,7 @@ func _placement_bands() -> Array[RangeIndicator.Band]:
 		if reach.is_empty():
 			continue
 		var widest: float = reach.max()
-		for neighbour: Commandable in neighbours:
+		for neighbour: Actor in neighbours:
 			var pending: bool = neighbour.is_planned or not neighbour.is_built
 			for radius: float in _distinct_radii(neighbour, kind):
 				if centre.distance_to(neighbour.xz_position) < widest + radius:
@@ -751,13 +743,13 @@ func _distinct_radii(a_piece: Entity, a_kind: int) -> Array[float]:
 
 ## The structures on the placer's side whose coverage a placement might join — standing, going
 ## up, or only planned.
-func _placement_neighbours() -> Array[Commandable]:
-	var out: Array[Commandable] = []
+func _placement_neighbours() -> Array[Actor]:
+	var out: Array[Actor] = []
 	var placer: Commander = _placement_commander()
 	if placer == null:
 		return out
 	for node: Node in get_tree().get_nodes_in_group("structure"):
-		var piece := node as Commandable
+		var piece := node as Actor
 		if (
 			piece != null
 			and not piece.is_queued_for_deletion()
@@ -818,7 +810,7 @@ func _update_placement_grid(a_is_invalid_placement: bool) -> void:
 			_placement_grid_key = []
 			_placement_layer_key = null
 		return
-	var obs := source.get_node_or_null("Structure") as Structure
+	var obs := source.get_node_or_null("Fixture") as Fixture
 	var dims: Vector2i = _placement_dimensions(obs)
 	var origin: Vector2i = map.footprint_origin(_placement_aim(), dims)
 	var placer: Commander = _placement_commander()
@@ -862,10 +854,14 @@ func _update_placement_grid(a_is_invalid_placement: bool) -> void:
 	var planned: Dictionary = (
 		placer.planned_footprint_cells() if placer != null and not is_drop_armed() else {}
 	)
+	# What the placer knows, as Build judges it: the grid must not show what the fog hides.
+	var knowledge: PlacementKnowledge = PlacementKnowledge.of(placer, map)
 	for cell: Vector2i in footprint:
 		var ok: bool = (
 			(
-				Structure.cell_admits_structure(map, cell, obs.allow_uneven, obs.allow_submerged)
+				Fixture.cell_admits_structure(
+					map, cell, obs.allow_uneven, obs.allow_submerged, knowledge
+				)
 				and not planned.has(cell)
 			)
 			if per_cell
@@ -898,7 +894,7 @@ func _armed_ability_bands() -> Array[RangeIndicator.Band]:
 		return bands
 
 	if _armed_reach_is_a_distance():
-		for caster: Commandable in armed_ability_casters():
+		for caster: Actor in armed_ability_casters():
 			bands.append(
 				RangeIndicator.Band.of(
 					HighlightShape.circle(
@@ -949,14 +945,14 @@ func armed_ability_id() -> StringName:
 ## to EVERY capable caster (only `modifier_narrow` picks one), so with several selected the
 ## ring describes one of several that will all fire. Right for the single-caster case, which
 ## is every case today; revisit when a faction fields several of one battery.
-func armed_ability_caster() -> Commandable:
-	var casters: Array[Commandable] = _charged_casters(armed_ability_id())
+func armed_ability_caster() -> Actor:
+	var casters: Array[Actor] = _charged_casters(armed_ability_id())
 	if casters.is_empty() or command_message == null:
 		return null
 	var aim: Vector2 = VU.in_xz(command_message.world_position)
-	var best: Commandable = null
+	var best: Actor = null
 	var best_distance: float = INF
-	for actor: Commandable in casters:
+	for actor: Actor in casters:
 		var distance: float = aim.distance_squared_to(actor.xz_position)
 		if distance < best_distance:
 			best_distance = distance
@@ -970,23 +966,23 @@ func armed_ability_caster() -> Commandable:
 ## This is what makes the preview honest. The rings and the pieces that actually fire are
 ## the same set by construction, so holding `modifier_broaden` over a pair of spotters lights
 ## both rings AND sends both the order.
-func armed_ability_casters() -> Array[Commandable]:
+func armed_ability_casters() -> Array[Actor]:
 	var ability: StringName = armed_ability_id()
 	if ability == &"":
 		return []
 	if armed_cast_arity() == MoveCommand.CastArity.ALL:
 		return _charged_casters(ability)
-	var one: Commandable = armed_ability_caster()
-	return [one] as Array[Commandable] if one != null else []
+	var one: Actor = armed_ability_caster()
+	return [one] as Array[Actor] if one != null else []
 
 
 ## The selected pieces that grant `a_ability` and are holding a charge for it.
-func _charged_casters(a_ability: StringName) -> Array[Commandable]:
-	var out: Array[Commandable] = []
+func _charged_casters(a_ability: StringName) -> Array[Actor]:
+	var out: Array[Actor] = []
 	if a_ability == &"":
 		return out
 	for node: Node in selection:
-		var actor := node as Commandable
+		var actor := node as Actor
 		if actor == null or not is_instance_valid(actor):
 			continue
 		var pool := actor.get_node_or_null("Abilities") as Abilities
@@ -1212,7 +1208,7 @@ func _update_line_order() -> void:
 			_line_indicator.clear_line()
 		return
 	var points: Array[Vector3] = []
-	for dest: Vector2 in _line_destinations(_line_movers(selection)).values():
+	for dest: Vector2 in _line_destinations(OrderDispatcher.line_movers(selection)).values():
 		points.append(Vector3(dest.x, map.terrain_height_at(dest), dest.y))
 	_line_indicator.show_line(
 		Vector3(_line_start.x, map.terrain_height_at(_line_start), _line_start.y),
@@ -1247,62 +1243,10 @@ func _ground_at(a_xz: Vector2) -> Vector3:
 	return Vector3(a_xz.x, map.terrain_height_at(a_xz) if map != null else 0.0, a_xz.y)
 
 
-## The members of `a_actors` that can stand on a line at all. An immobile one takes no slot and,
-## on a line order, is given no order.
-static func _line_movers(a_actors: Array) -> Array:
-	return a_actors.filter(
-		func(c: Node) -> bool:
-			return is_instance_valid(c) and c is Commandable and (c as Commandable).can_move()
-	)
-
-
-## Each actor mapped to its own standing point on the current line. Ground units and aircraft are
-## laid out SEPARATELY, each as if it were the only group on the line, so a mixed selection fills
-## the line twice rather than the aircraft taking slots the ground units then leave gaps beside.
-## Spacing comes from the largest actor in the selection, so nothing is asked to stand closer than
-## the biggest of them fits.
+## Each actor mapped to its own standing point on the line being drawn
+## (OrderDispatcher.line_destinations).
 func _line_destinations(a_movers: Array) -> Dictionary:
-	var result: Dictionary = {}
-	if a_movers.is_empty():
-		return result
-	if a_movers.size() == 1:
-		result[a_movers[0]] = _line_end
-		return result
-	var radius: float = 0.0
-	var ground: Array = []
-	var air: Array = []
-	for c: Commandable in a_movers:
-		radius = maxf(radius, c.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
-		(air if c.aerial != null else ground).append(c)
-	var spacing: float = LineSlots.spacing_for_radius(radius)
-	for group: Array in [ground, air]:
-		_lay_out_on_line(group, spacing, result)
-	return result
-
-
-func _lay_out_on_line(a_group: Array, a_spacing: float, a_into: Dictionary) -> void:
-	if a_group.is_empty():
-		return
-	var positions: Array[Vector2] = []
-	var centroid: Vector2 = Vector2.ZERO
-	for c: Commandable in a_group:
-		var xz: Vector2 = VU.in_xz(c.global_position)
-		positions.append(xz)
-		centroid += xz
-	centroid /= float(a_group.size())
-	var slots: Array[Vector2] = LineSlots.slots(
-		_line_start,
-		_line_end,
-		a_spacing,
-		a_group.size(),
-		LineSlots.back_toward(_line_start, _line_end, centroid)
-	)
-	var taken: Array[int] = LineSlots.assign(
-		positions, slots, LineSlots.axis(_line_start, _line_end)
-	)
-	for i: int in a_group.size():
-		if taken[i] >= 0:
-			a_into[a_group[i]] = slots[taken[i]]
+	return OrderDispatcher.line_destinations(a_movers, _line_start, _line_end)
 
 
 #endregion
@@ -1325,10 +1269,10 @@ func _placement_rotation_applies() -> bool:
 
 
 ## The armed structure's footprint on the grid, turned as the player has it.
-func _placement_dimensions(a_structure: Structure) -> Vector2i:
+func _placement_dimensions(a_structure: Fixture) -> Vector2i:
 	if a_structure == null:
 		return Vector2i.ONE
-	return Structure.oriented_dimensions(a_structure.dimensions, command_message.quarter_turns)
+	return Fixture.oriented_dimensions(a_structure.dimensions, command_message.quarter_turns)
 
 
 ## The press of `command_issue` with a Build tool armed: put the structure DOWN — freeze where it
@@ -1374,7 +1318,7 @@ func _turn_placement_toward(a_point: Vector3) -> void:
 	var direction: Vector2 = VU.in_xz(a_point - _placing_world)
 	if direction.length() < PLACEMENT_ROTATE_DEADZONE:
 		return
-	placement_quarter_turns = Structure.quarter_turns_facing(direction, placement_quarter_turns)
+	placement_quarter_turns = Fixture.quarter_turns_facing(direction, placement_quarter_turns)
 	command_message.quarter_turns = placement_quarter_turns
 
 
@@ -1524,7 +1468,7 @@ func deselect():
 
 ## Make `commandable` the sole selection (used by the info panel's summary cards). Clears
 ## the current selection, selects just this one, and refreshes the HUD to match.
-func select_only(a_commandable: Commandable) -> void:
+func select_only(a_commandable: Actor) -> void:
 	deselect()
 	if is_instance_valid(a_commandable) and a_commandable.selectable.select():
 		selection.append(a_commandable)
@@ -1536,7 +1480,7 @@ func select_only(a_commandable: Commandable) -> void:
 ## Add `commandable` to the current selection, keeping what is already there — the additive
 ## reading of an occupant card's right click. Selecting anything live drops the pending
 ## selection, the same as every other way of picking a unit.
-func add_to_selection(a_commandable: Commandable) -> void:
+func add_to_selection(a_commandable: Actor) -> void:
 	if (
 		a_commandable == null
 		or not is_instance_valid(a_commandable)
@@ -1548,7 +1492,7 @@ func add_to_selection(a_commandable: Commandable) -> void:
 
 ## Drop `commandable` from the current selection (used by shift+click on a summary card),
 ## leaving the rest selected, then refresh the HUD.
-func remove_from_selection(a_commandable: Commandable) -> void:
+func remove_from_selection(a_commandable: Actor) -> void:
 	if a_commandable in selection:
 		if is_instance_valid(a_commandable):
 			a_commandable.selectable.deselect()
@@ -1660,7 +1604,7 @@ func select_units_in_world_rect(a_world_rect: Rect2, a_additive: bool) -> void:
 ## of them. See ui/control-matrices.md §Context 2.
 func _deselect_in_world_rect(a_world_rect: Rect2) -> void:
 	for node: Node in selection.duplicate():
-		var commandable := node as Commandable
+		var commandable := node as Actor
 		if (
 			commandable != null
 			and is_instance_valid(commandable)
@@ -1730,7 +1674,7 @@ static func selection_commands(a_selection: Array) -> Array:
 static func _can_plant_now(a_node: Variant) -> bool:
 	return (
 		is_instance_valid(a_node)
-		and a_node is Commandable
+		and a_node is Actor
 		and Plant.meets_precondition(a_node, null) == MoveCommand.PreconditionFailureCause.NONE
 	)
 
@@ -1989,7 +1933,7 @@ func _deselect_gesture(
 			if entity != null:
 				caught.append(entity)
 	for entity: Variant in caught:
-		var commandable := entity as Commandable
+		var commandable := entity as Actor
 		if commandable != null and selection.has(commandable):
 			remove_from_selection(commandable)
 	_refresh_available_commands()
@@ -2037,14 +1981,16 @@ func _commander() -> Commander:
 
 ## Kill everything selected, whoever owns it. A DEATH rather than a removal: `_on_death` is
 ## the one complete teardown (grid cells, commander bookkeeping), and triggers and tallies
-## see it as they would any other. A Commandable with hit points is killed through them, so
+## see it as they would any other. A Actor with hit points is killed through them, so
 ## it dies on its own tick like any other kill; anything else dies at once.
 func delete_selection() -> void:
+	if _scenario != null and not selection.is_empty():
+		_scenario.note_debug_change("debug delete")
 	for node: Variant in selection.duplicate():
 		var entity: Entity = node as Entity if is_instance_valid(node) else null
 		if entity == null:
 			continue
-		if entity is Commandable and entity.defense != null:
+		if entity is Actor and entity.defense != null:
 			entity.defense.kill()
 		else:
 			entity.die()
@@ -2079,7 +2025,7 @@ func _purchase_defers() -> bool:
 ## Polled, not latched, for the reason _purchase_defers polls: this is read on a HUD BUTTON
 ## press, and the modifier keydown before it goes to the focused Control.
 func bulk_purchase_count() -> int:
-	return BULK_PURCHASE_COUNT if Input.is_action_pressed(MODIFIER_BROADEN) else 1
+	return OrderDispatcher.BULK_PURCHASE_COUNT if Input.is_action_pressed(MODIFIER_BROADEN) else 1
 
 
 ## True while the additive modifier is held, asked of the INPUT SINGLETON rather than of
@@ -2139,33 +2085,33 @@ func _update_selection_owned_panels() -> void:
 		_production_rail.is_active = not has_selection
 
 
-# --- Category predicates (a Commandable satisfies the category) ---------------
+# --- Category predicates (a Actor satisfies the category) ---------------
 ## "Army" unit: a unit carrying at least one Weapon in its Loadout.
-func _is_army_unit(a_c: Commandable) -> bool:
+func _is_army_unit(a_c: Actor) -> bool:
 	var loadout: Loadout = a_c.get_node_or_null("Loadout") as Loadout
 	return a_c.is_in_group("unit") and loadout != null and loadout.has_weapons()
 
 
 ## "Builder" unit: a unit with a Builds component.
-func _is_builder_unit(a_c: Commandable) -> bool:
+func _is_builder_unit(a_c: Actor) -> bool:
 	return a_c.is_in_group("unit") and a_c.has_node("Builds")
 
 
 ## "Production structure": a structure that can train units (has Production).
-func _is_producer_structure(a_c: Commandable) -> bool:
+func _is_producer_structure(a_c: Actor) -> bool:
 	return a_c.is_in_group("structure") and a_c.production != null and a_c.production.trains_units()
 
 
-# --- Idle predicates (a Commandable in that category has nothing to do) --------
+# --- Idle predicates (a Actor in that category has nothing to do) --------
 ## Idle unit: no active command.
-func _is_idle_unit(a_c: Commandable) -> bool:
+func _is_idle_unit(a_c: Actor) -> bool:
 	return a_c._command == null
 
 
 ## Idle production structure: can produce but has neither a job training nor a queued
 ## purchase waiting to land on it — a structure named by a pending transaction is spoken
 ## for, not wasted throughput.
-func _is_idle_producer(a_c: Commandable) -> bool:
+func _is_idle_producer(a_c: Actor) -> bool:
 	return (
 		a_c.production.is_free()
 		and (_commander() == null or _commander().production_queue.pending_count_for(a_c) == 0)
@@ -2194,7 +2140,7 @@ func _run_selector(a_category: Callable, a_idle: Callable) -> void:
 	var idle_only: bool = Input.is_action_pressed(MODIFIER_NARROW)
 	var predicate: Callable = a_category
 	if idle_only:
-		predicate = func(c: Commandable) -> bool: return a_category.call(c) and a_idle.call(c)
+		predicate = func(c: Actor) -> bool: return a_category.call(c) and a_idle.call(c)
 	if Input.is_action_pressed(MODIFIER_BROADEN):
 		_select_all_matching(predicate)
 		return
@@ -2229,7 +2175,7 @@ func selector_preview(a_family: int) -> Dictionary:
 	var take_all: bool = Input.is_action_pressed(MODIFIER_BROADEN)
 	var predicate: Callable = category
 	if idle_only:
-		predicate = func(c: Commandable) -> bool: return category.call(c) and idle.call(c)
+		predicate = func(c: Actor) -> bool: return category.call(c) and idle.call(c)
 	var count: int = _owned_matching(predicate).size()
 	# The VERB matters as much as the number: "cycle 6" and "select 6" are different presses
 	# with the same count, and the button is the only place that difference is visible. The
@@ -2274,7 +2220,7 @@ func _select_all_matching(a_predicate: Callable) -> void:
 func _owned_matching(a_predicate: Callable) -> Array:
 	return get_tree().get_nodes_in_group("piece").filter(
 		func(node: Variant) -> bool:
-			var c: Commandable = node as Commandable
+			var c: Actor = node as Actor
 			return is_player_commandable(c) and c.selectable != null and a_predicate.call(c)
 	)
 
@@ -2288,7 +2234,7 @@ func _select_units(a_entities: Array) -> void:
 	if not a_entities.is_empty():
 		clear_pending_selection()
 	for entity: Node in a_entities:
-		var cmd: Commandable = entity as Commandable
+		var cmd: Actor = entity as Actor
 		if cmd == null or cmd.selectable == null or selection.has(cmd):
 			continue
 		if cmd.selectable.select():
@@ -2311,15 +2257,15 @@ func _select_units(a_entities: Array) -> void:
 ## exactly whenever that modifier would have mattered. Two cells collapsing into one is the
 ## failure the old on-screen/global split had, and it is not worth repeating. The filter is
 ## the modifier's job; the order is this function's.
-func _cycle_one_matching(a_predicate: Callable) -> Commandable:
+func _cycle_one_matching(a_predicate: Callable) -> Actor:
 	var candidates: Array = _owned_matching(a_predicate)
 	var times: Array = []
 	for node: Node in candidates:
-		times.append((node as Commandable).selectable.last_selected_time as float)
+		times.append((node as Actor).selectable.last_selected_time as float)
 	var index: int = cycle_index(times)
 	if index < 0:
 		return null
-	var best: Commandable = candidates[index] as Commandable
+	var best: Actor = candidates[index] as Actor
 
 	# Shift adds to the selection rather than replacing it, the same way _select_all_matching
 	# reads it — so a cycler can extend a group one member at a time.
@@ -2338,7 +2284,7 @@ func _cycle_one_matching(a_predicate: Callable) -> Commandable:
 ## once before returning to the front of it.
 ##
 ## Static and node-free so the RULE can be pinned without a live entity, exactly as
-## narrowed_index is for the command side.
+## OrderDispatcher.narrowed_index is for the command side.
 static func cycle_index(last_selected_times: Array) -> int:
 	var best: int = -1
 	var best_time: float = 0.0
@@ -2390,6 +2336,11 @@ enum ControlGroupGesture {
 ## first press, and so the group rules can be exercised on a controller that was never put
 ## in a scene tree.
 var _control_groups: Array = _empty_groups()
+
+## The group last READ by a press, and when (wall-clock ms, a UI timing), so a second press of
+## the same group within DOUBLE_CLICK_SECONDS is a double tap. -1: no read to pair with.
+var _last_group_tap_index: int = -1
+var _last_group_tap_ms: int = 0
 
 
 static func _empty_groups() -> Array:
@@ -2573,17 +2524,37 @@ func apply_control_group_gesture(a_index: int, a_gesture: ControlGroupGesture) -
 			# what you want selected, and "nothing, yet" is an answer.
 			deselect()
 			_select_units(group)
-			_look_at_selection(group)
 		ControlGroupGesture.EXTEND_SELECTION:
 			_select_units(group)
-			_look_at_selection(group)
 		ControlGroupGesture.REMOVE_FROM_SELECTION:
 			# Edits the SELECTION, so no camera move: the player is narrowing what they already
 			# have in hand, and nothing new has been picked to look at.
 			for member: Variant in group:
-				var commandable := member as Commandable
+				var commandable := member as Actor
 				if commandable != null:
 					remove_from_selection(commandable)
+	# Only a double tap moves the camera: one press selects, the second of the same group goes
+	# to look at it (selection-and-input.md §Control groups).
+	var is_read: bool = (
+		a_gesture == ControlGroupGesture.RECALL or a_gesture == ControlGroupGesture.EXTEND_SELECTION
+	)
+	var now_ms: int = Time.get_ticks_msec()
+	if is_read and is_double_tap(_last_group_tap_index, _last_group_tap_ms, a_index, now_ms):
+		_center_camera_on(group)
+		_last_group_tap_index = -1
+	else:
+		_last_group_tap_index = a_index if is_read else -1
+		_last_group_tap_ms = now_ms
+
+
+## Whether a read of group `index` at `now_ms` pairs with the previous read (`last_index` at
+## `last_ms`) as a double tap: the same group, within DOUBLE_CLICK_SECONDS.
+static func is_double_tap(last_index: int, last_ms: int, index: int, now_ms: int) -> bool:
+	return (
+		last_index >= 0
+		and last_index == index
+		and now_ms - last_ms <= int(DOUBLE_CLICK_SECONDS * 1000.0)
+	)
 
 
 ## Route a control-group key press. Mirrors _dispatch_command_hotkey: the action names the
@@ -2639,10 +2610,17 @@ func _look_at_selection(a_commandables: Array) -> void:
 		return
 	if not commandables_on_screen(a_commandables).is_empty():
 		return
+	_center_camera_on(a_commandables)
+
+
+## Centre the camera on the live members of `a_commandables`, whatever is on screen.
+func _center_camera_on(a_commandables: Array) -> void:
+	if camera == null:
+		return
 	var centroid: Vector2 = Vector2.ZERO
 	var counted: int = 0
 	for node: Node in a_commandables:
-		var c: Commandable = node as Commandable
+		var c: Actor = node as Actor
 		if c == null or not is_instance_valid(c):
 			continue
 		centroid += VU.in_xz(c.global_position)
@@ -2665,13 +2643,13 @@ func commandables_on_screen(a_commandables: Array) -> Array:
 	var viewport_rect: Rect2 = Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
 	return a_commandables.filter(
 		func(c: Variant) -> bool:
-			return c is Commandable and _selection_shape_in_view(c as Commandable, viewport_rect)
+			return c is Actor and _selection_shape_in_view(c as Actor, viewport_rect)
 	)
 
 
 ## True when the commandable's selection shape projects onto `viewport_rect` at
 ## all (any overlap — a partially-visible shape still counts as on screen).
-func _selection_shape_in_view(a_commandable: Commandable, a_viewport_rect: Rect2) -> bool:
+func _selection_shape_in_view(a_commandable: Actor, a_viewport_rect: Rect2) -> bool:
 	if a_commandable == null or a_commandable.selectable == null:
 		return false
 	var shape_node: CollisionShape3D = _selection_shape_node(a_commandable.selectable)
@@ -2900,10 +2878,9 @@ func process_command(a_command_name: String) -> void:
 	if a_command_name == CANCEL_COMMAND:
 		disarm_command()
 		return
-	# Not an order: it toggles a flag and leaves every queue as it was, additive or not.
+	# A flag, not a command: plainly it flips now; additive, it waits its turn (SetHoldFire).
 	if a_command_name == CommandContextParser.HOLD_FIRE_COMMAND:
-		toggle_hold_fire(selection)
-		upate_hud_buttons()
+		_submit_hold_fire()
 		return
 
 	var tool: Tool = Tool.for_name(a_command_name)
@@ -2946,28 +2923,38 @@ func _is_variant_cycle_press(a_tool: Tool) -> bool:
 	return armed != null and armed.is_variant_bound() and armed.type == a_tool.type
 
 
-## Toggle hold fire across every piece in `actors` that offers it — those with a weapon. If
-## all of them already hold, all are released; otherwise (none, or some) all are set. The rest
-## are left alone, so a mixed selection is not an error.
-static func toggle_hold_fire(actors: Array) -> void:
-	var is_holding: bool = not CommandButtonState.all_hold_fire(actors)
-	for node: Variant in actors:
-		var actor := node as Commandable
-		if (
-			actor != null
-			and is_instance_valid(actor)
-			and CommandContextParser.commands_for(actor).has(CommandContextParser.HOLD_FIRE_COMMAND)
-		):
-			actor.is_holding_fire = is_holding
-
-
 ## Toggle `commander`'s automatic use of `a_ability_id` — the right-click on its command-card
 ## button and on its HUD-bar button alike, which is why the setting is the commander's.
 func _toggle_autocast(a_ability_id: StringName, a_commander: Commander) -> void:
 	if a_commander == null:
 		return
-	a_commander.toggle_autocast(a_ability_id)
-	upate_hud_buttons()
+	if _order_stream() == null:
+		a_commander.toggle_autocast(a_ability_id)
+		upate_hud_buttons()
+		return
+	_order_stream().submit(
+		PlayerOrder.new(
+			PlayerOrder.Kind.AUTOCAST, a_commander.id, {"ability": String(a_ability_id)}
+		)
+	)
+
+
+## Hand the hold-fire toggle over the selection to the simulation, or apply it at once with no
+## stream (a bare controller in a test). Plainly it flips a flag and leaves every queue as it was;
+## with the additive modifier it waits its turn in each queue (SetHoldFire).
+func _submit_hold_fire() -> void:
+	if _order_stream() == null:
+		OrderDispatcher.hold_fire(selection, additive_modifier_held(), map)
+		upate_hud_buttons()
+		return
+	var commander: Commander = _commander()
+	_order_stream().submit(
+		PlayerOrder.new(
+			PlayerOrder.Kind.HOLD_FIRE,
+			commander.id if commander != null else 0,
+			{"actors": PlayerOrder.serials_of(selection), "queue": additive_modifier_held()}
+		)
+	)
 
 
 ## Hotkey name -> the command class arming it selects, for every sub-mode whose answer is
@@ -3061,10 +3048,10 @@ static func _resolve_hotkey_command(pending: String, message: CommandMessage) ->
 
 ## The default ladder: no sub-mode armed, so the actor's capabilities and whatever is under
 ## the cursor decide. Ends in a plain MoveCommand, which stationary can_rally() hosts read
-## as a rally point (see Commandable._process_commands).
+## as a rally point (see Actor._process_commands).
 static func _resolve_target_command(actor: Entity, message: CommandMessage) -> Variant:
 	var target: Variant = message.target
-	var actor_cmd := actor as Commandable
+	var actor_cmd := actor as Actor
 
 	# A producer with a tool selected is deliberately training.
 	if actor.has_node("Production") and message.tool != null:
@@ -3085,7 +3072,7 @@ static func _resolve_target_command(actor: Entity, message: CommandMessage) -> V
 	# Builder targeting a friendly under-construction structure -> resume construction. The
 	# click is unambiguous (same-commander, not-yet-built, actor can build that type), so it
 	# short-circuits ahead of the generic fallthrough.
-	var target_cmd := target as Commandable
+	var target_cmd := target as Actor
 	if (
 		target_cmd != null
 		and target_cmd.commander_id == actor.commander_id
@@ -3138,7 +3125,7 @@ static func resolve_command_class_for_selection(
 	var best_rank: int = 0x7FFFFFFF
 	var lead_resolution: Variant = null
 	for node: Node in selection:
-		var actor := node as Commandable
+		var actor := node as Actor
 		if actor == null or not is_instance_valid(actor):
 			continue
 		var resolved: Variant = _resolve_command_class(pending, actor, message)
@@ -3205,7 +3192,7 @@ static func _command_specificity(command_type: Script) -> int:
 ## Whether `a_actor` could carry out `a_command_type` right now. COMMAND_PENDING_TOOL
 ## counts: it means "armed, waiting on the player's tool pick", not a failure (see
 ## MoveCommand.PreconditionFailureCause).
-static func _can_execute(command_type: Script, actor: Commandable, message: CommandMessage) -> bool:
+static func _can_execute(command_type: Script, actor: Actor, message: CommandMessage) -> bool:
 	var cause: MoveCommand.PreconditionFailureCause = command_type.meets_precondition(
 		actor, message
 	)
@@ -3230,7 +3217,7 @@ static func selection_precondition(
 	)
 	var have_lead: bool = false
 	for node: Node in selection:
-		var actor := node as Commandable
+		var actor := node as Actor
 		if actor == null or not is_instance_valid(actor):
 			continue
 		var cause: MoveCommand.PreconditionFailureCause = command_type.meets_precondition(
@@ -3247,41 +3234,17 @@ static func selection_precondition(
 	return lead_cause
 
 
-## WHICH of `a_actors` actually take this order: all of them, or the one best placed to.
-##
-## Three inputs, in this order — and the order is the whole rule:
-##   1. `modifier_narrow` held → ONE, always.
-##   2. otherwise `modifier_broaden` held → ALL, always.
-##   3. otherwise the command's own default (`MoveCommand.default_cast_arity`).
-##
-## **The modifiers were always absolute and the default was always meant to vary** — the
-## matrix note has said "whichever way the command's own default falls" since they were
-## written. Until arity existed, every command's default was ALL, which is why a Build
-## dragged the whole selection onto one site and an ability spent every caster's charge on
-## one point. See gdd/systems/ux/ui/control-matrices.md §Cast arity.
-##
-## Train is exempt: a purchase is commander-global, so there is only ever one actor from the
-## commander's point of view and there is nothing to narrow.
-##
-## Why the NEAREST FREE one — idle, unless the command says otherwise
-## (MoveCommand.is_free_to_take):
+## The narrowed actor for an order going out right now — the preview's question, answered by
+## the dispatcher's rule with the modifiers held. Why it is the NEAREST FREE one:
 ## gdd/systems/ux/ui/selection-and-input.md §The narrow modifier picks the nearest IDLE actor.
 func _narrowed_actors(a_command_type: Script, a_actors: Array, a_message: CommandMessage) -> Array:
-	if a_actors.size() <= 1 or a_command_type == Train:
-		return a_actors
-	if cast_arity_for(a_command_type, a_message) == MoveCommand.CastArity.ALL:
-		return a_actors
-
-	var candidates: Array = []
-	for node: Node in a_actors:
-		var actor := node as Commandable
-		if actor == null:
-			continue
-		candidates.append([VU.in_xz(actor.global_position), a_command_type.is_free_to_take(actor)])
-	var index: int = narrowed_index(
-		candidates, a_message.xz_position, not Input.is_action_pressed(MODIFIER_BROADEN)
+	return OrderDispatcher.narrowed(
+		a_command_type,
+		a_actors,
+		a_message,
+		cast_arity_for(a_command_type, a_message),
+		not Input.is_action_pressed(MODIFIER_BROADEN)
 	)
-	return [a_actors[index]] if index >= 0 else a_actors
 
 
 ## How many actors an order for `a_command_type` goes to right now, modifiers included.
@@ -3300,14 +3263,14 @@ func cast_arity_for(a_command_type: Script, a_message: CommandMessage) -> MoveCo
 	return modified_arity(a_command_type.default_cast_arity(a_message))
 
 
-## Apply the modifiers to a default. The ONE statement of the rule, so the actors that
-## receive an order and the rings the preview draws for it cannot answer it differently.
+## Apply the modifiers held now to a default — OrderDispatcher.modified_arity, the ONE statement
+## of the rule, so the actors that receive an order and the rings the preview draws agree.
 func modified_arity(a_default: MoveCommand.CastArity) -> MoveCommand.CastArity:
-	if Input.is_action_pressed(MODIFIER_NARROW):
-		return MoveCommand.CastArity.SINGLE
-	if Input.is_action_pressed(MODIFIER_BROADEN):
-		return MoveCommand.CastArity.ALL
-	return a_default
+	return OrderDispatcher.modified_arity(
+		a_default,
+		Input.is_action_pressed(MODIFIER_NARROW),
+		Input.is_action_pressed(MODIFIER_BROADEN)
+	)
 
 
 ## The arity the currently ARMED ability would be cast at.
@@ -3319,376 +3282,95 @@ func armed_cast_arity() -> MoveCommand.CastArity:
 	return modified_arity(AbilityCatalog.cast_arity_of(armed_ability_id()))
 
 
-## Which of `a_candidates` — each `[xz_position: Vector2, is_idle: bool]` — takes a narrowed
-## order aimed at `a_target`. Returns -1 for an empty set.
-##
-## An idle candidate outranks a busy one however far away it is; among equals, distance
-## decides. `a_prefer_idle` false ranks purely by distance. Written as one comparison rather
-## than two passes so a set with no idle member costs the same walk as one with.
-##
-## Static and node-free so the RULE can be pinned without a live entity: the positions and
-## idleness are the only things it depends on.
-static func narrowed_index(candidates: Array, target: Vector2, prefer_idle: bool) -> int:
-	var best: int = -1
-	var best_distance: float = INF
-	var best_is_idle: bool = false
-	for i: int in candidates.size():
-		var idle: bool = prefer_idle and candidates[i][1] as bool
-		var distance: float = (candidates[i][0] as Vector2).distance_to(target)
-		if (
-			best == -1
-			or (idle and not best_is_idle)
-			or (idle == best_is_idle and distance < best_distance)
-		):
-			best = i
-			best_distance = distance
-			best_is_idle = idle
-	return best
-
-
+## Issue `a_command_type` to the selection as one order. The order is built here from the
+## selection and the modifiers held, and APPLIED by OrderDispatcher — at the start of the next tick
+## through the scenario's OrderStream, or at once where there is none (a bare controller in a
+## test). Returns whether any selected actor takes it, by the same rule the dispatcher applies.
+## gdd/systems/commands/recording-and-replay.md §The order stream.
 func assign_command_to_units(
 	a_command_type: Script, a_command_message: CommandMessage, a_add_to_queue: bool
 ) -> bool:
-	# Returns whether or not the command was successfully assigned to any units
-	# TODO refactor so I dont have to do this smh
 	selection = selection.filter(func(u): return is_instance_valid(u))
-
 	if selection.size() == 0:
 		push_error("no selections")
 		_reset_pending_state()
 		return false
-
 	if a_command_type == null:
 		push_error("supplied a null command")
 		_reset_pending_state()
 		return false
 
-	# Check preconditions per-unit so that a mixed selection (e.g. Irregulars +
-	# Technician) can still execute a command: capable units receive it and
-	# incapable units are silently skipped.
-	var capable: Array = selection.filter(
-		func(c: Commandable) -> bool:
-			return (
-				a_command_type.meets_precondition(c, a_command_message)
-				== MoveCommand.PreconditionFailureCause.NONE
-			)
+	var modifiers: Dictionary = _order_modifiers(a_command_type, a_add_to_queue)
+	var capable: Array = OrderDispatcher.recipients(
+		a_command_type, selection, a_command_message, modifiers
 	)
-
 	if capable.is_empty():
 		_reset_pending_state()
 		return false
-
-	# Narrowing runs on the CAPABLE set, not the raw selection: "assign to one actor" means
-	# one actor that can actually carry the order out, so a narrowed build with a soldier
-	# nearest the site still goes to a builder. Applied before Train is intercepted below,
-	# which is harmless — a purchase has no assignment meaning to narrow (there is only ever
-	# one actor from the commander's point of view) and _narrowed_actors leaves it alone.
-	capable = _narrowed_actors(a_command_type, capable, a_command_message)
-
-	# A line order is only for what can stand on a line. An immobile actor is not given the order,
-	# rather than being handed the middle of the line as a rally point.
-	if _line_issuing:
-		capable = _line_movers(capable)
-		if capable.is_empty():
-			_reset_pending_state()
-			return false
-
-	# An EMBARK is collected by ONE host — the nearest applicable one. Narrowed here, before
-	# the per-unit snapshots are taken, so everything else selected falls through to the
-	# bystander move below rather than a second transport racing for the same passenger.
-	if a_command_type == Embark:
-		capable = Embark.nearest_host(capable, a_command_message)
-		if capable.is_empty():
-			_reset_pending_state()
-			return false
-
 	command_issued.emit(capable[0] as Entity, a_command_type)
-
-	# Training is a PURCHASE, not a per-unit command: one click buys ONE unit, and the
-	# whole capable selection is handed to the transaction as candidate producers. The
-	# commander's queue then sends it to whichever of them is free FIRST, so five clicks
-	# across three strongholds start three units now and hold two in the queue until a
-	# producer frees up. No Train command ever reaches the structures.
-	if a_command_type == Train:
-		# The purchase is the PRODUCERS' owner's, which is the player's own except when the
-		# debug view has let them order another commander's pieces.
-		var commander: Commander = (capable[0] as Entity).commander
-		if commander == null:
-			return false
-		capable = capable.filter(func(c: Entity) -> bool: return c.commander == commander)
-		var standing: bool = _take_purchase_standing()
-		# BROADEN BUYS A BATCH, one press instead of five. Re-checking the precondition between
-		# submissions is what makes it "as many as you can afford": each transaction reserves its
-		# energy as it lands, so the check fails partway down an unaffordable batch and the rest
-		# are simply not made. With `modifier_additive` also held the check never fails —
-		# defer_if_unaffordable is what turns a refusal into a queued entry — so the batch lands
-		# whole and the treasury funds it in order. That is the whole of "buy what you can afford
-		# and requisition the remainder"; neither half needed a rule of its own.
-		for i: int in bulk_purchase_count():
-			if (
-				i > 0
-				and (
-					Train.meets_precondition(capable[0] as Commandable, a_command_message)
-					!= MoveCommand.PreconditionFailureCause.NONE
-				)
-			):
-				break
-			commander.production_queue.submit_train(a_command_message.tool, capable, standing)
-		# Same teardown the normal path runs below: clearing the tool is what makes the
-		# next click re-arm one, rather than the selection staying stuck in Train mode.
-		if _arming_should_end(a_command_type, a_add_to_queue):
-			_reset_pending_state()
-			command_message.clear()
-		return true
-
-	# A build order is likewise ONE purchase however many builders were selected: submit
-	# it here, before the per-unit snapshots are taken, so every builder's snapshot shares
-	# the same transaction (CommandMessage.deep_copy passes the reference through). The
-	# cost is reserved as soon as the commander can afford it and consumed by whichever
-	# builder lays the foundation; abandoning the order refunds it.
-	if a_command_type == Build:
-		var payer: Commander = (capable[0] as Entity).commander
-		Build.submit_purchase(payer, a_command_message)
-		# And ONE blueprint: a planned instance of the structure, standing on the site from
-		# the moment the order is given. Shared by every builder's snapshot the same way the
-		# purchase is, so the player selects and queues units at a single building — not one
-		# per builder walking toward it.
-		Build.plan_structure(payer, a_command_message)
-
-	# Any multi-unit command caps every mobile unit's Movement.speed_cap to the
-	# slowest one's speed, so a mixed-speed group doesn't stretch out over the trip.
-	# Reset when each unit's command is destroyed — completed, cancelled, or replaced
-	# (see MoveCommand._notification / CommandReceiver._process_commands).
-	var slowest: float = _slowest_group_speed(capable)
-	var apply_speed_cap: bool = slowest >= 0.0
-	if apply_speed_cap:
-		a_command_message.match_group_speed = true
-
-	var unit_to_destination: Dictionary = _fanned_destinations(
-		a_command_type, capable, a_command_message
-	)
-
-	# For a Defend order, build ONE region collider — a hard copy of the group's widest
-	# aggro shape, pinned at the target centre — that every defender scans against. A copy
-	# (not a borrowed live unit shape) is required now that aggro is centred on the shape's
-	# own position: a borrowed shape would drag the defended region around with its owner.
-	# Its lifetime is leased to the issued Defend messages and it frees when the last one is
-	# released (see _lease_region_shape).
-	var defend_shape: CollisionShape3D = null
-	if a_command_type == Defend:
-		var center: Vector3 = a_command_message.world_position
-		center.y = map.terrain_height_at(a_command_message.xz_position)
-		defend_shape = _make_defend_region_shape(_largest_aggro_shape(capable), center)
-
-	# Identity token for THIS order, and nothing else — none of its fields are ever
-	# read. Every per-unit snapshot below points at this one object so MoveCommand's
-	# destination-swap check can recognise true siblings via is_same().
-	#
-	# It MUST be freshly allocated per call. `a_command_message` is usually the
-	# controller's own long-lived `command_message` member (see the @onready at the
-	# top of this file), which is reused and mutated for every click of the session —
-	# so using it as the token gave every order ever issued the same identity, and
-	# units swapped destinations with units executing entirely unrelated commands.
-	var batch_origin: CommandMessage = CommandMessage.new(map)
-
-	var interrupts: bool = a_command_type.is_interrupt() and not a_add_to_queue
-
-	var defend_messages: Array[CommandMessage] = []
-	for c: Commandable in capable:
-		var snapshot := CommandMessage.deep_copy(a_command_message)
-		# Tag every per-unit snapshot with this order's identity token, so
-		# MoveCommand's periodic swap check can find sibling units by comparing
-		# origin identity (see CommandMessage.origin).
-		snapshot.origin = batch_origin
-		# On the SNAPSHOT, never on `a_command_message`: that is usually the controller's own
-		# long-lived message, and a region left on it rode every later order — leashing them to
-		# an old Defend's area, and then handing deep_copy a freed shape once it was released.
-		if defend_shape != null:
-			snapshot.aggro_shape = defend_shape
-		if a_command_type == Attack:
-			snapshot.persist = true
-		if unit_to_destination.has(c):
-			var dest_xz: Vector2 = unit_to_destination[c]
-			snapshot.world_position = VU.from_xz(dest_xz)
-		snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
-		if a_command_type.requires_position():
-			_register_indicator(snapshot)
-		var new_cmd: MoveCommand = (
-			Patrol.for_actor(c, snapshot)
-			if a_command_type == Patrol
-			else a_command_type.new(snapshot)
-		)
-		# Sequencing is a fact about WHEN this order was handed out, not about the order
-		# itself — stamped here, once per recipient, rather than in TaskShelter's own
-		# constructor (see Commander.next_task_sequence).
-		if new_cmd is TaskShelter and c.commander != null:
-			(new_cmd as TaskShelter).sequence = c.commander.next_task_sequence()
-		# An INTERRUPT keeps the actor's queue instead of clearing it, taking over now and
-		# pushing whatever was running to the front (see MoveCommand.is_interrupt). Only when
-		# the modifier is NOT held: holding it already appends, which is what an interrupt is
-		# the non-additive version of.
-		c.update_commands(new_cmd, a_add_to_queue, interrupts)
-		# AFTER the handover, never before: update_commands drops the last reference
-		# to the unit's outgoing command, and MoveCommand's PREDELETE resets
-		# speed_cap to 0 as its group-move cleanup. Capping first meant the departing
-		# command wiped the cap microseconds later, so every unit that already had an
-		# order — i.e. every re-order — travelled at its own speed instead.
-		if apply_speed_cap and c.movement != null:
-			c.movement.speed_cap = slowest
-		if defend_shape != null:
-			defend_messages.append(snapshot)
-
-	if defend_shape != null:
-		_lease_region_shape(defend_shape, defend_messages)
-
-	# Members of the selection that did NOT receive this order still go where it points, for
-	# a command that asks for it (see MoveCommand.bystanders_move) OR whenever the player asks
-	# for it by holding `modifier_broaden`. AFTER the main loop, so the recipients are settled
-	# before anyone is judged a bystander.
-	#
-	# BROADEN MEANS THE SAME THING HERE IT MEANS EVERYWHERE: take the wider action. The
-	# standing rule is that only units that can carry an order out receive it — right for an
-	# order aimed at a THING, and often not what a player wants when they have simply told
-	# everything they have to go and deal with something. Holding broaden says "and the rest of
-	# you go there anyway", for ANY command rather than only the ones that opt in.
-	# See gdd/systems/commands/the-click-ladder.md §What the members that do NOT receive it do.
-	if a_command_type.bystanders_move() or Input.is_action_pressed(MODIFIER_BROADEN):
-		_order_bystanders_to_move(capable, a_command_message, a_add_to_queue)
-
-	# The purchase and the blueprint were stamped on `a_command_message` only so the
-	# per-unit snapshots above could pick them up. That message is usually the controller's
-	# own long-lived, reused `command_message`, so clear the references now — otherwise the
-	# NEXT order inherits this one's purchase (registering its commands as holders of it)
-	# and commits this one's blueprint at some unrelated site.
-	a_command_message.transaction = null
-	a_command_message.planned_structure = null
+	_submit_command(a_command_type, a_command_message, modifiers, capable[0] as Entity)
 
 	if _arming_should_end(a_command_type, a_add_to_queue):
 		_reset_pending_state()
 		command_message.clear()
-
 	return true
 
 
-## Give every selected commandable that is NOT in `a_recipients` a plain move at the same
-## target. The other half of MoveCommand.bystanders_move — see there for why an order ever
-## wants this, and Embark for the one that does today.
-##
-## A plain MoveCommand deliberately, with nothing special done to it: a stationary producer
-## absorbs it as a rally point exactly as it would from any other right-click, which is what
-## "as normal" has to mean. Bystanders are not fanned out either — they are all heading for
-## one unit, and following it is what the receiver makes of a move at a friendly.
-func _order_bystanders_to_move(
-	a_recipients: Array, a_command_message: CommandMessage, a_add_to_queue: bool
+## The modifiers an order carries as data, read now: the additive one, narrow and broaden, the
+## purchase-standing one-shot (Train only, which is what consumes it), and the line being drawn.
+func _order_modifiers(a_command_type: Script, a_add_to_queue: bool) -> Dictionary:
+	return {
+		"queue": a_add_to_queue,
+		"narrow": Input.is_action_pressed(MODIFIER_NARROW),
+		"broaden": Input.is_action_pressed(MODIFIER_BROADEN),
+		"standing": _take_purchase_standing() if a_command_type == Train else false,
+		"line": [_line_start.x, _line_start.y, _line_end.x, _line_end.y] if _line_issuing else [],
+	}
+
+
+## Hand a command to the simulation: as an order on the scenario's stream, or — with no stream —
+## applied at once. The message is copied either way: `a_message` is usually the controller's own
+## long-lived `command_message`, which is cleared and reused for the next click.
+func _submit_command(
+	a_command_type: Script, a_message: CommandMessage, a_modifiers: Dictionary, a_lead: Entity
 ) -> void:
-	for node: Node in selection:
-		var actor := node as Commandable
-		if actor == null or not is_instance_valid(actor) or a_recipients.has(actor):
-			continue
-		var snapshot: CommandMessage = CommandMessage.deep_copy(a_command_message)
-		if map != null:
-			snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
-		actor.update_commands(MoveCommand.new(snapshot), a_add_to_queue)
-
-
-## The speed a multi-unit order caps every mobile member to — the slowest mover's — or
-## -1.0 when no cap applies (a single actor, or nothing in the group can move).
-##
-## Pure: the caller sets CommandMessage.match_group_speed, so the mutation stays visible
-## at the call site rather than hiding inside a query.
-static func _slowest_group_speed(capable: Array) -> float:
-	if capable.size() <= 1:
-		return -1.0
-	var movers: Array = capable.filter(func(c: Commandable) -> bool: return c.can_move())
-	if movers.is_empty():
-		return -1.0
-	return movers.map(func(c: Commandable) -> float: return c.movement.speed).min()
-
-
-## Each unit mapped to its own spread-out point around the click, so a group order fans
-## the selection out instead of stacking everyone on one position. Empty when the order
-## has a single destination by definition, or when there is only one actor — the caller
-## falls back to the raw click point for any unit absent from the result.
-##
-## Why it works this way: gdd/systems/ux/ui/selection-and-input.md §Group destinations fan out.
-func _fanned_destinations(
-	a_command_type: Script, a_capable: Array, a_command_message: CommandMessage
-) -> Dictionary:
-	if _line_issuing:
-		return _line_destinations(a_capable)
-
-	# Build is EXCLUDED: a build order has one destination by definition — the site of the
-	# one structure being placed. Fanning it out gave each builder a different target cell,
-	# so they raced to lay foundations a cell or two apart instead of co-building the one
-	# the player clicked. They converge on the site and stop as soon as they're in range of
-	# its footprint (see Build.should_move).
-	#
-	# FocusFire is excluded for a DIFFERENT reason that happens to look the same. An order at
-	# an entity keeps aiming at the entity however the destinations are scattered
-	# (CommandMessage.position prefers the target over world_position), so fanning only ever
-	# moves where the actors STAND. FocusFire has no target, so its aim point IS
-	# world_position — fanning it would have each unit shell a slightly different patch of
-	# ground, which is not the order that was given. Stacking is not a problem here anyway:
-	# the actors stop as soon as they are in range, which is a long way short of the point.
-	if (
-		a_command_type == Build
-		or a_command_type == FocusFire
-		or not a_command_type.requires_position()
-		or a_capable.size() <= 1
-	):
-		return {}
-
-	var representative := a_capable[0] as Entity
-	var radius: float = representative.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
-	var region_radius: float = maxf(
-		MIN_FAN_OUT_RADIUS, radius * FAN_OUT_RADIUS_PER_UNIT * float(a_capable.size())
-	)
-	var destination_centroid: Vector2 = a_command_message.xz_position
-	var destinations: Array[Vector2] = SU.get_nonoverlapping_points(
-		map,
-		destination_centroid,
-		radius,
-		map.get_world_3d(),
-		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
-		region_radius,
-		a_capable.size()
+	var stream: OrderStream = _order_stream()
+	if stream == null:
+		var indicated: Array[CommandMessage] = OrderDispatcher.apply_command(
+			map,
+			a_command_type,
+			selection.duplicate(),
+			CommandMessage.deep_copy(a_message),
+			a_modifiers
+		)
+		for snapshot: CommandMessage in indicated:
+			_register_indicator(snapshot)
+		return
+	var commander: Commander = _commander() if _commander() != null else a_lead.commander
+	stream.submit(
+		PlayerOrder.command(commander.id, a_command_type, selection, a_message, a_modifiers)
 	)
 
-	# Centroid of the current unit positions; used to sort units into the same
-	# rotational frame as the destinations so the assignment preserves formation.
-	var selection_centroid := Vector2.ZERO
-	for c: Commandable in a_capable:
-		selection_centroid += VU.in_xz((c as Entity).global_position)
-	selection_centroid /= float(a_capable.size())
 
-	# Sort destinations by angle around the click point, and units by angle around the
-	# group's own centroid, then zip the two sorted sequences together. Two sequences swept
-	# in the same rotational order cannot cross, so this gives non-crossing,
-	# formation-preserving paths by construction.
-	destinations.sort_custom(
-		func(a: Vector2, b: Vector2) -> bool:
-			return (
-				atan2(a.x - destination_centroid.x, a.y - destination_centroid.y)
-				< atan2(b.x - destination_centroid.x, b.y - destination_centroid.y)
-			)
-	)
-	var sorted_capable: Array = a_capable.duplicate()
-	sorted_capable.sort_custom(
-		func(a: Commandable, b: Commandable) -> bool:
-			var a_xz: Vector2 = VU.in_xz((a as Entity).global_position)
-			var b_xz: Vector2 = VU.in_xz((b as Entity).global_position)
-			return (
-				atan2(a_xz.x - selection_centroid.x, a_xz.y - selection_centroid.y)
-				< atan2(b_xz.x - selection_centroid.x, b_xz.y - selection_centroid.y)
-			)
-	)
+func _order_stream() -> OrderStream:
+	return _scenario.order_stream if _scenario != null else null
 
-	# If scatter found fewer points than units, only the first min(destinations, units) get
-	# one; the rest are absent from the result and fall back to the raw click point.
-	var unit_to_destination: Dictionary = {}
-	for i: int in mini(destinations.size(), sorted_capable.size()):
-		unit_to_destination[sorted_capable[i]] = destinations[i]
-	return unit_to_destination
+
+## An order this controller's player gave has been applied: show its waypoints, and refresh the
+## card for a toggle, whose state only changes now.
+func _on_order_applied(a_order: PlayerOrder, a_results: Array) -> void:
+	var commander: Commander = _commander()
+	if commander == null or a_order.commander_id != commander.id:
+		return
+	match a_order.kind:
+		PlayerOrder.Kind.COMMAND, PlayerOrder.Kind.PENDING_COMMAND:
+			for snapshot: CommandMessage in a_results:
+				_register_indicator(snapshot)
+		PlayerOrder.Kind.DROP:
+			_select_landed(a_results, bool(a_order.data.get("queue", false)))
+			upate_hud_buttons()
+		_:
+			upate_hud_buttons()
 
 
 ## Issue the player's currently-armed right-click action at a world XZ position,
@@ -3832,17 +3514,37 @@ func assign_command_to_pending(
 	a_command_type: Script, a_command_message: CommandMessage, a_add_to_queue: bool
 ) -> bool:
 	var command_type: Script = a_command_type if a_command_type != null else MoveCommand
-	var ordered: bool = false
+	# A purchase stops being orderable once its unit exists (or never will); it is dropped from
+	# the selection rather than given an order that would silently never arrive.
 	for transaction: PurchaseTransaction in pending_selection.duplicate():
-		var snapshot: CommandMessage = CommandMessage.deep_copy(a_command_message)
-		if map != null:
-			snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
-		if transaction.queue_player_command(command_type.new(snapshot), not a_add_to_queue):
-			ordered = true
-			_register_indicator(snapshot)
-		else:
-			# It stopped being orderable between the click and here — dispatched, or cancelled.
+		if not transaction.awaits_its_unit():
 			pending_selection.erase(transaction)
+	var ordered: bool = not pending_selection.is_empty()
+	var stream: OrderStream = _order_stream()
+	if ordered and stream == null:
+		for snapshot: CommandMessage in OrderDispatcher.apply_pending_command(
+			map,
+			command_type,
+			pending_selection,
+			CommandMessage.deep_copy(a_command_message),
+			a_add_to_queue
+		):
+			_register_indicator(snapshot)
+	elif ordered:
+		var owner: Commander = (pending_selection[0] as PurchaseTransaction).commander
+		var order := PlayerOrder.new(
+			PlayerOrder.Kind.PENDING_COMMAND,
+			_commander().id,
+			{
+				"owner": owner.id,
+				"purchases":
+				pending_selection.map(func(t: PurchaseTransaction) -> int: return t.id),
+				"command": command_type.resource_path,
+				"queue": a_add_to_queue,
+				"message": PlayerOrder.message_to_dict(a_command_message),
+			}
+		)
+		stream.submit(order)
 	if not a_add_to_queue:
 		_reset_pending_state()
 	return ordered
@@ -4180,11 +3882,11 @@ func producer_context_names() -> Array:
 func _narrow_to_producer_context(a_names: Array) -> Array:
 	if _producer_context == &"" or producer_context_names().is_empty():
 		return a_names
-	var producer: Commandable = null
+	var producer: Actor = null
 	for node: Node in selection:
 		var entity := node as Entity
 		if entity != null and is_instance_valid(entity) and entity.id == _producer_context:
-			producer = entity as Commandable
+			producer = entity as Actor
 			break
 	if producer == null:
 		return a_names
@@ -4212,7 +3914,7 @@ func production_detail_scope() -> Array:
 		func(node: Variant) -> bool:
 			if not is_instance_valid(node):
 				return false
-			var producer := node as Commandable
+			var producer := node as Actor
 			return (
 				producer != null
 				and producer.commander == own
@@ -4368,12 +4070,12 @@ static func cursor_evaluator(command_type: Script, command_message: CommandMessa
 
 
 ## True when the player can currently perceive `entity` — so the cursor may target
-## it. Own units are always known; a fog-tracked Commandable is perceptible only
+## it. Own units are always known; a fog-tracked Actor is perceptible only
 ## while it's in sight (in_sight_range is fog.gd's per-tick "fog pixel clear AND not
 ## stealthed" flag, so this subsumes both fog and stealth). A fogged enemy — or a
 ## fogged structure's remembered snapshot, which has no SELECTION collider at all —
 ## is not detected, so a right-click over it resolves to a Move on the terrain
-## beneath. Non-Commandable map features (e.g. neutral Shelters) aren't fog-managed,
+## beneath. Non-Actor map features (e.g. neutral Shelters) aren't fog-managed,
 ## so fall back to their render state (always drawn → still targetable to liberate).
 static func _is_perceptible(entity: Entity) -> bool:
 	# A fog-lifting debug view draws everything, so everything it draws can be pointed at.
@@ -4383,8 +4085,8 @@ static func _is_perceptible(entity: Entity) -> bool:
 	# their own vision (fog.gd draws it on that test), and cannot pick out of it.
 	if entity.commander_id == PLAYER_COMMANDER_ID:
 		return PlantedCharge.of(entity) == null or entity.visible
-	if entity is Commandable:
-		return (entity as Commandable).in_sight_range
+	if entity is Actor:
+		return (entity as Actor).in_sight_range
 	# A beacon's stealth is drawn on its model, not on the root fog toggles, so ask both.
 	if Beacon.of(entity) != null:
 		return entity.is_visible_to(PLAYER_COMMANDER_ID)
@@ -4399,7 +4101,7 @@ static func _is_perceptible(entity: Entity) -> bool:
 ##    even assignment to a TYPED local raises "previously freed instance" before any guard
 ##    inside the callee runs (CLAUDE.md §A freed object cannot be passed to a typed
 ##    parameter). So the slot is read UNTYPED and validity is established first. Reading it
-##    into `var entity: Node` and asking `entity is Commandable` first is exactly the crash
+##    into `var entity: Node` and asking `entity is Actor` first is exactly the crash
 ##    this ordering exists to prevent.
 ## 2. **Off the tree and not held.** A GARRISONED unit is off the tree and is NOT gone — being
 ##    able to select it is how orders reach it before it comes out. Everything else off the
@@ -4414,13 +4116,13 @@ func prune_selection() -> bool:
 			pruned = true
 			continue
 		var entity: Node = slot
-		var held: bool = entity is Commandable and (entity as Commandable).is_garrisoned()
+		var held: bool = entity is Actor and (entity as Actor).is_garrisoned()
 		if not entity.is_inside_tree() and not held:
 			entity.selectable.deselect()
 			selection.remove_at(i)
 			pruned = true
 			continue
-		var commandable: Commandable = entity as Commandable
+		var commandable: Actor = entity as Actor
 		if (
 			commandable != null
 			and is_player_commandable(commandable)
@@ -4550,7 +4252,7 @@ func _cursor_readout_text() -> String:
 
 ## The neutral building the armed Build would convert if issued at the cursor, or null when the
 ## armed order is not a conversion (or is not a Build at all).
-func armed_conversion_target() -> Commandable:
+func armed_conversion_target() -> Actor:
 	if command_message == null or current_command_type != Build:
 		return null
 	return Build.conversion_target(_selection_commander(), command_message)
@@ -4561,18 +4263,18 @@ func armed_conversion_target() -> Commandable:
 func previewed_conversion_energy() -> int:
 	if hovered_command_name() != &"":
 		return -1
-	var target: Commandable = armed_conversion_target()
+	var target: Actor = armed_conversion_target()
 	return Build.conversion_energy(target) if target != null else -1
 
 
 ## The building currently wearing the conversion marker.
-var _conversion_marked: Commandable = null
+var _conversion_marked: Actor = null
 
 
 ## Mark the building the armed Build would convert, using the marker a single-unit ability
 ## uses for its target: "this is what the order lands on".
 func _update_conversion_marker() -> void:
-	var target: Commandable = armed_conversion_target()
+	var target: Actor = armed_conversion_target()
 	if target == _conversion_marked:
 		return
 	if is_instance_valid(_conversion_marked):
@@ -4631,7 +4333,7 @@ func _update_build_preview(a_is_invalid_placement: bool) -> void:
 		_build_preview.visible = false
 		return
 	_build_preview.global_position = centroid
-	_build_preview.rotation.y = Structure.yaw_of(turns)
+	_build_preview.rotation.y = Fixture.yaw_of(turns)
 	_tint_build_preview(Entity.TEAM_COLOR_MAP[commander.id], a_is_invalid_placement)
 	_build_preview.visible = true
 
@@ -4678,9 +4380,9 @@ func _footprint_centroid(
 func _footprint_centroid_of(a_source: Node, a_xz: Vector2, a_quarter_turns: int = 0) -> Variant:
 	if map == null:
 		return null
-	var obs := a_source.get_node_or_null("Structure") as Structure if a_source != null else null
+	var obs := a_source.get_node_or_null("Fixture") as Fixture if a_source != null else null
 	var dims: Vector2i = (
-		Structure.oriented_dimensions(obs.dimensions, a_quarter_turns)
+		Fixture.oriented_dimensions(obs.dimensions, a_quarter_turns)
 		if obs != null
 		else Vector2i.ONE
 	)
@@ -4790,11 +4492,12 @@ func _update_waypoint_display() -> void:
 	# indicators is shown, not just the first representative's.
 	var configured: Dictionary = {}  # CommandMessage -> true, prevents double-configure
 	for entity in selection:
-		if not (entity is Commandable):
+		if not (entity is Actor):
 			continue
-		var unit := entity as Commandable
+		var unit := entity as Actor
 		var chain := unit.get_command_chain()
-		var prev_pos: Vector3 = unit.global_position
+		# world_position, not global_position: a garrisoned unit's line starts at its host.
+		var prev_pos: Vector3 = unit.world_position()
 		for cmd in chain:
 			var msg: CommandMessage = cmd.message
 			if _active_indicators.has(msg) and not configured.has(msg):
@@ -4833,7 +4536,7 @@ func _update_rally_indicator() -> void:
 	var hovered: Array = _info_view.hovered_training_target() if _info_view != null else []
 	var chains: Array = []
 	for node: Node in selection:
-		var structure := node as Commandable
+		var structure := node as Actor
 		if structure == null or not structure.is_in_group("structure") or not structure.can_rally():
 			continue
 		var commands: Array = _rally_commands_to_draw(structure, hovered)
@@ -4852,7 +4555,7 @@ func _update_rally_indicator() -> void:
 ##
 ## The unhovered case deliberately does NOT read the job in progress. Why:
 ## gdd/systems/commands/construction.md §Rally / release destinations.
-func _rally_commands_to_draw(a_structure: Commandable, a_hovered: Array) -> Array:
+func _rally_commands_to_draw(a_structure: Actor, a_hovered: Array) -> Array:
 	if a_structure.production != null and a_hovered.size() == 2 and a_hovered[0] == a_structure:
 		var job_index: int = a_hovered[1]
 		if job_index >= 0 and job_index < a_structure.production.job_count():
@@ -4868,55 +4571,6 @@ static func get_action_names_by_prefix(event: InputEvent, event_prefix: String) 
 		. filter(func(action_name: String): return event_prefix in action_name)
 		. filter(func(action_name: String): return event.is_action_pressed(action_name, true))
 	)
-
-
-## Returns the CollisionShape3D with the largest aggro radius among `a_units`.
-## Used so a group Defend order scans with the widest aggro coverage available.
-static func _largest_aggro_shape(units: Array) -> CollisionShape3D:
-	var best: CollisionShape3D = null
-	var best_radius: float = 0.0
-	for c: Commandable in units:
-		for shape: CollisionShape3D in c.aggro_shapes():
-			var radius: float = RangeShapes.xz_radius(shape)
-			if radius > best_radius:
-				best_radius = radius
-				best = shape
-	return best
-
-
-## Builds a standalone defended-region collider from `template` (the widest group aggro
-## shape), pinned at `center`. The geometry is hard-copied so it's independent of the unit
-## it came from, and it's added to the tree before positioning because an out-of-tree
-## Node3D reports an identity global_transform. Returns null when there's no usable shape.
-func _make_defend_region_shape(a_template: CollisionShape3D, a_center: Vector3) -> CollisionShape3D:
-	if a_template == null or a_template.shape == null or map == null:
-		return null
-	var region: CollisionShape3D = CollisionShape3D.new()
-	region.shape = a_template.shape.duplicate()
-	map.add_child(region)
-	region.global_transform = Transform3D(Basis.IDENTITY, a_center)
-	return region
-
-
-## Ties the region collider's lifetime to the Defend messages that reference it: once every
-## one has been released (its owning command replaced, the unit reassigned or destroyed),
-## nothing is defending the region, so the collider frees. Uses the same per-message
-## `unreferenced` signal the waypoint indicators ride. `remaining` is a one-element array so
-## the closures share one mutable counter (Arrays are reference types in GDScript).
-static func _lease_region_shape(region: CollisionShape3D, messages: Array[CommandMessage]) -> void:
-	if messages.is_empty():
-		if is_instance_valid(region):
-			region.queue_free()
-		return
-	var remaining: Array[int] = [messages.size()]
-	for m: CommandMessage in messages:
-		m.unreferenced.connect(
-			func() -> void:
-				remaining[0] -= 1
-				if remaining[0] <= 0 and is_instance_valid(region):
-					region.queue_free(),
-			CONNECT_ONE_SHOT
-		)
 
 
 #endregion
@@ -5132,7 +4786,7 @@ func _ability_readiness(a_ability_id: StringName) -> Vector2i:
 		return Vector2i.ZERO
 	var casters: Array = commander.casters_of_ability(a_ability_id)
 	var ready: int = 0
-	for caster: Commandable in casters:
+	for caster: Actor in casters:
 		var store := caster.get_node_or_null("Abilities") as Abilities
 		if store != null and store.is_ready(a_ability_id):
 			ready += 1
@@ -5228,7 +4882,7 @@ func _on_deploy_button_pressed(a_ability_id: StringName) -> void:
 	if casters.is_empty():
 		return
 	deselect()
-	for caster: Commandable in casters:
+	for caster: Actor in casters:
 		if caster.selectable.select():
 			selection.append(caster)
 	_refresh_available_commands()
@@ -5287,7 +4941,7 @@ func _issue_sanction(a_sanction: Sanction, a_position: Vector3) -> void:
 #region Single-unit ability targeting
 ## The unit the armed single-unit ability would act on if issued now — the unit under the
 ## cursor that the ability accepts — or null. Null too when nothing of that kind is armed.
-var ability_target: Commandable = null
+var ability_target: Actor = null
 
 
 ## Whether the armed order is a cast that acts on exactly one unit (see
@@ -5302,7 +4956,7 @@ func armed_targets_one_unit() -> bool:
 ## unit that would actually be affected. Every frame, like the rest of the cursor state:
 ## the pointer leaves a unit as often as it arrives on one.
 func _update_ability_target() -> void:
-	var found: Commandable = null
+	var found: Actor = null
 	if armed_targets_one_unit() and map != null and camera != null:
 		var sanction: Sanction = _pending_sanction
 		var commander: Commander = _commander()
@@ -5314,7 +4968,7 @@ func _update_ability_target() -> void:
 				end,
 				func(a_entity: Entity) -> bool: return sanction.accepts_target(a_entity, commander)
 			)
-			as Commandable
+			as Actor
 		)
 		command_message.target = found
 	if found != ability_target:
@@ -5471,7 +5125,17 @@ func _paint_unlock_button(a_btn: Button, a_entry: SanctionGrid.Entry) -> void:
 
 
 func _on_unlock_button_pressed(a_entry: SanctionGrid.Entry) -> void:
-	_sanction_grid.try_unlock(a_entry)
+	var stream: OrderStream = _order_stream()
+	if stream == null:
+		_sanction_grid.try_unlock(a_entry)
+		return
+	stream.submit(
+		PlayerOrder.new(
+			PlayerOrder.Kind.UNLOCK_SANCTION,
+			_commander().id,
+			{"tier": a_entry.tier(), "column": a_entry.column()}
+		)
+	)
 
 
 #endregion
@@ -5537,6 +5201,8 @@ func _place_debug_piece() -> void:
 		or not DebugPlacement.admits(_debug_piece_source, command_message)
 	):
 		return
+	if _scenario != null:
+		_scenario.note_debug_change("debug piece placed")
 	DebugPlacement.spawn(
 		load(_debug_piece["scene"]) as PackedScene,
 		map,
@@ -5641,13 +5307,41 @@ func disarm_drop() -> void:
 ## charge left, since it never keeps armed a tool that cannot be used again.
 func _place_drop() -> void:
 	var drop: Deployment.Drop = _armed_drop as Deployment.Drop
-	var landed: Array[Commandable] = _bound_deployment.drop(drop, _drop_aim())
-	if landed.is_empty():
+	var stream: OrderStream = _order_stream()
+	if stream == null:
+		var landed: Array[Actor] = _bound_deployment.drop(drop, _drop_aim())
+		if landed.is_empty():
+			return
+		_select_landed(landed, additive_latched)
+		_end_drop_arming(_bound_deployment.charges(drop))
 		return
-	if not additive_latched:
-		deselect()
-		_select_units(landed)
-	if not additive_latched or not _bound_deployment.has_charge(drop):
+	# Judged now, so a refused click keeps the drop armed and says why; landing is the order's.
+	if _bound_deployment.verdict(drop, _drop_aim()) != Deployment.Verdict.OK:
+		return
+	var aim: Vector2 = _drop_aim()
+	stream.submit(
+		PlayerOrder.new(
+			PlayerOrder.Kind.DROP,
+			_commander().id,
+			{"drop": int(drop), "aim": [aim.x, aim.y], "queue": additive_latched}
+		)
+	)
+	# The charge is spent when the order lands, so one fewer is what remains after it.
+	_end_drop_arming(_bound_deployment.charges(drop) - 1)
+
+
+## Select what a drop put in play, unless the additive modifier was held when it was given.
+func _select_landed(a_landed: Array, a_is_additive: bool) -> void:
+	if a_landed.is_empty() or a_is_additive:
+		return
+	deselect()
+	_select_units(a_landed)
+
+
+## After a drop: the modifier keeps the drop armed only while a charge is left, since it never
+## keeps armed a tool that cannot be used again.
+func _end_drop_arming(a_charges_left: int) -> void:
+	if not additive_latched or a_charges_left <= 0:
 		disarm_command()
 	else:
 		upate_hud_buttons()

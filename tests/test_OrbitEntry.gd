@@ -28,9 +28,9 @@ const BOOT_TICKS: int = 30
 const OBSERVE_TICKS: int = 150
 
 
-func _find_drone() -> Commandable:
+func _find_drone() -> Actor:
 	for node: Node in get_tree().get_nodes_in_group("unit"):
-		var c := node as Commandable
+		var c := node as Actor
 		if c != null and c.id == EntityIds.AN_AIRCRAFT_LIGHT_ANTI_MECH:
 			return c
 	return null
@@ -42,7 +42,7 @@ func test_flying_unit_settles_into_its_orbit_without_doubling_back() -> void:
 	add_child_autofree(scenario)
 	# Emptied BEFORE boot: the drone spawns inside aggro of the cluster and would otherwise
 	# dive on it and detonate inside the boot window.
-	var drone: Commandable = _find_drone()
+	var drone: Actor = _find_drone()
 	assert_not_null(drone, "the scenario provides a FLYING unit")
 	if drone == null:
 		gut.error_tracker.disabled = false
@@ -109,11 +109,11 @@ func test_flying_unit_settles_into_its_orbit_without_doubling_back() -> void:
 ## Leave `a_keep` alone in the world: every other commandable freed, every brain silenced.
 ## A flying unit's approach and loiter are what is under test, and both a target to dive at
 ## and an order from a bot would replace the thing being measured.
-func _empty_the_harness(a_scenario: Scenario, a_keep: Commandable) -> void:
+func _empty_the_harness(a_scenario: Scenario, a_keep: Actor) -> void:
 	for commander: Commander in a_scenario.commanders:
 		var brain := commander.get_node_or_null("BotBrain") as BotBrain
 		if brain != null:
 			brain.active = false
 	for node: Node in get_tree().get_nodes_in_group("piece"):
-		if node != a_keep and node is Commandable:
+		if node != a_keep and node is Actor:
 			node.queue_free()

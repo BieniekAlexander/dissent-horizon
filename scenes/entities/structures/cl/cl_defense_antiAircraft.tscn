@@ -1,7 +1,7 @@
-[gd_scene load_steps=28 format=3 uid="uid://chn6tbb8uh0m5"]
+[gd_scene load_steps=29 format=3 uid="uid://chn6tbb8uh0m5"]
 
 [ext_resource type="PackedScene" path="res://assets/meshes/entities/dummy_structure.blend" id="1_dummy"]
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_ypgad"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_ypgad"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="2_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/loadout.gd" id="3_invnt"]
 [ext_resource type="PackedScene" path="res://scenes/entities/projectiles/cl/sam_missile.tscn" id="4_hro24"]
@@ -10,7 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_1kjo3"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_f5kis"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="8_opmvo"]
-[ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="9_nl7ja"]
+[ext_resource type="Script" path="res://scripts/entities/components/fixture.gd" id="9_nl7ja"]
 [ext_resource type="Script" path="res://scripts/entities/components/defense.gd" id="10_7huxx"]
 [ext_resource type="Script" path="res://scripts/entities/components/veterancy.gd" id="11_lvhe3"]
 [ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="12_78n0s"]
@@ -23,6 +23,7 @@
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="26_x3b7f"]
 [ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="27_e7xhp"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/ground_range_artillery.tres" id="3_spec"]
+[ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="1_spec"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_srojw"]
 
@@ -42,6 +43,8 @@ collision_mask = 0
 script = ExtResource("1_ypgad")
 infrastructure = -50
 id = &"cl_defense_antiAircraft"
+description = "potato"
+verbose = "potato"
 
 [node name="#####STATE#####" type="Node" parent="." unique_id=1265698528]
 
@@ -61,7 +64,7 @@ shape = ExtResource("2_spec")
 [node name="Ownership" type="Node" parent="." unique_id=1704696279]
 script = ExtResource("8_opmvo")
 
-[node name="Structure" type="Node" parent="." unique_id=2006493504]
+[node name="Fixture" type="Node" parent="." unique_id=2006493504]
 script = ExtResource("9_nl7ja")
 
 [node name="Defense" type="Node" parent="." unique_id=2041067253]
@@ -81,6 +84,9 @@ script = ExtResource("11_lvhe3")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24707031, 0)
 shape = SubResource("BoxShape3D_srojw")
 metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("1_spec")
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1922871746]
 

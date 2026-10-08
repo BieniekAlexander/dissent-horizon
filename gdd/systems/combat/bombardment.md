@@ -106,7 +106,7 @@ the ground.
 
 Its look is a small team-tinted sphere on a `MeshVisual`, which is how every other piece is coloured: `Entity._apply_team_tint` finds that component off the `commander_changed` signal, so the beacon shows whose it is with no code of its own.
 
-**A beacon is stealthed to opponents.** It carries a `Stealth` component and a `StealthBody` (a small `StaticBody3D` on the STEALTH layer only — a shape on the root would have made the beacon a movement obstruction), so an ordinary detector or a Radar Scan finds it the way it finds a stealthed unit. `Beacon` ticks the stealth itself, since a beacon is not a Commandable, and draws for the LOCAL player: hidden from an opponent while STEALTHED, faint while REVEALED, always drawn for its owner's side.
+**A beacon is stealthed to opponents.** It carries a `Stealth` component and a `StealthBody` (a small `StaticBody3D` on the STEALTH layer only — a shape on the root would have made the beacon a movement obstruction), so an ordinary detector or a Radar Scan finds it the way it finds a stealthed unit. `Beacon` ticks the stealth itself, since a beacon is not a Actor, and draws for the LOCAL player: hidden from an opponent while STEALTHED, faint while REVEALED, always drawn for its owner's side.
 
 **Fog hides a beacon too.** An opponent sees it only when it is out of their fog AND not
 stealthed, and a fogged beacon is untargetable by that opponent. See

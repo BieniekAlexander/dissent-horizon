@@ -71,7 +71,7 @@ static func from_map(map: Map) -> MapDecorationInput:
 			var body := node as WaterBody
 			input.waters.append({"seed_cell": body.seed_cell, "level": body.level})
 		elif node is Entity:
-			var structure := node.get_node_or_null("Structure") as Structure
+			var structure := node.get_node_or_null("Fixture") as Fixture
 			if structure == null:
 				continue
 			var dims: Vector2i = structure.footprint_dimensions()

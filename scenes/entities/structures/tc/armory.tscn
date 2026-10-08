@@ -1,11 +1,11 @@
 [gd_scene load_steps=21 format=3 uid="uid://cvk2xwyp224g4"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_07kto"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_07kto"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_mqj5y"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_4kep2"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_5jolh"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="7_exdbo"]
-[ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="8_lsptg"]
+[ext_resource type="Script" path="res://scripts/entities/components/fixture.gd" id="8_lsptg"]
 [ext_resource type="Script" path="res://scripts/entities/components/defense.gd" id="9_rxf4m"]
 [ext_resource type="Script" path="res://scripts/entities/components/veterancy.gd" id="10_28ifx"]
 [ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="11_nr8dc"]
@@ -50,7 +50,7 @@ metadata/_visual_default_hurtbox = "BoxShape3D"
 [node name="Ownership" type="Node" parent="." unique_id=1995815294]
 script = ExtResource("7_exdbo")
 
-[node name="Structure" type="Node" parent="." unique_id=818308105]
+[node name="Fixture" type="Node" parent="." unique_id=818308105]
 script = ExtResource("8_lsptg")
 dimensions = Vector2i(2, 2)
 

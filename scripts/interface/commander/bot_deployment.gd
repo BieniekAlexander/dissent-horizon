@@ -109,7 +109,7 @@ func _anchor_for(a_drop: Deployment.Drop) -> Variant:
 	if units.is_empty():
 		return null
 	var sum := Vector2.ZERO
-	for unit: Commandable in units:
+	for unit: Actor in units:
 		sum += VU.in_xz(unit.global_position)
 	return sum / float(units.size())
 

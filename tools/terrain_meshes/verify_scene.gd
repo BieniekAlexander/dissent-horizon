@@ -152,7 +152,7 @@ func _report_movement() -> void:
 	var units: Array = _owned_units(player)
 	if units.is_empty():
 		return
-	var unit: Commandable = units[0]
+	var unit: Actor = units[0]
 	var start: Vector3 = unit.global_position
 	var goal := Vector3(
 		_move_target.x,
@@ -304,7 +304,7 @@ func _owned_units(a_commander: Node) -> Array:
 	var out: Array = []
 	for child: Node in a_commander.get_children():
 		if (
-			child is Commandable
+			child is Actor
 			and child.is_in_group("unit")
 			and not child.is_queued_for_deletion()
 		):

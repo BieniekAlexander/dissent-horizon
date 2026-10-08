@@ -254,18 +254,9 @@ static func technology_json(registry: RefCounted) -> String:
 
 ## {command_name: {"id", "scene", "label", "grid", "context", "factions",
 ## "tooltip", "verbose"}} for every piece with a ui: key. context is how the piece is
-## acquired — see _is_built.
-##
-## `label` is the doc's `title` — the piece's one user-facing display name (there is
-## no ui.label; see SpecRegistry._validate_ui). A doc with no title falls back to its
-## raw id, which reads as unfinished on the button, which is the point.
-##
-## `tooltip` / `verbose` are the two tiers the grid button shows on hover (see
-## VerboseTooltipButton): a one-line "what and what it costs", and the full stat
-## readout the player gets while holding the verbose key. Both are SYNTHESIZED from
-## the same doc data the rest of the import reads, so a piece can never drift out of
-## having a tooltip and a rebalanced doc updates its own copy. `ui.tooltip` /
-## `ui.verbose` override either tier when a piece wants authored words instead.
+## acquired — see _is_built. `label` is the doc's `title`; the two tooltip tiers are
+## synthesized from the doc's stats unless `ui.tooltip` / `ui.verbose` override them
+## (spec-importer.md).
 static func tools_json(registry: RefCounted) -> String:
 	return (
 		_json_header("build/train tool registry")

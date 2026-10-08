@@ -12,10 +12,10 @@ extends GutTest
 ## NOT apply, `BotScout._applicable_responsibility_count`.
 
 
-## A Commandable that can live in the tree without a scene behind it — the same shape
+## A Actor that can live in the tree without a scene behind it — the same shape
 ## tests/test_BotHostileTargets.gd uses, and for the same reason.
 class StubPiece:
-	extends Commandable
+	extends Actor
 
 	static func make() -> StubPiece:
 		var piece := StubPiece.new()
@@ -54,7 +54,7 @@ func before_each() -> void:
 
 
 ## An owned unit with the components the rule reads, and nothing else.
-func _unit(a_damage: float, a_crush: Movement.CrushClass) -> Commandable:
+func _unit(a_damage: float, a_crush: Movement.CrushClass) -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	_bot.add_child(piece)
 	piece.ownership.commander = _bot
@@ -113,7 +113,7 @@ func test_an_unarmed_uncrushing_unit_has_no_combat_utility() -> void:
 
 
 func test_the_army_claims_an_unarmed_crusher() -> void:
-	var truck: Commandable = _unit(0.0, Movement.CrushClass.LARGE)
+	var truck: Actor = _unit(0.0, Movement.CrushClass.LARGE)
 	assert_eq(
 		_military()._combat_units(_bot.get_units()),
 		[truck],
@@ -131,8 +131,8 @@ func test_the_army_still_leaves_a_genuinely_harmless_unit_alone() -> void:
 
 
 func test_the_army_claims_armed_and_crushing_units_together() -> void:
-	var soldier: Commandable = _unit(10.0, Movement.CrushClass.SMALL)
-	var truck: Commandable = _unit(0.0, Movement.CrushClass.LARGE)
+	var soldier: Actor = _unit(10.0, Movement.CrushClass.SMALL)
+	var truck: Actor = _unit(0.0, Movement.CrushClass.LARGE)
 	_unit(0.0, Movement.CrushClass.TINY)
 	var claimed: Array = _military()._combat_units(_bot.get_units())
 	assert_eq(claimed.size(), 2)
@@ -147,8 +147,8 @@ func test_crushing_does_not_make_a_unit_wanted_elsewhere() -> void:
 	# Stock Truck is the right opening scout precisely because nothing does. Crushing is
 	# damage a unit does wherever it is, not a job that holds it somewhere — so it must not
 	# count here even though the army will now take the truck if the scout does not.
-	var truck: Commandable = _unit(0.0, Movement.CrushClass.LARGE)
-	var soldier: Commandable = _unit(10.0, Movement.CrushClass.SMALL)
+	var truck: Actor = _unit(0.0, Movement.CrushClass.LARGE)
+	var soldier: Actor = _unit(10.0, Movement.CrushClass.SMALL)
 	var scout := BotScout.new(_bot, null)
 	assert_eq(
 		scout._applicable_responsibility_count(truck), 0, "the crusher is nobody's first call"

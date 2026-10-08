@@ -48,7 +48,7 @@ func tick() -> int:
 	_release_finished_spotters()
 	var considered: int = 0
 	var guns_wanting_ground: int = _loaded_gun_count() - _spotters_out()
-	for unit: Commandable in _bot.get_units():
+	for unit: Actor in _bot.get_units():
 		var pool: Abilities = unit.get_node_or_null("Abilities") as Abilities
 		if pool == null:
 			continue
@@ -73,7 +73,7 @@ func tick() -> int:
 ## enemies in reach — and a one-shot order replaces its Attack for the throw; the targeting
 ## manager re-engages it after. A unit on an errand or under exclusive management is left to
 ## its job. Returns whether a cast was ordered.
-func _strike(a_unit: Commandable, a_id: StringName) -> bool:
+func _strike(a_unit: Actor, a_id: StringName) -> bool:
 	if claims.priority_of(a_unit) >= BotClaims.Priority.ERRAND:
 		return false
 	if a_unit.current_command() is Ability:
@@ -98,7 +98,7 @@ func _strike(a_unit: Commandable, a_id: StringName) -> bool:
 
 func _any_own_unit_within(a_point: Vector3, a_radius: float) -> bool:
 	return _bot.get_units().any(
-		func(u: Commandable) -> bool:
+		func(u: Actor) -> bool:
 			return VU.in_xz(u.global_position).distance_to(VU.in_xz(a_point)) <= a_radius
 	)
 
@@ -109,7 +109,7 @@ func _any_own_unit_within(a_point: Vector3, a_radius: float) -> bool:
 #region The siege loop
 ## Send `a_spotter` to call a solution in on the nearest believed enemy structure its walk can
 ## reach, and claim it for the errand. Returns whether it was sent.
-func _spot(a_spotter: Commandable) -> bool:
+func _spot(a_spotter: Actor) -> bool:
 	if not claims.can_claim(a_spotter, CLAIM_OWNER, BotClaims.Priority.ERRAND):
 		return false
 	if a_spotter.current_command() is Spot:
@@ -130,7 +130,7 @@ func _spot(a_spotter: Commandable) -> bool:
 ## Give back every spotter whose solution has ended — a gun fired on it, or it was re-ordered.
 func _release_finished_spotters() -> void:
 	for unit: Variant in claims.units_of(CLAIM_OWNER):
-		if not is_instance_valid(unit) or not ((unit as Commandable).current_command() is Spot):
+		if not is_instance_valid(unit) or not ((unit as Actor).current_command() is Spot):
 			claims.release(unit, CLAIM_OWNER)
 
 
@@ -138,7 +138,7 @@ func _release_finished_spotters() -> void:
 ## second battery is a second solution wanted.
 func _loaded_gun_count() -> int:
 	var count: int = 0
-	for structure: Commandable in _bot.get_structures():
+	for structure: Actor in _bot.get_structures():
 		var pool: Abilities = structure.get_node_or_null("Abilities") as Abilities
 		if pool == null or not structure.is_built:
 			continue

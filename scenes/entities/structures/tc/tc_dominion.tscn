@@ -1,11 +1,11 @@
 [gd_scene load_steps=22 format=3 uid="uid://bkfm17ned5gw4"]
 
-[ext_resource type="Script" path="res://scripts/entities/commandable.gd" id="1_cfpqd"]
+[ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_cfpqd"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_nqvoq"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_nt380"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_qoum6"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="7_2161v"]
-[ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="8_eq1bc"]
+[ext_resource type="Script" path="res://scripts/entities/components/fixture.gd" id="8_eq1bc"]
 [ext_resource type="Script" path="res://scripts/entities/components/defense.gd" id="9_xw8mm"]
 [ext_resource type="Script" path="res://scripts/entities/components/veterancy.gd" id="10_qq07r"]
 [ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="11_4qutf"]
@@ -55,7 +55,7 @@ shape = SubResource("CylinderShape3D_4jcjv")
 [node name="Ownership" type="Node" parent="." unique_id=837177528]
 script = ExtResource("7_2161v")
 
-[node name="Structure" type="Node" parent="." unique_id=1534525697]
+[node name="Fixture" type="Node" parent="." unique_id=1534525697]
 script = ExtResource("8_eq1bc")
 
 [node name="Defense" type="Node" parent="." unique_id=1009457556]

@@ -44,7 +44,7 @@ func _init(a_bot: Bot, a_act: BotActuator) -> void:
 ## Evaluate every drone. Returns the work units spent.
 func tick() -> int:
 	var drones: Array = _bot.get_suicide_aoe_units()
-	for k: Commandable in drones:
+	for k: Actor in drones:
 		claims.claim(k, CLAIM_OWNER, BotClaims.Priority.EXCLUSIVE)
 		var best: Variant = _bot.kamikaze_best_target(k)
 		if best != null:
@@ -57,7 +57,7 @@ func tick() -> int:
 ## Worth it: release the hold and commit the suicide run (persist — see it through to the
 ## cluster). The release has to come FIRST, or the drone flies in under a hold and cannot
 ## re-acquire if the leash ever drops.
-func _commit(a_k: Commandable, a_target: Entity) -> void:
+func _commit(a_k: Actor, a_target: Entity) -> void:
 	a_k.is_holding_fire = false
 	_act.attack([a_k], a_target, true)
 
@@ -70,13 +70,13 @@ func _commit(a_k: Commandable, a_target: Entity) -> void:
 ## exists — is silently overridden by proximity. Worse, the walk home only happened when the
 ## bot owned a structure, so a drone with no base to return to was not even walked.
 ##
-## So: suppress the drone's own target acquisition (Commandable.is_holding_fire); drop any
+## So: suppress the drone's own target acquisition (Actor.is_holding_fire); drop any
 ## engagement it has already been committed to by aggro, since suppression only prevents the
 ## NEXT pickup; and only then, if there is a home to go to, take it out of harm's way.
 ##
 ## The order matters: cancelling first and suppressing second would leave a one-tick window
 ## in which the drone is idle, unsuppressed and standing next to a target.
-func _hold(a_k: Commandable) -> void:
+func _hold(a_k: Actor) -> void:
 	a_k.is_holding_fire = true
 	if a_k.current_command() is Attack or a_k.current_command() is AttackMove:
 		a_k.update_commands(null)

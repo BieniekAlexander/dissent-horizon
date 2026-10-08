@@ -11,7 +11,7 @@ static func requires_position() -> bool:
 ## Valid only for HOVERING units that are not already permanently grounded
 ## (so the button grays out while the unit is already landed).
 static func meets_precondition(
-	actor: Commandable, _message: CommandMessage
+	actor: Actor, _message: CommandMessage
 ) -> PreconditionFailureCause:
 	if actor.aerial == null or actor.aerial.mode != Movement.Mode.HOVERING:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
@@ -24,16 +24,16 @@ static func meets_precondition(
 
 
 #region State updates
-func should_move(_a_actor: Commandable) -> bool:
+func should_move(_a_actor: Actor) -> bool:
 	return false
 
 
-func can_act(_a_actor: Commandable) -> bool:
+func can_act(_a_actor: Actor) -> bool:
 	return true
 
 
 ## Descend and remain grounded; a subsequent movement command lifts off.
-func fulfill_action(a_actor: Commandable) -> Variant:
+func fulfill_action(a_actor: Actor) -> Variant:
 	a_actor.aerial.land_permanently()
 	return null
 

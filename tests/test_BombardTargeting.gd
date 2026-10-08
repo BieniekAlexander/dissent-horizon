@@ -43,10 +43,10 @@ func _beacon(a_commander_id: int, a_xz: Vector2) -> Beacon:
 
 
 ## A real unit carrying a BeaconRange of `radius`, owned by `commander_id`, at `xz`.
-## Built from a shipped scene rather than a bare Commandable: the class hard-requires a
+## Built from a shipped scene rather than a bare Actor: the class hard-requires a
 ## scene rig (HP bar, AvoidanceObstacle, Ownership) a hand-built node cannot supply.
-func _range_carrier(a_commander_id: int, a_xz: Vector2, a_radius: float) -> Commandable:
-	var unit: Commandable = FakePieces.unit(UNIT)
+func _range_carrier(a_commander_id: int, a_xz: Vector2, a_radius: float) -> Actor:
+	var unit: Actor = FakePieces.unit(UNIT)
 	_commander(a_commander_id).add_child(unit)
 	autofree(unit)
 	unit.top_level = true

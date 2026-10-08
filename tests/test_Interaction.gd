@@ -35,8 +35,8 @@ func _commanded(a_id: int) -> Commander:
 
 ## A live unit instance owned by [a_commander_id]. Ownership is assigned directly (not
 ## through initialize) so no Map is needed.
-func _unit(a_options: Dictionary, a_commander_id: int) -> Commandable:
-	var u: Commandable = (
+func _unit(a_options: Dictionary, a_commander_id: int) -> Actor:
+	var u: Actor = (
 		FakePieces.structure(a_options)
 		if a_options.has("structure")
 		else FakePieces.unit(a_options)
@@ -50,7 +50,7 @@ func _message_for(a_target: Entity) -> CommandMessage:
 	return CommandMessage.new(null, a_target)
 
 
-func _interaction_of(a_unit: Commandable, a_type: Interaction.Type) -> Interaction:
+func _interaction_of(a_unit: Actor, a_type: Interaction.Type) -> Interaction:
 	if a_unit.interactor == null:
 		return null
 	for i: Interaction in a_unit.interactor.interactions:
@@ -115,3 +115,78 @@ func test_interact_does_not_end_on_arrival():
 		order.ends_on_arrival(),
 		"arriving is not the point — depositing is, and only can_act/fulfill_action decide that"
 	)
+
+
+## --- Unloading one captive at a time ---------------------------------------
+
+
+## Run `a_order` on `a_truck` until it ends, returning the tick each captive reached the
+## Compound, counted from the first fulfilled tick. Bounded so a stuck order fails the test.
+func _unload(a_truck: Actor, a_order: Interact, a_compound: Actor) -> Array[int]:
+	var arrivals: Array[int] = []
+	var held: int = a_compound.garrison.garrisoned_count()
+	for tick: int in 10000:
+		var next: Variant = a_order.fulfill_action(a_truck)
+		var now_held: int = a_compound.garrison.garrisoned_count()
+		for _i: int in now_held - held:
+			arrivals.append(tick)
+		held = now_held
+		if next == null:
+			break
+	return arrivals
+
+
+func test_a_truck_with_an_unload_time_hands_captives_over_one_interval_apart():
+	var truck := _unit(
+		{
+			"speed": 2.0,
+			"garrison": {"capacity": 3, "unload_time": 1.0},
+			"interactions": [Interaction.Type.DEPOSIT]
+		},
+		1
+	)
+	for _i: int in 3:
+		truck.garrison.garrison(_unit(TERRESTRIAL, 0))
+	var compound := _unit(COMPOUND, 1)
+	var arrivals: Array[int] = _unload(truck, Interact.new(_message_for(compound)), compound)
+	var interval: int = TimeUtils.ticks_from_seconds(1.0)
+	assert_eq(arrivals.size(), 3, "every captive is handed over")
+	assert_eq(arrivals[1] - arrivals[0], interval)
+	assert_eq(arrivals[2] - arrivals[1], interval)
+	assert_eq(truck.garrison.garrisoned_count(), 0)
+
+
+func test_an_unload_stops_when_the_compound_is_full():
+	var truck := _unit(
+		{
+			"speed": 2.0,
+			"garrison": {"capacity": 3, "unload_time": 1.0},
+			"interactions": [Interaction.Type.DEPOSIT]
+		},
+		1
+	)
+	for _i: int in 3:
+		truck.garrison.garrison(_unit(TERRESTRIAL, 0))
+	var small_compound := _unit(
+		{
+			"structure": true,
+			"garrison":
+			{"capacity": 2, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}
+		},
+		1
+	)
+	var arrivals: Array[int] = _unload(
+		truck, Interact.new(_message_for(small_compound)), small_compound
+	)
+	assert_eq(arrivals.size(), 2, "only what fits")
+	assert_eq(truck.garrison.garrisoned_count(), 1, "the rest stays with the truck")
+
+
+func test_without_an_unload_time_the_whole_load_goes_at_once():
+	var truck := _unit(SUPPLY_TRUCK, 1)
+	for _i: int in 3:
+		truck.garrison.garrison(_unit(TERRESTRIAL, 0))
+	var compound := _unit(COMPOUND, 1)
+	var arrivals: Array[int] = _unload(truck, Interact.new(_message_for(compound)), compound)
+	assert_eq(arrivals.size(), 3)
+	assert_eq(arrivals[0], arrivals[2], "on one tick")

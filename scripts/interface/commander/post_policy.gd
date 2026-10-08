@@ -32,7 +32,7 @@ func _init(a_act: BotActuator, a_point: Vector3, a_epsilon: float) -> void:
 
 func issue(a_members: Array) -> void:
 	var to_send: Array = a_members.filter(
-		func(unit: Commandable) -> bool:
+		func(unit: Actor) -> bool:
 			return unit.global_position.distance_to(point) > HOLD_RADIUS
 	)
 	if not to_send.is_empty():

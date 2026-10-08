@@ -28,7 +28,7 @@ func _ready() -> void:
 	player.faction_scene = COLONIAL
 	add_child(player)
 	for path: String in CASTERS:
-		var piece: Commandable = (load(path) as PackedScene).instantiate() as Commandable
+		var piece: Actor = (load(path) as PackedScene).instantiate() as Actor
 		player.add_child(piece)
 		piece.ownership.commander = player
 		piece.build_progress = 1.0

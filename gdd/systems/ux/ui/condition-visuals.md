@@ -15,7 +15,7 @@ touch each other's channels:
 
 | Half | Written by | Says |
 | --- | --- | --- |
-| CONSTRUCTION | `Commandable._apply_construction_visuals`, off `build_progress_changed` | how REAL this thing is — planned / building / built, paid for or not |
+| CONSTRUCTION | `Actor._apply_construction_visuals`, off `build_progress_changed` | how REAL this thing is — planned / building / built, paid for or not |
 | CONDITION | `StatusVisuals`, every frame | what is happening to it RIGHT NOW — stealth, status effects, rank |
 
 `MeshVisual` carries a channel for each (`set_opacity`/`set_shade` versus
@@ -74,7 +74,7 @@ the selection:
 | status | the current action's badge, flashing ([unit-animation](../unit-animation.md) §Action badges) | everyone |
 | status (same row) | one icon per active effect that declares one | everyone |
 | status (same row) | the hold-fire badge (`status_hold_fire.svg`) | the owner, selected or not — and only on a piece offered hold fire (armed); an unarmed stealthed piece holds fire with nothing to show for it |
-| status (same row) | the unpowered badge (`status_unpowered.svg`): a STRUCTURE whose weapons or abilities have gone dark because its commander's infrastructure is short (`Commandable.is_unpowered`). A building that only trains carries none — production slows under strain but does not stop | the owner's side |
+| status (same row) | the unpowered badge (`status_unpowered.svg`): a STRUCTURE whose weapons or abilities have gone dark because its commander's infrastructure is short (`Actor.is_unpowered`). A building that only trains carries none — production slows under strain but does not stop | the owner's side |
 | status, on a BLUEPRINT | the awaiting-funds badge (`status_awaiting_funds.svg`): ordered, not paid for | the owner's side |
 | capacity pips | garrison seats and charged-ammo rounds | the owner, while selected |
 
@@ -94,13 +94,13 @@ the selection:
 - **A blink means "this is happening to the unit right now"**; 0 Hz is a state you read at a
   glance and must never flicker. It is per-effect (`indicator_blink_hz`), not a property of
   indicators in general.
-- **Everything is hidden by `Commandable.is_hidden_by_stealth()` or `is_planned`**, except
+- **Everything is hidden by `Actor.is_hidden_by_stealth()` or `is_planned`**, except
   the awaiting-funds badge, which is the one thing a blueprint shows: nothing it could be doing
   or suffering applies to a piece not on the map yet. Fog
   already hides an entity wholesale by toggling `visible`, but a STEALTHED enemy is drawn at
   zero ALPHA with `visible` still true — so without this gate a badge or a bolt would float
   in empty air over the unit the fade is hiding. The same call suppresses the HP bar in
-  `Commandable._process`.
+  `Actor._process`.
 - **`Veterancy` owns no art.** It counts XP and holds a level; `StatusVisuals` reads that
   level. The old numeric `Label3D` is gone, and with it a component that had a node in the
   scene and no way to gate it on any of the above.
@@ -135,7 +135,7 @@ glance, which is the whole reason to draw it in the world rather than in the inf
 
 ### What this replaced
 
-All of it used to live inline in `Commandable._process`, writing `Sprite.modulate` — a
+All of it used to live inline in `Actor._process`, writing `Sprite.modulate` — a
 single channel shared by the team tint, the construction fade and the stealth pulse, which
 is why that block had to rewrite all three every frame to stop them clobbering one another.
 The billboard-sprite era is over for units and structures (`MeshVisual` is on

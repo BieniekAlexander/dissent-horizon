@@ -58,8 +58,8 @@ walked into arm's length.
 
 | Radius | The question | Read by |
 |---|---|---|
-| `vision` | what does my side SEE from here? | fog of war; also the retaliation radius (`Commandable._get_vision_range_attack`) |
-| `aggro` | what will I START a fight over, unprompted? — derived, never authored | the idle pickup (`Commandable.get_aggro_near_position`) |
+| `vision` | what does my side SEE from here? | fog of war; also the retaliation radius (`Actor._get_vision_range_attack`) |
+| `aggro` | what will I START a fight over, unprompted? — derived, never authored | the idle pickup (`Actor.get_aggro_near_position`) |
 | weapon `reach` | what can I actually shoot? | `SU.is_in_attack_range` |
 
 ### `aggro` is not a knob any more
@@ -231,7 +231,7 @@ that sweep is built — see [simulation-tests](systems/scenario-scripting/simula
 
 **`aggro` is fog-filtered** — answered yes, and already built: an aggro candidate must be
 visible to the asking commander ([target-acquisition](systems/combat/target-acquisition.md)).
-The same answer extends the rule to build placement, which is PLANNED in
+The same answer extends the rule to build placement — see
 [construction](systems/commands/construction.md) §Placement is judged against what the
 commander knows. Shared vision waits on alliances, PLANNED in target-acquisition §Alliances.
 

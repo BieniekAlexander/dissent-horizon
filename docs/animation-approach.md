@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-The hookup is already in place. `MeshVisual.set_animation_state()` is called every frame from `Commandable._process` with the correct state (IDLE / MOVE / ATTACK). The body of that method is a no-op stub with a TODO comment pointing exactly at what to do. The work is: (1) author skeletal animations in the `.blend` files, (2) wire up an `AnimationTree` in each unit scene, (3) fill in the TODO.
+The hookup is already in place. `MeshVisual.set_animation_state()` is called every frame from `Actor._process` with the correct state (IDLE / MOVE / ATTACK). The body of that method is a no-op stub with a TODO comment pointing exactly at what to do. The work is: (1) author skeletal animations in the `.blend` files, (2) wire up an `AnimationTree` in each unit scene, (3) fill in the TODO.
 
 ---
 
@@ -18,7 +18,7 @@ The designated owner of everything visual on a mesh-based entity. Already handle
 - **`AnimationState` enum** — IDLE, MOVE, ATTACK, DIE
 - **`set_animation_state(state)`** — the single call site for animation; currently records the state but does nothing else
 
-### `Commandable._drive_mesh_visual()` (`scripts/entities/commandable.gd:646`)
+### `Actor._drive_mesh_visual()` (`scripts/entities/actor.gd:646`)
 
 Called every `_process` frame for any entity that has a `MeshVisual` child. Maps:
 
@@ -33,7 +33,7 @@ DIE is not yet driven — `_on_death()` exists but doesn't push the DIE state.
 ### Node structure in unit scenes
 
 ```
-Commandable (root, CharacterBody3D)
+Actor (root, CharacterBody3D)
   └── MeshVisual (Node3D, mesh_visual.gd)
         └── <model> (instanced .blend — e.g. irregular, hexagonal_prism)
 ```
@@ -112,7 +112,7 @@ func set_animation_state(state: AnimationState) -> void:
 
 ### 4. Wire the DIE state
 
-In `Commandable._on_death()`, push the DIE state before `super()` frees the node:
+In `Actor._on_death()`, push the DIE state before `super()` frees the node:
 
 ```gdscript
 var mesh_visual := get_node_or_null("MeshVisual") as MeshVisual
@@ -131,7 +131,7 @@ This requires `_on_death()` to be `async` (add `await`). For entities with no de
 
 ## Approach for sprite-based units (`Sprite3D` billboards)
 
-Several older units (vanguard, technician, etc.) use a `Sprite3D` child rather than `MeshVisual`. The flip path in `Commandable._process` already handles left/right mirroring. Two options:
+Several older units (vanguard, technician, etc.) use a `Sprite3D` child rather than `MeshVisual`. The flip path in `Actor._process` already handles left/right mirroring. Two options:
 
 **Option A — `AnimatedSprite3D` (preferred for sprites)**
 

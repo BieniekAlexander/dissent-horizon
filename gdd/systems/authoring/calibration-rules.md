@@ -76,6 +76,6 @@ comment had argued against this derivation, on the grounds that it "would silent
 how a unit attacks the next time somebody rebalanced a number" — true when nothing watched
 the numbers, and no longer true now that `aerial_weapons_not_melee` refuses an undeclared
 melee-reach fixed wing. The change cannot be silent any more, which was the whole objection.
-NOT derived from "has a projectile": the kamikaze's bomb is one.
+NOT derived from "has a projectile": the kamikaze's blast is one.
 
 ---

@@ -212,11 +212,16 @@ var pc_set: Set = Set.new()
 ## real node, owned, selectable and able to take train orders, but it is not physically
 ## on the map: no grid cells, no collision, no line of sight, no infrastructure, no tech
 ## contribution, and it is invisible to every commander but its owner. Placement
-## (Commandable.commit_construction) flips this off and turns all of that on.
+## (Actor.commit_construction) flips this off and turns all of that on.
 ##
-## Set BEFORE the entity enters the tree (see Commandable.plan_construction), because
+## Set BEFORE the entity enters the tree (see Actor.plan_construction), because
 ## _ready and _on_commander_changed both consult it.
 var is_planned: bool = false
+
+## This piece's spawn serial: the number it took on first entering play, the same on every run
+## of a seed — how a recorded order names it (Scenario.register_piece). 0 until then, and for
+## good on anything that never enters play in a scenario (a build preview, a test fixture).
+var spawn_serial: int = 0
 #endregion
 
 #region Targeting priority
@@ -244,7 +249,7 @@ var target_priority: TargetPriority:
 
 
 ## Whether this entity can currently project weapon fire — by default, its own equipped
-## weapons. Commandable overrides this to ALSO count a bunker garrison that is actively
+## weapons. Actor overrides this to ALSO count a bunker garrison that is actively
 ## holding armed occupants (whose fire the structure propagates), so it stays a method for
 ## that override rather than an inline check.
 func is_armed() -> bool:
@@ -257,7 +262,7 @@ func is_armed() -> bool:
 ## that WILL be one, such as a build preview — read the node itself. Resolved inline rather
 ## than via @onready so it answers for out-of-tree instances too.
 func structure_is_active() -> bool:
-	var structure := get_node_or_null("Structure") as Structure
+	var structure := get_node_or_null("Fixture") as Fixture
 	return structure != null and structure.is_active
 
 
@@ -271,25 +276,25 @@ func live_movement() -> Movement:
 ## Whether this piece can stand in BOTH forms — it carries a footprint and locomotion — and
 ## so is in exactly one of them at a time: a structure while deployed, a unit while mobile.
 func has_two_forms() -> bool:
-	return has_node("Structure") and get_node_or_null("Locomotion") is Movement
+	return has_node("Fixture") and get_node_or_null("Locomotion") is Movement
 
 
 ## Whether a spawn site with no opinion of its own should register this piece on the grid.
 ## Only a fixture-only piece: a two-form piece that nobody asked to deploy spawns MOBILE, the
 ## form with no registration to reconcile (composition-rework §Which form a piece spawns in).
 func spawns_deployed() -> bool:
-	return has_node("Structure") and not has_node("Locomotion")
+	return has_node("Fixture") and not has_node("Locomotion")
 
 
 ## Deploy a mobile two-form piece onto the footprint centred on `a_world_center`. Refused —
 ## false, nothing changed — unless that footprint passes the same placement check a build
 ## order does: the deployed form is only ever entered through a validated footprint.
 func deploy(a_world_center: Vector2) -> bool:
-	var structure := get_node_or_null("Structure") as Structure
+	var structure := get_node_or_null("Fixture") as Fixture
 	if not has_two_forms() or structure.is_active or map == null:
 		return false
 	var message := CommandMessage.new(map, null, null, VU.from_xz(a_world_center))
-	if not Structure.valid_placement(
+	if not Fixture.valid_placement(
 		message, structure.dimensions, structure.allow_uneven, structure.allow_submerged
 	):
 		return false
@@ -312,7 +317,7 @@ func undeploy() -> void:
 ## FOLLOWS the form: which component is live, the unit/fixture/structure groups, the collision
 ## and target layers, and whatever an override of _on_form_changed keeps.
 func set_deployed(a_deployed: bool) -> void:
-	var structure := get_node_or_null("Structure") as Structure
+	var structure := get_node_or_null("Fixture") as Fixture
 	var locomotion := get_node_or_null("Locomotion") as Movement
 	if structure == null or locomotion == null:
 		return
@@ -331,7 +336,7 @@ func set_deployed(a_deployed: bool) -> void:
 
 
 ## Whether this entity currently reveals fog for its owner. A PLANNED structure never does:
-## ordering a build must not scout the site. Commandable narrows it further.
+## ordering a build must not scout the site. Actor narrows it further.
 func grants_vision() -> bool:
 	return vision_range_shape != null and vision_range_shape.shape != null and not is_planned
 
@@ -416,7 +421,7 @@ func refresh_aggro_shapes() -> void:
 #endregion
 
 
-## Hook for what a subclass keeps in step with the form (Commandable: its commander's
+## Hook for what a subclass keeps in step with the form (Actor: its commander's
 ## structure registry). Runs after every set_deployed.
 func _on_form_changed(_a_deployed: bool) -> void:
 	pass
@@ -437,7 +442,7 @@ func _resolve_initial_form() -> void:
 ##
 ## Cover is what a FINISHED building gives. A foundation is a site with materials on it: it
 ## occupies the grid, it can be shot, and units path around it, but there is nothing
-## standing there yet for a bullet to hit. Commandable overrides this to say so — a
+## standing there yet for a bullet to hit. Actor overrides this to say so — a
 ## structure earns the layer on the tick it completes (see advance_build_progress), not on
 ## the tick it is placed.
 func blocks_line_of_fire() -> bool:
@@ -500,6 +505,33 @@ func aim_point() -> Vector3:
 		else null
 	)
 	return node.global_position if node != null and node.is_inside_tree() else global_position
+
+
+## How far the top of this piece's hurtbox stands above the ground under it — where a rammer
+## strikes it. Zero for a piece with no targetable shape.
+func top_height() -> float:
+	var node: CollisionShape3D = (
+		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
+		if hurtbox != null
+		else null
+	)
+	if node == null or node.shape == null or not node.is_inside_tree():
+		return 0.0
+	var half: float = _half_height_of(node.shape) * node.global_transform.basis.y.length()
+	var ground_y: float = global_position.y - height_offset()
+	return maxf(node.global_position.y + half - ground_y, 0.0)
+
+
+static func _half_height_of(shape: Shape3D) -> float:
+	if shape is BoxShape3D:
+		return (shape as BoxShape3D).size.y * 0.5
+	if shape is CylinderShape3D:
+		return (shape as CylinderShape3D).height * 0.5
+	if shape is CapsuleShape3D:
+		return (shape as CapsuleShape3D).height * 0.5
+	if shape is SphereShape3D:
+		return (shape as SphereShape3D).radius
+	return 0.0
 
 
 ## This piece's footprint on the XZ plane, from its Hurtbox's shape: what every
@@ -585,7 +617,7 @@ func is_on_grid() -> bool:
 
 
 ## True when this entity is on the grid AND its cells leave the navmesh. An occupant-only
-## fixture (`Structure.is_obstruction` false) is on the grid without obstructing.
+## fixture (`Fixture.is_obstruction` false) is on the grid without obstructing.
 func is_grid_obstruction() -> bool:
 	return is_on_grid() and has_obstructing_footprint()
 
@@ -594,7 +626,7 @@ func is_grid_obstruction() -> bool:
 ## OBSTRUCTION rather than an occupant-only fixture. Read from the piece itself rather than
 ## its grid registration, so it holds before placement too.
 func has_obstructing_footprint() -> bool:
-	var structure := get_node_or_null("Structure") as Structure
+	var structure := get_node_or_null("Fixture") as Fixture
 	return structure == null or structure.is_obstruction
 
 
@@ -625,7 +657,7 @@ var _targetable_as_air: bool = false
 
 
 ## Re-file this entity on the AIR or GROUND layer if its altitude has crossed the threshold
-## since the layers were last written. Called every tick by Commandable, where the same
+## since the layers were last written. Called every tick by Actor, where the same
 ## height is already being applied to the body — so this costs one float comparison, and a
 ## property write only on the tick the answer flips.
 func refresh_targetable_altitude() -> void:
@@ -738,11 +770,13 @@ func _ready() -> void:
 
 	# Any entity with a VisionRange contributes line-of-sight, so it joins the "los"
 	# group that fog.gd iterates to reveal fog — independent of "piece". This is
-	# what lets a non-Commandable recon entity (e.g. Scout) clear fog for its owner.
+	# what lets a non-Actor recon entity (e.g. Scout) clear fog for its owner.
 	# A merely PLANNED structure grants none: ordering a build must not scout the site.
 	# commit_construction adds it to the group when the structure is actually placed.
 	if vision_range_shape != null and not is_planned:
 		add_to_group("los")
+
+	_take_spawn_serial()
 
 	# Scene-placed entities (map == null) weren't spawned by the Scenario loader,
 	# so we self-initialize from default_commander_id after all _ready() calls
@@ -751,6 +785,16 @@ func _ready() -> void:
 		call_deferred(&"_auto_initialize")
 
 	_validate()
+
+
+## Number this piece on its first entry into a scenario. Only pieces are numbered: an emission
+## is never named by an order.
+func _take_spawn_serial() -> void:
+	if spawn_serial != 0 or not is_in_group("piece") or Engine.is_editor_hint():
+		return
+	var scenario: Scenario = Scenario.of(self)
+	if scenario != null:
+		spawn_serial = scenario.register_piece(self)
 
 
 func _validate() -> void:
@@ -803,7 +847,7 @@ func _auto_initialize() -> void:
 	# quarter turn, so the authored yaw is read as the nearest one (and the piece squared up to it).
 	if spawns_deployed() and not found_map.structure_cell_map.has(self):
 		found_map.add_structure(
-			self, VU.in_xz(pre_init_pos), Structure.quarter_turns_of_yaw(rotation.y), false
+			self, VU.in_xz(pre_init_pos), Fixture.quarter_turns_of_yaw(rotation.y), false
 		)
 
 
@@ -876,7 +920,7 @@ func initialize(a_map: Map, a_commander: Commander):
 	refresh_movement_collision()
 
 
-func receive_damage(a_damage: Damage, a_from: Commandable = null) -> void:
+func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
 	if defense == null:
 		return
 	var was_alive: bool = defense.hp > 0
@@ -903,7 +947,7 @@ func receive_damage(a_damage: Damage, a_from: Commandable = null) -> void:
 ## an unattributed effect pays nobody, which is right: those are not kills.
 ##
 ## Enemies only, so friendly fire and scuttling your own losses can never fund you.
-func _pay_kill_bounty(a_from: Commandable) -> void:
+func _pay_kill_bounty(a_from: Actor) -> void:
 	if a_from == null or not is_instance_valid(a_from) or a_from.commander == null:
 		return
 	if not a_from.is_enemy_of(self):
@@ -929,14 +973,14 @@ func die() -> void:
 func _on_death() -> void:
 	# Fire the death reaction FIRST, while map / global_position / commander are
 	# still valid (the teardown + queue_free below would invalidate them). This is
-	# the single death chokepoint: Commandable._on_death reaches it via super()
+	# the single death chokepoint: Actor._on_death reaches it via super()
 	# after its commander bookkeeping, which leaves those references intact.
 	_fire_entity_occurrence(EntityOccurrence.ON_DEATH)
 	EntityDeathSounds.play_for(id, get_tree() if is_inside_tree() else null)
 
 	# Structure-flavored grid teardown: any entity that occupies the terrain grid
 	# (registered via Structure → Map.add_structure) must release its cells so the
-	# navmesh reopens them. Commandable._on_death adds commander/economy teardown
+	# navmesh reopens them. Actor._on_death adds commander/economy teardown
 	# on top of this via super(). Gated on group + map so plain units skip it.
 	if is_in_group("fixture") and map != null:
 		map.remove_structure(self)

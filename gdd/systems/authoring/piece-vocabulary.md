@@ -8,8 +8,8 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). The naming half of
 [composition-rework](composition-rework.md).*
 
-Most identifiers still use the old names; §Where today's code disagrees lists every place
-that has not caught up yet.
+The class names follow the vocabulary (`Actor`, `Fixture`); §Where today's code disagrees lists
+the places that have not caught up yet.
 
 ---
 
@@ -46,7 +46,7 @@ fixture** (does it claim terrain-grid cells)?
 | **not an Actor** | **feature**   | **token**  |
 
 - **Actor**: a piece that holds a command queue its owner can select and fill. This is today's
-  `Commandable`. The adjective is still *commandable*.
+  `Actor`. The adjective is still *commandable*.
 - **Fixture**: a piece that claims terrain-grid cells. It is fixed in place and cannot move
   while it is one. A **structure** is a commandable fixture (a barracks, an extractor, a
   deployed transformer). A **feature** is an uncommandable one (an extraction site, a
@@ -65,7 +65,7 @@ An **obstruction** is a fixture whose cells are removed from the navmesh, so uni
 there. **Only a fixture can be an obstruction**, so obstruction is only ever computed for a
 fixture. A figure that blocks movement does so through avoidance, which is a different
 mechanism. Both structures and features can be obstructions, and neither has to be: the
-extraction site is not one (`Structure.is_obstruction`,
+extraction site is not one (`Fixture.is_obstruction`,
 [map-composition](../terrain-and-navigation/map-composition.md) §Occupancy and obstruction).
 
 A fixture's cells are either its OWN (**occupant**: `cell_grid` points at it) or a **host's**
@@ -87,7 +87,7 @@ emission phase list) do not decide the noun.
 |---|---|---|
 | **piece** | an `Entity` with a spec doc (`kind: Entity`) | `Entity` with a non-empty `id` |
 | **owned** / **neutral** | its commander is a player / the world | `commander_id > 0` / `== 0` |
-| **commandable** (= Actor) | holds a command queue its owner can select and fill | `is Commandable` *and* `Selectable.selectable_by_player` |
+| **commandable** (= Actor) | holds a command queue its owner can select and fill | `is Actor` *and* `Selectable.selectable_by_player` |
 | **selectable** | can be clicked or boxed, if only to inspect it | `Selectable.select()` succeeds |
 | **fixture** | claims terrain-grid cells | `Entity.structure_is_active()` |
 | **obstruction** | a fixture whose cells leave the navmesh | `Entity.is_grid_obstruction()` |
@@ -147,13 +147,11 @@ These are the pieces whose classification was unclear.
   extraction site are fixtures and not structures. Readers ask the one they mean — grid
   teardown, footprint reach and the fog memory of seen buildings ask `"fixture"`; production,
   rally and construction state ask `"structure"`.
-- PLANNED: **Two class names are not in the code yet.** `Commandable` becomes `Actor`, and the
-  `Structure` component becomes the fixture component — renames done at step 4.
 - **The Recon Drone is a HOVERING aircraft with speed 0** (decided 2026-09-29): `Aerial` puts
   it in the air and on `TARGETABLE_AIR`, and its speed-0 `Movement` holds the hover. It never
   receives an order, so it never moves. See composition-rework §Locomotion is bigger than
   `Movement`.
-- TODO: **The Recon Drone's root is `Commandable`** though it is not commandable (its doc says
+- TODO: **The Recon Drone's root is `Actor`** though it is not commandable (its doc says
   `commandable: false`, and its `Selectable` refuses selection). The class gives it the
   stealth-detection tick. Under composition that tick
   belongs to whichever piece has a `DetectionRange`.

@@ -32,7 +32,7 @@ Every PURCHASE — training a unit, placing a structure — goes through the buy
 
 **But request-time charging still obeys QUEUE ORDER.** `_charge_on_submit` skips the debit when any entry ahead is still unpaid (`_unfunded_entry_ahead_of`) — otherwise it quietly repealed the head-of-line blocking `tick()` exists to enforce, because the money was gone before the scan ever ran. That let an entry behind an unaffordable one pay for itself first; the case that makes it plainly wrong is a unit ordered at a blueprint whose own BUILD is still unfunded, since that unit CANNOT be produced until the build completes, so its reserved energy became dead capital starving the very structure it was waiting for. `tick()` runs immediately after and funds entries in order anyway, so nothing is lost by deferring to it. The check asks `is_pending()`, not `blocker_for()`: an entry that is FUNDED and only waiting on a producer has already taken its money and reserves nothing further — exactly the case `DispatchResult.WAIT_PRODUCER` is documented to let others past.
 
-**Ordering a unit at an UNFUNDED blueprint is itself a deferral**, and a deeper one than an unaffordable price — nothing about it can happen until that structure is funded, built and finished. `Train.meets_precondition` refuses it with no modifier held (gating on `Commandable.awaiting_funds`, the same flag that draws the blueprint darker) and queues it with one. A blueprint whose build IS funded stays orderable either way: queuing units at a building the builder is still walking to is the deliberate feature.
+**Ordering a unit at an UNFUNDED blueprint is itself a deferral**, and a deeper one than an unaffordable price — nothing about it can happen until that structure is funded, built and finished. `Train.meets_precondition` refuses it with no modifier held (gating on `Actor.awaiting_funds`, the same flag that draws the blueprint darker) and queues it with one. A blueprint whose build IS funded stays orderable either way: queuing units at a building the builder is still walking to is the deliberate feature.
 
 That is the fix for a real bug: the debit used to happen at DISPATCH, so a purchase that couldn't start yet was never charged and the next order checked against energy an earlier one had already spoken for. With 150 energy and 75-energy units you could order two — one charged, one queued — and then a third, and a fourth, without limit. Every one-off behaved like a requisition regardless of the mode, which is exactly the distinction the mode exists to draw.
 
@@ -104,7 +104,7 @@ Each rate carries an ATTRIBUTION count, because "+14/s" is trivia and "+14/s · 
 **"Infrastructure" is the power resource** — the C&C Power analogue: a commander builds
 capacity and its buildings consume it, and running short is a penalty rather than a wall.
 
-Each `Commandable` carries ONE signed `infrastructure` int — positive provides capacity,
+Each `Actor` carries ONE signed `infrastructure` int — positive provides capacity,
 negative consumes it — and the commander tallies those into `infrastructure_provided` and
 `infrastructure_required`. Every commander starts with `Commander.BASE_INFRASTRUCTURE`
 capacity. It is UPKEEP, not a price: it never refuses a purchase (see
@@ -116,7 +116,7 @@ structures author a non-zero value, but a unit that provides or draws infrastruc
 special case. A two-form piece therefore contributes in both of its forms.
 
 **It counts while the piece is built and not merely planned**, for whoever owns it then.
-`Commandable._sync_infrastructure` is the one place that decides, and it remembers which
+`Actor._sync_infrastructure` is the one place that decides, and it remembers which
 commander holds the credit so the debit reaches the same one:
 
 - **Credited on FINISHING construction, not on starting it.** A foundation is not a working
@@ -136,13 +136,13 @@ Tests: `tests/test_InfrastructureContribution.gd`, `tests/test_UnfinishedConstru
 and the first predates the other two:
 
 1. **Production runs slow.** `Production.tick` applies a reduced rate while strained.
-2. **Buildings lose their weapons.** `Commandable.can_use_weapons` is false for a
+2. **Buildings lose their weapons.** `Actor.can_use_weapons` is false for a
    structure whose commander is strained, so defences go quiet.
 3. **Buildings lose their abilities, active and passive alike.**
    `Abilities.is_operational` is false on one, which refuses `is_ready` and `spend` and is
    what turns off a positional passive like the Compound's Work Detail.
 
-`Commandable.is_unpowered()` is the single predicate all three read, and it is deliberately
+`Actor.is_unpowered()` is the single predicate all three read, and it is deliberately
 narrow:
 
 - **Only STRUCTURES go dark.** Strain is a fact about buildings drawing more than the

@@ -130,7 +130,7 @@ weapon's GROUND reach and refuses one authored beside it (`SpecRegistry._derive_
 TODO: a hard-coded derivation standing in for doc values derived from other doc values — see
 gdd/tasks.md T-096.
 
-**A piece fighting from its orbit is never steered by its target** (`Commandable.fights_from_orbit`).
+**A piece fighting from its orbit is never steered by its target** (`Actor.fights_from_orbit`).
 Its own position plays no part in its reach, so moving would close nothing, and every place a
 target could move it says so instead:
 
@@ -184,10 +184,12 @@ each piece, with declared exceptions.
 - **Area of effect is set against body size,** loosely, since how tightly a player bunches
   their units matters more than the radius.
 
-TODO: any Informant-granted stealth can put a HOVERING unit under stealth, so
-`detection_large` has to clear `vision_aerial_large`. If that puts it above every vision
-bucket a unit can carry, a dedicated detector trips `detection_within_vision` unless it
-declares an exception or a vision bucket is added for it.
+**A dedicated detector carries `detection_medium` or `detection_large`** (answered 2026-10-07).
+Informant-granted stealth can put a HOVERING unit under stealth, so `detection_large` (24) clears
+`vision_aerial_large` (22), and it stays within `vision_ground_large` (24), so a detector with
+structure vision does not trip `detection_within_vision`. The shipped detectors — the two
+towers (`cl_defense_antiLight`, `lb_defense`) and Scan's observer — all carry
+`detection_medium`.
 
 TODO: the aggro ceiling (`AGGRO_MAX_RADIUS`) sits below both artillery classes — and, since
 the radii were retuned, below `ground_range_long` and `air_range_long` too — so a target
@@ -235,7 +237,7 @@ cannot be tilted into a line.
 three authored blasts (1.5, 2.0, 3.0 at the time) went to the nearest bucket (`aoe_small`,
 `aoe_medium`, `aoe_medium`).
 
-TODO: blasts authored only in scenes (the kamikaze bomb among them) have no doc key, so they
+TODO: blasts authored only in scenes (the kamikaze blast among them) have no doc key, so they
 still carry their own sphere.
 
 TODO: `resources/generated/shapes/*.tres` are neither committed nor gitignored. Scenes load

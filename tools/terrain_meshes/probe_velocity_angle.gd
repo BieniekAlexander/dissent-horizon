@@ -74,7 +74,7 @@ func _run() -> void:
 
 
 func _measure(a_heading_deg: float) -> void:
-	var unit: Commandable = (load(_unit_path) as PackedScene).instantiate()
+	var unit: Actor = (load(_unit_path) as PackedScene).instantiate()
 	_map.add_entity(unit, Vector2.ZERO, _commander)
 	for _i: int in 4:
 		await get_tree().physics_frame
@@ -132,7 +132,7 @@ func _measure(a_heading_deg: float) -> void:
 	)
 
 
-func _agent(a_unit: Commandable) -> NavigationAgent3D:
+func _agent(a_unit: Actor) -> NavigationAgent3D:
 	for child: Node in a_unit.find_children("*", "NavigationAgent3D", true, false):
 		return child as NavigationAgent3D
 	return null

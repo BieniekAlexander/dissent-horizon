@@ -35,7 +35,7 @@ static func requires_position() -> bool:
 ## itself, tick to tick, exactly as an empty-handed truck still accepts the order and simply
 ## holds until a resident appears.
 static func meets_precondition(
-	actor: Commandable, message: CommandMessage
+	actor: Actor, message: CommandMessage
 ) -> PreconditionFailureCause:
 	if (
 		actor == null
@@ -55,7 +55,7 @@ static func meets_precondition(
 #region State updates
 ## Never ends on its own (see the class doc). Pushes the next errand when one applies;
 ## holds — returns self, unchanged — otherwise.
-func get_updated_state(a_actor: Commandable) -> Variant:
+func get_updated_state(a_actor: Actor) -> Variant:
 	if not is_instance_valid(message.target):
 		return self  # the Shelter itself is gone; hold until re-tasked or replaced
 	var shelter := message.target.get_node_or_null("Shelter") as Shelter
@@ -67,7 +67,7 @@ func get_updated_state(a_actor: Commandable) -> Variant:
 
 ## Never acts on its own account — everything this command does to the world happens
 ## through whatever errand it pushes.
-func can_act(_a_actor: Commandable) -> bool:
+func can_act(_a_actor: Actor) -> bool:
 	return false
 
 
@@ -76,7 +76,7 @@ func can_act(_a_actor: Commandable) -> bool:
 ## route. Waiting at the Shelter puts it on the spot for the next resident. Movement goes to
 ## the Shelter's approach cell (CommandReceiver._resolve_movement_target, as for any
 ## structure target), and stops once the truck is close by the same rule an errand would use.
-func should_move(a_actor: Commandable) -> bool:
+func should_move(a_actor: Actor) -> bool:
 	return (
 		is_instance_valid(message.target)
 		and not SU.unit_is_close_to_target(a_actor, message.target)
@@ -94,7 +94,7 @@ func ends_on_arrival() -> bool:
 #region Private helpers
 ## The next errand this truck should be pushed onto, or null to hold. See the table in
 ## gdd/systems/commands/unit-tasking.md §The Stock Truck's task.
-func _next_errand(a_actor: Commandable, a_shelter: Shelter) -> MoveCommand:
+func _next_errand(a_actor: Actor, a_shelter: Shelter) -> MoveCommand:
 	if not a_actor.garrison.can_garrison():
 		return _errand_to_deposit(a_actor)
 	return _errand_to_resident(a_actor, a_shelter)
@@ -103,8 +103,8 @@ func _next_errand(a_actor: Commandable, a_shelter: Shelter) -> MoveCommand:
 ## "no room aboard" -> the nearest Compound (of this actor's commander) that can take a
 ## deposit and has room; null to hold if none does. A plain Interact — the ordinary DEPOSIT
 ## order — walks there and deposits on its own; nothing bespoke is needed once it is pushed.
-func _errand_to_deposit(a_actor: Commandable) -> MoveCommand:
-	var compound: Commandable = _nearest_available_compound(a_actor)
+func _errand_to_deposit(a_actor: Actor) -> MoveCommand:
+	var compound: Actor = _nearest_available_compound(a_actor)
 	if compound == null:
 		return null
 	return Interact.new(CommandMessage.new(message.map, compound))
@@ -117,22 +117,22 @@ func _errand_to_deposit(a_actor: Commandable) -> MoveCommand:
 ## until its claim lapses (fills, dies, is re-tasked) and the next in line becomes earliest.
 ## A plain move IS the capture order (see gdd/systems/combat/garrison-and-transport.md
 ## §Capture is a crush) — nothing more needs pushing.
-func _errand_to_resident(a_actor: Commandable, a_shelter: Shelter) -> MoveCommand:
+func _errand_to_resident(a_actor: Actor, a_shelter: Shelter) -> MoveCommand:
 	if a_shelter.resident_count() == 0 or a_actor.commander == null:
 		return null
-	var contenders: Array[Commandable] = a_actor.commander.trucks_tasked_on(message.target).filter(
-		func(t: Commandable) -> bool: return t.garrison != null and t.garrison.can_garrison()
+	var contenders: Array[Actor] = a_actor.commander.trucks_tasked_on(message.target).filter(
+		func(t: Actor) -> bool: return t.garrison != null and t.garrison.can_garrison()
 	)
 	if contenders.is_empty() or contenders[0] != a_actor:
 		return null
-	var resident: Commandable = a_shelter.residents()[0]
+	var resident: Actor = a_shelter.residents()[0]
 	return MoveCommand.new(CommandMessage.new(message.map, resident))
 
 
 ## The nearest Compound belonging to `a_actor`'s commander that takes a deposit and has
 ## room, or null. Reuses Commander.get_deposit_structures, the same question the bot's
 ## opportunist asks, so a future holding structure is picked up here with no change either.
-func _nearest_available_compound(a_actor: Commandable) -> Commandable:
+func _nearest_available_compound(a_actor: Actor) -> Actor:
 	if a_actor.commander == null:
 		return null
 	return SU.nearest_of(a_actor.commander.get_deposit_structures(), a_actor)

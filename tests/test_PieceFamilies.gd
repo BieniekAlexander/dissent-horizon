@@ -236,7 +236,7 @@ func test_every_shipped_member_scene_agrees_with_its_template() -> void:
 			assert_eq(root.id, template.id, "%s: the scene carries its own id" % template.id)
 			assert_true(root.is_in_group(family), "%s: in group %s" % [template.id, family])
 			assert_eq(
-				(root.get_node("Structure") as Structure).dimensions,
+				(root.get_node("Fixture") as Fixture).dimensions,
 				template.footprint,
 				"%s: footprint" % template.id
 			)
@@ -244,7 +244,7 @@ func test_every_shipped_member_scene_agrees_with_its_template() -> void:
 				(root.get_node("Defense") as Defense).hp_max, template.hp, "%s: hp" % template.id
 			)
 			assert_eq(
-				(root as Commandable).infrastructure,
+				(root as Actor).infrastructure,
 				0,
 				"%s: a member scene grants no infrastructure by standing on the map" % template.id
 			)

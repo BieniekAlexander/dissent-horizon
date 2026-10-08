@@ -38,11 +38,11 @@ var commander_id: int = 1
 
 ## The unit this cast acts on, handed over by the activating Sanction. Null means no unit
 ## was named, and the event does nothing.
-var target_unit: Commandable = null
+var target_unit: Actor = null
 
 
 ## Extra per-subclass admission test, asked after scope. Default: anything.
-func _qualifies(_a_candidate: Commandable) -> bool:
+func _qualifies(_a_candidate: Actor) -> bool:
 	return true
 
 
@@ -56,9 +56,9 @@ func _admits_structures() -> bool:
 ## `_qualifies`. Untyped parameter, because the cursor and a queued order can both hand over
 ## something freed since it was named.
 func accepts(a_candidate: Variant, a_commander_id: int) -> bool:
-	if not is_instance_valid(a_candidate) or not (a_candidate is Commandable):
+	if not is_instance_valid(a_candidate) or not (a_candidate is Actor):
 		return false
-	var unit: Commandable = a_candidate
+	var unit: Actor = a_candidate
 	if unit.is_queued_for_deletion():
 		return false
 	var is_structure: bool = unit.is_in_group("structure")
@@ -70,5 +70,5 @@ func accepts(a_candidate: Variant, a_commander_id: int) -> bool:
 
 
 ## The named target, if it is still one this event accepts; otherwise null.
-func _find_target_unit(_a_manager: ScenarioTriggerManager) -> Commandable:
+func _find_target_unit(_a_manager: ScenarioTriggerManager) -> Actor:
 	return target_unit if accepts(target_unit, commander_id) else null
