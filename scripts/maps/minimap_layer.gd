@@ -2,7 +2,8 @@ class_name MinimapLayer
 extends RefCounted
 
 ## The minimap's map layer: one colour per terrain cell, saying what stands there — ground,
-## a pond shaded by richness with its rim, an extraction site, a shelter, a neutral building,
+## impassable ground (a ridge, a cliff, a blocked region), a pond shaded by richness with its rim
+## and its impassable deep water darkened, an extraction site, a shelter, a neutral building,
 ## and a tinted square over each start area. PURE: it takes plain data and returns colours,
 ## so the conventions are testable without a scene. Minimap gathers the data and applies fog.
 ##
@@ -22,6 +23,11 @@ const POND_RICH := Color(0.20, 0.40, 0.85)
 const POND_POOR := Color(0.55, 0.70, 0.90)
 ## Uncharged water, which no extractor can use.
 const PLAIN_WATER := Color(0.30, 0.35, 0.45)
+## Ground nothing can cross: steep or blocked cells.
+const IMPASSABLE := Color(0.42, 0.36, 0.30)
+## How much deep (impassable) water is darkened against its pond's shade, 0..1 — the pond keeps
+## its richness colour, and the part no unit can wade reads as a barrier within it.
+const DEEP_WATER_DARKEN: float = 0.35
 const FIXTURE_COLORS: Dictionary = {
 	Fixture.SITE: Color(0.95, 0.80, 0.15),
 	Fixture.SHELTER: Color(0.25, 0.65, 0.30),
@@ -53,20 +59,24 @@ static func pond_color(full_charge: int, cell_count: int) -> Color:
 ##
 ## `in_play` marks the cells inside the play area. `ponds` is [{cells: Array[Vector2i], color}],
 ## `fixtures` is [{cells: Array[Vector2i], kind: Fixture}], `starts` is
-## [{center: Vector2 (cell space), half: float, color}]. Later layers draw over earlier ones:
-## rims, then water, then fixtures, then start tints.
+## [{center: Vector2 (cell space), half: float, color}]. `impassable` marks the cells no unit
+## can cross — steep, blocked or deep water — or is empty for none. Later layers draw over
+## earlier ones: impassable ground, rims, then water, then fixtures, then start tints.
 static func build(
 	width: int,
 	depth: int,
 	in_play: PackedByteArray,
 	ponds: Array[Dictionary],
 	fixtures: Array[Dictionary],
-	starts: Array[Dictionary]
+	starts: Array[Dictionary],
+	impassable: PackedByteArray = PackedByteArray()
 ) -> PackedColorArray:
 	var layer := PackedColorArray()
 	layer.resize(width * depth)
+	var has_impassable: bool = impassable.size() == layer.size()
 	for i: int in layer.size():
-		layer[i] = GROUND if in_play[i] != 0 else OUT_OF_PLAY
+		var is_impassable: bool = has_impassable and impassable[i] != 0
+		layer[i] = (IMPASSABLE if is_impassable else GROUND) if in_play[i] != 0 else OUT_OF_PLAY
 	for pond: Dictionary in ponds:
 		for cell: Vector2i in pond.cells:
 			for dx: int in range(-1, 2):
@@ -74,7 +84,20 @@ static func build(
 					_paint(layer, width, depth, in_play, cell + Vector2i(dx, dz), RIM)
 	for pond: Dictionary in ponds:
 		for cell: Vector2i in pond.cells:
-			_paint(layer, width, depth, in_play, cell, pond.color)
+			var is_deep: bool = (
+				has_impassable
+				and _in_grid(width, depth, cell)
+				and impassable[cell.y * width + cell.x] != 0
+			)
+			var color: Color = pond.color
+			_paint(
+				layer,
+				width,
+				depth,
+				in_play,
+				cell,
+				color.darkened(DEEP_WATER_DARKEN) if is_deep else color
+			)
 	for fixture: Dictionary in fixtures:
 		for cell: Vector2i in fixture.cells:
 			_paint(layer, width, depth, in_play, cell, FIXTURE_COLORS[fixture.kind])
@@ -101,11 +124,15 @@ static func _paint(
 	cell: Vector2i,
 	color: Color
 ) -> void:
-	if cell.x < 0 or cell.y < 0 or cell.x >= width or cell.y >= depth:
+	if not _in_grid(width, depth, cell):
 		return
 	var i: int = cell.y * width + cell.x
 	if in_play[i] != 0:
 		layer[i] = color
+
+
+static func _in_grid(width: int, depth: int, cell: Vector2i) -> bool:
+	return cell.x >= 0 and cell.y >= 0 and cell.x < width and cell.y < depth
 
 
 static func _tint_square(

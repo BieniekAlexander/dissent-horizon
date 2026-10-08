@@ -383,9 +383,14 @@ func _rebuild_layer() -> void:
 	var depth: int = terrain.grid_depth()
 	var in_play := PackedByteArray()
 	in_play.resize(width * depth)
+	var impassable := PackedByteArray()
+	impassable.resize(width * depth)
+	var grid: TerrainGrid = _map.terrain_grid
 	for z: int in depth:
 		for x: int in width:
-			in_play[z * width + x] = 1 if terrain.is_cell_in_play(Vector2i(x, z)) else 0
+			var cell := Vector2i(x, z)
+			in_play[z * width + x] = 1 if terrain.is_cell_in_play(cell) else 0
+			impassable[z * width + x] = 1 if _is_impassable(grid, cell) else 0
 
 	var ponds: Array[Dictionary] = []
 	for body: WaterBody in _map.water_bodies:
@@ -421,7 +426,16 @@ func _rebuild_layer() -> void:
 			}
 		)
 
-	_layer = MinimapLayer.build(width, depth, in_play, ponds, fixtures, starts)
+	_layer = MinimapLayer.build(width, depth, in_play, ponds, fixtures, starts, impassable)
+
+
+## Whether no unit can cross `a_cell`: steep, blocked or deep water. A map with no terrain grid
+## has nothing impassable to show.
+static func _is_impassable(grid: TerrainGrid, cell: Vector2i) -> bool:
+	return (
+		grid != null
+		and (grid.is_too_steep(cell) or grid.is_blocked(cell) or grid.is_submerged(cell))
+	)
 
 
 ## The live neutral fixtures in `cell_map` (Map.structure_cell_map), each with its cells.
