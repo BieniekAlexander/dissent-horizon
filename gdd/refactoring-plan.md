@@ -109,23 +109,6 @@ appear in a note before the commit lands.
 
 ---
 
-## 6. Decompose the remaining long functions
-
-Per §1.2 this is a judgement call, not a lint failure. Ranked by how clearly they decompose:
-
-Remeasured 2026-09-28 (rough counts): `_resolve_command_class`, `_apply_accel_limits`,
-`_drive_movement`, `_process_commands`, `_sync_piece` and `is_enemy_of` are now short. Left:
-
-| Function | Lines | Shape |
-|---|---:|---|
-| `assign_command_to_units` | ~204 | grew back from 158; Train/Build interceptions could follow |
-| `_build_mesh` | ~74 | generation stages |
-| `_cap_xz_for_ascent` | ~68 | geometry stages; now in `aerial.gd` |
-
-**`assign_command_to_units` is the next target**, and the only one clearly over the line.
-
----
-
 ## 7. Fix `tests/test_Garrison.gd` — a silently skipped file
 
 **Problem.** It fails to parse (line 25), and a GUT file that does not parse is **skipped, not
@@ -152,5 +135,5 @@ the projectile-title gap, and mechanical, but the strings are **authorial** — 
 ## Suggested order
 
 **7** (small, reveals unknowns) → **1 step 2** (pure bug fix) → **3** (tooling, isolated
-commits) → **4** (mechanical, after formatting) → **5** (comment-only) → **1 rest** → **6**
+commits) → **4** (mechanical, after formatting) → **5** (comment-only) → **1 rest**
 → **2** (stop at step 2 for review) → **8**.

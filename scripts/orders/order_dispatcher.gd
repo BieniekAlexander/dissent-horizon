@@ -25,23 +25,9 @@ const BULK_PURCHASE_COUNT: int = 5
 ## on afterwards: for a COMMAND or PENDING_COMMAND the messages that want a waypoint indicator,
 ## for a DROP the pieces it landed; empty for anything else.
 static func apply(order: PlayerOrder, scenario: Scenario) -> Array:
-	var none: Array = []
 	match order.kind:
 		PlayerOrder.Kind.COMMAND:
-			var command_type: Script = order.command_type()
-			if command_type == null:
-				push_error("order names no command script: %s" % order.data.get("command"))
-				return none
-			var commander: Commander = _commander(scenario, order.commander_id)
-			var message: CommandMessage = PlayerOrder.message_from_dict(
-				order.data.get("message", {}), scenario.map, scenario, commander
-			)
-			var actors: Array = PlayerOrder.pieces_of(order.data.get("actors", []), scenario)
-			# Only the debug view lets a player order another commander's pieces, and that is no
-			# order a player can give (recording-and-replay.md §Debug mode).
-			if actors.any(func(a: Entity) -> bool: return a.commander_id != order.commander_id):
-				scenario.note_debug_change("ordered another commander's piece")
-			return apply_command(scenario.map, command_type, actors, message, order.data)
+			return _apply_command_order(order, scenario)
 		PlayerOrder.Kind.HOLD_FIRE:
 			hold_fire(
 				PlayerOrder.pieces_of(order.data.get("actors", []), scenario),
@@ -53,18 +39,9 @@ static func apply(order: PlayerOrder, scenario: Scenario) -> Array:
 			if commander != null:
 				commander.toggle_autocast(StringName(str(order.data.get("ability", ""))))
 		PlayerOrder.Kind.CANCEL_PURCHASE:
-			var owner: Commander = _commander(scenario, int(order.data.get("owner", -1)))
-			if owner != null and owner.production_queue != null:
-				for id: Variant in order.data.get("purchases", []):
-					var transaction: PurchaseTransaction = owner.production_queue.find_by_id(
-						int(id)
-					)
-					if transaction != null:
-						owner.production_queue.cancel(transaction)
+			_apply_cancel_purchase(order, scenario)
 		PlayerOrder.Kind.CANCEL_JOB:
-			var producer := (
-				scenario.piece_by_serial(int(order.data.get("producer", 0))) as Actor
-			)
+			var producer := scenario.piece_by_serial(int(order.data.get("producer", 0))) as Actor
 			if producer != null and producer.production != null:
 				producer.production.cancel(int(order.data.get("job", -1)))
 		PlayerOrder.Kind.RELEASE_OCCUPANT:
@@ -73,49 +50,93 @@ static func apply(order: PlayerOrder, scenario: Scenario) -> Array:
 				scenario.piece_by_serial(int(order.data.get("occupant", 0))) as Actor
 			)
 		PlayerOrder.Kind.UNLOCK_SANCTION:
-			var commander: Commander = _commander(scenario, order.commander_id)
-			if commander != null and commander.sanction_grid != null:
-				var entry: SanctionGrid.Entry = commander.sanction_grid.cell(
-					int(order.data.get("tier", -1)), int(order.data.get("column", -1))
-				)
-				if entry != null:
-					commander.sanction_grid.try_unlock(entry)
+			_apply_unlock_sanction(order, scenario)
 		PlayerOrder.Kind.DROP:
-			var commander: Commander = _commander(scenario, order.commander_id)
-			if commander != null and commander.deployment != null:
-				var aim: Array = order.data.get("aim", [0.0, 0.0])
-				return commander.deployment.drop(
-					int(order.data.get("drop", 0)), Vector2(float(aim[0]), float(aim[1]))
-				)
+			return _apply_drop(order, scenario)
 		PlayerOrder.Kind.PENDING_COMMAND:
-			var command_type: Script = order.command_type()
-			var owner: Commander = _commander(scenario, int(order.data.get("owner", -1)))
-			if command_type == null or owner == null or owner.production_queue == null:
-				return none
-			var message: CommandMessage = PlayerOrder.message_from_dict(
-				order.data.get("message", {}), scenario.map, scenario, owner
-			)
-			var purchases: Array = []
-			for id: Variant in order.data.get("purchases", []):
-				var transaction: PurchaseTransaction = owner.production_queue.find_by_id(int(id))
-				if transaction != null:
-					purchases.append(transaction)
-			return apply_pending_command(
-				scenario.map, command_type, purchases, message, bool(order.data.get("queue", false))
-			)
+			return _apply_pending_command_order(order, scenario)
 		PlayerOrder.Kind.DIALOG:
-			var manager: ScenarioTriggerManager = scenario.trigger_manager()
-			var dialog: ScenarioDialog = (
-				manager.dialog_by_serial(int(order.data.get("dialog", 0)))
-				if manager != null
-				else null
-			)
-			if dialog != null:
-				if bool(order.data.get("secondary", false)):
-					dialog.choose_secondary()
-				else:
-					dialog.acknowledge()
-	return none
+			_apply_dialog(order, scenario)
+	return []
+
+
+static func _apply_command_order(order: PlayerOrder, scenario: Scenario) -> Array:
+	var command_type: Script = order.command_type()
+	if command_type == null:
+		push_error("order names no command script: %s" % order.data.get("command"))
+		return []
+	var commander: Commander = _commander(scenario, order.commander_id)
+	var message: CommandMessage = PlayerOrder.message_from_dict(
+		order.data.get("message", {}), scenario.map, scenario, commander
+	)
+	var actors: Array = PlayerOrder.pieces_of(order.data.get("actors", []), scenario)
+	# Only the debug view lets a player order another commander's pieces, and that is no
+	# order a player can give (recording-and-replay.md §Debug mode).
+	if actors.any(func(a: Entity) -> bool: return a.commander_id != order.commander_id):
+		scenario.note_debug_change("ordered another commander's piece")
+	return apply_command(scenario.map, command_type, actors, message, order.data)
+
+
+static func _apply_cancel_purchase(order: PlayerOrder, scenario: Scenario) -> void:
+	var owner: Commander = _commander(scenario, int(order.data.get("owner", -1)))
+	if owner == null or owner.production_queue == null:
+		return
+	for id: Variant in order.data.get("purchases", []):
+		var transaction: PurchaseTransaction = owner.production_queue.find_by_id(int(id))
+		if transaction != null:
+			owner.production_queue.cancel(transaction)
+
+
+static func _apply_unlock_sanction(order: PlayerOrder, scenario: Scenario) -> void:
+	var commander: Commander = _commander(scenario, order.commander_id)
+	if commander == null or commander.sanction_grid == null:
+		return
+	var entry: SanctionGrid.Entry = commander.sanction_grid.cell(
+		int(order.data.get("tier", -1)), int(order.data.get("column", -1))
+	)
+	if entry != null:
+		commander.sanction_grid.try_unlock(entry)
+
+
+static func _apply_drop(order: PlayerOrder, scenario: Scenario) -> Array:
+	var commander: Commander = _commander(scenario, order.commander_id)
+	if commander == null or commander.deployment == null:
+		return []
+	var aim: Array = order.data.get("aim", [0.0, 0.0])
+	return commander.deployment.drop(
+		int(order.data.get("drop", 0)), Vector2(float(aim[0]), float(aim[1]))
+	)
+
+
+static func _apply_pending_command_order(order: PlayerOrder, scenario: Scenario) -> Array:
+	var command_type: Script = order.command_type()
+	var owner: Commander = _commander(scenario, int(order.data.get("owner", -1)))
+	if command_type == null or owner == null or owner.production_queue == null:
+		return []
+	var message: CommandMessage = PlayerOrder.message_from_dict(
+		order.data.get("message", {}), scenario.map, scenario, owner
+	)
+	var purchases: Array = []
+	for id: Variant in order.data.get("purchases", []):
+		var transaction: PurchaseTransaction = owner.production_queue.find_by_id(int(id))
+		if transaction != null:
+			purchases.append(transaction)
+	return apply_pending_command(
+		scenario.map, command_type, purchases, message, bool(order.data.get("queue", false))
+	)
+
+
+static func _apply_dialog(order: PlayerOrder, scenario: Scenario) -> void:
+	var manager: ScenarioTriggerManager = scenario.trigger_manager()
+	var dialog: ScenarioDialog = (
+		manager.dialog_by_serial(int(order.data.get("dialog", 0))) if manager != null else null
+	)
+	if dialog == null:
+		return
+	if bool(order.data.get("secondary", false)):
+		dialog.choose_secondary()
+	else:
+		dialog.acknowledge()
 
 
 ## Let `a_occupant` out of `a_host`'s garrison, when it is one of the host's own side
@@ -262,15 +283,9 @@ static func apply_command(
 		else fanned_destinations(map, command_type, capable, message)
 	)
 
-	# For a Defend order, ONE region collider — a hard copy of the group's widest aggro shape,
-	# pinned at the post — that every defender scans against. A copy, because a borrowed live
-	# shape would drag the region around with its owner. Leased to the issued messages, and
-	# freed when the last is released (lease_region_shape).
-	var defend_shape: CollisionShape3D = null
-	if command_type == Defend:
-		var center: Vector3 = message.world_position
-		center.y = map.terrain_height_at(message.xz_position)
-		defend_shape = make_defend_region_shape(map, largest_aggro_shape(capable), center)
+	var defend_shape: CollisionShape3D = (
+		_defend_region(map, capable, message) if command_type == Defend else null
+	)
 
 	# Identity token for THIS order, and nothing else — none of its fields are ever read. Every
 	# per-unit snapshot points at it so MoveCommand's destination-swap check can recognise true
@@ -283,6 +298,7 @@ static func apply_command(
 		snapshot.origin = batch_origin
 		if defend_shape != null:
 			snapshot.aggro_shape = defend_shape
+			defend_messages.append(snapshot)
 		if command_type == Attack:
 			snapshot.persist = true
 		if unit_to_destination.has(c):
@@ -290,22 +306,11 @@ static func apply_command(
 		snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
 		if command_type.requires_position():
 			indicated.append(snapshot)
-		var new_cmd: MoveCommand = (
-			Patrol.for_actor(c, snapshot) if command_type == Patrol else command_type.new(snapshot)
-		)
-		# Sequencing is a fact about WHEN this order was handed out, so it is stamped here,
-		# once per recipient (Commander.next_task_sequence).
-		if new_cmd is TaskShelter and c.commander != null:
-			(new_cmd as TaskShelter).sequence = c.commander.next_task_sequence()
-		# An INTERRUPT keeps the actor's queue, taking over now and pushing whatever was
-		# running to the front (MoveCommand.is_interrupt) — unless the order is additive.
-		c.update_commands(new_cmd, add_to_queue, interrupts)
+		_hand_over(c, command_type, snapshot, add_to_queue, interrupts)
 		# AFTER the handover: update_commands drops the outgoing command, whose PREDELETE
 		# resets speed_cap, so capping first would be wiped microseconds later.
 		if apply_speed_cap and c.movement != null:
 			c.movement.speed_cap = slowest
-		if defend_shape != null:
-			defend_messages.append(snapshot)
 	if defend_shape != null:
 		lease_region_shape(defend_shape, defend_messages)
 
@@ -316,6 +321,36 @@ static func apply_command(
 	if command_type.bystanders_move() or bool(modifiers.get("broaden", false)):
 		order_bystanders_to_move(map, actors, capable, message, add_to_queue)
 	return indicated
+
+
+## For a Defend order, ONE region collider — a hard copy of the group's widest aggro shape,
+## pinned at the post — that every defender scans against. A copy, because a borrowed live shape
+## would drag the region around with its owner. Leased to the issued messages, and freed when
+## the last is released (lease_region_shape).
+static func _defend_region(map: Map, capable: Array, message: CommandMessage) -> CollisionShape3D:
+	var center: Vector3 = message.world_position
+	center.y = map.terrain_height_at(message.xz_position)
+	return make_defend_region_shape(map, largest_aggro_shape(capable), center)
+
+
+## Give `actor` its own command of `command_type` on `snapshot`.
+static func _hand_over(
+	actor: Actor,
+	command_type: Script,
+	snapshot: CommandMessage,
+	add_to_queue: bool,
+	interrupts: bool
+) -> void:
+	var new_cmd: MoveCommand = (
+		Patrol.for_actor(actor, snapshot) if command_type == Patrol else command_type.new(snapshot)
+	)
+	# Sequencing is a fact about WHEN this order was handed out, so it is stamped here, once
+	# per recipient (Commander.next_task_sequence).
+	if new_cmd is TaskShelter and actor.commander != null:
+		(new_cmd as TaskShelter).sequence = actor.commander.next_task_sequence()
+	# An INTERRUPT keeps the actor's queue, taking over now and pushing whatever was running to
+	# the front (MoveCommand.is_interrupt) — unless the order is additive.
+	actor.update_commands(new_cmd, add_to_queue, interrupts)
 
 
 ## Submit a training purchase for `a_capable`'s owner. BROADEN BUYS A BATCH; re-checking the

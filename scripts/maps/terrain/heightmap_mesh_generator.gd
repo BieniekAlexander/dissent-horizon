@@ -151,20 +151,9 @@ func _apply_to_instance() -> void:
 	_sync_shader_params()
 
 
-## One quad per cell, with its own four vertices — no sharing, so tile boundaries are hard
-## and every cell carries its own per-vertex data. What the three cell fates are (gap, black
-## obstacle, ordinary surface) and what the four vertex channels mean:
-## gdd/systems/terrain-and-navigation/tile-types.md §How a cell reaches the shader.
-func _build_mesh() -> ArrayMesh:
-	var w: int = shape.map_width
-	var d: int = shape.map_depth
-	var hw: float = (w - 1) * 0.5
-	var hd: float = (d - 1) * 0.5
-	var gw: int = w - 1
-	var gd: int = d - 1
-	var data: PackedFloat32Array = shape.map_data
-	var td: TerrainData = _terrain_data()
-
+## The terrain mesh's per-vertex channels, filled one cell quad at a time. An object because
+## packed arrays are copied when passed, so a helper appending to them must own them.
+class CellQuads:
 	var verts := PackedVector3Array()
 	var uvs := PackedVector2Array()
 	var uv2s := PackedVector2Array()
@@ -172,8 +161,67 @@ func _build_mesh() -> ArrayMesh:
 	var colors := PackedColorArray()
 	var indices := PackedInt32Array()
 
-	for z in gd:
-		for x in gw:
+	## One cell's quad: its corners in winding order (-x-z, +x-z, +x+z, -x+z), its corners in
+	## whole-map UV2 space, and its colour.
+	func add(
+		a_c00: Vector3,
+		a_c10: Vector3,
+		a_c11: Vector3,
+		a_c01: Vector3,
+		a_uv2_min: Vector2,
+		a_uv2_max: Vector2,
+		a_color: Color
+	) -> void:
+		var base: int = verts.size()
+		verts.append_array([a_c00, a_c10, a_c11, a_c01])
+		# Per-cell UVs: each cell spans the full 0..1 texture space.
+		uvs.append_array(
+			[Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(1.0, 1.0), Vector2(0.0, 1.0)]
+		)
+		# Global UVs preserved in UV2 for whole-map overlays.
+		uv2s.append_array(
+			[
+				a_uv2_min,
+				Vector2(a_uv2_max.x, a_uv2_min.y),
+				a_uv2_max,
+				Vector2(a_uv2_min.x, a_uv2_max.y)
+			]
+		)
+		colors.append_array([a_color, a_color, a_color, a_color])
+		# (+z edge) x (+x edge) is the UPWARD normal; the reverse order points into the
+		# ground and leaves every lit material black under a sun.
+		var normal: Vector3 = (a_c01 - a_c00).cross(a_c10 - a_c00).normalized()
+		normals.append_array([normal, normal, normal, normal])
+		indices.append_array([base, base + 1, base + 2, base, base + 2, base + 3])
+
+	func to_mesh() -> ArrayMesh:
+		var arrays: Array = []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = verts
+		arrays[Mesh.ARRAY_NORMAL] = normals
+		arrays[Mesh.ARRAY_TEX_UV] = uvs
+		arrays[Mesh.ARRAY_TEX_UV2] = uv2s
+		arrays[Mesh.ARRAY_COLOR] = colors
+		arrays[Mesh.ARRAY_INDEX] = indices
+		var result := ArrayMesh.new()
+		result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		return result
+
+
+## One quad per cell, with its own four vertices — no sharing, so tile boundaries are hard
+## and every cell carries its own per-vertex data. What the three cell fates are (gap, black
+## obstacle, ordinary surface) and what the four vertex channels mean:
+## gdd/systems/terrain-and-navigation/tile-types.md §How a cell reaches the shader.
+func _build_mesh() -> ArrayMesh:
+	var w: int = shape.map_width
+	var hw: float = (w - 1) * 0.5
+	var hd: float = (shape.map_depth - 1) * 0.5
+	var grid_size := Vector2(w - 1, shape.map_depth - 1)
+	var data: PackedFloat32Array = shape.map_data
+	var td: TerrainData = _terrain_data()
+	var quads := CellQuads.new()
+	for z: int in int(grid_size.y):
+		for x: int in int(grid_size.x):
 			var cell := Vector2i(x, z)
 			# Out-of-play cells (void included) stay gaps, so the play-area edge reads against
 			# the background rather than being framed in black.
@@ -183,55 +231,16 @@ func _build_mesh() -> ArrayMesh:
 			var h10: float = data[z * w + x + 1]
 			var h11: float = data[(z + 1) * w + x + 1]
 			var h01: float = data[(z + 1) * w + x]
-			var col: Color = _cell_color(td, cell, _corner_spread(h00, h10, h11, h01))
-			var base: int = verts.size()
-
-			verts.append(Vector3(x - hw, h00, z - hd))
-			verts.append(Vector3(x + 1 - hw, h10, z - hd))
-			verts.append(Vector3(x + 1 - hw, h11, z + 1 - hd))
-			verts.append(Vector3(x - hw, h01, z + 1 - hd))
-
-			# Per-cell UVs: each cell spans the full 0..1 texture space.
-			uvs.append(Vector2(0.0, 0.0))
-			uvs.append(Vector2(1.0, 0.0))
-			uvs.append(Vector2(1.0, 1.0))
-			uvs.append(Vector2(0.0, 1.0))
-
-			# Global UVs preserved in UV2 for whole-map overlays.
-			uv2s.append(Vector2(float(x) / gw, float(z) / gd))
-			uv2s.append(Vector2(float(x + 1) / gw, float(z) / gd))
-			uv2s.append(Vector2(float(x + 1) / gw, float(z + 1) / gd))
-			uv2s.append(Vector2(float(x) / gw, float(z + 1) / gd))
-
-			colors.append(col)
-			colors.append(col)
-			colors.append(col)
-			colors.append(col)
-
-			# (+z edge) x (+x edge) is the UPWARD normal; the reverse order points into the
-			# ground and leaves every lit material black under a sun.
-			var fn: Vector3 = (
-				(verts[base + 3] - verts[base]).cross(verts[base + 1] - verts[base]).normalized()
+			quads.add(
+				Vector3(x - hw, h00, z - hd),
+				Vector3(x + 1 - hw, h10, z - hd),
+				Vector3(x + 1 - hw, h11, z + 1 - hd),
+				Vector3(x - hw, h01, z + 1 - hd),
+				Vector2(cell) / grid_size,
+				Vector2(cell + Vector2i.ONE) / grid_size,
+				_cell_color(td, cell, _corner_spread(h00, h10, h11, h01))
 			)
-			normals.append(fn)
-			normals.append(fn)
-			normals.append(fn)
-			normals.append(fn)
-
-			indices.append_array([base, base + 1, base + 2, base, base + 2, base + 3])
-
-	var arrays: Array = []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = verts
-	arrays[Mesh.ARRAY_NORMAL] = normals
-	arrays[Mesh.ARRAY_TEX_UV] = uvs
-	arrays[Mesh.ARRAY_TEX_UV2] = uv2s
-	arrays[Mesh.ARRAY_COLOR] = colors
-	arrays[Mesh.ARRAY_INDEX] = indices
-
-	var result := ArrayMesh.new()
-	result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	return result
+	return quads.to_mesh()
 
 
 ## The height difference across a cell's four corners — what MAX_SLOPE_DIFF is compared
