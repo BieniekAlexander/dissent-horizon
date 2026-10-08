@@ -9,6 +9,11 @@ func requires_ammo() -> bool:
 	return true
 
 
+## An order to fight in an area is an order to shoot, so it lifts hold fire as an attack does.
+func releases_hold_fire() -> bool:
+	return true
+
+
 ## A Defend order considers EVERY enemy structure, unarmed ones included, on top of what
 ## other orders pick up (which stop at NON_COMBAT_UNITS). Set here rather than by whoever
 ## builds the message, because four places build Defend messages and a floor set at each

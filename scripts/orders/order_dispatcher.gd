@@ -43,7 +43,11 @@ static func apply(order: PlayerOrder, scenario: Scenario) -> Array:
 				scenario.note_debug_change("ordered another commander's piece")
 			return apply_command(scenario.map, command_type, actors, message, order.data)
 		PlayerOrder.Kind.HOLD_FIRE:
-			toggle_hold_fire(PlayerOrder.pieces_of(order.data.get("actors", []), scenario))
+			hold_fire(
+				PlayerOrder.pieces_of(order.data.get("actors", []), scenario),
+				bool(order.data.get("queue", false)),
+				scenario.map
+			)
 		PlayerOrder.Kind.AUTOCAST:
 			var commander: Commander = _commander(scenario, order.commander_id)
 			if commander != null:
@@ -150,14 +154,26 @@ static func _commander(scenario: Scenario, commander_id: int) -> Commander:
 ## Toggle hold fire across `a_actors` as one: they all hold unless every one already does.
 ## Only an actor whose card offers hold fire is touched.
 static func toggle_hold_fire(actors: Array) -> void:
+	hold_fire(actors, false, null)
+
+
+## The hold-fire toggle: at once, or — with the additive modifier (`a_is_queued`) — as a step at
+## the end of each actor's queue that sets the same value when the queue reaches it. The value is
+## what the toggle means NOW, as the button showed it when pressed.
+static func hold_fire(actors: Array, is_queued: bool, map: Map) -> void:
 	var is_holding: bool = not CommandButtonState.all_hold_fire(actors)
 	for node: Variant in actors:
-		var actor := node as Commandable
+		var actor := node as Commandable if is_instance_valid(node) else null
 		if (
-			actor != null
-			and is_instance_valid(actor)
-			and CommandContextParser.commands_for(actor).has(CommandContextParser.HOLD_FIRE_COMMAND)
+			actor == null
+			or not CommandContextParser.commands_for(actor).has(
+				CommandContextParser.HOLD_FIRE_COMMAND
+			)
 		):
+			continue
+		if is_queued:
+			actor.update_commands(SetHoldFire.new(CommandMessage.new(map), is_holding), true)
+		else:
 			actor.is_holding_fire = is_holding
 
 

@@ -393,7 +393,8 @@ func orbit_anchor(_a_actor: Commandable) -> Variant:
 
 
 ## Whether receiving this order lifts the actor's hold fire (Commandable.is_holding_fire).
-## True only for the orders whose point is to shoot at something the player chose.
+## True only for the orders whose point is to shoot: Attack, Attack-move, Force Fire
+## (FocusFire) and Defend.
 func releases_hold_fire() -> bool:
 	return false
 

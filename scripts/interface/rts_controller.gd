@@ -2842,7 +2842,7 @@ func process_command(a_command_name: String) -> void:
 	if a_command_name == CANCEL_COMMAND:
 		disarm_command()
 		return
-	# Not an order: it toggles a flag and leaves every queue as it was, additive or not.
+	# A flag, not a command: plainly it flips now; additive, it waits its turn (SetHoldFire).
 	if a_command_name == CommandContextParser.HOLD_FIRE_COMMAND:
 		_submit_hold_fire()
 		return
@@ -2904,11 +2904,11 @@ func _toggle_autocast(a_ability_id: StringName, a_commander: Commander) -> void:
 
 
 ## Hand the hold-fire toggle over the selection to the simulation, or apply it at once with no
-## stream (a bare controller in a test). Not a command: it flips a flag and leaves every queue as
-## it was.
+## stream (a bare controller in a test). Plainly it flips a flag and leaves every queue as it was;
+## with the additive modifier it waits its turn in each queue (SetHoldFire).
 func _submit_hold_fire() -> void:
 	if _order_stream() == null:
-		OrderDispatcher.toggle_hold_fire(selection)
+		OrderDispatcher.hold_fire(selection, additive_modifier_held(), map)
 		upate_hud_buttons()
 		return
 	var commander: Commander = _commander()
@@ -2916,7 +2916,7 @@ func _submit_hold_fire() -> void:
 		PlayerOrder.new(
 			PlayerOrder.Kind.HOLD_FIRE,
 			commander.id if commander != null else 0,
-			{"actors": PlayerOrder.serials_of(selection)}
+			{"actors": PlayerOrder.serials_of(selection), "queue": additive_modifier_held()}
 		)
 	)
 

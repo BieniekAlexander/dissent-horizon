@@ -13,7 +13,8 @@ extends RefCounted
 ## What kind of order this is; `data` holds that kind's fields.
 ##   COMMAND   — a command at a selection: {command, actors, queue, narrow, broaden, standing,
 ##               line, message} (see command()).
-##   HOLD_FIRE — the hold-fire toggle over a set of actors: {actors}.
+##   HOLD_FIRE — the hold-fire toggle over a set of actors: {actors, queue} (queue: the additive
+##               modifier was held, so it waits its turn in each actor's queue).
 ##   AUTOCAST  — a commander-wide autocast toggle: {ability}.
 ##   CANCEL_PURCHASE — cancel queued purchases: {owner, purchases} (PurchaseTransaction ids).
 ##   CANCEL_JOB — cancel a producer's job: {producer, job} (the job's index in its queue).

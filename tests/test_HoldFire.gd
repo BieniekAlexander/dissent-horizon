@@ -7,10 +7,10 @@ extends GutTest
 ##
 ## What is pinned: who is offered it (anything with a weapon), how the button toggles it (none
 ## or some holding sets it for all; all holding releases all), that pressing it leaves the queue
-## alone, what releases it (Attack and Attack-move, queued or not), that it suppresses the
-## piece's own target acquisition, that gaining stealth sets it, that the button is lit —
-## and still pressable — once the whole armed selection is holding, and that an unarmed piece
-## holding it draws nothing.
+## alone unless the additive modifier queues it, what releases it (Attack, Attack-move, Force
+## Fire and Defend, queued or not), that it suppresses the piece's own target acquisition, that
+## gaining stealth sets it, that the button is lit — and still pressable — once the whole armed
+## selection is holding, and that an unarmed piece holding it draws nothing.
 
 
 ## A Commandable with the children Entity/Commandable resolve with a hard `$` — the stub shape
@@ -120,6 +120,21 @@ func test_holding_leaves_the_queue_as_it_was() -> void:
 	assert_true(piece.current_command() is Attack, "a pseudo-command touches no queue")
 
 
+## With the additive modifier the toggle waits its turn: behind what the piece is doing, it
+## sets the flag only when its queue reaches it (commitment-and-movement.md §Action timing).
+func test_a_queued_hold_fire_waits_behind_the_current_order() -> void:
+	var piece: Commandable = _piece()
+	piece.update_commands(MoveCommand.new(CommandMessage.new(null, null, null, Vector3.ONE)))
+	OrderDispatcher.hold_fire([piece], true, null)
+	assert_false(piece.is_holding_fire, "not yet: the move comes first")
+	var queued: Array = piece.command_receiver.get_command_chain().filter(
+		func(c: MoveCommand) -> bool: return c is SetHoldFire
+	)
+	assert_eq(queued.size(), 1, "it is in the queue")
+	queued[0].fulfill_action(piece)
+	assert_true(piece.is_holding_fire, "and holds when it is reached")
+
+
 func test_a_held_piece_acquires_nothing_on_its_own() -> void:
 	var piece: Commandable = _piece()
 	piece.is_holding_fire = true
@@ -146,6 +161,14 @@ func test_an_attack_move_releases_the_hold() -> void:
 	piece.is_holding_fire = true
 	piece.update_commands(AttackMove.new(CommandMessage.new(null, null, null, Vector3.ONE)))
 	assert_false(piece.is_holding_fire)
+
+
+func test_force_fire_and_defend_release_the_hold() -> void:
+	for command_type: Script in [FocusFire, Defend]:
+		var piece: Commandable = _piece()
+		piece.is_holding_fire = true
+		piece.update_commands(command_type.new(CommandMessage.new(null, null, null, Vector3.ONE)))
+		assert_false(piece.is_holding_fire, "%s releases it" % command_type.get_global_name())
 
 
 func test_a_plain_move_keeps_the_hold() -> void:

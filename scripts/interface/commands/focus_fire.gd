@@ -100,6 +100,11 @@ func requires_ammo() -> bool:
 	return true
 
 
+## An order to shoot at a place lifts hold fire as one aimed at a piece does.
+func releases_hold_fire() -> bool:
+	return true
+
+
 func get_updated_state(a_actor: Commandable) -> Variant:
 	var weapon: Weapon = ground_weapon_of(a_actor)
 	if weapon == null:

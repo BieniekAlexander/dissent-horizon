@@ -256,11 +256,12 @@ TODO: whether an action is interruptible could be a flag on some shared descript
 action is fulfilled; no such description exists yet.
 
 **Hold fire** is a flag rather than an order (`Commandable.is_holding_fire`), toggled from the
-command card: it leaves the queue alone, and an Attack or Attack-move lifts it. Stealth units are its main customer — a
+command card: it leaves the queue alone, and an Attack, Attack-move, Force Fire or Defend lifts
+it. Stealth units are its main customer — a
 piece holds fire the moment it gains stealth. Once startups exist it is also their interrupt.
 
-PLANNED (`gdd/tasks.md` T-011): a hold fire issued with the additive modifier is queued, and
-takes effect when the queue reaches it. Today it does exactly what issuing it plainly does.
+A hold fire issued with the additive modifier is queued, and takes effect when the queue
+reaches it (`SetHoldFire`, setting what the toggle meant when it was pressed).
 
 ### Commitment, per action
 
