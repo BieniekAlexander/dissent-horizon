@@ -2,7 +2,7 @@
 
 TODO: **this proposal is written against APIs that no longer exist** and was not updated
 when they went. `Entity.Type` was replaced by StringName piece ids (`Entity.id`),
-`StructureSpec.dimensions` is now `Structure.dimensions: Vector2i`, and the snippets below
+`StructureSpec.dimensions` is now `Fixture.dimensions: Vector2i`, and the snippets below
 still name `Mine.valid_placement` — that class is now `Extractor`, and the check lives on
 `EnergyExtractor`. Rewrite the proposal against the current model before building any of it;
 the *design* (per-type footprint offsets rather than a rectangle) is unaffected.

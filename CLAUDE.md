@@ -259,7 +259,7 @@ Append a question callout under the item. Don't ask me in chat.
 > 2. Silhouette the host, tinted while it holds occupants.
 > 3. Expose occupant meshes to the silhouette pass — needs a new `Garrison` accessor.
 >
-> **Leaning:** 1 — smallest change, and consistent with the task's "only entities without a `Structure` component" note.
+> **Leaning:** 1 — smallest change, and consistent with the task's "only entities without a `Fixture` component" note.
 >
 > **Answer:**
 
@@ -530,7 +530,7 @@ Use `entity.is_in_group("unit")` / `is_in_group("fixture")` / `is_in_group("stru
 
 ### Piece ids (`Entity.id` — the old `Entity.Type` enum is gone)
 
-Every game piece is identified by a snake_case StringName `Entity.id` (e.g. `&"warlord"`), which is the id of its spec doc in `gdd/` (see §Spec importer). Hand-written code references ids through the GENERATED `EntityIds` constants (`EntityIds.WARLORD`) — never raw strings. An empty id marks an abstract inheritance-base scene (`Entity.is_abstract()`). Unit-vs-structure is group membership / the `Structure` component, never the id.
+Every game piece is identified by a snake_case StringName `Entity.id` (e.g. `&"warlord"`), which is the id of its spec doc in `gdd/` (see §Spec importer). Hand-written code references ids through the GENERATED `EntityIds` constants (`EntityIds.WARLORD`) — never raw strings. An empty id marks an abstract inheritance-base scene (`Entity.is_abstract()`). Unit-vs-structure is group membership / the `Fixture` component, never the id.
 - Commander id `0` = neutral/world-owned (unchanged)
 
 ### Component attachment pattern
@@ -840,7 +840,7 @@ entity.is_in_group("unit")        # unit-flavored (not "is Unit")
 
 1. Player selects Build, picks tool → `command_message.tool` set
 2. `RTSController._resolve_command_class()` returns `Build`
-3. `Build.meets_precondition()` checks: resources, tech prereqs, `Structure.valid_placement(msg, dims)` (all cells in the `Structure.dimensions` footprint are in-bounds and unoccupied)
+3. `Build.meets_precondition()` checks: resources, tech prereqs, `Fixture.valid_placement(msg, dims)` (all cells in the `Fixture.dimensions` footprint are in-bounds and unoccupied)
 4. On right-click: `Build.fulfill_action()` → `map.add_entity()` → `map.add_structure()` → `TerrainGrid.place_building()` → `cells_changed` → `NavManager` rebuilds navmesh
 
 ### Terrain height snapping for units

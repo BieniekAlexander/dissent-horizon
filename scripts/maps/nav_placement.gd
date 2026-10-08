@@ -3,7 +3,7 @@ extends RefCounted
 
 ## WHERE A BUILDING MAY GO WITHOUT BREAKING THE MAP FOR THE UNITS ON IT.
 ##
-## Three rules, all about navigation rather than about geometry (`Structure.valid_placement`
+## Three rules, all about navigation rather than about geometry (`Fixture.valid_placement`
 ## already owns in-bounds / unoccupied / flat):
 ##
 ##   1. **A placement may not split the walkable surface.** A footprint that seals a corridor

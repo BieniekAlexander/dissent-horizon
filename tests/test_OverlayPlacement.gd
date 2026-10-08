@@ -273,7 +273,7 @@ func test_safehouse_aimed_beside_a_building_is_not_a_conversion_and_cannot_be_pl
 		"a safehouse aimed off the building is not treated as a conversion"
 	)
 	assert_false(
-		Structure.valid_placement(message, DIMS),
+		Fixture.valid_placement(message, DIMS),
 		"and it cannot be placed either, since the building holds those cells"
 	)
 #endregion

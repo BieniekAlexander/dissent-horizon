@@ -70,7 +70,7 @@ const SCRIPT_GARRISON: String = "res://scripts/entities/components/garrison.gd"
 const SCRIPT_EFFECT_APPLICATOR: String = "res://scripts/entities/effects/effect_applicator.gd"
 const SCRIPT_FACTION: String = "res://scripts/interface/commander/faction.gd"
 const SCRIPT_STATUS_EFFECT: String = "res://scripts/entities/effects/status_effect.gd"
-const SCRIPT_STRUCTURE: String = "res://scripts/entities/components/structure.gd"
+const SCRIPT_FIXTURE: String = "res://scripts/entities/components/fixture.gd"
 ## IDENTITY components — behaviour one piece (or a named handful) has, like the Shelter.
 ## Doc key -> [node name, script]. The doc declares only PRESENCE; the component's tuning is
 ## scene-authored, because a mechanic this specific does not earn a doc schema until it is
@@ -753,15 +753,15 @@ func _sync_docking(a_ctx: Ctx, a_spec: Dictionary) -> void:
 ## an override section of the base's Structure is left alone, since the node is inherited.
 func _sync_footprint(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	if not a_spec.has("footprint"):
-		if a_ctx.doc.find_node("Structure").get("attrs", {}).has("type"):
-			_remove_component(a_ctx, "Structure")
+		if a_ctx.doc.find_node("Fixture").get("attrs", {}).has("type"):
+			_remove_component(a_ctx, "Fixture")
 		return
-	_ensure_component(a_ctx, "Structure", "Node", SCRIPT_STRUCTURE)
-	var structure: Node = _live_node(a_ctx, "Structure")
+	_ensure_component(a_ctx, "Fixture", "Node", SCRIPT_FIXTURE)
+	var structure: Node = _live_node(a_ctx, "Fixture")
 	var target: Vector2i = Vector2i(int(a_spec["footprint"][0]), int(a_spec["footprint"][1]))
 	_set_prop(
 		a_ctx,
-		"Structure",
+		"Fixture",
 		"dimensions",
 		structure.dimensions if structure != null else Vector2i.ZERO,
 		target,
@@ -2405,7 +2405,7 @@ func _sync_piece_visuals(a_ctx: Ctx, a_spec: Dictionary) -> void:
 	var visual_class: int = VisualDefaults.classify_piece(
 		_piece_frame_type(a_ctx, a_spec),
 		_piece_movement_mode(a_ctx, a_spec),
-		a_ctx.inst.has_node("Structure")
+		a_ctx.inst.has_node("Fixture")
 	)
 	var footprint: Vector2i = _piece_footprint(a_ctx, a_spec)
 	var measurement: Dictionary = VisualMeasure.measure(a_ctx.inst)
@@ -2429,7 +2429,7 @@ func _sync_piece_visuals(a_ctx: Ctx, a_spec: Dictionary) -> void:
 		visual_class,
 		measurement,
 		footprint,
-		a_spec.has("footprint") or a_ctx.inst.has_node("Structure")
+		a_spec.has("footprint") or a_ctx.inst.has_node("Fixture")
 	)
 	_bake_hp_bar(a_ctx, measurement)
 	_keep_hurtbox_editable(a_ctx)
@@ -2718,7 +2718,7 @@ func _piece_movement_mode(a_ctx: Ctx, a_spec: Dictionary) -> int:
 func _piece_footprint(a_ctx: Ctx, a_spec: Dictionary) -> Vector2i:
 	if a_spec.has("footprint"):
 		return Vector2i(int(a_spec["footprint"][0]), int(a_spec["footprint"][1]))
-	var structure: Node = a_ctx.inst.get_node_or_null("Structure")
+	var structure: Node = a_ctx.inst.get_node_or_null("Fixture")
 	return structure.dimensions if structure != null else Vector2i.ONE
 
 

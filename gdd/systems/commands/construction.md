@@ -260,7 +260,7 @@ With a Build tool armed, `command_issue` is a gesture rather than a click
 1. **Press** sets the structure DOWN — the placement point is frozen where the press landed, so the
    cursor stops moving the structure — and orders nothing.
 2. **Drag** turns it. The cursor's direction from the press point picks the nearest of the four axes
-   (`Structure.quarter_turns_facing`), and the ghost, the placement grid and the order all follow. A
+   (`Fixture.quarter_turns_facing`), and the ghost, the placement grid and the order all follow. A
    drag shorter than `RTSController.PLACEMENT_ROTATE_DEADZONE` (one cell) changes nothing, so a plain
    click keeps whatever facing the keys gave it. The `rotate_left` / `rotate_right` keys (`[` and
    `]`) turn it a quarter step at any time, held or not.
@@ -275,7 +275,7 @@ With a Build tool armed, `command_issue` is a gesture rather than a click
 **Front is +Z.** A piece's model faces +Z at rotation 0 — the direction `Movement.get_facing` already
 treats as forward — and a quarter turn is 90° counter-clockwise seen from above, so count 1 faces +X,
 2 faces -Z and 3 faces -X. Art is authored to that convention; the whole piece (model, selection shape,
-hull) turns because they are children of the root. The count lives on `Structure.quarter_turns`, travels
+hull) turns because they are children of the root. The count lives on `Fixture.quarter_turns`, travels
 on `CommandMessage.quarter_turns`, and is what the blueprint and `Map.add_structure` register.
 
 Rotation does not apply to a conversion (an upgrade in place, nothing new is laid) or to an extractor
@@ -285,7 +285,7 @@ The preview and the tool state reset to 0 whenever the tool is put down. Design 
 
 ## Placement keeps navigation intact
 
-`Structure.valid_placement` answers geometry alone — in bounds, unoccupied, flat, dry enough.
+`Fixture.valid_placement` answers geometry alone — in bounds, unoccupied, flat, dry enough.
 It says nothing about what the footprint does to the units already on the map, which is a
 separate question `NavPlacement` (`scripts/maps/nav_placement.gd`) answers and
 `Build.meets_precondition` now asks of every ordinary placement, human or bot:

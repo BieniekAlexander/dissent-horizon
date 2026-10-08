@@ -81,8 +81,8 @@ func _commander(a_commander: Commander, a_id: int) -> Commander:
 func _piece(a_owner: Commander, a_is_structure: bool, a_x: float, a_z: float) -> Actor:
 	var piece: StubPiece = StubPiece.make()
 	if a_is_structure:
-		var structure := Structure.new()
-		structure.name = "Structure"
+		var structure := Fixture.new()
+		structure.name = "Fixture"
 		piece.add_child(structure)
 	a_owner.add_child(piece)
 	piece.ownership.commander = a_owner

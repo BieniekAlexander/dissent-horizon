@@ -55,7 +55,7 @@ class StubMap:
 		a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0, _a_rebake: bool = true
 	) -> void:
 		placed.append(a_structure)
-		var obs := a_structure.get_node("Structure") as Structure
+		var obs := a_structure.get_node("Fixture") as Fixture
 		var footprint: Array[Vector2i] = footprint_cells(a_world_center, obs.dimensions)
 		for cell: Vector2i in footprint:
 			cell_grid[cell.x][cell.y] = a_structure
@@ -174,7 +174,7 @@ func _neutral_building(a_id: StringName) -> Actor:
 			or tracked.contains_text("entered the tree with no")
 		):
 			tracked.handled = true
-	var dims: Vector2i = (building.get_node("Structure") as Structure).dimensions
+	var dims: Vector2i = (building.get_node("Fixture") as Fixture).dimensions
 	_map.add_structure(building, VU.in_xz(_map.footprint_centroid(NEUTRAL_ORIGIN, dims)))
 	return building
 

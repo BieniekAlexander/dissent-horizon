@@ -93,7 +93,7 @@ func _observe(a_commander: Commander, a_delta: float) -> void:
 		var entity := child as Actor
 		if entity == null or entity.is_queued_for_deletion():
 			continue
-		if entity.has_node("Structure"):
+		if entity.has_node("Fixture"):
 			if entity.production != null:
 				production_structures += 1
 			if entity.has_node("EnergyExtractor") and entity.is_built:
@@ -139,7 +139,7 @@ func _slot_sample(a_commander: Commander) -> Dictionary:
 		if (
 			entity != null
 			and not entity.is_queued_for_deletion()
-			and entity.has_node("Structure")
+			and entity.has_node("Fixture")
 			and entity.production != null
 		):
 			production_structures += 1

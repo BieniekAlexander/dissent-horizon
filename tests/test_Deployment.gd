@@ -109,8 +109,8 @@ func before_each() -> void:
 ## A packed stand-in for the faction's command centre: only its footprint is ever read.
 func _centre_scene() -> PackedScene:
 	var root := Node3D.new()
-	var structure := Structure.new()
-	structure.name = "Structure"
+	var structure := Fixture.new()
+	structure.name = "Fixture"
 	structure.dimensions = CENTRE_DIMS
 	root.add_child(structure)
 	structure.owner = root

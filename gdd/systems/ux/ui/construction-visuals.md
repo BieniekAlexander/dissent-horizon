@@ -48,7 +48,7 @@ registers on the grid just the same — the terrain grid is traced under it (`Pl
 by `RTSController._update_placement_grid`), after StarCraft II's:
 
 - **The footprint** — each cell outlined and washed green where it can be built on and red where
-  it cannot, judged per cell by the same rule the order uses (`Structure.cell_admits_structure`),
+  it cannot, judged per cell by the same rule the order uses (`Fixture.cell_admits_structure`),
   plus the planned-site rule: a cell a planned building on our side has claimed is red
   ([construction](../../commands/construction.md) §A plan claims its site).
   An extractor is judged as a whole, since it overlays a site or takes a pond, so its cells share

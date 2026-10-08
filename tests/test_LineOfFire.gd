@@ -40,7 +40,7 @@ func _building_between(a_is_obstruction: bool = true) -> Actor:
 	var building: Actor = FakePieces.structure({"dimensions": Vector2i(2, 2)})
 	add_child_autofree(building)
 	building.ownership.commander = _commander(0)
-	(building.get_node("Structure") as Structure).is_obstruction = a_is_obstruction
+	(building.get_node("Fixture") as Fixture).is_obstruction = a_is_obstruction
 	building._apply_targetable_layers()
 	return building
 

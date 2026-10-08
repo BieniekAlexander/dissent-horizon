@@ -50,8 +50,8 @@ func _own(a_planned: bool = false) -> Actor:
 ## everywhere else in the codebase (has_node("Structure")), not a type or a group.
 func _own_structure(a_planned: bool = false) -> Actor:
 	var entity: Actor = _own(a_planned)
-	var structure := Structure.new()
-	structure.name = "Structure"
+	var structure := Fixture.new()
+	structure.name = "Fixture"
 	entity.add_child(structure)
 	return entity
 
@@ -257,8 +257,8 @@ func test_a_rebuild_in_flight_holds_the_verdict_off() -> void:
 func _own_command_centre(a_commander: Commander = _player) -> Actor:
 	var centre := Actor.new()
 	centre.id = Deployment.command_centre_ids()[0]
-	var structure := Structure.new()
-	structure.name = "Structure"
+	var structure := Fixture.new()
+	structure.name = "Fixture"
 	centre.add_child(structure)
 	a_commander.add_child(centre)
 	return centre

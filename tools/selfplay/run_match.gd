@@ -512,7 +512,7 @@ func _slot_sample(a_commander: Commander) -> Dictionary:
 		var entity := child as Actor
 		if entity == null or entity.is_queued_for_deletion():
 			continue
-		if entity.has_node("Structure"):
+		if entity.has_node("Fixture"):
 			structures.append(entity)
 			if entity.has_node("EnergyExtractor"):
 				income_structures += 1

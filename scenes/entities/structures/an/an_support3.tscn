@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_1loab"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_oktbk"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="8_4r6cj"]
-[ext_resource type="Script" path="res://scripts/entities/components/structure.gd" id="9_2o5sf"]
+[ext_resource type="Script" path="res://scripts/entities/components/fixture.gd" id="9_2o5sf"]
 [ext_resource type="Script" path="res://scripts/entities/components/defense.gd" id="10_rw2kx"]
 [ext_resource type="Script" path="res://scripts/entities/components/veterancy.gd" id="11_ydbyi"]
 [ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="12_hq0ht"]
@@ -53,7 +53,7 @@ shape = ExtResource("1_spec")
 [node name="Ownership" type="Node" parent="." unique_id=386729318]
 script = ExtResource("8_4r6cj")
 
-[node name="Structure" type="Node" parent="." unique_id=120317994]
+[node name="Fixture" type="Node" parent="." unique_id=120317994]
 script = ExtResource("9_2o5sf")
 dimensions = Vector2i(3, 3)
 

@@ -1136,14 +1136,14 @@ func _preview_for_type(a_type) -> Node:
 ## its preview scene rather than by reading the Entity.Type value.
 func _type_is_structure(a_type) -> bool:
 	var preview := _preview_for_type(a_type)
-	return preview != null and preview.has_node("Structure")
+	return preview != null and preview.has_node("Fixture")
 
 
 ## True when [type] trains a mobile unit — a producible scene with no "Structure"
 ## component. Excludes ability types (no producing tool, so no preview).
 func _type_is_unit(a_type) -> bool:
 	var preview := _preview_for_type(a_type)
-	return preview != null and not preview.has_node("Structure")
+	return preview != null and not preview.has_node("Fixture")
 
 
 ## True when [type] is a COMBAT unit — its scene carries a Loadout with at least one

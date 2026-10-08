@@ -46,7 +46,7 @@ The setting, with the primitive layers the code actually has:
 | layer | source | note |
 |---|---|---|
 | passability | `TerrainGrid` per `NavAgentClass.Size` | RELATIVE to the agent: each size class has its own eroded navmesh, so a one-cell gap is a road for infantry and a wall for a truck |
-| buildability | `Structure.valid_placement` over the footprint | in bounds, unoccupied, clearance |
+| buildability | `Fixture.valid_placement` over the footprint | in bounds, unoccupied, clearance |
 | elevation and occlusion | `TerrainData.heights`, `STRUCTURE_BLOCKER` | **does NOT gate vision** — see §Vision is unoccluded |
 | water | `WaterBody` | passability and extraction |
 

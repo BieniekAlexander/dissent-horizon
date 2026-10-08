@@ -109,7 +109,7 @@ func _check(a_map: Map, a_tick: int) -> void:
 			var entity := child as Entity
 			if entity == null or entity.is_queued_for_deletion():
 				continue
-			if not entity.has_node("Structure"):
+			if not entity.has_node("Fixture"):
 				continue
 			var cells: Array = a_map.structure_cell_map.get(entity, [])
 			if cells.is_empty():

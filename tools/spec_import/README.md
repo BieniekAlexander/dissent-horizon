@@ -219,7 +219,7 @@ piece may declare both — the two-form piece, built unless a producer's `trains
 names it. A piece declaring neither, nor `senses.vision:`, is refused: it has no
 body and no sense, so it is prose carrying the marker or a doc missing its key. A
 new scene is composed from those same keys (`composition.gd`): `movement:` brings
-locomotion, `footprint:` a `Structure`, and a piece with both gets both.
+locomotion, `footprint:` a `Fixture`, and a piece with both gets both.
 
 ```yaml
 # file: an_bioLight_builder.md   <- the file name IS the id (no id: key)

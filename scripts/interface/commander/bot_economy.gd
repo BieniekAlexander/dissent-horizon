@@ -1572,7 +1572,7 @@ func _find_build_spot(a_type: StringName) -> Variant:
 		cursor += 1
 		_work += PLACEMENT_CHECK_WORK_UNITS
 		var is_turned: bool = (packed & RANK_TURNED_BIT) != 0
-		var oriented: Vector2i = Structure.oriented_dimensions(dims, 1 if is_turned else 0)
+		var oriented: Vector2i = Fixture.oriented_dimensions(dims, 1 if is_turned else 0)
 		var origin: Vector2i = ranked_origin(packed, width)
 		var spot: Vector3 = _bot.map.footprint_centroid(origin, oriented)
 		if _placement_ok(spot, oriented, search["region"]):
@@ -1613,7 +1613,7 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 		_start_ranking(anchor, forward, bearing, dims, _orientation_bits(dims, false, forward))
 	]
 	if dims.x != dims.y:
-		var turned: Vector2i = Structure.oriented_dimensions(dims, 1)
+		var turned: Vector2i = Fixture.oriented_dimensions(dims, 1)
 		rankings.append(
 			_start_ranking(
 				anchor, forward, bearing, turned, _orientation_bits(turned, true, forward)
@@ -2002,7 +2002,7 @@ const PLACEMENT_NAV_CLASS: int = NavAgentClass.Size.LARGE
 ## narrower "production only" reading of the rule is available to other callers as
 ## NavPlacement.accepts' `a_needs_access` flag.
 func _placement_ok(a_world: Vector3, a_dims: Vector2i, a_region: int = -1) -> bool:
-	if not Structure.valid_placement(
+	if not Fixture.valid_placement(
 		CommandMessage.new(_bot.map, null, null, a_world), a_dims, false
 	):
 		return false
@@ -2026,8 +2026,8 @@ func _dims_for_type(a_type: StringName) -> Vector2i:
 	var tool: Tool = Tool.for_type(a_type)
 	if tool != null:
 		var preview: Node = _bot.get_build_preview_instance(tool)
-		var s: Structure = (
-			preview.get_node_or_null("Structure") as Structure if preview != null else null
+		var s: Fixture = (
+			preview.get_node_or_null("Fixture") as Fixture if preview != null else null
 		)
 		if s != null:
 			return s.dimensions

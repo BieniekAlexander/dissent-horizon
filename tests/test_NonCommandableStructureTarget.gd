@@ -172,7 +172,7 @@ func test_an_extraction_site_is_a_structure_that_is_not_a_commandable() -> void:
 	assert_false(_site is Actor, "but NOT a Actor — it extends Entity directly")
 	assert_true(_site.is_in_group("fixture"), "and it is in the fixture group")
 	assert_false(_site.is_in_group("structure"), "but not a structure: it takes no orders")
-	assert_true(_site.has_node("Structure"), "carrying a real Structure component")
+	assert_true(_site.has_node("Fixture"), "carrying a real Fixture component")
 
 
 func test_a_failing_narrowing_cast_is_silent() -> void:

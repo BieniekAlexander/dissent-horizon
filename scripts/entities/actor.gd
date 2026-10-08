@@ -6,7 +6,7 @@ extends Entity
 ## their component bags and their group memberships.
 ##
 ## - ask `is_in_group("unit")` and `is_in_group("structure")`, never a class check.
-##   There is no Unit class, and `Structure` is the footprint COMPONENT — `is Structure`
+##   There is no Unit class, and `Fixture` is the footprint COMPONENT — `is Structure`
 ##   asks a different question than a reader expects it to. On a Actor, "structure"
 ##   and "fixture" coincide; code that must also reach FEATURES asks "fixture".
 ##
@@ -773,7 +773,7 @@ func has_navmesh_access() -> bool:
 #region Static helpers
 ## These were Structure.<method> before the collapse. A future GridUtils
 ## module is the right home, but moving them onto Actor keeps the
-## existing `Structure.get_arrangement_cells(...)` call shape working as
+## existing `Fixture.get_arrangement_cells(...)` call shape working as
 ## `Actor.get_arrangement_cells(...)`.
 static func get_grid_coordinates(center: Vector2i, dimensions) -> Array:
 	var ret: Array = []
@@ -1307,7 +1307,7 @@ func _process(_a_delta: float) -> void:
 				current_command().get_script().get_global_name() if has_command() else "NULL"
 			)
 
-	# Train bar. Was Structure._process.
+	# Train bar. Was Fixture._process.
 	if production != null:
 		production.update_bar(scale.x)
 

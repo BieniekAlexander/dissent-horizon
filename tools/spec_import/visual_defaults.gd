@@ -174,7 +174,7 @@ const STRUCTURE_PLACEHOLDER_HEIGHT: float = 2.0
 
 ## The placeholder mesh descriptor for one piece: {"type": String, "props": Dictionary}.
 ## `footprint_cells` is read only for STRUCTURE, whose box takes the authored grid
-## footprint rather than a fixed size — Structure.dimensions is a better statement of how
+## footprint rather than a fixed size — Fixture.dimensions is a better statement of how
 ## big a building is than any guess from its class.
 static func placeholder_mesh(visual_class: VisualClass, footprint_cells: Vector2i) -> Dictionary:
 	var entry: Dictionary = PLACEHOLDER_MESHES[visual_class]

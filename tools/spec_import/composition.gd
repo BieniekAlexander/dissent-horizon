@@ -41,7 +41,7 @@ const ACTOR: Array[int] = [Tier.COMMANDABLE]
 ## A component's FORMER node names, old → new. A scene still carrying the old name has that
 ## node renamed in place (SpecSceneSync._rename_legacy_components) rather than gaining a second
 ## copy beside it, which would leak and crash at teardown (entity-scene-hierarchy.md).
-const RENAMED_COMPONENTS: Dictionary = {"Movement": "Locomotion"}
+const RENAMED_COMPONENTS: Dictionary = {"Movement": "Locomotion", "Structure": "Fixture"}
 
 const COMPONENTS: Array[Dictionary] = [
 	{"name": "#####STATE#####", "type": "Node", "tiers": PHYSICAL},
@@ -83,9 +83,9 @@ const COMPONENTS: Array[Dictionary] = [
 		"after": "Aerial"
 	},
 	{
-		"name": "Structure",
+		"name": "Fixture",
 		"type": "Node",
-		"script": "structure",
+		"script": "fixture",
 		"tiers": PHYSICAL,
 		"when": "fixture"
 	},

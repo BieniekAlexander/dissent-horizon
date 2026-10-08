@@ -83,7 +83,7 @@ func test_a_unit_is_composed_with_the_actor_set_and_locomotion() -> void:
 	assert_true(unit is Actor)
 	assert_eq(_child_names(unit), _expected_names(spec))
 	assert_true(unit.get_node("Locomotion") is Movement and unit.has_node("NavigationAgent"))
-	assert_false(unit.has_node("Structure"))
+	assert_false(unit.has_node("Fixture"))
 	assert_eq(unit.collision_layer, 1, "a mobile Actor collides like every unit")
 	assert_eq((unit.get_node("HPBar") as Sprite3D).billboard, BaseMaterial3D.BILLBOARD_FIXED_Y)
 	assert_eq(
@@ -98,7 +98,7 @@ func test_a_structure_is_composed_with_its_footprint_and_no_locomotion() -> void
 	var structure: Node = _compose("structure", spec)
 	assert_true(structure is Actor)
 	assert_eq(_child_names(structure), _expected_names(spec))
-	assert_true(structure.has_node("Structure") and structure.has_node("FootprintVisualizer"))
+	assert_true(structure.has_node("Fixture") and structure.has_node("FootprintVisualizer"))
 	assert_false(structure.has_node("Locomotion"))
 	assert_eq((structure.get_node("HPBar") as Sprite3D).billboard, BaseMaterial3D.BILLBOARD_ENABLED)
 

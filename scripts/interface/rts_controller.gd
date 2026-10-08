@@ -222,7 +222,7 @@ var _select_command_handlers: Dictionary = {}
 ## already chose with the rotate keys.
 const PLACEMENT_ROTATE_DEADZONE: float = 1.0
 
-## How the structure about to be placed is turned, as Structure.quarter_turns (0…3, counter-
+## How the structure about to be placed is turned, as Fixture.quarter_turns (0…3, counter-
 ## clockwise from above; 0 faces +Z). Held while a Build tool stays armed and put back to 0 when
 ## it is put down. Written by the rotate keys and by a placement drag; what an order actually
 ## carries is command_message.quarter_turns, which is this where rotation applies at all.
@@ -810,7 +810,7 @@ func _update_placement_grid(a_is_invalid_placement: bool) -> void:
 			_placement_grid_key = []
 			_placement_layer_key = null
 		return
-	var obs := source.get_node_or_null("Structure") as Structure
+	var obs := source.get_node_or_null("Fixture") as Fixture
 	var dims: Vector2i = _placement_dimensions(obs)
 	var origin: Vector2i = map.footprint_origin(_placement_aim(), dims)
 	var placer: Commander = _placement_commander()
@@ -857,7 +857,7 @@ func _update_placement_grid(a_is_invalid_placement: bool) -> void:
 	for cell: Vector2i in footprint:
 		var ok: bool = (
 			(
-				Structure.cell_admits_structure(map, cell, obs.allow_uneven, obs.allow_submerged)
+				Fixture.cell_admits_structure(map, cell, obs.allow_uneven, obs.allow_submerged)
 				and not planned.has(cell)
 			)
 			if per_cell
@@ -1265,10 +1265,10 @@ func _placement_rotation_applies() -> bool:
 
 
 ## The armed structure's footprint on the grid, turned as the player has it.
-func _placement_dimensions(a_structure: Structure) -> Vector2i:
+func _placement_dimensions(a_structure: Fixture) -> Vector2i:
 	if a_structure == null:
 		return Vector2i.ONE
-	return Structure.oriented_dimensions(a_structure.dimensions, command_message.quarter_turns)
+	return Fixture.oriented_dimensions(a_structure.dimensions, command_message.quarter_turns)
 
 
 ## The press of `command_issue` with a Build tool armed: put the structure DOWN — freeze where it
@@ -1314,7 +1314,7 @@ func _turn_placement_toward(a_point: Vector3) -> void:
 	var direction: Vector2 = VU.in_xz(a_point - _placing_world)
 	if direction.length() < PLACEMENT_ROTATE_DEADZONE:
 		return
-	placement_quarter_turns = Structure.quarter_turns_facing(direction, placement_quarter_turns)
+	placement_quarter_turns = Fixture.quarter_turns_facing(direction, placement_quarter_turns)
 	command_message.quarter_turns = placement_quarter_turns
 
 
@@ -4297,7 +4297,7 @@ func _update_build_preview(a_is_invalid_placement: bool) -> void:
 		_build_preview.visible = false
 		return
 	_build_preview.global_position = centroid
-	_build_preview.rotation.y = Structure.yaw_of(turns)
+	_build_preview.rotation.y = Fixture.yaw_of(turns)
 	_tint_build_preview(Entity.TEAM_COLOR_MAP[commander.id], a_is_invalid_placement)
 	_build_preview.visible = true
 
@@ -4344,9 +4344,9 @@ func _footprint_centroid(
 func _footprint_centroid_of(a_source: Node, a_xz: Vector2, a_quarter_turns: int = 0) -> Variant:
 	if map == null:
 		return null
-	var obs := a_source.get_node_or_null("Structure") as Structure if a_source != null else null
+	var obs := a_source.get_node_or_null("Fixture") as Fixture if a_source != null else null
 	var dims: Vector2i = (
-		Structure.oriented_dimensions(obs.dimensions, a_quarter_turns)
+		Fixture.oriented_dimensions(obs.dimensions, a_quarter_turns)
 		if obs != null
 		else Vector2i.ONE
 	)

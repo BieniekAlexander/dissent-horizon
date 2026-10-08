@@ -60,7 +60,7 @@ func tick() -> void:
 ##
 ## IN A LITHIUM POND there is no host footprint to be concentric with — the pond covers a
 ## whole basin — so the ordinary empty-cell placement rule applies instead, with the
-## submersion gate (Structure.allow_submerged) doing the work of saying where. An extractor
+## submersion gate (Fixture.allow_submerged) doing the work of saying where. An extractor
 ## in a pond occupies its own cells like any other structure; only the site case overlays.
 ##
 ## Both routes are refused for bare dry ground, for other structures, and for deep water.
@@ -109,7 +109,7 @@ static func fits_in_pond(
 	var map: Map = command_message.map
 	if map == null or water_body_under(map, command_message.xz_position, dimensions) == null:
 		return false
-	return Structure.valid_placement(
+	return Fixture.valid_placement(
 		command_message, dimensions, allow_uneven_terrain, allow_submerged_terrain
 	)
 

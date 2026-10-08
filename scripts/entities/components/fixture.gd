@@ -1,5 +1,5 @@
 @tool
-class_name Structure
+class_name Fixture
 extends Node
 
 ## Makes its parent Entity a FIXTURE — a piece that claims terrain-grid cells — while it is

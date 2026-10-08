@@ -103,7 +103,7 @@ func _ring_point(
 ## inside the corners of the square it is meant to enclose, which is visibly wrong on anything
 ## bigger than about 2×2.
 static func _radius_for(producer: Actor) -> float:
-	var structure: Structure = producer.get_node_or_null("Structure") as Structure
+	var structure: Fixture = producer.get_node_or_null("Fixture") as Fixture
 	if structure == null:
 		return DEFAULT_RADIUS
 	var half: Vector2 = Vector2(structure.dimensions) * Map.CELL_SIZE * 0.5

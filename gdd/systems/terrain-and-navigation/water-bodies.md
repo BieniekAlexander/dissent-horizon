@@ -83,7 +83,7 @@ alone.
 
 ## What may be built in water
 
-**`Structure.allow_submerged` is the whole rule.** A structure that declares it may stand in
+**`Fixture.allow_submerged` is the whole rule.** A structure that declares it may stand in
 shallow water, on the solid terrain underneath, partly submerged. A structure that does not is
 refused. Deep water is granted to nothing at all: it is impassable ground, and impassable
 ground holds nothing.
@@ -114,7 +114,7 @@ second collector type would be a sibling of that abstraction rather than an inst
 | Rate | the extractor's own `energy_rate` | `POND_RATE_MULTIPLIER` (3) × that rate |
 
 Those two placement cases are why `EnergyExtractor.valid_placement` asks a different question
-from `Structure.valid_placement` and is used *instead of* it: an overlay's target cells are
+from `Fixture.valid_placement` and is used *instead of* it: an overlay's target cells are
 legitimately occupied, so the generic empty-cell rule can never pass for one.
 
 **The budget lives on the pond, not on the extractor** — otherwise destroying and rebuilding

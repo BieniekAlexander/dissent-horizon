@@ -262,7 +262,7 @@ func is_armed() -> bool:
 ## that WILL be one, such as a build preview — read the node itself. Resolved inline rather
 ## than via @onready so it answers for out-of-tree instances too.
 func structure_is_active() -> bool:
-	var structure := get_node_or_null("Structure") as Structure
+	var structure := get_node_or_null("Fixture") as Fixture
 	return structure != null and structure.is_active
 
 
@@ -276,25 +276,25 @@ func live_movement() -> Movement:
 ## Whether this piece can stand in BOTH forms — it carries a footprint and locomotion — and
 ## so is in exactly one of them at a time: a structure while deployed, a unit while mobile.
 func has_two_forms() -> bool:
-	return has_node("Structure") and get_node_or_null("Locomotion") is Movement
+	return has_node("Fixture") and get_node_or_null("Locomotion") is Movement
 
 
 ## Whether a spawn site with no opinion of its own should register this piece on the grid.
 ## Only a fixture-only piece: a two-form piece that nobody asked to deploy spawns MOBILE, the
 ## form with no registration to reconcile (composition-rework §Which form a piece spawns in).
 func spawns_deployed() -> bool:
-	return has_node("Structure") and not has_node("Locomotion")
+	return has_node("Fixture") and not has_node("Locomotion")
 
 
 ## Deploy a mobile two-form piece onto the footprint centred on `a_world_center`. Refused —
 ## false, nothing changed — unless that footprint passes the same placement check a build
 ## order does: the deployed form is only ever entered through a validated footprint.
 func deploy(a_world_center: Vector2) -> bool:
-	var structure := get_node_or_null("Structure") as Structure
+	var structure := get_node_or_null("Fixture") as Fixture
 	if not has_two_forms() or structure.is_active or map == null:
 		return false
 	var message := CommandMessage.new(map, null, null, VU.from_xz(a_world_center))
-	if not Structure.valid_placement(
+	if not Fixture.valid_placement(
 		message, structure.dimensions, structure.allow_uneven, structure.allow_submerged
 	):
 		return false
@@ -317,7 +317,7 @@ func undeploy() -> void:
 ## FOLLOWS the form: which component is live, the unit/fixture/structure groups, the collision
 ## and target layers, and whatever an override of _on_form_changed keeps.
 func set_deployed(a_deployed: bool) -> void:
-	var structure := get_node_or_null("Structure") as Structure
+	var structure := get_node_or_null("Fixture") as Fixture
 	var locomotion := get_node_or_null("Locomotion") as Movement
 	if structure == null or locomotion == null:
 		return
@@ -617,7 +617,7 @@ func is_on_grid() -> bool:
 
 
 ## True when this entity is on the grid AND its cells leave the navmesh. An occupant-only
-## fixture (`Structure.is_obstruction` false) is on the grid without obstructing.
+## fixture (`Fixture.is_obstruction` false) is on the grid without obstructing.
 func is_grid_obstruction() -> bool:
 	return is_on_grid() and has_obstructing_footprint()
 
@@ -626,7 +626,7 @@ func is_grid_obstruction() -> bool:
 ## OBSTRUCTION rather than an occupant-only fixture. Read from the piece itself rather than
 ## its grid registration, so it holds before placement too.
 func has_obstructing_footprint() -> bool:
-	var structure := get_node_or_null("Structure") as Structure
+	var structure := get_node_or_null("Fixture") as Fixture
 	return structure == null or structure.is_obstruction
 
 
@@ -847,7 +847,7 @@ func _auto_initialize() -> void:
 	# quarter turn, so the authored yaw is read as the nearest one (and the piece squared up to it).
 	if spawns_deployed() and not found_map.structure_cell_map.has(self):
 		found_map.add_structure(
-			self, VU.in_xz(pre_init_pos), Structure.quarter_turns_of_yaw(rotation.y), false
+			self, VU.in_xz(pre_init_pos), Fixture.quarter_turns_of_yaw(rotation.y), false
 		)
 
 

@@ -8,8 +8,8 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). The naming half of
 [composition-rework](composition-rework.md).*
 
-Most identifiers still use the old names; §Where today's code disagrees lists every place
-that has not caught up yet.
+The class names follow the vocabulary (`Actor`, `Fixture`); §Where today's code disagrees lists
+the places that have not caught up yet.
 
 ---
 
@@ -65,7 +65,7 @@ An **obstruction** is a fixture whose cells are removed from the navmesh, so uni
 there. **Only a fixture can be an obstruction**, so obstruction is only ever computed for a
 fixture. A figure that blocks movement does so through avoidance, which is a different
 mechanism. Both structures and features can be obstructions, and neither has to be: the
-extraction site is not one (`Structure.is_obstruction`,
+extraction site is not one (`Fixture.is_obstruction`,
 [map-composition](../terrain-and-navigation/map-composition.md) §Occupancy and obstruction).
 
 A fixture's cells are either its OWN (**occupant**: `cell_grid` points at it) or a **host's**
@@ -147,7 +147,6 @@ These are the pieces whose classification was unclear.
   extraction site are fixtures and not structures. Readers ask the one they mean — grid
   teardown, footprint reach and the fog memory of seen buildings ask `"fixture"`; production,
   rally and construction state ask `"structure"`.
-- PLANNED: **The fixture component is still named `Structure`** in code; it becomes `Fixture`.
 - **The Recon Drone is a HOVERING aircraft with speed 0** (decided 2026-09-29): `Aerial` puts
   it in the air and on `TARGETABLE_AIR`, and its speed-0 `Movement` holds the hover. It never
   receives an order, so it never moves. See composition-rework §Locomotion is bigger than

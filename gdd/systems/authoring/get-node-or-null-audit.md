@@ -39,7 +39,7 @@ Who reaches the code decides it, not the component:
 | 177 | `Selectable` | Actors and features | ✅ bodiless pieces and emissions are never selected |
 | 186 | `Hurtbox` | Actors and features | ✅ bodiless pieces and emissions are untargetable |
 | 207–208 | `AggroRangeGround` / `AggroRangeAir` | Actors | ✅ at this level; guaranteed for every Actor |
-| 265, 293, 320, 629 | `Structure` | fixtures | ✅ its presence IS the fixture question |
+| 265, 293, 320, 629 | `Fixture` | fixtures | ✅ its presence IS the fixture question |
 | 272, 279, 321 | `Locomotion` as `Movement` | mobile Actors | ✅ a navigated mover is the question |
 | 460–462 | `Body`, then `MovementBody` | `Body`: the Recon Drone only; `MovementBody`: mobile Actors | ✅ a fixture measures its footprint instead |
 | 503, 514, 542 | `Hurtbox/HurtboxShape` | every piece with a `Hurtbox` | ✅ guarded on the hurtbox already; the shape node ships in `hurtbox.tscn` |

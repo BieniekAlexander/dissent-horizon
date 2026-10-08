@@ -51,7 +51,7 @@ A fixture's cells carry two facts that are set independently:
 
 - **Occupancy** — `Map.cell_grid` names the fixture, so nothing else may be placed there.
 - **Obstruction** — the terrain grid's `_BUILDING` bit, so the cells leave the navmesh. Only a
-  fixture whose `Structure.is_obstruction` is true sets it.
+  fixture whose `Fixture.is_obstruction` is true sets it.
 
 The extraction site occupies without obstructing: an extractor is the only thing that can be
 built over it, and units walk across it until one is. The extractor built over a site registers

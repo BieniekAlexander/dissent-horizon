@@ -127,10 +127,10 @@ static func feature(a_options: Dictionary = {}) -> Entity:
 	var defense := Defense.new()
 	defense.hp_max = float(a_options.get("hp", 100.0))
 	_add_node(piece, defense, "Defense")
-	var body := Structure.new()
+	var body := Fixture.new()
 	body.dimensions = a_options.get("dimensions", Vector2i(1, 1))
 	body.is_obstruction = bool(a_options.get("obstruction", true))
-	_add_node(piece, body, "Structure")
+	_add_node(piece, body, "Fixture")
 	if a_options.get("extraction_site", false):
 		_add_node(piece, ExtractionSite.new(), "ExtractionSite")
 		piece.add_to_group(&"extraction_site", true)
@@ -195,10 +195,10 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Actor:
 	_add_scene(piece, "avoidance_obstacle.tscn", "AvoidanceObstacle")
 
 	if a_structure:
-		var body := Structure.new()
+		var body := Fixture.new()
 		body.dimensions = a_options.get("dimensions", Vector2i(1, 1))
 		body.is_obstruction = bool(a_options.get("obstruction", true))
-		_add_node(piece, body, "Structure")
+		_add_node(piece, body, "Fixture")
 	if a_options.has("speed") or a_options.get("aerial", false):
 		var movement := Movement.new()
 		movement.speed = float(a_options.get("speed", 4.0))

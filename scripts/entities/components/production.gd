@@ -278,7 +278,7 @@ func _build_rate() -> float:
 ## Update the train bar's visibility and fill scale. Called from _process.
 ## `parent_scale_x` is the entity's scale.x — needed so the fill bar's
 ## position offset matches how the structure is rendered. (This duplicates
-## the math that used to live inline in Structure._process; folding it into
+## the math that used to live inline in Fixture._process; folding it into
 ## a dedicated TrainBar component is on the followups list.)
 func update_bar(a_parent_scale_x: float) -> void:
 	if _train_bar == null:

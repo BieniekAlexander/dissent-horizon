@@ -59,7 +59,7 @@ var transaction: PurchaseTransaction = null
 ## tests), which instantiate their structure at placement time as before.
 var planned_structure: Actor = null
 
-## BUILD only — how the structure is to be turned when it is laid, as Structure.quarter_turns
+## BUILD only — how the structure is to be turned when it is laid, as Fixture.quarter_turns
 ## (0…3, counter-clockwise from above; 0 faces +Z). The footprint the order claims is the tool's
 ## dimensions turned by this. An integer, so a recorded order carries no float. Default 0 is what
 ## every order that never chose a facing — scenario events, the bot — has always meant.

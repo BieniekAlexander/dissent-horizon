@@ -130,63 +130,63 @@ func _make_builder() -> Actor:
 
 
 func test_an_odd_count_swaps_the_dimensions_and_an_even_one_does_not() -> void:
-	assert_eq(Structure.oriented_dimensions(LONG_DIMS, 0), Vector2i(3, 5))
-	assert_eq(Structure.oriented_dimensions(LONG_DIMS, 1), Vector2i(5, 3))
+	assert_eq(Fixture.oriented_dimensions(LONG_DIMS, 0), Vector2i(3, 5))
+	assert_eq(Fixture.oriented_dimensions(LONG_DIMS, 1), Vector2i(5, 3))
 	assert_eq(
-		Structure.oriented_dimensions(LONG_DIMS, 2), Vector2i(3, 5), "180° claims the same cells"
+		Fixture.oriented_dimensions(LONG_DIMS, 2), Vector2i(3, 5), "180° claims the same cells"
 	)
-	assert_eq(Structure.oriented_dimensions(LONG_DIMS, 3), Vector2i(5, 3))
-	assert_eq(Structure.oriented_dimensions(LONG_DIMS, 4), Vector2i(3, 5), "wraps")
-	assert_eq(Structure.oriented_dimensions(LONG_DIMS, -1), Vector2i(5, 3), "and wraps below zero")
+	assert_eq(Fixture.oriented_dimensions(LONG_DIMS, 3), Vector2i(5, 3))
+	assert_eq(Fixture.oriented_dimensions(LONG_DIMS, 4), Vector2i(3, 5), "wraps")
+	assert_eq(Fixture.oriented_dimensions(LONG_DIMS, -1), Vector2i(5, 3), "and wraps below zero")
 
 
 func test_a_count_is_a_counter_clockwise_yaw_from_above() -> void:
 	for turns: int in 4:
-		assert_almost_eq(Structure.yaw_of(turns), turns * PI * 0.5, 0.0001)
-	assert_eq(Structure.quarter_turns_of_yaw(0.0), 0)
+		assert_almost_eq(Fixture.yaw_of(turns), turns * PI * 0.5, 0.0001)
+	assert_eq(Fixture.quarter_turns_of_yaw(0.0), 0)
 	assert_eq(
-		Structure.quarter_turns_of_yaw(PI * 0.5 + 0.01),
+		Fixture.quarter_turns_of_yaw(PI * 0.5 + 0.01),
 		1,
 		"a near-quarter yaw is read as the quarter"
 	)
-	assert_eq(Structure.quarter_turns_of_yaw(PI), 2)
-	assert_eq(Structure.quarter_turns_of_yaw(-PI * 0.5), 3, "a negative yaw wraps")
+	assert_eq(Fixture.quarter_turns_of_yaw(PI), 2)
+	assert_eq(Fixture.quarter_turns_of_yaw(-PI * 0.5), 3, "a negative yaw wraps")
 
 
 func test_front_is_plus_z_and_each_count_faces_the_next_axis() -> void:
 	# The convention the models are authored to and Movement.get_facing reads: yaw 0 faces +Z.
-	assert_eq(Structure.facing_of(0), Vector2(0, 1))
-	assert_eq(Structure.facing_of(1), Vector2(1, 0))
-	assert_eq(Structure.facing_of(2), Vector2(0, -1))
-	assert_eq(Structure.facing_of(3), Vector2(-1, 0))
+	assert_eq(Fixture.facing_of(0), Vector2(0, 1))
+	assert_eq(Fixture.facing_of(1), Vector2(1, 0))
+	assert_eq(Fixture.facing_of(2), Vector2(0, -1))
+	assert_eq(Fixture.facing_of(3), Vector2(-1, 0))
 	# ...and it agrees with what a yawed node actually does in the engine.
 	var node := Node3D.new()
 	add_child_autofree(node)
 	for turns: int in 4:
-		node.rotation.y = Structure.yaw_of(turns)
+		node.rotation.y = Fixture.yaw_of(turns)
 		var forward: Vector3 = node.global_transform.basis * Vector3.BACK
-		var facing: Vector2 = Structure.facing_of(turns)
+		var facing: Vector2 = Fixture.facing_of(turns)
 		assert_almost_eq(forward.x, facing.x, 0.0001, "count %d, x" % turns)
 		assert_almost_eq(forward.z, facing.y, 0.0001, "count %d, z" % turns)
 
 
 func test_a_drag_direction_reads_as_the_nearest_axis() -> void:
 	for turns: int in 4:
-		assert_eq(Structure.quarter_turns_facing(Structure.facing_of(turns) * 3.0), turns)
-	assert_eq(Structure.quarter_turns_facing(Vector2(5, 1)), 1)
-	assert_eq(Structure.quarter_turns_facing(Vector2(-5, 2)), 3)
-	assert_eq(Structure.quarter_turns_facing(Vector2(1, -5)), 2)
-	assert_eq(Structure.quarter_turns_facing(Vector2(2, 1)), 1)
+		assert_eq(Fixture.quarter_turns_facing(Fixture.facing_of(turns) * 3.0), turns)
+	assert_eq(Fixture.quarter_turns_facing(Vector2(5, 1)), 1)
+	assert_eq(Fixture.quarter_turns_facing(Vector2(-5, 2)), 3)
+	assert_eq(Fixture.quarter_turns_facing(Vector2(1, -5)), 2)
+	assert_eq(Fixture.quarter_turns_facing(Vector2(2, 1)), 1)
 
 
 func test_a_drag_with_no_direction_keeps_the_fallback() -> void:
-	assert_eq(Structure.quarter_turns_facing(Vector2.ZERO, 3), 3)
+	assert_eq(Fixture.quarter_turns_facing(Vector2.ZERO, 3), 3)
 
 
 func test_a_diagonal_resolves_the_same_way_every_time() -> void:
 	# A tie must not flicker between two answers frame to frame.
-	assert_eq(Structure.quarter_turns_facing(Vector2(2, 2)), 0)
-	assert_eq(Structure.quarter_turns_facing(Vector2(-2, -2)), 2)
+	assert_eq(Fixture.quarter_turns_facing(Vector2(2, 2)), 0)
+	assert_eq(Fixture.quarter_turns_facing(Vector2(-2, -2)), 2)
 
 
 # ─── REGISTERING A TURNED PIECE ─────────────────────────────────────────────
@@ -211,7 +211,7 @@ func test_add_structure_registers_the_turned_cells() -> void:
 	assert_eq(cells.size(), 15)
 	assert_true(cells.has(origin + Vector2i(4, 2)), "5 wide, 3 deep after a quarter turn")
 	assert_false(cells.has(origin + Vector2i(2, 4)))
-	assert_eq((building.get_node("Structure") as Structure).quarter_turns, 1)
+	assert_eq((building.get_node("Fixture") as Fixture).quarter_turns, 1)
 	assert_almost_eq(
 		building.rotation.y, PI * 0.5, 0.0001, "the piece itself is turned, model and all"
 	)
@@ -237,7 +237,7 @@ func test_an_unspecified_turn_leaves_the_piece_as_it_is() -> void:
 	# The default (-1) is "as placed": a blueprint set to a count before it is committed, and an
 	# event's spawn, keep theirs — and a piece with a yaw of its own is not snapped to zero.
 	var building := _long_building()
-	(building.get_node("Structure") as Structure).quarter_turns = 1
+	(building.get_node("Fixture") as Fixture).quarter_turns = 1
 	_map.add_structure(building, _world_for_origin(Vector2i(8, 8), Vector2i(5, 3)))
 	assert_eq(_map.structure_cell_map[building].size(), 15)
 	assert_true(_map.structure_cell_map[building].has(Vector2i(12, 10)), "still 5 wide")
@@ -262,9 +262,9 @@ func test_a_turned_piece_measures_its_ranges_from_the_turned_rectangle() -> void
 
 func test_a_scene_placed_piece_reads_its_count_from_its_yaw() -> void:
 	# Entity._auto_initialize's rule, without a scene to place it in.
-	assert_eq(Structure.quarter_turns_of_yaw(deg_to_rad(89.0)), 1)
-	assert_eq(Structure.quarter_turns_of_yaw(deg_to_rad(181.0)), 2)
-	assert_eq(Structure.quarter_turns_of_yaw(deg_to_rad(-91.0)), 3)
+	assert_eq(Fixture.quarter_turns_of_yaw(deg_to_rad(89.0)), 1)
+	assert_eq(Fixture.quarter_turns_of_yaw(deg_to_rad(181.0)), 2)
+	assert_eq(Fixture.quarter_turns_of_yaw(deg_to_rad(-91.0)), 3)
 
 
 # ─── THE ORDER ──────────────────────────────────────────────────────────────
@@ -323,7 +323,7 @@ func test_a_blueprint_stands_on_and_faces_the_turned_footprint() -> void:
 	assert_not_null(blueprint)
 	if blueprint == null:
 		return
-	assert_eq((blueprint.get_node("Structure") as Structure).quarter_turns, 1)
+	assert_eq((blueprint.get_node("Fixture") as Fixture).quarter_turns, 1)
 	assert_almost_eq(blueprint.rotation.y, PI * 0.5, 0.0001)
 	var planned: Dictionary = _commander.planned_footprint_cells()
 	assert_eq(planned.size(), 15)

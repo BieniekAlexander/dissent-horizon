@@ -1,7 +1,7 @@
 extends GutTest
 
 ## Tests for the two rules water adds to the rest of the game: where a structure may stand in
-## it (Structure.allow_submerged / EnergyExtractor.valid_placement), and what a lithium pond
+## it (Fixture.allow_submerged / EnergyExtractor.valid_placement), and what a lithium pond
 ## pays out as it drains (WaterBody.extract).
 ##
 ## Run with:
@@ -447,11 +447,11 @@ func test_an_ordinary_structure_is_refused_by_shallow_water() -> void:
 	var map: Map = _make_map()
 	_add_water(map)
 	assert_true(
-		Structure.valid_placement(_msg(map, _aim(map, _DRY_ORIGIN)), _DIMS),
+		Fixture.valid_placement(_msg(map, _aim(map, _DRY_ORIGIN)), _DIMS),
 		"dry flat ground takes an ordinary structure"
 	)
 	assert_false(
-		Structure.valid_placement(_msg(map, _aim(map, _SHALLOW_ORIGIN)), _DIMS),
+		Fixture.valid_placement(_msg(map, _aim(map, _SHALLOW_ORIGIN)), _DIMS),
 		"shallow water admits nothing that has not declared allow_submerged"
 	)
 
@@ -460,11 +460,11 @@ func test_allow_submerged_grants_shallow_water_but_never_deep() -> void:
 	var map: Map = _make_map()
 	_add_water(map)
 	assert_true(
-		Structure.valid_placement(_msg(map, _aim(map, _SHALLOW_ORIGIN)), _DIMS, false, true),
+		Fixture.valid_placement(_msg(map, _aim(map, _SHALLOW_ORIGIN)), _DIMS, false, true),
 		"a submersible structure stands in wadeable water"
 	)
 	assert_false(
-		Structure.valid_placement(_msg(map, _aim(map, _DEEP_ORIGIN)), _DIMS, false, true),
+		Fixture.valid_placement(_msg(map, _aim(map, _DEEP_ORIGIN)), _DIMS, false, true),
 		"deep water is impassable ground and holds nothing at all"
 	)
 

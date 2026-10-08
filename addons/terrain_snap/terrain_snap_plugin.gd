@@ -113,10 +113,10 @@ func _snapped_position(map: Map, node: Node3D, pos: Vector3, to_grid: bool) -> V
 
 ## Footprint size from the node's Structure component (read via get() so it works
 ## regardless of the component's script @tool state), or 1×1 if none. The component
-## node is named "Structure" — the same one Map.add_structure reads its dimensions
+## node is named "Fixture" — the same one Map.add_structure reads its dimensions
 ## from (it was formerly "Obstruction"; keep that as a fallback for old scenes).
 func _dimensions(node: Node) -> Vector2i:
-	var obs := node.get_node_or_null("Structure")
+	var obs := node.get_node_or_null("Fixture")
 	if obs == null:
 		obs = node.get_node_or_null("Obstruction")
 	if obs == null:
@@ -127,7 +127,7 @@ func _dimensions(node: Node) -> Vector2i:
 	# A piece yawed in the editor is read as the nearest quarter turn, exactly as
 	# Entity._auto_initialize will read it at load — so it snaps onto the cells it will register.
 	if node is Node3D:
-		return Structure.oriented_dimensions(d, Structure.quarter_turns_of_yaw((node as Node3D).rotation.y))
+		return Fixture.oriented_dimensions(d, Fixture.quarter_turns_of_yaw((node as Node3D).rotation.y))
 	return d
 
 

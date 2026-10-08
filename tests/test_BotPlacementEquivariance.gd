@@ -216,7 +216,7 @@ func test_the_mirror_holds_at_every_footprint_parity() -> void:
 
 
 func test_the_chosen_spot_survives_the_round_trip_to_a_footprint() -> void:
-	# The spot handed to Build is a footprint CENTROID, and Structure.valid_placement
+	# The spot handed to Build is a footprint CENTROID, and Fixture.valid_placement
 	# re-derives the origin from it. If that round trip moved, the bot would be scoring one
 	# footprint and building another.
 	var bot := _bot_at(Vector2(-2.5, 3.5), Vector2(10.0, -4.0))

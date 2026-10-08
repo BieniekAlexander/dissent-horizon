@@ -143,20 +143,20 @@ func test_a_two_form_piece_someone_trains_is_trained() -> void:
 
 #endregion
 
-#region A mobile scene gets the Structure a footprint asks for
+#region A mobile scene gets the Fixture a footprint asks for
 const MOBILE_SCENE: String = """[gd_scene format=3]
 
 [node name="Piece" type="CharacterBody3D"]
 """
 
 
-## A context whose live instance matches `a_text`: the root, plus a Structure when it declares one.
+## A context whose live instance matches `a_text`: the root, plus a Fixture when it declares one.
 func _ctx(a_text: String) -> RefCounted:
 	var root: CharacterBody3D = CharacterBody3D.new()
 	root.name = "Piece"
-	if a_text.contains('[node name="Structure"'):
-		var structure: Node = (load(SceneSync.SCRIPT_STRUCTURE) as GDScript).new()
-		structure.name = "Structure"
+	if a_text.contains('[node name="Fixture"'):
+		var structure: Node = (load(SceneSync.SCRIPT_FIXTURE) as GDScript).new()
+		structure.name = "Fixture"
 		root.add_child(structure)
 	add_child_autofree(root)
 	var ctx := SceneSync.Ctx.new()
@@ -170,7 +170,7 @@ func test_a_footprint_on_a_mobile_scene_adds_the_structure_component() -> void:
 	var ctx: RefCounted = _ctx(MOBILE_SCENE)
 	SceneSync.new()._sync_footprint(ctx, {"footprint": [2, 3]})
 	var text: String = ctx.doc.to_text()
-	assert_string_contains(text, '[node name="Structure" type="Node" parent="."]')
+	assert_string_contains(text, '[node name="Fixture" type="Node" parent="."]')
 	assert_string_contains(text, "dimensions = Vector2i(2, 3)")
 
 

@@ -60,7 +60,7 @@ class StubMap:
 		a_structure: Entity, a_world_center: Vector2, _a_rotation: int = 0, _a_rebake: bool = true
 	) -> void:
 		placed.append(a_structure)
-		var obs := a_structure.get_node("Structure") as Structure
+		var obs := a_structure.get_node("Fixture") as Fixture
 		var footprint: Array[Vector2i] = footprint_cells(a_world_center, obs.dimensions)
 		for cell: Vector2i in footprint:
 			cell_grid[cell.x][cell.y] = a_structure
@@ -214,7 +214,7 @@ func _neutral_building(a_id: StringName, a_origin: Vector2i = NEUTRAL_ORIGIN) ->
 	_neutral.add_child(building)
 	building.initialize(_map, _neutral)
 	_dismiss_known_errors()
-	var dims: Vector2i = (building.get_node("Structure") as Structure).dimensions
+	var dims: Vector2i = (building.get_node("Fixture") as Fixture).dimensions
 	_map.add_structure(building, VU.in_xz(_map.footprint_centroid(a_origin, dims)))
 	return building
 
@@ -362,7 +362,7 @@ func test_every_underlying_form_becomes_the_piece_it_is_built_from() -> void:
 		assert_eq(node.pricing_id(), template.id)
 		assert_eq(node.infrastructure, template.infrastructure, "%s's own infrastructure" % label)
 		assert_eq(
-			(node.get_node("Structure") as Structure).dimensions,
+			(node.get_node("Fixture") as Fixture).dimensions,
 			template.footprint,
 			"%s keeps its footprint" % label
 		)
@@ -460,7 +460,7 @@ func test_a_new_build_of_each_variant_is_that_variants_body_with_the_pieces_prop
 		assert_eq(built.id, EntityIds.AN_INFRASTRUCTURE, "%s is built as the piece" % label)
 		assert_eq(built.scene_file_path, template.scene_path, "from its own scene")
 		assert_eq(built.infrastructure, template.infrastructure)
-		assert_eq((built.get_node("Structure") as Structure).dimensions, template.footprint)
+		assert_eq((built.get_node("Fixture") as Fixture).dimensions, template.footprint)
 		assert_eq(
 			_map.structure_cell_map[built].size(),
 			template.footprint.x * template.footprint.y,
@@ -569,12 +569,12 @@ func test_placement_validity_uses_the_variants_footprint() -> void:
 		_map.cell_grid[far_cell.x][far_cell.y] = Node3D.new()
 		var blocked: Node = _map.cell_grid[far_cell.x][far_cell.y]
 		assert_false(
-			Structure.valid_placement(_order(base.with_variant(i), SITE), dims),
+			Fixture.valid_placement(_order(base.with_variant(i), SITE), dims),
 			"the variant's own far corner blocks it"
 		)
 		_map.cell_grid[far_cell.x][far_cell.y] = null
 		blocked.free()
-		assert_true(Structure.valid_placement(_order(base.with_variant(i), SITE), dims))
+		assert_true(Fixture.valid_placement(_order(base.with_variant(i), SITE), dims))
 
 
 func test_the_blueprint_and_its_reservation_use_the_variants_footprint() -> void:
@@ -587,7 +587,7 @@ func test_the_blueprint_and_its_reservation_use_the_variants_footprint() -> void
 		_dismiss_known_errors()
 		assert_not_null(blueprint)
 		assert_eq(blueprint.id, EntityIds.AN_INFRASTRUCTURE)
-		assert_eq((blueprint.get_node("Structure") as Structure).dimensions, template.footprint)
+		assert_eq((blueprint.get_node("Fixture") as Fixture).dimensions, template.footprint)
 		assert_eq(
 			_commander.planned_footprint_cells().size(),
 			template.footprint.x * template.footprint.y,
@@ -603,7 +603,7 @@ func test_an_order_by_id_alone_is_the_default_variant() -> void:
 	var by_id: Tool = Tool.for_type(EntityIds.AN_INFRASTRUCTURE)
 	var default: PieceFamilies.Template = _template(by_id.variants[0])
 	var preview: Actor = _commander.get_build_preview_instance(by_id) as Actor
-	assert_eq((preview.get_node("Structure") as Structure).dimensions, default.footprint)
+	assert_eq((preview.get_node("Fixture") as Fixture).dimensions, default.footprint)
 	assert_eq(preview.infrastructure, default.infrastructure)
 	var transaction: PurchaseTransaction = PurchaseTransaction.for_tool(
 		_commander, PurchaseTransaction.Kind.BUILD, _order(by_id, SITE).tool
@@ -753,7 +753,7 @@ func test_a_converted_building_is_the_piece_in_the_building_it_was() -> void:
 		assert_eq(building.commander, _commander, "%s is ours" % label)
 		assert_eq(building.id, EntityIds.AN_INFRASTRUCTURE)
 		assert_eq(defense.hp, hp_before, "%s keeps its HP" % label)
-		assert_eq((building.get_node("Structure") as Structure).dimensions, template.footprint)
+		assert_eq((building.get_node("Fixture") as Fixture).dimensions, template.footprint)
 		assert_eq(_map.structure_cell_map[building], footprint_before, "and its cells")
 		assert_ne(_garrison_frames(building), frames_before, "%s's garrison masks changed" % label)
 		assert_eq(_garrison_frames(building), _garrison_frames(donor), "to the piece's own")

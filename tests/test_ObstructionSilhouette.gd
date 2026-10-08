@@ -54,7 +54,7 @@ func test_structure_entity_has_no_silhouette() -> void:
 	var visual: MeshVisual = _mesh_visual_of(structure)
 	var mats: Array[BaseMaterial3D] = _materials_of(visual)
 	assert_false(mats.is_empty(), "the command center model has at least one tintable surface")
-	assert_false(visual._silhouette, "a Structure sibling opts the model out")
+	assert_false(visual._silhouette, "a Fixture sibling opts the model out")
 	for mat: BaseMaterial3D in mats:
 		assert_eq(
 			mat.stencil_mode,

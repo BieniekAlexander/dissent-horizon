@@ -34,7 +34,7 @@ class Template:
 	var scene_path: String
 	## The doc's title — what the HUD calls this form.
 	var title: String
-	## Grid cells, as Structure.dimensions.
+	## Grid cells, as Fixture.dimensions.
 	var footprint: Vector2i
 	var hp: float
 	var energy_cost: int

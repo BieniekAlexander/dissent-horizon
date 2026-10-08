@@ -139,7 +139,7 @@ func _build(a_tool: Tool, a_at: Vector3) -> Build:
 ## — concentric_structure only reports a host whose footprint is centred on the same point.
 func _extractor_dimensions() -> Vector2i:
 	var preview: Node = _commander.get_build_preview_instance(EXTRACTOR_TOOL)
-	return (preview.get_node("Structure") as Structure).dimensions
+	return (preview.get_node("Fixture") as Fixture).dimensions
 
 
 ## A neutral nt_building registered through Map.add_structure on `a_origin`, so it is a real
@@ -156,7 +156,7 @@ func _neutral_building(a_origin: Vector2i) -> Entity:
 	for tracked in get_errors():
 		if tracked.contains_text("entered the tree with no"):
 			tracked.handled = true
-	var dims: Vector2i = (building.get_node("Structure") as Structure).dimensions
+	var dims: Vector2i = (building.get_node("Fixture") as Fixture).dimensions
 	_map.add_structure(building, VU.in_xz(_map.footprint_centroid(a_origin, dims)))
 	return building
 

@@ -33,7 +33,7 @@ hands a `HitShape` to every scene that inherits it, Godot cannot remove an inher
 so `hit_shape != null` is unanswerable — asserting on it crashed six shipped pieces on their
 first shot, and `hitscan` had to be made authoritative over it.
 [entity-scene-hierarchy](entity-scene-hierarchy.md) reached it from the piece side: a scene
-inherits from exactly one base, so "a piece with both `Structure` and `Movement`" cannot be
+inherits from exactly one base, so "a piece with both `Fixture` and `Movement`" cannot be
 expressed, and "a piece with no model" can only be expressed by refusing to inherit anything
 at all — which three scenes in the roster already do.
 
@@ -125,7 +125,7 @@ for it". Several of its current verdicts are answers to the old question.
 
 ### Activation, for components that own external registrations
 
-Some components hold state outside themselves: `Structure` owns grid cells and a navmesh hole,
+Some components hold state outside themselves: `Fixture` owns grid cells and a navmesh hole,
 `Movement` owns a nav agent and an avoidance entry. Those gain an **active/inactive** axis so
 that two mutually-exclusive components can coexist on one piece with exactly one live.
 
@@ -263,7 +263,7 @@ Role itself comes from the discriminating keys below.
 
 | Key present                                        | Derives                                                                                      |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `footprint:` (terrain-grid occupation)             | occupies the grid → `Structure`, the `"structure"` group, footprint-adjacent command routing |
+| `footprint:` (terrain-grid occupation)             | occupies the grid → `Fixture`, the `"structure"` group, footprint-adjacent command routing |
 | `movement:`                                        | can be driven → `Movement`, the `"unit"` group, nav agent + avoidance                        |
 | `phases:`                                          | a token moved by its phase list → a `PhasedLocomotion` and a `Payload` on an `Entity` root, no command queue, no selection |
 | `vision:`                                          | contributes fog reveal → `VisionRange`, the `"los"` group                                    |
@@ -534,7 +534,7 @@ re-asking when the emission rework changes what a weapon's reach means.
 
 ### Step 1 — the activation axis
 
-A two-form piece — `Structure` and `Movement` both present — has exactly one live: see
+A two-form piece — `Fixture` and `Movement` both present — has exactly one live: see
 `Entity.deploy` / `undeploy` / `set_deployed`, `Movement.set_active`, and
 `tests/test_TwoFormPiece.gd`. Two choices the code shows but does not argue:
 
@@ -576,7 +576,7 @@ old categories are refused with their replacement named, and a lowercase class n
 casing rule explained. A piece's role — fixture or figure, built or trained — is derived from
 `footprint:` and `movement:` (`SpecSchema.is_fixture`, `SpecGenerators._is_built`), a piece
 with neither nor `senses.vision:` is refused, and a new skeleton inherits the mobile base when
-the doc names `movement:`, gaining a `Structure` there if it also names a footprint. Validation
+the doc names `movement:`, gaining a `Fixture` there if it also names a footprint. Validation
 was already selected by the keys a doc declares; only the family switch remains, and it follows
 the class.
 
@@ -608,7 +608,7 @@ An ability doc is `kind: AbilityDefinition`, the class `AbilityCatalog` builds i
   so a structure stops carrying nav machinery it cannot use and `abstract_structure.tscn`
   stops having to override `MovementBody`'s shape because it cannot delete the node.
 - **The three hand-rolled outliers stop being outliers.** The extraction site, `shelter` and
-  `scout` hand-roll `Ownership` / `Structure` / `FootprintVisualizer` on a bare body precisely
+  `scout` hand-roll `Ownership` / `Fixture` / `FootprintVisualizer` on a bare body precisely
   because they could not accept everything their base would have given them. After
   composition there is nothing to refuse: each becomes an ordinary doc naming a shorter
   component list. This step should **start** with those three, not end with them — they are the
@@ -657,8 +657,8 @@ spans (`TscnDoc._prop_span`).
   a unit; the importer still requires a weapon's to be a projectile, and no piece emits one.
 - The `"structure"` group is split (2026-09-29): `"fixture"` for every fixture, `"structure"`
   only for one that takes orders ([piece-vocabulary](piece-vocabulary.md) §Where today's code
-  disagrees). The Actor class is named `Actor` (renamed 2026-10-08); PLANNED there, still: the
-  `Structure` component's rename to `Fixture`.
+  disagrees). The class renames followed on 2026-10-08: the Actor class is `Actor` and the
+  fixture component is `Fixture`.
 - The [get-node-or-null-audit](get-node-or-null-audit.md) verdicts are re-derived against the
   composed tiers (2026-10-08).
 

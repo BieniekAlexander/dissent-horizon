@@ -130,9 +130,9 @@ static func meets_precondition(
 	# circuit ahead of it would suppress that cue and confuse the player. So resolve
 	# placement first, then fall through to the resource/tech gate.
 	var preview := actor.commander.get_build_preview_instance(message.tool)
-	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
+	var obs := preview.get_node_or_null("Fixture") as Fixture if preview != null else null
 	# What the order claims is the tool's footprint turned the way the player set it.
-	var dims: Vector2i = Structure.oriented_dimensions(obs.dimensions, message.quarter_turns)
+	var dims: Vector2i = Fixture.oriented_dimensions(obs.dimensions, message.quarter_turns)
 
 	# A Extractor is asked a DIFFERENT placement question, because it has two kinds of home. On
 	# an ExtractionSite it is an OVERLAY: the site stays the cells' occupant and the extractor
@@ -146,11 +146,11 @@ static func meets_precondition(
 			message, dims, obs.allow_uneven, obs.allow_submerged, Extractor.works_ponds(preview)
 		):
 			return PreconditionFailureCause.INVALID_PLACEMENT
-	elif not Structure.valid_placement(message, dims, obs.allow_uneven, obs.allow_submerged):
+	elif not Fixture.valid_placement(message, dims, obs.allow_uneven, obs.allow_submerged):
 		return PreconditionFailureCause.INVALID_PLACEMENT
 
 	# The cells can be geometrically legal and still be a bad idea: NavPlacement asks what
-	# Structure.valid_placement does not — would this footprint split the walkable surface,
+	# Fixture.valid_placement does not — would this footprint split the walkable surface,
 	# and, for a structure that trains units, does it still leave itself a side to put them
 	# on. The bot has asked both since bot-economy's build-spot search; player placement
 	# wants the same answers, so a wall-in the bot could never create should not be one the
@@ -231,7 +231,7 @@ static func plan_structure(commander: Commander, message: CommandMessage) -> Act
 	# Map.add_structure will resolve when the builder commits it.
 	# Turn it the way the order says BEFORE reading the footprint, so the blueprint stands on the
 	# oriented cells, faces the right way, and commit_construction registers exactly these.
-	var blueprint_structure := blueprint.get_node_or_null("Structure") as Structure
+	var blueprint_structure := blueprint.get_node_or_null("Fixture") as Fixture
 	if blueprint_structure != null:
 		blueprint_structure.quarter_turns = message.quarter_turns
 	var dims: Vector2i = _tool_dimensions(commander, message.tool, message.quarter_turns)
@@ -265,9 +265,9 @@ static func _tool_dimensions(
 	commander: Commander, tool: Tool, a_quarter_turns: int = 0
 ) -> Vector2i:
 	var preview: Node = commander.get_build_preview_instance(tool)
-	var obs := preview.get_node_or_null("Structure") as Structure if preview != null else null
+	var obs := preview.get_node_or_null("Fixture") as Fixture if preview != null else null
 	return (
-		Structure.oriented_dimensions(obs.dimensions, a_quarter_turns)
+		Fixture.oriented_dimensions(obs.dimensions, a_quarter_turns)
 		if obs != null
 		else Vector2i.ONE
 	)
@@ -663,7 +663,7 @@ func _place_structure(a_actor: Actor) -> Actor:
 	# → add_structure → proc_technology all see is_built = false. begin_construction sets
 	# build_progress (not @onready) so this survives _ready() without being overwritten.
 	new_structure.begin_construction()
-	var new_structure_component := new_structure.get_node_or_null("Structure") as Structure
+	var new_structure_component := new_structure.get_node_or_null("Fixture") as Fixture
 	if new_structure_component != null:
 		new_structure_component.quarter_turns = message.quarter_turns
 	_pay(a_actor)

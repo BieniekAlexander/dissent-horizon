@@ -140,7 +140,7 @@ func verdict(a_drop: Drop, a_xz: Vector2) -> Verdict:
 	var message := CommandMessage.new(map, null, null, Vector3(a_xz.x, 0.0, a_xz.y))
 	# Never onto a site or into a pond, for either drop: allow_submerged is never granted, and
 	# an occupied cell (a site is one) fails the footprint outright.
-	if not Structure.valid_placement(message, dims, rule["allow_uneven"], false):
+	if not Fixture.valid_placement(message, dims, rule["allow_uneven"], false):
 		return Verdict.BAD_FOOTPRINT
 	var cells: Array[Vector2i] = map.footprint_cells(a_xz, dims)
 	if not cells.all(
@@ -184,7 +184,7 @@ func _footprint_rule(a_drop: Drop) -> Dictionary:
 			)
 		)
 		var probe: Node = _footprint_scene(a_drop).instantiate()
-		var structure := probe.get_node_or_null("Structure") as Structure
+		var structure := probe.get_node_or_null("Fixture") as Fixture
 		_footprint_rules[a_drop] = {
 			"dims": structure.dimensions if structure != null else Vector2i.ONE,
 			"allow_uneven": structure.allow_uneven if structure != null else false,

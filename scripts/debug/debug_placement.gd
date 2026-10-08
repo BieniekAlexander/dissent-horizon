@@ -17,7 +17,7 @@ extends RefCounted
 static func admits(a_source: Entity, a_message: CommandMessage) -> bool:
 	if a_source == null or a_message == null or a_message.map == null:
 		return false
-	var structure := a_source.get_node_or_null("Structure") as Structure
+	var structure := a_source.get_node_or_null("Fixture") as Fixture
 	if structure != null and a_source.spawns_deployed():
 		return fixture_admits(
 			structure, Extractor.of(a_source) != null, a_message, Extractor.works_ponds(a_source)
@@ -29,7 +29,7 @@ static func admits(a_source: Entity, a_message: CommandMessage) -> bool:
 ## stands in a pond (when `a_works_ponds`), everything else needs in-bounds, empty, flat, dry
 ## cells.
 static func fixture_admits(
-	a_structure: Structure,
+	a_structure: Fixture,
 	a_is_extractor: bool,
 	a_message: CommandMessage,
 	a_works_ponds: bool = true
@@ -42,7 +42,7 @@ static func fixture_admits(
 			a_structure.allow_submerged,
 			a_works_ponds
 		)
-	return Structure.valid_placement(
+	return Fixture.valid_placement(
 		a_message, a_structure.dimensions, a_structure.allow_uneven, a_structure.allow_submerged
 	)
 

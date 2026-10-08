@@ -624,7 +624,7 @@ func add_entity(a_entity: Entity, a_location: Vector2, a_commander: Commander) -
 ## identical position in every case (even-sized footprints centre on a grid corner,
 ## odd on a cell).
 ##
-## `a_quarter_turns` orients the footprint (Structure.quarter_turns; the piece is turned to match).
+## `a_quarter_turns` orients the footprint (Fixture.quarter_turns; the piece is turned to match).
 ## The default, -1, means "as the piece already is" — its own count, and its yaw left alone — which
 ## is what a placed blueprint, an event's spawn and a deploy all want.
 ## gdd/systems/terrain-and-navigation/footprint-rotation.md
@@ -634,7 +634,7 @@ func add_structure(
 	# Footprint size from the Structure component (1×1 fallback), turned to the piece's
 	# orientation. footprint_origin centres the structure parity-correctly; footprint_centroid is
 	# the same point the editor terrain-snap plugin snaps to.
-	var obs := a_structure.get_node_or_null("Structure") as Structure
+	var obs := a_structure.get_node_or_null("Fixture") as Fixture
 	if obs != null and a_quarter_turns >= 0:
 		obs.quarter_turns = a_quarter_turns
 	var dims: Vector2i = obs.footprint_dimensions() if obs != null else Vector2i.ONE
@@ -1634,7 +1634,7 @@ func entity_terrain_cells(a_node: Node3D) -> Array[Vector2i]:
 	if not is_instance_valid(a_node) or height_map == null:
 		return cells
 	var xz := Vector2(a_node.global_position.x, a_node.global_position.z)
-	var structure := a_node.get_node_or_null("Structure") as Structure
+	var structure := a_node.get_node_or_null("Fixture") as Fixture
 	if structure == null:
 		cells.append(world_to_grid(xz))
 		return cells
@@ -1647,11 +1647,11 @@ func entity_terrain_cells(a_node: Node3D) -> Array[Vector2i]:
 
 
 ## Whether the current terrain holds `node` up across all of `cells`. Structures additionally
-## require perfectly level ground — unless they opt out via Structure.allow_uneven, the same
-## flag Structure.valid_placement honours, so the cull can't delete a building the game would
+## require perfectly level ground — unless they opt out via Fixture.allow_uneven, the same
+## flag Fixture.valid_placement honours, so the cull can't delete a building the game would
 ## happily have let the player place.
 func _terrain_supports_entity(a_node: Node3D, a_cells: Array[Vector2i]) -> bool:
-	var structure := a_node.get_node_or_null("Structure") as Structure
+	var structure := a_node.get_node_or_null("Fixture") as Fixture
 	var requires_flat: bool = structure != null and not structure.allow_uneven
 	for cell: Vector2i in a_cells:
 		if not terrain_data.cell_supports_entity(cell):

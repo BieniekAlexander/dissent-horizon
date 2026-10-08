@@ -43,8 +43,8 @@ class StubPiece:
 			node.name = pair[0]
 			piece.add_child(node)
 		if a_is_structure:
-			var structure := Structure.new()
-			structure.name = "Structure"
+			var structure := Fixture.new()
+			structure.name = "Fixture"
 			piece.add_child(structure)
 		var bar := Node3D.new()
 		bar.name = "HPBar"

@@ -33,7 +33,7 @@ commander while the Hijacker itself is expended.
   is the same shape
 - **Units only, never structures.** A building changing hands is `Capture`'s job and has
   completely different bookkeeping — structure registry, infrastructure, terrain grid — so the
-  precondition excludes anything with a `Structure` component outright
+  precondition excludes anything with a `Fixture` component outright
 - **Non-friendly, not enemy-only**, matching ABDUCT: a derelict neutral vehicle is a
   legitimate prize
 - The pairing with ABDUCT is deliberate and worth keeping in mind when balancing: the

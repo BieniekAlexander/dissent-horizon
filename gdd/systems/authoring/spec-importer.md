@@ -99,7 +99,7 @@ Still scene-only, and each for a reason worth knowing: `DockingBay` pads (spatia
 
 The mask lives on the EFFECT, not on the `EffectApplicator`, and deliberately: the applicator `duplicate()`s its templates per recipient, so the effect already IS the per-recipient object, and a second copy of the rule on the applicator could only ever disagree with it. A stun is a HARD stop (`Actor.is_stunned()` gates all command processing) — "disabled but still mobile" would be a different effect type and does not exist.
 
-**Ownership can change hands two ways, and which one applies is decided by what the target IS.** `Capture` is for STRUCTURES (a neutral building, worked on until `build_progress` completes); `Interaction.Type.HIJACK` is for MECH-frame UNITS (the Anarchists' Hijacker, expended in the act). They are deliberately separate rather than one generalised "take this over": a structure changing owner drags the structure registry, infrastructure accounting and the terrain grid with it — all of which `Actor._on_commander_changed` gates on the `"structure"` group — while a unit changing owner is a reparent plus a set of RVO avoidance layers. HIJACK's precondition therefore excludes anything with a `Structure` component outright rather than trying to cover both.
+**Ownership can change hands two ways, and which one applies is decided by what the target IS.** `Capture` is for STRUCTURES (a neutral building, worked on until `build_progress` completes); `Interaction.Type.HIJACK` is for MECH-frame UNITS (the Anarchists' Hijacker, expended in the act). They are deliberately separate rather than one generalised "take this over": a structure changing owner drags the structure registry, infrastructure accounting and the terrain grid with it — all of which `Actor._on_commander_changed` gates on the `"structure"` group — while a unit changing owner is a reparent plus a set of RVO avoidance layers. HIJACK's precondition therefore excludes anything with a `Fixture` component outright rather than trying to cover both.
 
 Two things a unit handover must do that assigning `commander` does not:
 
@@ -108,7 +108,7 @@ Two things a unit handover must do that assigning `commander` does not:
 
 **Known gap:** a hijacked unit stays in its former owner's HUD selection until they reselect — `RTSController` prunes its selection on validity, not on ownership. Nothing could change hands before HIJACK existed, so the case had never arisen. Tests: `tests/test_HijackInteraction.gd`.
 
-`Structure` (`scripts/entities/components/structure.gd`): the node-child that marks an entity as a structure and declares `dimensions: Vector2i` — the footprint in grid cells (doc key `footprint`). `Map.add_structure` reads this to register all occupied cells.
+`Fixture` (`scripts/entities/components/fixture.gd`): the node-child that marks an entity as a structure and declares `dimensions: Vector2i` — the footprint in grid cells (doc key `footprint`). `Map.add_structure` reads this to register all occupied cells.
 
 `Repairs` (`scripts/entities/components/repairs.gd`) is one of the two PRESENCE-ONLY components the importer syncs (`Stealth` is the other): its doc key is a bare `repairs: true` rather than a list, because the Repair command asks nothing of the actor but that the node exists. `true` creates it, `false` removes one the scene owns, an omitted key leaves the scene alone. The rate (`Repairs.repair_rate`) is scene-authored and not doc-governed yet — give the key a mapping form when the first unit needs to differ.
 
