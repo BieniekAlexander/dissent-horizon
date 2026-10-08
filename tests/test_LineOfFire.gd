@@ -94,3 +94,56 @@ func test_a_structure_is_not_cover_against_itself() -> void:
 	await wait_physics_frames(2)
 	assert_true(tower.blocks_line_of_fire(), "guards the fixture: the tower is an obstruction")
 	assert_false(Attack._obstruction_on_line(tower, target))
+
+
+#region Terrain
+## TERRAIN BLOCKS A SHOT ONLY FOR A WEAPON SHORT OF ARTILLERY REACH. A hill is a box on the
+## TERRAIN layer here (the harness for the baked surface body). Why:
+## gdd/systems/combat/target-acquisition.md §Terrain on the line of fire.
+func _hill_between() -> StaticBody3D:
+	var hill := StaticBody3D.new()
+	hill.collision_layer = CollisionLayers.Mask.TERRAIN
+	hill.collision_mask = 0
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(2, 10, 6)
+	shape.shape = box
+	hill.add_child(shape)
+	add_child_autofree(hill)
+	return hill
+
+
+func test_terrain_blocks_a_short_weapon() -> void:
+	_hill_between()
+	var shooter: Actor = _piece(SOLDIER, _commander(1), Vector3(-SPAN, 0, 0))
+	var target: Actor = _piece(SOLDIER, _commander(2), Vector3(SPAN, 0, 0))
+	await wait_physics_frames(2)
+	assert_true(Attack._obstruction_on_line(shooter, target))
+
+
+func test_terrain_does_not_block_an_artillery_weapon() -> void:
+	_hill_between()
+	var gun: Dictionary = {"speed": 2.0, "weapon": {"ground": RangeShapes.artillery_reach()}}
+	var shooter: Actor = _piece(gun, _commander(1), Vector3(-SPAN, 0, 0))
+	var target: Actor = _piece(SOLDIER, _commander(2), Vector3(SPAN, 0, 0))
+	await wait_physics_frames(2)
+	assert_false(Attack._obstruction_on_line(shooter, target))
+
+
+func test_terrain_off_the_line_does_not_block() -> void:
+	_hill_between().position = Vector3(0, 0, 20)
+	var shooter: Actor = _piece(SOLDIER, _commander(1), Vector3(-SPAN, 0, 0))
+	var target: Actor = _piece(SOLDIER, _commander(2), Vector3(SPAN, 0, 0))
+	await wait_physics_frames(2)
+	assert_false(Attack._obstruction_on_line(shooter, target))
+
+
+func test_terrain_does_not_block_a_shot_at_an_air_target() -> void:
+	_hill_between()
+	var shooter: Actor = _piece(SOLDIER, _commander(1), Vector3(-SPAN, 0, 0))
+	var target: Actor = _piece(AIRCRAFT, _commander(2), Vector3(SPAN, 0, 0))
+	await wait_physics_frames(2)
+	assert_false(Attack._obstruction_on_line(shooter, target))
+
+
+#endregion

@@ -161,22 +161,28 @@ closes or goes round (`Attack._obstruction_on_line`).
 **Superseded:** every finished fixture was cover, occupant-only ones included, and it was cover
 against aircraft too.
 
-**Terrain blocks neither shots nor sight today.** `Attack._obstruction_on_line` queries only
-`STRUCTURE_BLOCKER`, so a unit may be ordered to shoot through a ridge, a cliff, or (once
-[obstacle regions](../terrain-and-navigation/map-generation.md) §Obstacle regions are built) a
-mountain. Only an emission whose flight tests contact stops on terrain, and only after it has
-been fired.
+### Terrain on the line of fire
 
-TODO: whether, and which, terrain obstructs a shot is Alex's to resolve (deferred 2026-10-01).
-Any rule would be for a grounded shooter and a grounded target only, the same air exemption as
-obstructions. The cases as Alex framed them:
+**Terrain never obstructs SIGHT.** Fog and vision ignore the ground (decided 2026-10-08).
 
-- **A ridge between the two:** nothing should obstruct the shot.
-- **Sufficiently high terrain between them, such as a mountain:** it probably should.
-- **The two at different elevations, with a cliff between them:** it probably should not.
-- **Artillery:** may fire over obstructions, and be exempt.
-- **Vision:** terrain obstructing vision is also open, subject to performance (fog stamping
-  would need occlusion), balance, and visual fidelity.
+**Terrain obstructs a shot from a weapon whose reach is below `RangeShapes.artillery_reach()`**
+(the radius of the imported `ground_range_artillery` shape, 20 today, from `gdd/shapes/shapes.md`; decided 2026-10-08).
+Artillery and siege weapons lob over the ground and are exempt; everything shorter fires along
+it. `Attack._terrain_on_line` casts ONE ray from the shooter to the target against the
+`TERRAIN` layer — the physics body the surface mesh is baked into — and any hit refuses the
+shot, so the attacker closes or goes round exactly as for an obstruction. Both ends are lifted
+`TERRAIN_RAY_LIFT` (0.5) so the ray does not graze the surface it starts on; a bump lower than
+that is not cover.
+
+- **Ground to ground only,** the same air exemption as obstructions.
+- **The weapon that would fire decides** (`Weapon.reach_for` the target). A piece with no
+  weapon of its own, such as a bunker firing its occupants' weapons, is not terrain-blocked.
+- **Pitfall accepted:** the rule is a straight ray with no height judgement, so a ridge higher
+  than the lift blocks too, and a cliff between two elevations blocks when the ray clips it.
+  The earlier cases ("a ridge should not block") are met only by the lift. Refine with a
+  minimum obstruction height if play shows it matters.
+- **Pitfall accepted:** only the order-time check sees terrain; an emission still flies
+  free of it unless a phase's `impact_mask` names `TERRAIN`.
 
 ## A Defend order also considers every enemy structure
 

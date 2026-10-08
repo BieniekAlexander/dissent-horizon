@@ -134,10 +134,14 @@ The macro valuation (demand map → strength per energy → savings) is one addi
 
 ## Combat
 
-### T-008 · Does terrain obstruct shots, or sight? #effort/high #needs-input
+### T-008 · Does terrain obstruct shots, or sight? #effort/high #scoped #done
 Changes were recently made to make sure that navigation mesh obstructing fixtures obstruct attack lines, so that an actor on one side of an obstruction cannot attack a target on the other side of the obstruction; Some terrain features have these same sorts of elevation considerations such that a terrain mountain (represented in the world height map) also obstructs attack lines; there's some complexity here regarding projectile collisions happening with the height map surface, but not necessarily with structures, so help me actually come up with better definitions regarding how this is represented in the physics.
 Cases so far: a ridge should not block, high terrain such as a mountain probably should, a cliff between two elevations probably should not, artillery may be exempt; blocking sight is open too, subject to performance, balance and visual fidelity.
 → [combat/target-acquisition](systems/combat/target-acquisition.md) §Line of fire
+
+> [!check] Status — 2026-10-08
+> Sight is never obstructed by terrain. A shot is obstructed by terrain when the weapon's reach is below `RangeShapes.artillery_reach()` (the artillery shape's radius): one `TERRAIN`-layer ray, `Attack._terrain_on_line`; rule in `target-acquisition.md` §Terrain on the line of fire. Tests in `test_LineOfFire.gd`.
+> **Not done:** no height judgement (a ridge above the 0.5 ray lift blocks); in-flight emissions still ignore terrain. T-007 now resolves toward fog (terrain does not hide ground from sight), so the scout should read fog.
 
 ### T-013 · Should aggro rise for long-reach pieces? #effort/low #needs-input
 `AGGRO_MAX_RADIUS` sits below both artillery classes and below `ground_range_long` / `air_range_long`, so a target in that band is never picked up idle.
@@ -166,18 +170,6 @@ The vocabulary is written; open: the envelope per class pair, outpacing by range
 ### T-019 · How long a garrison's door takes #effort/medium #needs-input
 Entry and exit are instant, so a defender can empty a host before any flushing weapon lands. Exit time, entry time, exposure on exit, or a flush that acts on the door.
 → [combat/garrison-and-transport](systems/combat/garrison-and-transport.md) §Entry and exit take no time
-
-### T-020 · The Bombard shell's damage type #effort/low #needs-input
-SIEGE (weak to bio) or PLASMA, which absorbed HIGH_EXPLOSIVE on 2026-10-05. The shell is PLASMA today, for the power fantasy; blasts already hit allies.
-→ [design-framework/static-defence](design-framework/static-defence.md) §The Bombard, [combat/bombardment](systems/combat/bombardment.md)
-
-### T-021 · Bombard recharge #effort/low #needs-input
-Untuned; at least 15 s is the working minimum. Work Detail shortens it (8 % of the full cooldown per completed sentence at an adjacent Compound).
-→ [design-framework/static-defence](design-framework/static-defence.md) §The Bombard
-
-### T-022 · Is a Recruit's beacon permanent? #effort/low #needs-input
-As built it stands until a shot spends it or the Recruit is re-ordered or leashed out.
-→ [combat/bombardment](systems/combat/bombardment.md) §Spotting is a commitment
 
 ### T-023 · The Spot animation, and what an opponent reads from it #effort/medium #needs-input
 The Recruit needs an animation showing the Spot action while it channels and holds a beacon. Open: what an opponent with vision of the Recruit may read from it, since the animation is itself a tell.

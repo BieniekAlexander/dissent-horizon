@@ -220,8 +220,7 @@ other factions' statics. System rules: [bombardment](../systems/combat/bombardme
   table. A tuning pass that makes targeting easier is touching coverage.
 
 Any heal strips an enemy beacon off its carrier ([bombardment](../systems/combat/bombardment.md)
-§Beacons). Open (see [tasks](../tasks.md) T-020, T-022, T-023, T-024): the shell's damage type, whether a Recruit's
-beacon is permanent, and how much of beacon placement the opponent sees.
+§Beacons). Open (see [tasks](../tasks.md) T-023, T-024): how much of beacon placement the opponent sees.
 
 ## Libertarians (the Warden)
 

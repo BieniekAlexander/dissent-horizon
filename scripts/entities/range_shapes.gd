@@ -11,6 +11,18 @@ extends RefCounted
 ## the radius is meaningful. The spec importer writes this into every doc-governed cylinder.
 const SHAPE_HEIGHT: float = 100.0
 
+## The generated shape-library entry that marks the artillery boundary. A weapon whose reach is
+## BELOW its radius fires along the ground and is stopped by terrain on the line
+## (Attack._terrain_on_line); at or above it, the shot is lobbed.
+const ARTILLERY_SHAPE_PATH: String = "res://resources/generated/shapes/ground_range_artillery.tres"
+
+
+## The artillery reach in world units, read from the imported shape so retuning the bucket in
+## gdd/shapes/shapes.md moves the rule with it. -1.0 if the shape is missing or not round.
+static func artillery_reach() -> float:
+	return radius_of(load(ARTILLERY_SHAPE_PATH) as Shape3D)
+
+
 ## The aggro rule: one unit past reach, never below MIN nor above MAX.
 const AGGRO_MARGIN: float = 1.0
 const AGGRO_MIN_RADIUS: float = 5.0

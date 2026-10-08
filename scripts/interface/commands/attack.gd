@@ -39,12 +39,13 @@ static func _target_attackable(message: CommandMessage) -> bool:
 	return is_instance_valid(t) and t.is_attackable()
 
 
-## True when an obstruction's body lies on the line between a_actor and a_target
-## (excluding both ends: attacking a structure directly is never blocked by that same
-## structure, and a structure SHOOTING is never blocked by itself — its ray starts at its
-## own origin, on its own blocker body, which is how a Watch Tower once never fired
-## unordered). Only between two pieces on the ground: when either is an AIR target, the
-## shot clears every building, and may visually pass through one.
+## True when something lies on the line between a_actor and a_target that denies the shot:
+## an obstruction's body (excluding both ends: attacking a structure directly is never blocked
+## by that same structure, and a structure SHOOTING is never blocked by itself — its ray starts
+## at its own origin, on its own blocker body, which is how a Watch Tower once never fired
+## unordered), or the terrain surface for a weapon short of artillery reach
+## (`_terrain_on_line`). Only between two pieces on the ground: when either is an AIR target,
+## the shot clears every building and every hill, and may visually pass through one.
 ## Why: gdd/systems/combat/target-acquisition.md §Line of fire.
 static func _obstruction_on_line(actor: Actor, target: Entity) -> bool:
 	if actor.is_air_target() or target.is_air_target():
@@ -61,7 +62,36 @@ static func _obstruction_on_line(actor: Actor, target: Entity) -> bool:
 		if end.hurtbox != null:
 			excludes.append(end.hurtbox.get_rid())
 	query.exclude = excludes
-	return not space_state.intersect_ray(query).is_empty()
+	if not space_state.intersect_ray(query).is_empty():
+		return true
+	return _terrain_on_line(actor, target)
+
+
+## How far above the ground, in world units, the terrain ray leaves each end. Both pieces
+## stand ON the surface, so a ray between their origins grazes it and can report a hit at its
+## own start; lifting it also means a bump lower than this is not a ridge worth hiding behind.
+const TERRAIN_RAY_LIFT: float = 0.5
+
+
+## True when the terrain surface lies between a_actor and a_target AND a_actor's weapon is
+## short of artillery reach (`RangeShapes.artillery_reach()`): long-reach guns lob over the
+## ground, shorter ones fire along it. One ray against the TERRAIN layer — the physics body
+## the surface mesh is baked into — so the cost is a single query per check.
+## Why: gdd/systems/combat/target-acquisition.md §Terrain on the line of fire.
+static func _terrain_on_line(actor: Actor, target: Entity) -> bool:
+	if actor.weapon_inventory == null:
+		return false
+	var weapon: Weapon = actor.weapon_inventory.weapon_for_target(target)
+	if weapon == null:
+		return false
+	var reach: float = weapon.reach_for(target)
+	if reach < 0.0 or reach >= RangeShapes.artillery_reach():
+		return false
+	var lift: Vector3 = Vector3.UP * TERRAIN_RAY_LIFT
+	var query := PhysicsRayQueryParameters3D.create(
+		actor.global_position + lift, target.global_position + lift, CollisionLayers.Mask.TERRAIN
+	)
+	return not actor.get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
 ## Returns the weapon from a_actor's inventory that can target message.target,
