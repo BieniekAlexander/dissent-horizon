@@ -558,6 +558,11 @@ Commands are the primary game-action abstraction. Each command is a `RefCounted`
 
 **A unit wider than a cell reaches a building differently.** Its class navmesh is eroded back from every wall, so it can neither stand in a cell touching a footprint nor path through a one-cell gap — which is why "close to a structure" allows a size-class standoff, and why the approach cell is chosen by a real path rather than by distance. → [`gdd/systems/terrain-and-navigation/agent-size-classes.md`](gdd/systems/terrain-and-navigation/agent-size-classes.md) §Reaching a building
 
+**A player's order reaches the simulation as a `PlayerOrder` on the scenario's `OrderStream`,
+applied by `OrderDispatcher` at the start of the next tick** — never by UI code touching pieces
+directly, or a replay of the match drifts. Pieces in an order are named by `Entity.spawn_serial`.
+→ [`gdd/systems/commands/recording-and-replay.md`](gdd/systems/commands/recording-and-replay.md)
+
 Build, Assemble and Repair — the construction and repair command family.
 → **[`gdd/systems/commands/construction.md`](gdd/systems/commands/construction.md)**
 

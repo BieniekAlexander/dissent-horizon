@@ -325,9 +325,19 @@ func _on_occupant_card_activated(
 ) -> void:
 	if not is_instance_valid(a_host) or not is_instance_valid(a_occupant):
 		return
-	var garrison: Garrison = a_host.get_node_or_null("Garrison") as Garrison
-	if garrison != null and garrison.can_release_occupant(a_occupant):
-		garrison.evacuate_one(a_occupant, a_host.map)
+	# An order on the scenario's stream, so a replay lets it out too
+	# (recording-and-replay.md §The order stream); at once outside a scenario.
+	var stream: OrderStream = OrderStream.of(self)
+	if stream == null:
+		OrderDispatcher.release_occupant(a_host, a_occupant)
+		return
+	stream.submit(
+		PlayerOrder.new(
+			PlayerOrder.Kind.RELEASE_OCCUPANT,
+			a_host.commander_id,
+			{"host": a_host.spawn_serial, "occupant": a_occupant.spawn_serial}
+		)
+	)
 
 
 ## Detaches children immediately (so they aren't laid out for a stale frame) and

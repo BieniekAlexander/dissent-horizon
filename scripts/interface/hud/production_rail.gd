@@ -794,10 +794,26 @@ func _on_clear_standing_pressed() -> void:
 
 func _cancel_each(a_transactions: Array[PurchaseTransaction]) -> void:
 	var queue: ProductionQueue = _queue()
-	if queue == null:
+	if queue == null or a_transactions.is_empty():
 		return
-	for transaction: PurchaseTransaction in a_transactions.duplicate():
-		queue.cancel(transaction)
+	# One order on the scenario's stream, so a replay cancels them too
+	# (recording-and-replay.md §The order stream); at once outside a scenario.
+	var stream: OrderStream = OrderStream.of(self)
+	if stream == null:
+		for transaction: PurchaseTransaction in a_transactions.duplicate():
+			queue.cancel(transaction)
+		return
+	var owner: int = a_transactions[0].commander.id if a_transactions[0].commander != null else 0
+	stream.submit(
+		PlayerOrder.new(
+			PlayerOrder.Kind.CANCEL_PURCHASE,
+			owner,
+			{
+				"owner": owner,
+				"purchases": a_transactions.map(func(t: PurchaseTransaction) -> int: return t.id)
+			}
+		)
+	)
 
 
 ## Detaches children immediately (so they aren't laid out for a stale frame) and frees them.

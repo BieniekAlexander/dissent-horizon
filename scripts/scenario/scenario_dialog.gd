@@ -43,6 +43,9 @@ var secondary_text: String = ""
 ## True once acknowledge() has run. Guards against a second click, and lets a view that
 ## opens late (the dialog was raised before the HUD existed) see it is already resolved.
 var _acknowledged: bool = false
+## The number the trigger manager gave this dialog when it was raised (raise_dialog), the same on
+## every run of a seed — how a recorded acknowledgement names it. 0 until raised.
+var serial: int = 0
 #endregion
 
 

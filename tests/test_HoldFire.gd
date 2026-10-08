@@ -86,7 +86,7 @@ func test_it_is_offered_to_an_armed_piece_only() -> void:
 func test_toggling_sets_the_flag_on_armed_pieces_and_skips_the_rest() -> void:
 	var armed: Commandable = _piece(true)
 	var unarmed: Commandable = _piece(false)
-	RTSController.toggle_hold_fire([armed, unarmed])
+	OrderDispatcher.toggle_hold_fire([armed, unarmed])
 	assert_true(armed.is_holding_fire)
 	assert_false(unarmed.is_holding_fire, "a no-op on a piece without a weapon")
 
@@ -95,7 +95,7 @@ func test_toggling_a_partly_held_selection_holds_all_of_it() -> void:
 	var first: Commandable = _piece()
 	var second: Commandable = _piece()
 	first.is_holding_fire = true
-	RTSController.toggle_hold_fire([first, second])
+	OrderDispatcher.toggle_hold_fire([first, second])
 	assert_true(first.is_holding_fire, "some holding means set, not flip each")
 	assert_true(second.is_holding_fire)
 
@@ -106,7 +106,7 @@ func test_toggling_a_wholly_held_selection_releases_all_of_it() -> void:
 	var unarmed: Commandable = _piece(false)
 	first.is_holding_fire = true
 	second.is_holding_fire = true
-	RTSController.toggle_hold_fire([first, second, unarmed])
+	OrderDispatcher.toggle_hold_fire([first, second, unarmed])
 	assert_false(first.is_holding_fire)
 	assert_false(second.is_holding_fire, "the unarmed piece does not stop 'all' being all")
 
@@ -115,7 +115,7 @@ func test_holding_leaves_the_queue_as_it_was() -> void:
 	var piece: Commandable = _piece()
 	var victim: Commandable = _piece()
 	piece.update_commands(_attack(victim))
-	RTSController.toggle_hold_fire([piece])
+	OrderDispatcher.toggle_hold_fire([piece])
 	assert_true(piece.is_holding_fire)
 	assert_true(piece.current_command() is Attack, "a pseudo-command touches no queue")
 

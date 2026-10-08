@@ -114,7 +114,7 @@ func test_orders_that_are_not_a_move_may_not() -> void:
 func test_an_immobile_actor_takes_no_slot() -> void:
 	var mover: Commandable = _unit({"speed": 2.0}, Vector2(0, 5))
 	var still: Commandable = _unit({}, Vector2(1, 5))
-	assert_eq(RTSController._line_movers([mover, still]), [mover])
+	assert_eq(OrderDispatcher.line_movers([mover, still]), [mover])
 
 
 func test_a_lone_actor_goes_to_the_end_of_the_line() -> void:

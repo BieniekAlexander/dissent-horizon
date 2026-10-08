@@ -423,12 +423,44 @@ func _gui_input(a_event: InputEvent) -> void:
 		return
 	if _producer != null:
 		if is_instance_valid(_producer) and _producer.production != null:
-			_producer.production.cancel(_job_index)
+			_cancel_job()
 	elif _transaction != null:
 		if _queue != null:
-			_queue.cancel(_cancel_target if _cancel_target != null else _transaction)
+			_cancel_purchase(_cancel_target if _cancel_target != null else _transaction)
 	elif _commandable != null and is_instance_valid(_commandable):
 		activated.emit(_commandable, (a_event as InputEventMouseButton).shift_pressed)
+
+
+## Cancel this card's job — as an order on the scenario's stream, so a replay cancels it too
+## (recording-and-replay.md §The order stream); at once outside a scenario.
+func _cancel_job() -> void:
+	var stream: OrderStream = OrderStream.of(self)
+	if stream == null:
+		_producer.production.cancel(_job_index)
+		return
+	stream.submit(
+		PlayerOrder.new(
+			PlayerOrder.Kind.CANCEL_JOB,
+			_producer.commander_id,
+			{"producer": _producer.spawn_serial, "job": _job_index}
+		)
+	)
+
+
+## Cancel `a_transaction` — an order on the stream, or at once outside a scenario.
+func _cancel_purchase(a_transaction: PurchaseTransaction) -> void:
+	var stream: OrderStream = OrderStream.of(self)
+	if stream == null:
+		_queue.cancel(a_transaction)
+		return
+	var owner: int = a_transaction.commander.id if a_transaction.commander != null else 0
+	stream.submit(
+		PlayerOrder.new(
+			PlayerOrder.Kind.CANCEL_PURCHASE,
+			owner,
+			{"owner": owner, "purchases": [a_transaction.id]}
+		)
+	)
 
 
 #endregion

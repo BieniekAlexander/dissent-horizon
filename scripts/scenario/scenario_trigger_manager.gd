@@ -66,6 +66,11 @@ var _fog: Node  # fog.gd MeshInstance3D; cached on first get_fog() call
 ## GlobalTrigger (whose events are independent of any entity). Available to events via
 ## the manager while they execute; saved/restored around nested events.
 var reaction_source: Entity = null
+
+## Every dialog raised and not yet resolved, by serial — how a recorded acknowledgement finds its
+## dialog. Entries leave as their dialog is acknowledged.
+var _open_dialogs: Dictionary = {}
+var _next_dialog_serial: int = 1
 #endregion
 
 
@@ -377,6 +382,22 @@ func get_fog() -> Node:
 ## EventCommand — are left alone; entities reach the world via EventSpawnEntities, never
 ## realized directly. `source` is the entity an EntityTrigger fired on (null for a
 ## GlobalTrigger), exposed to events through reaction_source for the duration of the run.
+## Put `a_dialog` up: number it, keep it findable until it is resolved, and hand it to whoever
+## draws dialogs (dialog_requested).
+func raise_dialog(a_dialog: ScenarioDialog) -> void:
+	a_dialog.serial = _next_dialog_serial
+	_next_dialog_serial += 1
+	_open_dialogs[a_dialog.serial] = a_dialog
+	var serial: int = a_dialog.serial
+	a_dialog.acknowledged.connect(func() -> void: _open_dialogs.erase(serial))
+	dialog_requested.emit(a_dialog)
+
+
+## The open dialog numbered `a_serial`, or null once it is resolved.
+func dialog_by_serial(a_serial: int) -> ScenarioDialog:
+	return _open_dialogs.get(a_serial)
+
+
 func run_event(a_event: AbstractEvent, a_source: Entity = null) -> void:
 	var prev_source := reaction_source
 	reaction_source = a_source

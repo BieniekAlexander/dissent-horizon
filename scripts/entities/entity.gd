@@ -217,6 +217,11 @@ var pc_set: Set = Set.new()
 ## Set BEFORE the entity enters the tree (see Commandable.plan_construction), because
 ## _ready and _on_commander_changed both consult it.
 var is_planned: bool = false
+
+## This piece's spawn serial: the number it took on first entering play, the same on every run
+## of a seed — how a recorded order names it (Scenario.register_piece). 0 until then, and for
+## good on anything that never enters play in a scenario (a build preview, a test fixture).
+var spawn_serial: int = 0
 #endregion
 
 #region Targeting priority
@@ -771,6 +776,8 @@ func _ready() -> void:
 	if vision_range_shape != null and not is_planned:
 		add_to_group("los")
 
+	_take_spawn_serial()
+
 	# Scene-placed entities (map == null) weren't spawned by the Scenario loader,
 	# so we self-initialize from default_commander_id after all _ready() calls
 	# have run (ensuring Scenario._ready() has already created the commanders).
@@ -778,6 +785,16 @@ func _ready() -> void:
 		call_deferred(&"_auto_initialize")
 
 	_validate()
+
+
+## Number this piece on its first entry into a scenario. Only pieces are numbered: an emission
+## is never named by an order.
+func _take_spawn_serial() -> void:
+	if spawn_serial != 0 or not is_in_group("piece") or Engine.is_editor_hint():
+		return
+	var scenario: Scenario = Scenario.of(self)
+	if scenario != null:
+		spawn_serial = scenario.register_piece(self)
 
 
 func _validate() -> void:

@@ -33,6 +33,31 @@ const _GLOBAL_DRAW_NAMES: Array[String] = [
 ## in the comment rather than added to make a red test green.
 const _ACKNOWLEDGED_GLOBAL_DRAWS: Array[String] = []
 
+## Calls that read the WALL CLOCK. Simulation code reading one would play differently on a
+## replay of the same seed (gdd/systems/commands/recording-and-replay.md §Detecting drift).
+## Conversions that take a time as an argument (`get_datetime_dict_from_unix_time`) are not
+## reads, and are not listed.
+const _WALL_CLOCK_READS: Array[String] = [
+	"Time.get_ticks_msec",
+	"Time.get_ticks_usec",
+	"Time.get_unix_time_from_system",
+	"Time.get_datetime_dict_from_system",
+	"Time.get_datetime_string_from_system",
+	"Time.get_date_dict_from_system",
+	"Time.get_time_dict_from_system",
+	"OS.get_ticks_msec",
+]
+
+## Scripts allowed to read the wall clock, each for a reason that never reaches the simulation.
+const _ACKNOWLEDGED_WALL_CLOCK_READS: Dictionary = {
+	"res://scripts/entities/components/selectable.gd": "double-click timing",
+	"res://scripts/interface/rts_controller.gd": "double-click timing",
+	"res://scripts/interface/hud/resource_pressure.gd": "a pulsing HUD bar",
+	"res://scripts/interface/scenario_highlight.gd": "a pulsing highlight",
+	"res://scripts/interface/commander/bot_scheduler.gd": "diagnostic job timing, never read back",
+	"res://scripts/replay/replay_recorder.gd": "names an autosave file",
+}
+
 
 #region The seed reproduces a run
 func test_the_same_seed_reproduces_the_gameplay_stream() -> void:
@@ -136,6 +161,28 @@ func test_no_script_draws_from_the_global_generator() -> void:
 		offenders,
 		[] as Array[String],
 		"unseeded global RNG draw(s) — route through SU.rng, or acknowledge with a reason"
+	)
+
+
+## The same guard for the wall clock: a simulation decision that reads it plays differently on
+## every run, so a replay of the same seed would drift.
+func test_no_simulation_script_reads_the_wall_clock() -> void:
+	var offenders: Array[String] = []
+	for path: String in _gd_scripts_under("res://scripts"):
+		if _ACKNOWLEDGED_WALL_CLOCK_READS.has(path):
+			continue
+		var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+		var lines: PackedStringArray = file.get_as_text().split("\n")
+		file.close()
+		for i: int in lines.size():
+			var code: String = _strip_strings_and_comments(lines[i])
+			for read: String in _WALL_CLOCK_READS:
+				if code.contains(read + "("):
+					offenders.append("%s:%d" % [path, i + 1])
+	assert_eq(
+		offenders,
+		[] as Array[String],
+		"wall-clock read(s) in simulation code — use the scenario tick, or acknowledge a UI use"
 	)
 
 

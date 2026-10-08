@@ -652,6 +652,17 @@ func set_autocast(a_ability_id: StringName, a_is_on: bool) -> void:
 		_manual_abilities[a_ability_id] = true
 
 
+## The live sanction this commander's grid holds under `a_name` (Sanction.sanction_name), or
+## null — how a recorded order names the sanction it casts.
+func sanction_named(a_name: String) -> Sanction:
+	if sanction_grid == null:
+		return null
+	for entry: SanctionGrid.Entry in sanction_grid.entries:
+		if entry.sanction != null and entry.sanction.sanction_name == a_name:
+			return entry.sanction
+	return null
+
+
 func toggle_autocast(a_ability_id: StringName) -> void:
 	set_autocast(a_ability_id, not is_autocasting(a_ability_id))
 

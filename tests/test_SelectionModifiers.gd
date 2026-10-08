@@ -136,6 +136,6 @@ func test_one_press_buys_one_without_the_modifier() -> void:
 
 func test_the_batch_size_is_a_named_constant() -> void:
 	assert_gt(
-		RTSController.BULK_PURCHASE_COUNT, 1, "a batch of one would make the modifier a no-op"
+		OrderDispatcher.BULK_PURCHASE_COUNT, 1, "a batch of one would make the modifier a no-op"
 	)
 #endregion

@@ -73,10 +73,12 @@ signal fulfilled(transaction: PurchaseTransaction, product: Node)
 #endregion
 
 #region Properties
-## Monotonic, unique, and never reused. The queue is addressable BY ID rather than by
-## position, which is what lets one transaction refer to another (a command attached to a
-## unit that is still being trained names the transaction producing it). Positions shift
-## every time anything ahead is dispatched or cancelled, so they can't carry a reference.
+## Monotonic and unique within a match: restarted at 1 as each scenario begins (reset_ids), so a
+## replay numbers its purchases exactly as the recorded match did. The queue is addressable BY
+## ID rather than by position, which is what lets one transaction refer to another (a command
+## attached to a unit that is still being trained names the transaction producing it) and a
+## recorded order name a purchase. Positions shift every time anything ahead is dispatched or
+## cancelled, so they can't carry a reference.
 static var _next_id: int = 1
 var id: int = 0
 
@@ -254,6 +256,11 @@ func clone() -> PurchaseTransaction:
 	# Production._spawn_unit), so sharing them across passes is safe.
 	copy.player_commands = player_commands.duplicate()
 	return copy
+
+
+## Start a match's numbering over. Called by Scenario._ready, before anything can be bought.
+static func reset_ids() -> void:
+	_next_id = 1
 
 
 static func _take_id() -> int:

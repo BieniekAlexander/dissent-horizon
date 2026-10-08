@@ -137,6 +137,8 @@ func acknowledge_current() -> void:
 	var dialog: ScenarioDialog = current_dialog()
 	if dialog == null:
 		return
+	if _submit_resolution(dialog, false):
+		return
 	# Drop it from the queue BEFORE acknowledging: acknowledging releases a simulation hold
 	# and can synchronously run listeners that raise the next dialog, and those must find a
 	# queue that no longer contains this one.
@@ -154,10 +156,41 @@ func choose_secondary_current() -> void:
 	var dialog: ScenarioDialog = current_dialog()
 	if dialog == null or not dialog.has_secondary():
 		return
+	if _submit_resolution(dialog, true):
+		return
 	_queue.remove_at(0)
 	dialog.choose_secondary()
 	_refresh()
 	dialog_dismissed.emit(dialog)
+
+
+## Resolve `a_dialog` as an order on the scenario's stream, so a replay resolves it on the same
+## tick (recording-and-replay.md §Watching). False outside a scenario, where the caller resolves
+## it at once. The window closes when the order lands (_on_dialog_resolved).
+func _submit_resolution(a_dialog: ScenarioDialog, a_is_secondary: bool) -> bool:
+	var stream: OrderStream = OrderStream.of(self)
+	if stream == null or a_dialog.serial == 0:
+		return false
+	var scenario: Scenario = Scenario.of(self)
+	var player: Commander = scenario.local_player() if scenario != null else null
+	stream.submit(
+		PlayerOrder.new(
+			PlayerOrder.Kind.DIALOG,
+			player.id if player != null else 0,
+			{"dialog": a_dialog.serial, "secondary": a_is_secondary}
+		)
+	)
+	return true
+
+
+## `a_dialog` was resolved, by whatever route — a click here, a recorded order, a script. Drop it
+## if it is still queued; a click resolved here has already been dropped.
+func _on_dialog_resolved(a_dialog: ScenarioDialog) -> void:
+	if not _queue.has(a_dialog):
+		return
+	_queue.erase(a_dialog)
+	_refresh()
+	dialog_dismissed.emit(a_dialog)
 
 
 #endregion
@@ -243,6 +276,7 @@ func _on_dialog_requested(a_dialog: ScenarioDialog) -> void:
 	if _help_open:
 		close_help()
 	_queue.append(a_dialog)
+	a_dialog.acknowledged.connect(_on_dialog_resolved.bind(a_dialog))
 	_refresh()
 
 

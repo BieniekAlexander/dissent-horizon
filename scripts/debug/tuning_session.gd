@@ -226,6 +226,7 @@ func unsaved_paths() -> Array:
 func edit(
 	a_address: Dictionary, a_field: PieceField, a_value: Variant, a_piece: StringName, a_index: int
 ) -> String:
+	_note_simulation_changed()
 	if a_address.is_empty():
 		return "this piece has no spec doc"
 	var ladder: Dictionary = speed_ladder()
@@ -256,6 +257,7 @@ func edit(
 
 ## Replace an emission's whole phase list — adding, removing or reordering phases.
 func set_phases(a_emission: Dictionary, a_phases: Array) -> String:
+	_note_simulation_changed()
 	var error: String = _convert_shorthand(a_emission)
 	if error.is_empty():
 		error = _write(a_emission, ["phases"], a_phases)
@@ -298,6 +300,13 @@ func live_pieces(a_id: StringName) -> Array[Entity]:
 		if node is Entity and (node as Entity).id == a_id:
 			pieces.append(node)
 	return pieces
+
+
+## A tuning edit changes live pieces, which no player order can: it ends the match's recording.
+func _note_simulation_changed() -> void:
+	var scenario: Scenario = Scenario.of(self) if is_inside_tree() else null
+	if scenario != null:
+		scenario.note_debug_change("a piece was retuned")
 
 
 func _write_field(a_address: Dictionary, a_field: PieceField, a_value: Variant) -> String:
@@ -350,6 +359,7 @@ func _mark_emission(a_address: Dictionary) -> void:
 ## Retune one speed class, and every piece and emission naming it. The ladder stays strictly
 ## increasing, as the importer requires of it.
 func set_speed(a_class: String, a_value: float) -> String:
+	_note_simulation_changed()
 	var ladder: Dictionary = speed_ladder()
 	var names: Array = ladder.keys()
 	var at: int = names.find(a_class)
@@ -378,6 +388,7 @@ func set_speed(a_class: String, a_value: float) -> String:
 ## Retune one library shape's radius. The shape is ONE resource every piece naming it shares, so
 ## the change reaches them all at once; what is derived from it is then re-derived.
 func set_shape_radius(a_id: String, a_radius: float) -> String:
+	_note_simulation_changed()
 	if a_radius <= 0.0:
 		return "a radius must be more than zero"
 	var shape: Shape3D = PieceFields.shape_resource(a_id)
