@@ -178,7 +178,7 @@ func restore(a_amount: float) -> bool:
 
 
 ## Drop hp straight to 0 without running the damage pipeline, for effects that must
-## destroy an entity outright (e.g. SuicideStatusEffect). Death still routes through
+## destroy an entity outright. Death still routes through
 ## the normal hp <= 0 detection in Commandable._update_state.
 func kill() -> void:
 	if hp == 0:

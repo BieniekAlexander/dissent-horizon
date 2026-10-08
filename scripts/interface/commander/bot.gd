@@ -1704,10 +1704,9 @@ func believed_enemy_army_value() -> float:
 
 
 ## Cached per type: { "radius": float, "damage": float, "type": Damage.Type } when a
-## unit is an AOE-SUICIDE unit (its weapon fires a projectile carrying a
-## SuicideStatusEffect with a blast shape), else null. Detected from the projectile,
-## not a unit name, so any such unit qualifies. Reads the projectile's HitShape
-## sphere for the blast radius and its base_damage/damage_type.
+## unit is an AOE-SUICIDE unit (a `self_destruct` weapon whose emission is a blast), else
+## null. Detected from the weapon, not a unit name, so any such unit qualifies. Reads the
+## emission's HitShape sphere for the blast radius and its base_damage/damage_type.
 var _aoe_profile_cache: Dictionary = {}
 
 
@@ -1727,18 +1726,19 @@ func _compute_aoe_suicide_profile(a_unit_type) -> Variant:
 	if loadout == null:
 		return null
 	for w: Weapon in loadout.get_weapons():
-		if w.projectile_scene == null:
+		if not w.self_destruct or w.projectile_scene == null:
 			continue
 		var proj: Node = w.projectile_scene.instantiate()
-		var suicide: bool = not (
-			proj.find_children("*", "SuicideStatusEffect", true, false).is_empty()
-		)
 		var radius: float = _projectile_blast_radius(proj)
-		var dmg: Variant = proj.get("base_damage")
-		var dtype: Variant = proj.get("damage_type")
+		var payload: Payload = Payload.of(proj)
+		var profile: Variant = (
+			{"radius": radius, "damage": payload.base_damage, "type": payload.damage_type}
+			if payload != null and radius > 0.0
+			else null
+		)
 		proj.free()
-		if suicide and radius > 0.0 and dmg != null:
-			return {"radius": radius, "damage": float(dmg), "type": dtype}
+		if profile != null:
+			return profile
 	return null
 
 

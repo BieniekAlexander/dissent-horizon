@@ -24,7 +24,7 @@ forever and nothing to make it descend.
 **The gate is the WEAPON'S REACH** (`Weapon.is_melee_ranged`): a weapon that only reaches as
 far as the airframe's own body is one that kills by arriving. That REPLACED an authored
 `Weapon.dive_attack` flag (`dive: true`), which said the same thing twice and could disagree
-with itself. It is NOT inferred from "has no projectile": the kamikaze's bomb IS a projectile,
+with itself. It is NOT inferred from "has no projectile": the kamikaze's blast IS an emission,
 so that test would have switched the dive off for the only unit that needs it.
 
 **A held post is LATCHED, not re-tested.** `Defend._on_station` is set the first time the unit reaches its post and cleared only if the post itself moves. A live "am I within arrival distance" test flickers for an aircraft, which circles rather than standing: the orbit carries it out, `should_move` goes true, the receiver drives it back at CRUISE speed, it arrives, the orbit pushes it out again. The unit ends up scything around its post at full speed instead of loitering over it. Latched, the orbit owns it from arrival and holds it at `orbit_speed` on `orbit_radius` — measured at 1.50 and 3.02, which is the same circuit an idle aircraft flies. A ground unit is unaffected: `should_move` false still means "stand still".
@@ -72,6 +72,36 @@ Three places read it, so a grounded aircraft neither fires, retaliates, nor goes
 `Attack._own_weapon_can_fire`, `Commandable._get_vision_range_attack`, and the idle-aggro
 pickup — which used to be gated on the narrower "parked" test and so missed a hover unit
 landed in a field. Ground units and turrets are untouched: neither carries an `Aerial`.
+
+**A rammer flies at its target's centre, even when the target is a fixture.** Every other
+order against a fixture walks to a footprint-adjacent cell, because that is where a ground
+unit can stand to act — and arriving there ends the order. The dive, meanwhile, is timed to
+bottom out over the target's centre (`Aerial._descend_toward_dive`). Together they sent a
+kamikaze to the edge of a Citadel still well above its reach, where it arrived, lost its
+order and flew off without striking; against a unit the two geometries coincide, which is
+why only fixtures showed it. `Attack.movement_destination` returns the target's position for
+a rammer, so the place it flies to and the place its dive lands are the same point. Ranged
+aircraft keep the approach cell.
+
+## A rammer strikes its target's top, and is spent on contact
+
+**The dive bottoms out on the TOP of what it rams** (`Entity.top_height`, the top of the
+target's hurtbox), and contact is measured from there: the rammer may strike once it is within
+its reach of that top (`Attack._dive_contact_made`). Measuring from the ground had the drone fly
+down through its target to the dirt before it was allowed to strike.
+
+**Striking is dying.** A `self_destruct` weapon fires nothing that flies: on the tick it fires,
+the wielder dies (`Weapon._self_destruct`), and the wielder's death sets off the weapon's
+emission where the wielder is (`Weapon._on_wielder_occurrence`): a motionless blast. Before
+this, the drone launched a bomb and lived until the bomb's blast killed it two or three ticks
+later. In those ticks it skimmed the ground, levelled its nose and turned onto its next target,
+which read as the drone flailing just before impact.
+
+**Shot down, it still explodes, once.** A diving rammer drops below
+`Aerial.AIR_TARGET_ALTITUDE`, so ground weapons can reach it on its way in. That stays: the dive
+is the window in which the ground can answer. The price is paid by the shooter, because any
+death sets the blast off. One latch (`Weapon._has_self_destructed`) is the whole guarantee of a
+single blast, however many paths reach the death.
 
 ## Pitch and roll go on the ART; only yaw goes on the body
 

@@ -1551,6 +1551,7 @@ const WEAPON_KEYS: Array = [
 	"startup_time",
 	"clip_size",
 	"charged",
+	"self_destruct",
 	"turret",
 	"turret_turn_rate",
 	"range_from",
@@ -1657,6 +1658,9 @@ func _validate_weapon(a_spec: Dictionary, a_weapon: Dictionary, a_seen: Dictiona
 		a_weapon["_reach_radii"] = _resolve_reach(a_spec, wname, a_weapon["reach"])
 	if a_weapon.has("range_from"):
 		_validate_range_from(a_spec, wname, str(a_weapon["range_from"]))
+	# The self-destruct blast IS the weapon's emission, so a melee weapon has nothing to set off.
+	if bool(a_weapon.get("self_destruct", false)) and not a_weapon.has("projectile"):
+		_err(a_spec, "weapon '%s' has self_destruct but emits nothing" % wname)
 	# A turn rate on a weapon that is not a turret would sit in the doc doing nothing, and
 	# read as authoritative — the drift the key whitelist exists to stop.
 	if a_weapon.has("turret_turn_rate"):

@@ -80,7 +80,7 @@ They pair up, and that is why they landed together: `detection` is what SEES a `
 
 Three things follow, and each has bitten already:
 
-- **Splash damage is NOT a missing feature**, and a search for "splash"/"aoe"/"radius" in `payload.gd` will convince you otherwise — the mechanic is spelled `hit_shape` and lives in a `SU.query_shape_for_entities` call. Every non-hitscan projectile with a hit shape is an area weapon; the Kamikaze's bomb has been doing 2.0-radius friendly-fire splash since it was written.
+- **Splash damage is NOT a missing feature**, and a search for "splash"/"aoe"/"radius" in `payload.gd` will convince you otherwise — the mechanic is spelled `hit_shape` and lives in a `SU.query_shape_for_entities` call. Every non-hitscan projectile with a hit shape is an area weapon; the Kamikaze's blast has been doing 2.0-radius friendly-fire splash since it was written.
 - **It is rejected alongside `hitscan: true`.** A hitscan shot resolves onto the single target it was fired at and never consults its shape, so a blast on one is a number that silently does nothing. The importer hard-errors on the pair, which is where that combination is actually caught.
 
 - **A hitscan emission has no `HitShape` at all**: the sync removes it, so the shape's presence IS the blast (`Payload.has_blast()`) — see [projectiles](../combat/projectiles.md) §The shape's presence is the blast, which also records why this once had to be a `disabled` flag with `hitscan` authoritative. Tests: `tests/test_ProjectileBlast.gd`.
@@ -104,7 +104,7 @@ The mask lives on the EFFECT, not on the `EffectApplicator`, and deliberately: t
 Two things a unit handover must do that assigning `commander` does not:
 
 - **Drop the prize's orders first.** It is mid-execution of its previous owner's command queue, and a hijacked tank that kept its old attack order would turn on its new owner the same tick.
-- **Expend the actor through `defense.kill()`, never `queue_free()`.** The normal death path owns the teardown — spatial-partition removal, garrison release, production refunds — and skipping it strands stale grid entries. This is `SuicideStatusEffect`'s reasoning applied to a second "unit consumed by its own action", and it carries the same accepted cost: the ON_DEATH occurrence fires and the death bark plays, so a scenario counting deaths counts a successful hijack too.
+- **Expend the actor through `defense.kill()`, never `queue_free()`.** The normal death path owns the teardown — spatial-partition removal, garrison release, production refunds — and skipping it strands stale grid entries. The kamikaze's self-destruct is the other "unit consumed by its own action", and both carry the same accepted cost: the ON_DEATH occurrence fires and the death bark plays, so a scenario counting deaths counts a successful hijack too.
 
 **Known gap:** a hijacked unit stays in its former owner's HUD selection until they reselect — `RTSController` prunes its selection on validity, not on ownership. Nothing could change hands before HIJACK existed, so the case had never arisen. Tests: `tests/test_HijackInteraction.gd`.
 

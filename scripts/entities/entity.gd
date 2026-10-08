@@ -502,6 +502,33 @@ func aim_point() -> Vector3:
 	return node.global_position if node != null and node.is_inside_tree() else global_position
 
 
+## How far the top of this piece's hurtbox stands above the ground under it — where a rammer
+## strikes it. Zero for a piece with no targetable shape.
+func top_height() -> float:
+	var node: CollisionShape3D = (
+		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
+		if hurtbox != null
+		else null
+	)
+	if node == null or node.shape == null or not node.is_inside_tree():
+		return 0.0
+	var half: float = _half_height_of(node.shape) * node.global_transform.basis.y.length()
+	var ground_y: float = global_position.y - height_offset()
+	return maxf(node.global_position.y + half - ground_y, 0.0)
+
+
+static func _half_height_of(shape: Shape3D) -> float:
+	if shape is BoxShape3D:
+		return (shape as BoxShape3D).size.y * 0.5
+	if shape is CylinderShape3D:
+		return (shape as CylinderShape3D).height * 0.5
+	if shape is CapsuleShape3D:
+		return (shape as CapsuleShape3D).height * 0.5
+	if shape is SphereShape3D:
+		return (shape as SphereShape3D).radius
+	return 0.0
+
+
 ## This piece's footprint on the XZ plane, from its Hurtbox's shape: what every
 ## piece-to-piece range is measured from (see Hull). A piece with no targetable shape is
 ## measured as the point it stands on.

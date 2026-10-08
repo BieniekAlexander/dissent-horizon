@@ -298,6 +298,8 @@ var _landing_rate: float = 0.0
 ## attack ended, or target out of dive_distance handling) it eases back to AERIAL_HEIGHT.
 var _dive_requested: bool = false
 var _dive_target_xz: Vector2 = Vector2.ZERO
+## The height above the ground a dive bottoms out at: the top of what it is ramming.
+var _dive_floor: float = 0.0
 
 ## Current descent rate of a FLYING dive, world-units/second (positive = descending).
 ## Ramped under DIVE_ACCEL toward the geometry-derived demand, and reset to 0 whenever the
@@ -964,15 +966,17 @@ func compute_orbit_velocity() -> Vector3:
 
 #region FLYING dive-attack
 ## Ask a FLYING unit to dive toward `target_xz` (a world XZ) this tick: it descends from
-## AERIAL_HEIGHT toward the ground as it closes within `dive_distance`. Call every tick the
+## AERIAL_HEIGHT toward `a_floor` (a height above the ground, the top of what it rams) as it
+## closes within `dive_distance`. Call every tick the
 ## dive should continue (e.g. from Attack while a FLYING actor attacks a ground target) —
 ## the request self-clears, so the moment the calls stop the unit eases back up to cruise
 ## altitude. No-op outside FLYING mode.
-func request_dive(a_target_xz: Vector2) -> void:
+func request_dive(a_target_xz: Vector2, a_floor: float = 0.0) -> void:
 	if mode != Movement.Mode.FLYING:
 		return
 	_dive_requested = true
 	_dive_target_xz = a_target_xz
+	_dive_floor = a_floor
 
 
 ## Per-tick FLYING altitude control, called from _physics_process. Two regimes:
@@ -1020,12 +1024,13 @@ func _dive_commit_distance(a_horizontal_speed: float) -> float:
 ## the descent against, so it simply drops at the cap.
 func _descend_toward_dive(a_dist: float, a_dt: float) -> void:
 	var horizontal_speed: float = VU.in_xz(_velocity()).length()
+	var drop: float = maxf(_current_height_offset - _dive_floor, 0.0)
 	var desired: float = DIVE_MAX_DESCENT_RATE
 	if horizontal_speed > 1e-3 and a_dist > 1e-3:
-		desired = _current_height_offset / (a_dist / horizontal_speed)
+		desired = drop / (a_dist / horizontal_speed)
 	desired = clampf(desired, 0.0, DIVE_MAX_DESCENT_RATE)
 	_dive_rate = move_toward(_dive_rate, desired, DIVE_ACCEL * a_dt)
-	_current_height_offset = maxf(0.0, _current_height_offset - _dive_rate * a_dt)
+	_current_height_offset -= minf(_dive_rate * a_dt, drop)
 	_apply_flying_attitude(_dive_rate, horizontal_speed, a_dt)
 
 

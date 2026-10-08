@@ -92,7 +92,7 @@ occupy.
 for the rest of its life, with nothing in the game able to fix it. This is the one place the
 two mechanics are joined: `charged` says the clip is refilled from outside, and `docking: true`
 says the piece has somewhere to go for it — see [charged ammunition](charged-ammunition.md).
-The kamikaze's bomb is deliberately uncharged.
+The kamikaze's weapon is deliberately uncharged.
 
 ## Docking a FLYING unit suspends flight
 

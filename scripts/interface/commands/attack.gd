@@ -132,7 +132,7 @@ func _is_aimed_at_target(a_actor: Commandable) -> bool:
 	)
 
 
-## True unless a DIVING attacker is still too high above its target to have reached it.
+## True unless a DIVING attacker is still too high above its target's top to have reached it.
 ##
 ## Every AttackRange is a very tall cylinder, so it reports "in range" from cruise altitude —
 ## right for a unit standing on the ground, wrong for one that kills by RAMMING. So a diving
@@ -151,36 +151,48 @@ func _dive_contact_made(a_actor: Commandable, a_weapon: Weapon) -> bool:
 		return true  # air-to-air is fought at altitude, not by ramming the ground
 	if not a_weapon.is_melee_ranged(message.target):
 		return true  # it shoots from cruise altitude; only a rammer has to come down
-	# height_offset() is the unit's altitude above the surface it is flying over, which is
-	# the gap the dive has to close.
-	return aerial.height_offset() <= a_weapon.reach_for(message.target)
+	# The gap the dive has to close is from the unit down to the TOP of its target, so it
+	# strikes the target rather than burrowing through it to the ground.
+	var gap: float = aerial.height_offset() - message.target.top_height()
+	return gap <= a_weapon.reach_for(message.target)
 
 
-## Drive a FLYING actor's dive-attack descent for this tick: while ramming a ground
-## (non-air) target, ask Movement to dive toward it so the unit drops out of the sky as it
-## closes in. A no-op unless the weapon is melee-ranged — i.e. unless it can only be
-## delivered by contact (see Weapon.is_melee_ranged) — and for air targets, which are
-## engaged at cruise altitude. Movement eases the unit back up on its own once this stops
-## being called — see Aerial.request_dive / _update_flying_height.
+## Drive a FLYING actor's dive-attack descent for this tick: while ramming a ground target,
+## ask Movement to dive toward it so the unit drops out of the sky as it closes in. Movement
+## eases the unit back up on its own once this stops being called — see Aerial.request_dive /
+## _update_flying_height.
 func _update_flying_dive(a_actor: Commandable) -> void:
-	var weapon := _weapon_for(a_actor)
-	if weapon == null:
-		return
+	if _rams_target(a_actor):
+		a_actor.aerial.request_dive(
+			VU.in_xz(message.target.global_position), message.target.top_height()
+		)
+
+
+## Whether [a_actor] attacks by RAMMING its target: a FLYING unit whose weapon reaches only
+## as far as its own body (Weapon.is_melee_ranged), against a ground target. Air targets are
+## engaged at cruise altitude, so they are never rammed.
+func _rams_target(a_actor: Commandable) -> bool:
 	var aerial: Aerial = a_actor.aerial
 	if aerial == null or aerial.mode != Movement.Mode.FLYING:
-		return
+		return false
 	if not is_instance_valid(message.target):
-		return
-	var target_is_air: bool = (
-		(message.target.targetable_layers() & CollisionLayers.Mask.TARGETABLE_AIR) != 0
-	)
-	if target_is_air:
-		return
+		return false
+	var weapon := _weapon_for(a_actor)
+	if weapon == null:
+		return false
+	if (message.target.targetable_layers() & CollisionLayers.Mask.TARGETABLE_AIR) != 0:
+		return false
 	# Asked AFTER the target-validity check: reach is measured against the target, so there
 	# is nothing to ask until we know there is one.
-	if not weapon.is_melee_ranged(message.target):
-		return
-	aerial.request_dive(VU.in_xz(message.target.global_position))
+	return weapon.is_melee_ranged(message.target)
+
+
+## A rammer flies at its target's centre, never at the footprint-adjacent cell a FIXTURE
+## target otherwise resolves to: that cell is where a WALKER stands to act, and arriving at it
+## ends the order. The dive is timed to bottom out over the centre, so a drone sent to the cell
+## arrived still above its reach and dropped the attack without striking (gdd/tasks.md T-009).
+func movement_destination(a_actor: Commandable) -> Variant:
+	return message.target.global_position if _rams_target(a_actor) else null
 
 
 ## Aim [a_actor] at the target. A TURRET weapon (Weapon.turret) swings itself every tick —

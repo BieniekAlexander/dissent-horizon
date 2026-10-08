@@ -170,6 +170,7 @@ const NESTED_ORDER: Dictionary = {
 		"startup_time",
 		"clip_size",
 		"charged",
+		"self_destruct",
 		"turret",
 		"turret_turn_rate",
 		"range_from",

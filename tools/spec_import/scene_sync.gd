@@ -1231,6 +1231,7 @@ func _sync_one_weapon(a_ctx: Ctx, a_name: String, a_w: Dictionary, a_node: Node)
 	var cur_clip: int = a_node.clip_size if a_node != null else -1
 	var cur_mask: int = a_node.target_mask if a_node != null else -1
 	var cur_charged: bool = a_node.charged if a_node != null else false
+	var cur_self_destruct: bool = a_node.self_destruct if a_node != null else false
 	var cur_turret: bool = a_node.turret if a_node != null else false
 	var cur_turret_rate: float = a_node.turret_turn_rate if a_node != null else -1.0
 	var cur_range_origin: int = a_node.range_origin if a_node != null else -1
@@ -1242,6 +1243,18 @@ func _sync_one_weapon(a_ctx: Ctx, a_name: String, a_w: Dictionary, a_node: Node)
 	if a_w.has("charged"):
 		var charged: bool = bool(a_w["charged"])
 		_set_prop(a_ctx, wpath, "charged", cur_charged, charged, "true" if charged else "false")
+	# `self_destruct: true`: firing kills the wielder, whose death sets the emission off (see
+	# Weapon.self_destruct); written whenever the key is present, like `charged`.
+	if a_w.has("self_destruct"):
+		var is_self_destruct: bool = bool(a_w["self_destruct"])
+		_set_prop(
+			a_ctx,
+			wpath,
+			"self_destruct",
+			cur_self_destruct,
+			is_self_destruct,
+			"true" if is_self_destruct else "false"
+		)
 
 	# `turret: true` makes the weapon aim on its own yaw instead of the body's (see
 	# Weapon.turret); written whenever the key is present, false included, like `charged`.

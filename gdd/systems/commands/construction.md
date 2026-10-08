@@ -348,9 +348,8 @@ Three things happen, and the ORDER is load-bearing:
    layers at the new team — so it stops steering around its old allies and starts
    steering around its new ones. The structure-registry / infrastructure branch there is gated
    on the "structure" group and correctly does nothing for a unit.
-3. **The hijacker dies.** Via `defense.kill()` rather than queue_free(), for the reason
-   SuicideStatusEffect gives: the normal death path (Commandable._update_state ->
-   _on_death) owns the teardown — spatial-partition removal, garrison release,
+3. **The hijacker dies.** Via `defense.kill()` rather than queue_free(): the normal death
+   path (Commandable._update_state -> _on_death) owns the teardown — spatial-partition removal, garrison release,
    production refunds, queue_free — and skipping it would leave stale grid entries.
    Killing LAST means a hijack that somehow fails partway leaves the actor alive.
 

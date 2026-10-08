@@ -8,7 +8,7 @@
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/air_range_melee.tres" id="3_spec"]
 [ext_resource type="PackedScene" uid="uid://dmw6etpxaldb6" path="res://scenes/components/movement_body.tscn" id="3_uio2a"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="4_24a70"]
-[ext_resource type="PackedScene" uid="uid://cmrtyrbomb001" path="res://scenes/entities/projectiles/an/kamikaze_bomb.tscn" id="4_bomb"]
+[ext_resource type="PackedScene" uid="uid://cmrtyrbomb001" path="res://scenes/entities/projectiles/an/kamikaze_blast.tscn" id="4_bomb"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_aerial_medium.tres" id="4_spec"]
 [ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="5_2wge0"]
 [ext_resource type="PackedScene" uid="uid://bwsv1l2akk5kn" path="res://assets/meshes/triangular_prism.blend" id="5_k4201"]
@@ -91,6 +91,7 @@ script = ExtResource("5_wpn")
 projectile_scene = ExtResource("4_bomb")
 melee_damage = 0.0
 target_mask = 6
+self_destruct = true
 
 [node name="AttackRangeGround" type="CollisionShape3D" parent="Loadout/BombWeapon" unique_id=1423865480 groups=["debug_shape_attack_range"]]
 visible = false

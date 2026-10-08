@@ -100,6 +100,31 @@ func test_a_ramming_aircraft_must_come_down_first() -> void:
 	assert_true(order._dive_contact_made(drone, weapon), "on the deck it connects")
 
 
+## Contact is measured to the TOP of the target, so the drone strikes the unit rather than
+## burrowing through it to the ground.
+func test_a_rammer_strikes_the_top_of_its_target() -> void:
+	var drone: Commandable = _entity(KAMIKAZE, _commander(1))
+	var tank: Commandable = _entity(TANK, _commander(2))
+	var weapon: Weapon = drone.weapon_inventory.get_weapons()[0]
+	var top: float = tank.top_height()
+	assert_gt(top, 0.0, "the fake tank has a body to stand above the ground")
+	var order: Attack = _attack(drone, tank)
+	drone.aerial._current_height_offset = top + weapon.reach_for(tank) - 0.05
+	assert_true(order._dive_contact_made(drone, weapon), "just above its roof is contact")
+	drone.aerial._current_height_offset = top + weapon.reach_for(tank) + 0.3
+	assert_false(order._dive_contact_made(drone, weapon), "out of reach of the roof is not")
+
+
+## The dive bottoms out on that top: however steep the descent, it never drops below it.
+func test_a_dive_bottoms_out_on_the_target_top() -> void:
+	var drone: Commandable = _entity(KAMIKAZE, _commander(1))
+	var floor_height: float = 0.8
+	for _i: int in 120:
+		drone.aerial.request_dive(VU.in_xz(drone.global_position), floor_height)
+		drone.aerial._update_flying_height()
+	assert_almost_eq(drone.aerial.height_offset(), floor_height, 0.001)
+
+
 ## Air-to-air is fought at altitude whatever the weapon declares — there is no ground to
 ## come down to.
 func test_a_ramming_aircraft_does_not_dive_at_an_air_target() -> void:
@@ -111,6 +136,32 @@ func test_a_ramming_aircraft_does_not_dive_at_an_air_target() -> void:
 
 
 #endregion
+
+#region A rammer flies at its target, not beside it
+## A big structure to ram. Its footprint is what sent the drone to the WRONG place: a fixture
+## target resolves to a footprint-adjacent cell, arriving there ends the order, and the dive is
+## timed to bottom out over the centre — so the drone arrived still above its reach and dropped
+## the attack without striking (gdd/tasks.md T-009).
+const CITADEL: Dictionary = {"structure": true, "dimensions": Vector2i(3, 3)}
+
+
+func test_a_rammer_flies_at_a_fixtures_centre() -> void:
+	var drone: Commandable = _entity(KAMIKAZE, _commander(1))
+	var site: Commandable = _entity(CITADEL, _commander(2))
+	site.global_position = Vector3(5.0, 0.0, 5.0)
+	assert_eq(
+		_attack(drone, site).movement_destination(drone),
+		site.global_position,
+		"the drone aims at what it rams, not at the cell a walker would stand on"
+	)
+
+
+## The override is the rammer's alone: everything else still resolves a fixture target to its
+## approach cell.
+func test_a_ranged_aircraft_keeps_the_approach_cell() -> void:
+	var plane: Commandable = _entity(DRAKE, _commander(1))
+	var site: Commandable = _entity(CITADEL, _commander(2))
+	assert_null(_attack(plane, site).movement_destination(plane))
 
 
 #region A fixed wing never stops

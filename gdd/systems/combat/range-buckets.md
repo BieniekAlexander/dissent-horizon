@@ -235,7 +235,7 @@ cannot be tilted into a line.
 three authored blasts (1.5, 2.0, 3.0 at the time) went to the nearest bucket (`aoe_small`,
 `aoe_medium`, `aoe_medium`).
 
-TODO: blasts authored only in scenes (the kamikaze bomb among them) have no doc key, so they
+TODO: blasts authored only in scenes (the kamikaze blast among them) have no doc key, so they
 still carry their own sphere.
 
 TODO: `resources/generated/shapes/*.tres` are neither committed nor gitignored. Scenes load

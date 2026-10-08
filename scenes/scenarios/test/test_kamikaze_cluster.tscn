@@ -105,3 +105,39 @@ default_commander_id = 2
 script = ExtResource("8_2soij")
 id = &"an_bioLight_builder"
 default_commander_id = 2
+
+[node name="Outer1" type="CharacterBody3D" parent="." unique_id=1700000001 instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0, 0.866025)
+script = ExtResource("8_2soij")
+id = &"an_bioLight_builder"
+default_commander_id = 2
+
+[node name="Outer2" type="CharacterBody3D" parent="." unique_id=1700000002 instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0, 1.732051)
+script = ExtResource("8_2soij")
+id = &"an_bioLight_builder"
+default_commander_id = 2
+
+[node name="Outer3" type="CharacterBody3D" parent="." unique_id=1700000003 instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0, 0.866025)
+script = ExtResource("8_2soij")
+id = &"an_bioLight_builder"
+default_commander_id = 2
+
+[node name="Outer4" type="CharacterBody3D" parent="." unique_id=1700000004 instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0, -0.866025)
+script = ExtResource("8_2soij")
+id = &"an_bioLight_builder"
+default_commander_id = 2
+
+[node name="Outer5" type="CharacterBody3D" parent="." unique_id=1700000005 instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0, 0, -1.732051)
+script = ExtResource("8_2soij")
+id = &"an_bioLight_builder"
+default_commander_id = 2
+
+[node name="Outer6" type="CharacterBody3D" parent="." unique_id=1700000006 instance=ExtResource("9_hx2ak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0, -0.866025)
+script = ExtResource("8_2soij")
+id = &"an_bioLight_builder"
+default_commander_id = 2

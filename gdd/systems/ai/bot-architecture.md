@@ -125,7 +125,7 @@ currency below, is still the model for the other managers.
   afford, then deploys by policy: defend the base, else strike the army, else hold. It
   decides WHICH sanction, WHICH caster and WHERE; whether the cast is permitted at all is
   `UseSanction`'s to answer, because the bot issues the same command the player does.
-- **`BotKamikaze`** — detects an AOE-suicide unit from its projectile rather than by name,
+- **`BotKamikaze`** — detects an AOE-suicide unit from its weapon (`self_destruct` with a blast) rather than by name,
   and spends one only when the blast's value beats the drone's own cost. Its HOLD is enforced
   rather than advisory: a drone with no worthwhile blast has its own target acquisition
   suppressed (`Commandable.is_holding_fire`) and any aggro-acquired engagement dropped, so
