@@ -97,9 +97,9 @@ func test_the_first_starts_half_keeps_its_heights() -> void:
 	var before: PackedFloat32Array = map.terrain.heights.duplicate()
 	_apply(map)
 	var corners: int = _CELLS + 1
-	# Corner (5, 5) lies on the first start's side of the axis, (35, 35) on the other.
+	# Corner (5, 5) lies on the first start's side of the axis, (36, 36) is its image.
 	assert_eq(map.terrain.heights[5 * corners + 5], before[5 * corners + 5])
-	assert_eq(map.terrain.heights[35 * corners + 35], before[5 * corners + 5])
+	assert_eq(map.terrain.heights[36 * corners + 36], before[5 * corners + 5])
 
 
 func test_the_second_start_is_the_first_ones_image() -> void:

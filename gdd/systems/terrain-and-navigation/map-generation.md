@@ -993,18 +993,23 @@ still names one map and a replay re-derives it.
   `run_match.gd._apply_generated_map` and recorded in the result beside `map_seed`.
 - The dock exposes it like any other parameter; nothing else in the editor changes.
 
-### Verification
+### Measured, 2026-10-09
 
-- `tests/test_MapSymmetry.gd` over a synthetic `GeneratedMap` built in the test: heights and void
-  cells are their own images; every kept feature has an image and no two footprints overlap; a
-  feature straddling `s = 0` is gone; a straddling chasm yields one body; the second start is the
-  first's image; three starts refuse.
-- A `test_MapGenerator` case: with the flag on, some seed in the first few is valid, and the
-  written terrain's heights are point-symmetric.
-- Acceptance, by hand: write one symmetric map to a scene and run
-  `tools/selfplay/results/verify_symmetry.py` on it — zero residual under the point reflection
-  for heights and the two start points. Then a 12-match MEDIUM mirror batch on it with
-  `personality_spread` pinned to 0: the second start point should no longer win every match.
+- **A seed is rejected more often.** With the default 1v1 parameters, 8 of seeds 1–24 make a
+  valid symmetric map against 20 free: mirroring moves the traversable share off its ±2% target,
+  and a first start near the axis is refused. The harness's 20 seeds still find one all but
+  always (0.67^20 ≈ 0.03% miss), at about 5 s per rejected seed.
+- **The written map is exact.** `verify_symmetry.py` on a symmetric map scene: residual 0.000
+  under the point reflection for heights, start points and all 50 placed entities.
+- **The start point still decides.** A 12-match MEDIUM Colonial mirror on one symmetric map
+  (`map_seed: 1`, played at seed 3), `personality_spread` and `decision_temperature` pinned to
+  0, one match seed each, start points swapped on half: **the FIRST start point won 11 of 12**,
+  from either slot. On authored `skirmish.tscn` the second point won 12 of 12. The ground is
+  identical for both sides, so the edge is the bot's, or something the mirror does not copy —
+  a placed structure's facing is not reflected.
+  TODO: find it, as [selfplay-results-2026-09-06](../ai/selfplay-results-2026-09-06.md) §The
+  symmetric copy found the build-spot scan; until then a start point's result on this mode
+  measures that bias, not the map.
 
 ---
 
