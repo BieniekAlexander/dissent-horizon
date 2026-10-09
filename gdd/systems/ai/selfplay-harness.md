@@ -159,6 +159,9 @@ stdout and written to `out=`. `run_batch.py` appends it to a JSONL with `id` and
                      "scout_observed_fraction": 0.05,
                      "scouts_out": 1,
                      "momentum_loss_rate": 0.0,
+                     "dials": { "commitment": 0.5, "aggression": 0.5, "risk": 0.5, "curiosity": 0.5 },
+                     "income_rate": 10.0,            // own, energy/s
+                     "enemy_income_estimate": 10.0,  // fog-limited (BotIncome)
                      "idle_units": 1
                    } } ] } ],
   "event_log": "/abs/path/result.events.jsonl.gz"   // the match's event log; "" without out=

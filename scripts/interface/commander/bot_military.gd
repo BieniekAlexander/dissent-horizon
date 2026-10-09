@@ -421,6 +421,10 @@ func _arrives_in_time(a_unit: Actor, a_threats: Array) -> bool:
 	var fields: BotFields = _bot.fields()
 	if fields == null or a_threats.is_empty():
 		return true
+	# A unit held in a garrison is off the tree: it has no position to walk from until it is
+	# released, so it cannot arrive (reading its transform there is an engine error).
+	if not a_unit.is_inside_tree():
+		return false
 	var worst: Dictionary = a_threats[0]
 	for threat: Dictionary in a_threats:
 		if threat["value"] > worst["value"]:
@@ -575,9 +579,7 @@ func wave_size() -> int:
 func reserve_size() -> int:
 	return (
 		_combat_units(_bot.get_units())
-		. filter(
-			func(u: Actor) -> bool: return not (_posture == Posture.ATTACK and _main.has(u))
-		)
+		. filter(func(u: Actor) -> bool: return not (_posture == Posture.ATTACK and _main.has(u)))
 		. size()
 	)
 
@@ -586,8 +588,14 @@ func reserve_size() -> int:
 ## the humility prior (assume the enemy is at least assumed_enemy_parity × our own unless more
 ## has been seen) and the floor.
 func attack_ratio(a_own: float) -> float:
-	var enemy_estimate: float = maxf(_enemy_value_estimate, a_own * assumed_enemy_parity)
-	return a_own / maxf(enemy_estimate, ENEMY_VALUE_FLOOR)
+	return a_own / enemy_value_estimate(a_own)
+
+
+## The enemy army value an army worth `a_own` is measured against: the smoothed belief, never
+## less than the humility prior's share of our own, never less than the floor. The army-lead
+## signal the posture layer reads (BotBrain.posture_signals) is this same figure.
+func enemy_value_estimate(a_own: float) -> float:
+	return maxf(maxf(_enemy_value_estimate, a_own * assumed_enemy_parity), ENEMY_VALUE_FLOOR)
 
 
 ## The value ratio a wave must clear to launch: attack_value_ratio, relaxed by the stalemate

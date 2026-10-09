@@ -3,9 +3,12 @@ description: |
   turret out east, toward the believed enemy structure; the enemy's army stands north and
   near, so the band — and the demand that buys the turret — is there. With the coverage
   weight set high enough that the band outweighs the frontage bearing, the turret is ordered
-  onto the north approach. Axis: POSITIONING. The weight is set rather than left at the tier's
-  default, so this asks whether the mechanism places on the band, not whether the default
-  weight is tuned to. Rule: gdd/systems/ai/world-model/lattice-and-topology.md §Distance fields.
+  onto the north approach, within reach of a fixed mark on it. (The check once read the
+  raiders' position and passed only because they walked to the turret; a mark reads where the
+  turret went.) Axis: POSITIONING. The weight is set rather than left at the tier's default,
+  so this asks whether the mechanism places on the band, not whether the default weight is
+  tuned to; at weight 0 the bearing alone puts the turret east and the check reads red.
+  Rule: gdd/systems/ai/world-model/lattice-and-topology.md §Distance fields.
 setting: { kind: flat, size: 120 }
 given:
   A:
@@ -49,4 +52,6 @@ given:
 run: { for: 30s, seed: 1 }
 expect:
   - { slot: A, check: ordered, kind: build, piece: cl_defense_antiLight, by: 20s }
-  - { slot: A, check: placed, piece: cl_defense_antiLight, near: B.raiders, within: 10, by: 20s }
+  # A fixed mark seven cells up the north approach, not the raiders: they would walk to a
+  # turret and the check would then read when it went down rather than where.
+  - { slot: A, check: placed, piece: cl_defense_antiLight, near: { from: A.base, distance: 7, bearing: north }, within: 7, by: 20s }

@@ -24,7 +24,14 @@ extends Node
 ## Arena edge, in cells: room for two clusters to form up and close.
 const ARENA_CELLS: int = 60
 ## Seconds a fight may run; a mismatch that cannot end (nothing can hit air) runs this long.
-const WINDOW_SECONDS: float = 90.0
+## 240 since 2026-10-09 (was 90): long enough for a charged aircraft to fly several sorties
+## from the airfield below, and for an untouchable aircraft's attrition to show in the margin
+## rather than be cut off — the 90 s corpus priced the Sloop at about five Recruits
+## (gdd/systems/ai/macro-learning.md §1, what the fights cannot see).
+const WINDOW_SECONDS: float = 240.0
+## How far behind its army a side's airfield stands, in cells: inside the arena's edge inset
+## (SimArena.ANCHOR_INSET leaves a quarter of the half-extent), out of the first volley.
+const AIRFIELD_SETBACK_CELLS: int = 4
 ## Each side's energy budget is drawn from this range...
 const BUDGET_MIN: float = 300.0
 const BUDGET_MAX: float = 2000.0
@@ -41,6 +48,8 @@ const DEFAULT_PREFIXES: String = "cl_,an_,tc_"
 var _costs: Dictionary = {}  # piece id -> energy cost
 var _pool: Array[String] = []  # armed unit ids the compositions draw from
 var _pool_by_faction: Dictionary = {}  # id prefix -> Array[String] of its armed unit ids
+## piece id -> whether it flies (an Aerial component): a side with one gets an airfield.
+var _flies: Dictionary = {}
 
 
 func _ready() -> void:
@@ -79,6 +88,9 @@ func _fight(a_seed: int) -> Dictionary:
 	var side_a: Dictionary = _composition(rng, budget_a)
 	var side_b: Dictionary = _composition(rng, budget_b)
 	var spec: SimSpec = SimSpec.parse(_spec_text(side_a, side_b), "fight_%d" % a_seed)
+	var row_extra: Dictionary = {
+		"airfield_a": _airfield_for(side_a) != "", "airfield_b": _airfield_for(side_b) != ""
+	}
 	if not spec.is_valid():
 		push_error("generate_fights: %s" % "; ".join(spec.errors))
 		return {"seed": a_seed, "error": "; ".join(spec.errors)}
@@ -103,6 +115,7 @@ func _fight(a_seed: int) -> Dictionary:
 		"seconds": snappedf(TimeUtils.seconds_from_ticks(ticks), 0.01),
 		"wiped": ended_by_wipe,
 	}
+	row.merge(row_extra)
 	arena.queue_free()
 	await get_tree().process_frame
 	return row
@@ -139,6 +152,9 @@ func _composition(a_rng: RandomNumberGenerator, a_budget: float) -> Dictionary:
 	return out
 
 
+## Each side's army at its anchor, attack-moving at the other's; a side that fields aircraft
+## also gets its faction's airfield a few cells behind the army, so charged clips rearm and a
+## sortie cadence exists to measure (2026-10-09; before, no airfield and a clip fired once).
 func _spec_text(a_side_a: Dictionary, a_side_b: Dictionary) -> String:
 	return (
 		"""setting: { kind: flat, size: %d }
@@ -146,15 +162,45 @@ given:
   A:
     with:
       army: { of: %s, at: west, formation: cluster, orders: [ { attack_move: { target: east } } ] }
-  B:
+%s  B:
     with:
       army: { of: %s, at: east, formation: cluster, orders: [ { attack_move: { target: west } } ] }
-run: { for: %ds }
+%srun: { for: %ds }
 expect:
   - { of: A.army, check: alive, at_least: 0 }
 """
-		% [ARENA_CELLS, _of_list(a_side_a), _of_list(a_side_b), int(WINDOW_SECONDS)]
+		% [
+			ARENA_CELLS,
+			_of_list(a_side_a),
+			_airfield_text("A", a_side_a, "west"),
+			_of_list(a_side_b),
+			_airfield_text("B", a_side_b, "east"),
+			int(WINDOW_SECONDS),
+		]
 	)
+
+
+## The `airfield` group line for a side that flies, placed AIRFIELD_SETBACK_CELLS behind its
+## army toward `a_rear`; empty for a side with nothing to land.
+func _airfield_text(a_slot: String, a_side: Dictionary, a_rear: String) -> String:
+	var airfield: String = _airfield_for(a_side)
+	if airfield == "":
+		return ""
+	var at: String = (
+		"{ from: %s.army, distance: %d, bearing: %s }" % [a_slot, AIRFIELD_SETBACK_CELLS, a_rear]
+	)
+	return "      airfield: { of: [ { piece: %s, count: 1 } ], at: %s }\n" % [airfield, at]
+
+
+## The faction's airfield piece id for a side that fields aircraft, "" otherwise — or when the
+## faction has no airfield piece, in which case its aircraft fly on one clip as before.
+func _airfield_for(a_side: Dictionary) -> String:
+	var flies: bool = a_side.keys().any(func(t: String) -> bool: return _flies.get(t, false))
+	if not flies:
+		return ""
+	var prefix: String = (a_side.keys()[0] as String).substr(0, 3)
+	var airfield: String = prefix + "airField"
+	return airfield if SimPieceCatalog.known_pieces().has(airfield) else ""
 
 
 static func _of_list(a_side: Dictionary) -> String:
@@ -214,9 +260,11 @@ func _armed_units(a_prefixes: PackedStringArray) -> Array[String]:
 			and loadout != null
 			and loadout.get_children().any(func(c: Node) -> bool: return c is Weapon)
 		)
+		var flies: bool = piece.get_node_or_null("Aerial") != null
 		piece.free()
 		if armed:
 			out.append(id)
+			_flies[id] = flies
 	return out
 
 

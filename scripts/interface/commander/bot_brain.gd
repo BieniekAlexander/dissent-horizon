@@ -48,6 +48,9 @@ const PRESERVATION_PERIOD_SECONDS: float = 1.0
 const JOB_PRIORITY_FIELDS: int = 110
 const JOB_PRIORITY_DEPLOYMENT: int = 100
 const JOB_PRIORITY_MOMENTUM: int = 90
+## After momentum and before any decision: the dials are set from this tick's signals, so what
+## the managers below play by is this think's posture.
+const JOB_PRIORITY_POSTURE: int = 85
 const JOB_PRIORITY_TARGETING: int = 80
 const JOB_PRIORITY_MILITARY: int = 70
 const JOB_PRIORITY_KAMIKAZE: int = 60
@@ -81,6 +84,17 @@ var bot: Bot
 var _actuator: BotActuator
 ## Whether the bot is winning or losing — sampled first each think, read by the military.
 var _momentum: BotMomentum
+## The posture layer: the dials that modulate what every manager plays by (_apply_config).
+var _posture: BotPosture
+## The economy signals: own income and the fog-limited enemy estimate the commitment dial reads.
+var _income: BotIncome
+## When the unseen enemy's opening force could first arrive, from the map and the enemy's
+## roster (BotFirstContact) — fixed for the match, so computed once; INF with nobody to come.
+var _first_contact_seconds: float = INF
+var _first_contact_known: bool = false
+## Work units the posture tick reports: a handful of senses read and a few believed
+## structures apportioned.
+const POSTURE_WORK_UNITS: int = 20
 var _economy: BotEconomy
 var _deployment: BotDeployment
 var _military: BotMilitary
@@ -122,6 +136,7 @@ const JOB_NAMES: Array[StringName] = [
 	&"fields",
 	&"deployment",
 	&"momentum",
+	&"posture",
 	&"targeting",
 	&"military",
 	&"sanction",
@@ -256,6 +271,7 @@ func _build_jobs() -> void:
 			_deployment.is_pending
 		),
 		BotJob.new(&"momentum", self, combat, JOB_PRIORITY_MOMENTUM, _unit_work(_momentum.tick)),
+		BotJob.new(&"posture", self, strategy, JOB_PRIORITY_POSTURE, _unit_work(_tick_posture)),
 		BotJob.new(&"targeting", self, combat, JOB_PRIORITY_TARGETING, _unit_work(_targeting.tick)),
 		BotJob.new(&"military", self, combat, JOB_PRIORITY_MILITARY, _unit_work(_military.tick)),
 		BotJob.new(&"sanction", self, combat, JOB_PRIORITY_SANCTION, _unit_work(_sanction.tick)),
@@ -332,14 +348,20 @@ static func _unit_work(tick: Callable) -> Callable:
 func _apply_config() -> void:
 	if config == null:
 		return
-	_military.army_commit_threshold = config.army_commit_threshold
+	# The dials read their gains from the config and then tilt the copy the managers play by:
+	# `config` stays what the bot was given, `played` is what this posture makes of it. The
+	# fields a dial reaches are pushed again by _apply_posture whenever a dial moves.
+	_posture.read_params(config)
+	_income.assumed_enemy_income_parity = config.assumed_enemy_income_parity
+	var played: BotDifficulty = _apply_posture()
+	_military.army_commit_threshold = played.army_commit_threshold
 	_military.may_attack = config.may_attack
-	_military.attack_value_ratio = config.attack_value_ratio
+	_military.attack_value_ratio = played.attack_value_ratio
 	_military.assumed_enemy_parity = config.assumed_enemy_parity
 	_military.wave_abort_fraction = config.wave_abort_fraction
 	_military.reinforce_fraction = config.reinforce_fraction
 	_military.squad_cap = config.squad_cap
-	_military.guard_strength_ratio = config.guard_strength_ratio
+	_military.guard_strength_ratio = played.guard_strength_ratio
 	_military.defend_threat_radius = config.defend_threat_radius
 	_targeting.switch_margin = config.retarget_switch_margin
 	_targeting.set_signal_weights(
@@ -348,16 +370,16 @@ func _apply_config() -> void:
 		config.retarget_weight_proximity
 	)
 	_scout.unit_budget = config.scout_unit_budget
-	_economy.reserve = config.economy_reserve
+	_economy.reserve = played.economy_reserve
 	_economy.build_concurrency = config.build_concurrency
 	_economy.production_structure_cap = config.production_structure_cap
-	_economy.income_structure_target = config.income_structure_target
+	_economy.income_structure_target = played.income_structure_target
 	_economy.defence_propensity = config.defence_propensity
 	_economy.tech_value_margin = config.tech_value_margin
 	# The research rung buys on the same margin the tech rung buys a building on, and banks
 	# the same reserve every other spender does.
 	_research.tech_value_margin = config.tech_value_margin
-	_research.reserve = config.economy_reserve
+	_research.reserve = played.economy_reserve
 	# The economy is the THIRD consumer of the threat radius (BotMilitary and BotSanction are
 	# the others). "Is something of mine under attack" has to mean one thing across the bot,
 	# and it is what tells the economy to stop expanding — see BotEconomy.safety.
@@ -376,13 +398,15 @@ func _apply_config() -> void:
 	_production.scout_unit_budget = config.scout_unit_budget
 	# The same reserve the economy plays by: it is a COMMANDER-WIDE spending floor, and a
 	# floor one of the two spenders ignores is not a floor (see BotProduction.reserve).
-	_production.reserve = config.economy_reserve
+	_production.reserve = played.economy_reserve
 	_sanction.may_attack = config.may_attack
 	_sanction.defend_threat_radius = config.defend_threat_radius
 	# The three scored modules sample at one temperature; placement is deliberately not one
 	# of them (it must stay mirror-exact — BotEconomy §WHERE A BUILDING GOES).
 	_production.decision_temperature = config.decision_temperature
-	_production.should_use_learned_production = config.should_use_learned_production
+	# The valuation switch lives on the bot: every purchase rung reads it through
+	# Bot.purchase_values_per_energy.
+	bot.should_use_learned_production = config.should_use_learned_production
 	_opportunist.decision_temperature = config.decision_temperature
 	_scout.decision_temperature = config.decision_temperature
 	# The two production-mix weights live on the PERCEPTION layer (Bot.enemy_demand_map is
@@ -405,6 +429,23 @@ func get_momentum() -> BotMomentum:
 ## scenario / debugger read scouting coverage (BotScout.observed_fraction).
 func get_scout() -> BotScout:
 	return _scout
+
+
+## The posture layer, or null before the strategy layer is built. Read by the debug overlay
+## and the self-play harness's brain sample; nothing outside the brain decides through it.
+func get_posture() -> BotPosture:
+	return _posture
+
+
+## The economy signals, or null before the strategy layer is built. Read by the debug overlay.
+func get_income() -> BotIncome:
+	return _income
+
+
+## When the unseen enemy's opening force could first arrive, in seconds from match start; INF
+## with nobody to come, and INF until the first posture tick has asked.
+func first_contact_seconds() -> float:
+	return _first_contact_seconds
 
 
 ## The military manager, or null before the strategy layer is built. Read by a decision
@@ -456,6 +497,9 @@ func _ensure_managers() -> bool:
 	_scout = BotScout.new(bot, _actuator)
 	# A REVEAL sanction is aimed by what the scout has not seen, and stamps what it shows.
 	_sanction.scout = _scout
+	_posture = BotPosture.new()
+	# The enemy income estimate reads the scout grid for how freshly each band has been seen.
+	_income = BotIncome.new(bot, _scout)
 	_opportunist = BotOpportunist.new(bot, _actuator)
 	_abilities = BotAbilities.new(bot, _actuator)
 	_research = BotResearch.new(bot, _actuator)
@@ -476,6 +520,108 @@ func _ensure_managers() -> bool:
 	_apply_config()
 	_build_jobs()
 	return true
+
+
+# ─── THE POSTURE LAYER ──────────────────────────────────────────────────────
+
+
+## Read the signals, move whichever dials have held out of band for the hold, and — when one
+## moved — push the re-modulated parameters; then refresh the clock's opening prior, which
+## counts down with the match. See BotPosture and gdd/systems/ai/objective-selection.md.
+func _tick_posture() -> int:
+	if _posture.update(posture_signals(), bot.seconds_elapsed()):
+		_apply_posture()
+	_push_opening_prior()
+	return POSTURE_WORK_UNITS
+
+
+## Push ONLY what the dials reach — the modulated fields (BotPosture.DIVIDED_BY_DIAL) and the
+## scout's information price — and return the modulated copy for _apply_config to push the
+## rest of. Kept apart from _apply_config so a dial moving mid-match re-pushes the handful of
+## numbers it changed and not the whole table. (A drawn personality moves the biases too, so
+## the first update can tilt these away from the tier: a low curiosity draw prices information
+## under what a scout costs, and that bot never scouts — test_BotDebugOverlay pins its spread.)
+func _apply_posture() -> BotDifficulty:
+	var played: BotDifficulty = _posture.applied_to(config)
+	_military.army_commit_threshold = played.army_commit_threshold
+	_military.attack_value_ratio = played.attack_value_ratio
+	_military.guard_strength_ratio = played.guard_strength_ratio
+	_economy.income_structure_target = played.income_structure_target
+	# The reserve is a commander-wide floor, pushed to its three spenders alike.
+	_economy.reserve = played.economy_reserve
+	_research.reserve = played.economy_reserve
+	_production.reserve = played.economy_reserve
+	_scout.information_value_energy = (
+		BotScout.INFORMATION_VALUE_ENERGY * _posture.factor(BotPosture.Dial.CURIOSITY)
+	)
+	return played
+
+
+## THE SIGNALS THE DIALS READ, each normalised as BotPosture documents: the economy lead, the
+## army lead under the humility prior, whether the base is under attack, the loss rate against
+## the losing threshold, how soon a believed enemy could be at the base, and the stale fraction.
+func posture_signals() -> Dictionary:
+	var own_army: float = bot.army_resource_value()
+	var enemy_army: float = _military.enemy_value_estimate(own_army)
+	return {
+		BotPosture.SIGNAL_ECONOMY_LEAD: _income.economy_lead(),
+		BotPosture.SIGNAL_ARMY_LEAD: BotIncome.lead(own_army, enemy_army),
+		BotPosture.SIGNAL_EXPOSURE:
+		1.0 if bot.is_base_under_threat(config.defend_threat_radius) else 0.0,
+		BotPosture.SIGNAL_MOMENTUM:
+		clampf(_momentum.loss_rate() / BotMomentum.LOSING_LOSS_RATE, 0.0, 1.0),
+		BotPosture.SIGNAL_THREAT: _threat_signal(),
+		BotPosture.SIGNAL_STALE: _scout.stale_fraction(),
+	}
+
+
+## How pressing the nearest believed enemy is at the base: 1 at the gate, 0 at the quiet
+## horizon or with nothing believed (the opening prior is not a signal to itself).
+func _threat_signal() -> float:
+	var fields: BotFields = bot.fields()
+	if fields == null or not fields.has_enemy_sources():
+		return 0.0
+	var arrival: float = fields.arrival_seconds_at(VU.in_xz(bot.base_centroid()))
+	if arrival == INF:
+		return 0.0
+	return 1.0 - clampf(arrival / BotFields.QUIET_HORIZON_SECONDS, 0.0, 1.0)
+
+
+## THE CLOCK'S OPENING PRIOR: with nothing believed, the fields answer "when could an unseen
+## enemy be here" with the first-contact estimate, scaled by the risk dial (a greedy bot
+## assumes it has time, a cautious one that the raid is near) and counting down from match
+## start. Decided 2026-10-09; gdd/systems/ai/objective-selection.md §The opening prior.
+func _push_opening_prior() -> void:
+	var fields: BotFields = bot.fields()
+	if fields == null:
+		return
+	if not _first_contact_known:
+		_first_contact_known = true
+		var scenes: Array = _enemy_starting_units()
+		_first_contact_seconds = BotFirstContact.estimate_seconds(
+			bot.map.world_bounds(),
+			MapGenerationParams.new(),
+			BotFirstContact.fastest_ground_speed(scenes)
+		)
+		# The force assumed to arrive at it: the same roster, as a composition.
+		bot.phantom_force = (
+			BotFirstContact.starting_unit_counts(scenes) if _first_contact_seconds != INF else {}
+		)
+	if _first_contact_seconds == INF:
+		fields.prior_arrival_seconds = INF
+		return
+	fields.prior_arrival_seconds = maxf(
+		0.0, _first_contact_seconds * _posture.factor(BotPosture.Dial.RISK) - bot.seconds_elapsed()
+	)
+
+
+## The opening force of every enemy faction, as the scenes a Skirmish deploys.
+func _enemy_starting_units() -> Array:
+	var scenes: Array = []
+	for commander: Commander in bot.enemy_commanders():
+		if commander.faction != null:
+			scenes.append_array(commander.faction.starting_units)
+	return scenes
 
 
 # ─── UNIT PRESERVATION ──────────────────────────────────────────────────────

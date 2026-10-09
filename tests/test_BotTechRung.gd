@@ -48,6 +48,11 @@ class FakeBot:
 	func unit_composition_value(a_unit_type, _a_demand: Dictionary) -> float:
 		return float(values.get(a_unit_type, 0.0))
 
+	## The producer rung prices a building by what it trains (Bot.producer_values), and a
+	## producer worth nothing is not bought: the redoubt trains the producible list.
+	func producible_types_of(_a_structure_type: StringName) -> Array:
+		return producible
+
 	func unit_can_attack(_a_type) -> bool:
 		return true
 

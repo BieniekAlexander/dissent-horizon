@@ -482,3 +482,22 @@ func test_an_errand_search_split_into_slices_chooses_the_same_point() -> void:
 	assert_gt(slices, 2, "the search really was split")
 	assert_not_null(whole)
 	assert_eq(search["best_idx"], whole)
+
+
+# ─── BAND COVERAGE ───────────────────────────────────────────────────────────
+
+
+## How freshly a region is scouted, for the enemy income estimate (BotIncome): the fraction of
+## the grid points in the radius seen inside the expiry. A bare Bot's clock reads 0, so a point
+## stamped at 0 is fresh and the never-seen sentinel is stale.
+func test_the_fresh_fraction_within_a_radius_counts_only_the_points_inside_it() -> void:
+	var stale: float = -(BotScout.SCOUT_EXPIRATION_TIMER + 1.0)
+	_scout._scout_grid_positions = {
+		Vector2i(0, 0): Vector3(0.0, 0.0, 0.0),
+		Vector2i(1, 0): Vector3(5.0, 0.0, 0.0),
+		Vector2i(2, 0): Vector3(50.0, 0.0, 0.0),
+	}
+	_scout._scout_grid = {Vector2i(0, 0): 0.0, Vector2i(1, 0): stale, Vector2i(2, 0): 0.0}
+	assert_almost_eq(_scout.fresh_fraction_within(Vector2(1.0, 0.0), 10.0), 0.5, 1e-9)
+	assert_eq(_scout.fresh_fraction_within(Vector2(100.0, 0.0), 10.0), 0.0, "no point inside")
+	assert_almost_eq(_scout.fresh_fraction_within(Vector2.ZERO, 100.0), 2.0 / 3.0, 1e-9)

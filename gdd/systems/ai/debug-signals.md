@@ -74,6 +74,19 @@ the ready snapshot (`BotFields`); the overlay never triggers a sweep.
 | The post the army stands at | L3 | cheap | a white square and stick |
 | Lattice size, rebuild state, explored and passable fractions, sources, band size, arrival at base | L2/L3 | cheap | readout |
 
+### Posture
+
+Built 2026-10-09 ([objective-selection](objective-selection.md) §What a player sees). Text only:
+a posture is what every mark in the other categories is tilted by.
+
+| Signal | Level | Cost | Shown as |
+|---|---|---|---|
+| The four dials: held value, last target, the factor each multiplies by, and when a held-out target snaps | L3 | stored | readout |
+| The six signals the dials read | L3 | cheap | readout |
+| Own income, the enemy estimate and its terms: the prior, each shelter band's scouted fraction and what was seen there, what was seen outside every band | L3 | cheap | readout |
+| The first-contact estimate and the arrival the fields assume while nothing is believed | L3 | stored | readout |
+| The phantom opening force, and whether it still weighs or has lapsed | L3 | stored | readout |
+
 ### Army
 
 | Signal | Level | Cost | Shown as |

@@ -178,8 +178,7 @@ func get_structures_of_type(a_type: StringName) -> Array:
 ## production.tick() is gated on is_built and their queues won't advance.
 func get_production_structures() -> Array:
 	return _owned_structures().filter(
-		func(s: Actor):
-			return s.production != null and s.production.trains_units() and s.is_built
+		func(s: Actor): return s.production != null and s.production.trains_units() and s.is_built
 	)
 
 
@@ -190,8 +189,7 @@ func get_production_structures() -> Array:
 ## without it the bot would re-order the same unit every tick while saving up.
 func get_idle_production_structures() -> Array:
 	return get_production_structures().filter(
-		func(s: Actor):
-			return s.production.is_free() and production_queue.pending_count_for(s) == 0
+		func(s: Actor): return s.production.is_free() and production_queue.pending_count_for(s) == 0
 	)
 
 
@@ -446,9 +444,7 @@ class EnemyCluster:
 ## variant strategic planning wants — attacking a force you remember rather than one you
 ## can see. Not built; it needs the grouping to work on positions rather than on nodes.
 func enemy_clusters(a_link_distance: float = CLUSTER_LINK_DISTANCE) -> Array:
-	var units: Array = visible_enemies().filter(
-		func(e: Actor): return not e.structure_is_active()
-	)
+	var units: Array = visible_enemies().filter(func(e: Actor): return not e.structure_is_active())
 	var groups: Array = CU.get_nodes_clustered(units, a_link_distance)
 	var out: Array = groups.map(func(g: Array): return _cluster_of(g))
 	out.sort_custom(func(a: EnemyCluster, b: EnemyCluster): return a.strength > b.strength)
@@ -799,8 +795,7 @@ func nearest_garrison_for(a_unit: Actor) -> Actor:
 	return (
 		AU
 		. sort_on_key(
-			func(s: Actor):
-				return a_unit.global_position.distance_squared_to(s.global_position),
+			func(s: Actor): return a_unit.global_position.distance_squared_to(s.global_position),
 			hosts
 		)
 		. front()
@@ -815,9 +810,7 @@ func nearest_own_structure(a_from: Vector3) -> Actor:
 		return null
 	return (
 		AU
-		. sort_on_key(
-			func(s: Actor): return a_from.distance_squared_to(s.global_position), structs
-		)
+		. sort_on_key(func(s: Actor): return a_from.distance_squared_to(s.global_position), structs)
 		. front()
 	)
 
@@ -836,9 +829,7 @@ func nearest_enemy_structure_to_base() -> Actor:
 	var base := base_centroid()
 	return (
 		AU
-		. sort_on_key(
-			func(s: Actor): return base.distance_squared_to(s.global_position), enemies
-		)
+		. sort_on_key(func(s: Actor): return base.distance_squared_to(s.global_position), enemies)
 		. front()
 	)
 
@@ -1112,8 +1103,7 @@ func get_neutral_terrestrials() -> Array:
 	if neutral == null:
 		return []
 	return neutral.get_children().filter(
-		func(n: Node):
-			return n is Actor and (n as Actor).id == EntityIds.NT_BIO_LIGHT_TERRESTRIAL
+		func(n: Node): return n is Actor and (n as Actor).id == EntityIds.NT_BIO_LIGHT_TERRESTRIAL
 	)
 
 
@@ -1341,22 +1331,90 @@ func buildable_production_structure_types() -> Array:
 	)
 
 
-## What the best combat unit `a_structure_type` could train is worth against `a_demand`
-## (unit_composition_value) — how much the army wants what this building makes. 0 for a
-## building that trains nothing armed. Read off the preview's Production component, so a
-## new producer answers for itself.
-func best_producible_value(a_structure_type, a_demand: Dictionary) -> float:
+## Whether purchases are valued by the learned combat model (BotDifficulty.
+## should_use_learned_production, pushed by BotBrain). Off on a bare Bot, so a test that
+## stubs the demand map gets the demand map.
+var should_use_learned_production: bool = false
+## The model purchase_values_per_energy reads: CombatModel.shared() unless a test supplies one.
+var combat_model: CombatModel = null
+
+
+## HOW MUCH THE ARMY WANTS ONE MORE OF EACH OF `a_types`, PER ENERGY — THE ONE VALUATION the
+## unit choice (BotProduction), the producer rung and the tech rung (BotEconomy) all read, so
+## a producer is bought by the measure its units are chosen by. Until 2026-10-09 the two
+## structure rungs priced by the demand map while the picker used the model: the model
+## preferred the mech and the aircraft per energy, the demand map's strength-per-energy
+## preferred cheap infantry ten to one, and the bot built barracks it then filled with the
+## recruits the model ranked last (macro-learning.md §1).
+##
+## LEARNED when the switch is on, a model is trained, it knows every type asked, and an enemy
+## composition is believed — the phantom opening force counts: the model's marginal margin
+## per energy. Otherwise the DEMAND MAP: unit_composition_value against `a_demand`
+## (enemy_demand_map when omitted). The two scales are never mixed within one answer.
+## Returns { "values": { type: float }, "learned": bool }.
+func purchase_values_per_energy(a_types: Array, a_demand: Dictionary = {}) -> Dictionary:
+	var learned: Dictionary = _learned_values_per_energy(a_types)
+	if not learned.is_empty():
+		return {"values": learned, "learned": true}
+	var demand: Dictionary = a_demand if not a_demand.is_empty() else enemy_demand_map()
+	var values: Dictionary = {}
+	for t: StringName in a_types:
+		values[t] = unit_composition_value(t, demand)
+	return {"values": values, "learned": false}
+
+
+## The learned half of purchase_values_per_energy; empty when it does not apply.
+func _learned_values_per_energy(a_types: Array) -> Dictionary:
+	if not should_use_learned_production or a_types.is_empty():
+		return {}
+	var model: CombatModel = combat_model if combat_model != null else CombatModel.shared()
+	if model == null or not a_types.all(func(t: StringName) -> bool: return model.knows(t)):
+		return {}
+	var enemy: Dictionary = believed_enemy_composition_clocked()
+	if enemy.is_empty():
+		return {}
+	var own: Dictionary = own_armed_composition()
+	var values: Dictionary = {}
+	for t: StringName in a_types:
+		values[t] = model.marginal(own, enemy, t) / float(maxi(1, unit_cost(t)))
+	return values
+
+
+## What each of `a_structure_types` is worth as a PRODUCER: the best of the armed units it
+## trains that the bot has the tech for, on purchase_values_per_energy — one answer for every
+## producer asked at once, so they are all on the same scale. 0 for a building that trains
+## nothing armed the bot could field. A locked unit no longer counts (it did until 2026-10-09,
+## so a barracks was priced by the Guard behind a tech building the bot did not own): what a
+## producer is worth is what it can make today; unlocking is the tech rung's measure.
+func producer_values(a_structure_types: Array, a_demand: Dictionary = {}) -> Dictionary:
+	var producibles: Dictionary = {}  # structure type -> its armed, trainable types
+	var all_types: Array = []
+	for structure_type: StringName in a_structure_types:
+		var types: Array = producible_types_of(structure_type).filter(
+			func(t: StringName) -> bool: return unit_can_attack(t) and has_tech_for(t)
+		)
+		producibles[structure_type] = types
+		for t: StringName in types:
+			if not all_types.has(t):
+				all_types.append(t)
+	var valued: Dictionary = purchase_values_per_energy(all_types, a_demand)["values"]
+	var out: Dictionary = {}
+	for structure_type: StringName in a_structure_types:
+		var best: float = 0.0
+		for t: StringName in producibles[structure_type]:
+			best = maxf(best, float(valued[t]))
+		out[structure_type] = best
+	return out
+
+
+## The unit types a structure of `a_structure_type` trains, read off its preview's Production
+## component (under a sim's `consider` filter); empty for a building that trains nothing.
+func producible_types_of(a_structure_type: StringName) -> Array:
 	var preview := _preview_for_type(a_structure_type)
 	var production: Production = (
 		preview.get_node_or_null("Production") as Production if preview != null else null
 	)
-	if production == null:
-		return 0.0
-	var best: float = 0.0
-	for t: StringName in considered_producible_types(production):
-		if unit_can_attack(t):
-			best = maxf(best, unit_composition_value(t, a_demand))
-	return best
+	return considered_producible_types(production) if production != null else []
 
 
 ## Buildable structures that are STATIC DEFENCE: they carry weapons (a Loadout) and train
@@ -1555,6 +1613,32 @@ var arrival_margin_falloff_seconds: float = 30.0
 ## have to go to it; it is not full, because it is not coming. A model constant to retune.
 const CLOCK_FLOOR: float = 0.25
 
+## THE PHANTOM OPENING FORCE: piece id → count of the enemy factions' starting units, assumed
+## to be walking at the base until the first enemy unit is ever believed, weighed on the clock
+## at the fields' opening prior (decided 2026-10-09, objective-selection.md §The opening
+## prior). The unseen base is already proxied by a structure in the demand map; this is the
+## same move for the opening army, whose roster is public. Pushed by BotBrain with the prior;
+## empty is no phantom.
+var phantom_force: Dictionary = {}
+
+
+## The phantom as a clocked composition, type → count × its clock weight at the opening prior
+## against `a_answer_seconds`; empty while it does not stand — nothing pushed, no prior to
+## arrive at, or an enemy unit already seen.
+func phantom_force_clocked(a_answer_seconds: float) -> Dictionary:
+	var out: Dictionary = {}
+	if phantom_force.is_empty() or blackboard == null or blackboard.has_believed_unit:
+		return out
+	var fields: BotFields = self.fields()
+	if fields == null or fields.prior_arrival_seconds == INF:
+		return out
+	var weight: float = clock_weight(
+		fields.prior_arrival_seconds, a_answer_seconds, arrival_margin_falloff_seconds
+	)
+	for type: StringName in phantom_force:
+		out[type] = float(phantom_force[type]) * weight
+	return out
+
 
 ## Per believed enemy TYPE: { type -> { "demand": float, "rep": Actor } }.
 ## demand = that type's summed importance across the believed enemy comp (units 1.0,
@@ -1584,6 +1668,10 @@ func enemy_demand_map() -> Dictionary:
 		importance[entry.type] = importance.get(entry.type, 0.0) + imp
 		if reps.get(entry.type) == null and is_instance_valid(entry.entity):
 			reps[entry.type] = entry.entity
+	# Before the first sighting, the enemy's opening force is assumed on its way (phantom_force).
+	var phantom: Dictionary = phantom_force_clocked(answer)
+	for etype: StringName in phantom:
+		importance[etype] = importance.get(etype, 0.0) + phantom[etype]
 	for etype in importance:
 		if reps.get(etype) == null:
 			reps[etype] = _any_instance_of_type(etype)
@@ -1628,6 +1716,9 @@ func believed_enemy_composition_clocked() -> Dictionary:
 	var answer: float = fastest_answer_seconds()
 	for entry: CommanderBlackboard.Entry in blackboard.believed_units():
 		weights[entry.type] = float(weights.get(entry.type, 0.0)) + _clocked(entry, answer)
+	var phantom: Dictionary = phantom_force_clocked(answer)
+	for etype: StringName in phantom:
+		weights[etype] = float(weights.get(etype, 0.0)) + phantom[etype]
 	return weights
 
 
@@ -1790,6 +1881,14 @@ func mobility_of_type(a_type: StringName) -> Dictionary:
 		"nav_class": movement.nav_agent_class,
 		"is_air": carrier.get_node_or_null("Aerial") != null,
 	}
+
+
+## ENERGY PER SECOND a structure of `a_type` pays once it stands — its EnergyExtractor's rate,
+## read off the build preview; 0 for a type that earns nothing. A pond's multiple is the
+## reader's to apply, since it depends on where the structure stands.
+func income_rate_of_type(a_type: StringName) -> float:
+	var preview: Actor = _preview_for_type(a_type) as Actor
+	return _extraction_rate_of(preview) if preview != null else 0.0
 
 
 ## THE LONGEST GROUND REACH a type's weapons have, in world units — a live instance's where

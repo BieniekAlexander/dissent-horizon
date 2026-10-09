@@ -508,10 +508,13 @@ func _propose_savings() -> void:
 		and _owned_production_structure_count(buildable) >= production_structure_cap
 	)
 	var under_way: Array[StringName] = _types_under_way()
-	for t: StringName in buildable:
-		if capped or under_way.has(t) or not _bot.get_structures_of_type(t).is_empty():
-			continue
-		var value: float = _bot.best_producible_value(t, demand)
+	var unowned: Array = buildable.filter(
+		func(t: StringName) -> bool:
+			return not under_way.has(t) and _bot.get_structures_of_type(t).is_empty()
+	)
+	var values: Dictionary = _bot.producer_values(unowned, demand) if not capped else {}
+	for t: StringName in values:
+		var value: float = float(values[t])
 		if best.is_empty() or value > best["value"]:
 			best = {"type": t, "value": value}
 	var type: StringName = best.get("type", &"")
@@ -524,8 +527,17 @@ func _propose_savings() -> void:
 ## (Bot.best_producible_value against the enemy demand map), cost as the tiebreak. It used
 ## to be the cheapest, which after one of each meant a second barracks every time and never a
 ## second war factory however badly the army wanted vehicles. null when none is affordable.
+##
+## A producer ORDERED but not yet placed counts as owned here, for the unowned preference and
+## the cap alike: until 2026-10-09 it did not, and in the opening — the bot's command centre
+## still a pending drop, so it owned nothing — the rung read the centre as unowned and the
+## Servants built one or two more. The same hole sent a second barracks before the first was
+## placed. And A PRODUCER WORTH NOTHING IS NOT BOUGHT: the centre trains builders and the
+## dominion unit, nothing armed, so its value here is always 0 and it was only ever chosen as
+## the lone candidate; a building that trains no fighter is the utility demand's business.
 func _production_structure_to_build() -> Variant:
 	var buildable: Array = _bot.buildable_production_structure_types()
+	var under_way: Array[StringName] = _types_under_way()
 	if (
 		production_structure_cap >= 0
 		and _owned_production_structure_count(buildable) >= production_structure_cap
@@ -535,21 +547,21 @@ func _production_structure_to_build() -> Variant:
 	if candidates.is_empty():
 		return null
 	var unowned: Array = candidates.filter(
-		func(t): return _bot.get_structures_of_type(t).is_empty()
+		func(t): return _bot.get_structures_of_type(t).is_empty() and not under_way.has(t)
 	)
 	var pool: Array = unowned if not unowned.is_empty() else candidates
-	var demand: Dictionary = _bot.enemy_demand_map()
-	var value: Dictionary = {}
-	for t in pool:
-		value[t] = _bot.best_producible_value(t, demand)
+	var value: Dictionary = _bot.producer_values(pool, _bot.enemy_demand_map())
 	pool.sort_custom(
 		func(a, b):
 			if value[a] != value[b]:
 				return value[a] > value[b]
 			return _energy_cost(a) < _energy_cost(b)
 	)
-	_act.usage.record_choice("production_structure", value, pool[0])
-	return pool[0]
+	# A refused pick is recorded as nothing chosen, so the ledger reads the refusal rather than
+	# a purchase that never happened.
+	var picked: StringName = pool[0] if float(value[pool[0]]) > 0.0 else &""
+	_act.usage.record_choice("production_structure", value, picked)
+	return pool[0] if picked != &"" else null
 
 
 ## Which TECH structure to build now, or null. A tech structure is one some unit REQUIRES
@@ -576,11 +588,14 @@ func _best_tech(a_affordable: bool) -> Dictionary:
 	var demand: Dictionary = _bot.enemy_demand_map()
 	if demand.is_empty():
 		return {}
-	var owned_producible: Array = _owned_producible_types()
+	var owned_producible: Array = _owned_producible_types().filter(_bot.unit_can_attack)
+	# One answer for every armed unit an owned producer could make, locked or not, so the
+	# trainable best and the unlocked best are on one scale (Bot.purchase_values_per_energy).
+	var valued: Dictionary = _bot.purchase_values_per_energy(owned_producible, demand)["values"]
 	var trainable_best: float = 0.0
 	for t: StringName in owned_producible:
-		if _bot.has_tech_for(t) and _bot.unit_can_attack(t):
-			trainable_best = maxf(trainable_best, _bot.unit_composition_value(t, demand))
+		if _bot.has_tech_for(t):
+			trainable_best = maxf(trainable_best, float(valued[t]))
 	var under_way: Array[StringName] = _types_under_way()
 	var best_type: Variant = null
 	var best_gain: float = 0.0
@@ -592,9 +607,8 @@ func _best_tech(a_affordable: bool) -> Dictionary:
 			continue
 		var unlocked_best: float = 0.0
 		for t: StringName in owned_producible:
-			if not _bot.unit_can_attack(t) or not _bot.unit_requires_structure(t, ttype):
-				continue
-			unlocked_best = maxf(unlocked_best, _bot.unit_composition_value(t, demand))
+			if _bot.unit_requires_structure(t, ttype):
+				unlocked_best = maxf(unlocked_best, float(valued[t]))
 		if unlocked_best < tech_value_margin * maxf(trainable_best, 0.001):
 			continue
 		var gain: float = unlocked_best - trainable_best
@@ -629,6 +643,8 @@ func _owned_producible_types() -> Array:
 func _tech_candidates_scored() -> Dictionary:
 	var demand: Dictionary = _bot.enemy_demand_map()
 	var owned_producible: Array = _owned_producible_types()
+	var armed: Array = owned_producible.filter(_bot.unit_can_attack)
+	var valued: Dictionary = _bot.purchase_values_per_energy(armed, demand)["values"]
 	var scored: Dictionary = {}
 	for ttype: StringName in _bot.buildable_structure_types():
 		if not _bot.get_structures_of_type(ttype).is_empty():
@@ -638,8 +654,8 @@ func _tech_candidates_scored() -> Dictionary:
 		for t: StringName in owned_producible:
 			if _bot.unit_requires_structure(t, ttype):
 				unlocks_any = true
-				if _bot.unit_can_attack(t):
-					best = maxf(best, _bot.unit_composition_value(t, demand))
+				if armed.has(t):
+					best = maxf(best, float(valued[t]))
 		if unlocks_any:
 			scored[ttype] = best
 	return scored
@@ -720,9 +736,7 @@ func _defence_demand() -> Dictionary:
 ## structure that anything contests: [{"centre": Vector3, "value", "own", "enemy", "demand"}],
 ## in energy. A region with no tension is left out — it wants nothing.
 func defence_demand_by_region() -> Array:
-	var standing: Array = _bot.get_structures().filter(
-		func(s: Actor) -> bool: return s.is_built
-	)
+	var standing: Array = _bot.get_structures().filter(func(s: Actor) -> bool: return s.is_built)
 	if standing.is_empty():
 		return []
 	var own_armed: Array = _bot.get_units().filter(
@@ -795,8 +809,9 @@ func _owns_a_producer() -> bool:
 ## committed to, so a cap that ignored it would authorise one build too many every time.
 func _owned_production_structure_count(a_buildable: Array) -> int:
 	var count: int = 0
+	var under_way: Array[StringName] = _types_under_way()
 	for t in a_buildable:
-		count += _bot.get_structures_of_type(t).size()
+		count += _bot.get_structures_of_type(t).size() + under_way.count(t)
 	return count
 
 
@@ -1046,22 +1061,43 @@ func _new_dominion_search(a_type: StringName, a_key: Array) -> Dictionary:
 		return {"key": a_key}
 	_work += DOMINION_SURVEY_SETUP_WORK_UNITS
 	var anchor: Vector2 = VU.in_xz(_bot.base_centroid())
-	var points: Array[Vector2] = []
-	var reach: int = DOMINION_SURVEY_RADIUS_CELLS / DOMINION_SURVEY_STRIDE_CELLS
-	for j: int in range(-reach, reach + 1):
-		for i: int in range(-reach, reach + 1):
-			var offset := Vector2(i, j) * DOMINION_SURVEY_STRIDE_CELLS * Map.CELL_SIZE
-			if offset.length() <= DOMINION_SURVEY_RADIUS_CELLS * Map.CELL_SIZE:
-				points.append(anchor + offset)
 	return {
 		"key": a_key,
 		"survey": survey,
-		"points": points,
+		"points": _survey_points(anchor),
 		"ranked": [],
 		"anchor": anchor,
 		"forward": _forward_direction(anchor),
 		"full": route.full_site_gain(preview)
 	}
+
+
+## The candidate sites within DOMINION_SURVEY_RADIUS_CELLS of `a_anchor`: the cells of the
+## bot's one lattice (lattice-and-topology.md §One lattice), so the survey quantises the map
+## the way every other spatial read does, and its candidates are the same cells a later
+## channel read would index. Without the fields (the difficulty switch off) a stride grid
+## hung on the anchor, the survey's own quantisation before the lattice existed.
+func _survey_points(a_anchor: Vector2) -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	var radius: float = DOMINION_SURVEY_RADIUS_CELLS * Map.CELL_SIZE
+	var fields: BotFields = _bot.fields()
+	if fields != null:
+		var lattice: Lattice = fields.lattice
+		var low: Vector2i = lattice.index_at(a_anchor - Vector2(radius, radius))
+		var high: Vector2i = lattice.index_at(a_anchor + Vector2(radius, radius))
+		for z: int in range(maxi(0, low.y), mini(lattice.depth - 1, high.y) + 1):
+			for x: int in range(maxi(0, low.x), mini(lattice.width - 1, high.x) + 1):
+				var centre: Vector2 = lattice.centre_of(Vector2i(x, z))
+				if centre.distance_to(a_anchor) <= radius:
+					points.append(centre)
+		return points
+	var reach: int = DOMINION_SURVEY_RADIUS_CELLS / DOMINION_SURVEY_STRIDE_CELLS
+	for j: int in range(-reach, reach + 1):
+		for i: int in range(-reach, reach + 1):
+			var offset := Vector2(i, j) * DOMINION_SURVEY_STRIDE_CELLS * Map.CELL_SIZE
+			if offset.length() <= radius:
+				points.append(a_anchor + offset)
+	return points
 
 
 ## Cheapest buildable infrastructure provider (tech-available), regardless of affordability so
@@ -1588,6 +1624,10 @@ func _find_build_spot(a_type: StringName) -> Variant:
 			_spot_search = {}
 			_spot_turns = {spot: facing_turns(is_turned, search["forward"])}
 			return spot
+	# Nothing in this region could be placed: the next-best block of the annulus, next call.
+	if _advance_region(search["ranking"]):
+		search["cursor"] = 0
+		return SEARCH_PENDING
 	_spot_search = {}
 	return null
 
@@ -1875,10 +1915,13 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 	var basis_x: Vector2 = a_ranking["basis_x"]
 	var out: PackedInt64Array = a_ranking["out"]
 	var anchor: Vector2 = a_ranking["anchor"]
-	var coverage: PackedFloat32Array = a_ranking.get(
-		"coverage", PackedFloat32Array()
-	)
+	var coverage: PackedFloat32Array = a_ranking.get("coverage", PackedFloat32Array())
 	var lattice: Lattice = a_ranking.get("coverage_lattice", null)
+	# LEVEL ONE, once per ranking: the lattice cells of the annulus ranked by the same terms,
+	# and the best one's block is the only ground level two scores (see _rank_regions).
+	if not a_ranking.has("regions"):
+		_rank_regions(a_ranking)
+	var region: Variant = a_ranking["region_rect"]
 	var budget_end: int = _work + a_allowance
 	var dz: int = a_ranking["row"]
 	var first: int = dz
@@ -1898,6 +1941,8 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 			var offset: Vector2 = row + basis_x * float(dx)
 			var radial_sq: float = offset.length_squared()
 			if radial_sq < min_sq or radial_sq > max_sq:
+				continue
+			if region != null and not (region as Rect2).has_point(anchor + offset):
 				continue
 			var origin_x: int = seed_origin.x + dx
 			if origin_x < 0 or origin_x + dims.x > width:
@@ -1940,6 +1985,98 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 
 ## Continue every ranking in a composite one (both orientations of a footprint) in turn; once
 ## all are done, merge their candidates into one best-first list.
+## LEVEL ONE OF THE TWO-LEVEL SEARCH (lattice-and-topology.md §Build order, step 2; Alex,
+## 2026-10-09): the bot reads the map on its lattice to pick a LOCATION, then reads the ground
+## around it for the exact footprint. Every lattice cell whose centre lies in the search
+## annulus is scored with the terms the origins are — distance from the anchor, the bearing
+## along the forward axis, the coverage channel — packed and sorted like them, so the chosen
+## cell is mirror-exact for the same reason the origins are. NOT the corridor clearance: that
+## is a property of one footprint's spot, and read at a block's centre it damned exactly the
+## blocks a turret must stand in, the chokepoints, whose centres are walls (the turret sim
+## caught it). A block the lattice holds impassable is skipped instead; level two prices the
+## clearance of each origin as before. `regions` is that order; `region_rect` is the current
+## cell grown by half a cell, the only ground the origin loop scores. Without
+## the fields (the difficulty switch off) there is no lattice and no filter: the search is the
+## one-level search it was.
+func _rank_regions(a_ranking: Dictionary) -> void:
+	a_ranking["regions"] = PackedInt64Array()
+	a_ranking["region_index"] = 0
+	a_ranking["region_rect"] = null
+	var fields: BotFields = _bot.fields()
+	if fields == null:
+		return
+	var lattice: Lattice = fields.lattice
+	var anchor: Vector2 = a_ranking["anchor"]
+	var forward: Vector2 = a_ranking["forward"]
+	var right: Vector2 = a_ranking["right"]
+	var bearing: float = a_ranking["bearing"]
+	var coverage: PackedFloat32Array = a_ranking.get("coverage", PackedFloat32Array())
+	var passable: PackedByteArray = fields.passable_mask(NavAgentClass.Size.SMALL)
+	# Half a pitch of slack either side, so a block straddling the annulus' edge still counts.
+	var slack: float = lattice.pitch * 0.5
+	var min_radius: float = maxf(0.0, float(SEARCH_MIN_RING) - slack)
+	var max_radius: float = float(SEARCH_MAX_RING) + slack
+	var low: Vector2i = lattice.index_at(anchor - Vector2(max_radius, max_radius))
+	var high: Vector2i = lattice.index_at(anchor + Vector2(max_radius, max_radius))
+	var out := PackedInt64Array()
+	for z: int in range(maxi(0, low.y), mini(lattice.depth - 1, high.y) + 1):
+		for x: int in range(maxi(0, low.x), mini(lattice.width - 1, high.x) + 1):
+			var cell := Vector2i(x, z)
+			if passable[lattice.index_of(cell)] == 0:
+				continue
+			var offset: Vector2 = lattice.centre_of(cell) - anchor
+			var radial: float = offset.length()
+			if radial < min_radius or radial > max_radius:
+				continue
+			var along: float = offset.dot(forward)
+			var cost: float = COMPACTNESS_WEIGHT * radial - bearing * along
+			if not coverage.is_empty():
+				cost -= place_coverage_weight * coverage[lattice.index_of(cell)]
+			out.append(_pack(cost, along, offset.dot(right), lattice.index_of(cell)))
+	out.sort()
+	a_ranking["regions"] = out
+	a_ranking["region_rect"] = _region_rect(lattice, out, 0)
+
+
+## The ground level two scores for the region at `a_index` of `a_regions`: that lattice cell
+## grown by half a cell each way, so a footprint straddling its edge is still a candidate,
+## but not a whole neighbour — a full ring let the origin ranking wander a cell toward the
+## base and out of the block level one chose (the turret sim caught it). Null past the last
+## region or with none.
+static func _region_rect(lattice: Lattice, regions: PackedInt64Array, index: int) -> Variant:
+	if index < 0 or index >= regions.size():
+		return null
+	var cell: Vector2i = lattice.cell_of(regions[index] & RANK_INDEX_MASK)
+	return lattice.rect_of(cell).grow(lattice.pitch * 0.5)
+
+
+## Move a ranking (or each of its parts) on to its next region, its origins unscored again,
+## for a search whose region held nothing placeable. False when no region is left — the
+## search has then tried every block of the annulus and may give up.
+func _advance_region(a_ranking: Dictionary) -> bool:
+	if a_ranking.has("parts"):
+		var moved: bool = false
+		for part: Dictionary in a_ranking["parts"]:
+			moved = _advance_region(part) or moved
+		if moved:
+			a_ranking["out"] = PackedInt64Array()
+			a_ranking["done"] = false
+		return moved
+	var fields: BotFields = _bot.fields()
+	var regions: PackedInt64Array = a_ranking.get("regions", PackedInt64Array())
+	if fields == null or regions.is_empty():
+		return false
+	var next: int = int(a_ranking["region_index"]) + 1
+	if next >= regions.size():
+		return false
+	a_ranking["region_index"] = next
+	a_ranking["region_rect"] = _region_rect(fields.lattice, regions, next)
+	a_ranking["row"] = -SEARCH_MAX_RING - 1
+	a_ranking["out"] = PackedInt64Array()
+	a_ranking["done"] = false
+	return true
+
+
 func _continue_rankings(a_ranking: Dictionary, a_allowance: int) -> bool:
 	var budget_end: int = _work + a_allowance
 	for part: Dictionary in a_ranking["parts"]:
@@ -2024,8 +2161,8 @@ const PLACEMENT_NAV_CLASS: int = NavAgentClass.Size.LARGE
 ##
 ## Cheapest test first: the geometry (in bounds, flat, and unoccupied as far as the bot knows —
 ## Build judges by the same knowledge, so a spot found here is not refused there), then the
-## written-off list, then the two NAVIGATION rules, which live in the map layer because they are facts
-## about the map rather than bot preferences — see NavPlacement.
+## written-off list, then the two NAVIGATION rules, which live in the map layer because they are
+## facts about the map rather than bot preferences — see NavPlacement.
 ##
 ## EVERY structure the bot places is required to keep a side on the navmesh, not only the
 ## ones that train units. A building nothing can walk to cannot be repaired, garrisoned or
@@ -2061,9 +2198,7 @@ func _dims_for_type(a_type: StringName) -> Vector2i:
 	var tool: Tool = Tool.for_type(a_type)
 	if tool != null:
 		var preview: Node = _bot.get_build_preview_instance(tool)
-		var s: Fixture = (
-			preview.get_node_or_null("Fixture") as Fixture if preview != null else null
-		)
+		var s: Fixture = preview.get_node_or_null("Fixture") as Fixture if preview != null else null
 		if s != null:
 			return s.dimensions
 	return Vector2i(2, 2)

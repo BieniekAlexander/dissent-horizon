@@ -54,6 +54,7 @@ tests and probes. The managers:
 | 7 | `BotKamikaze` | AOE-suicide runs worth their airframe (slow ~7s cadence) |
 | 8 | `BotSanction` | unlock and deploy commander abilities |
 | 0 | `BotMomentum` | samples where the bot STANDS — army-value trend — before anyone reads it |
+| 0 | `BotPosture` | the four dials that tilt what every manager below plays by, from the signals (`BotIncome` prices the economy ones) — [objective-selection](objective-selection.md) |
 | — | `_tick_preservation` | pull a hurt unit out, once a second |
 
 **A manager keeps a unit by claiming it** (`BotClaims`): scouting < combat < errands <
@@ -71,9 +72,13 @@ currency below, is still the model for the other managers.
   if we own none → an infrastructure provider if capacity is tight → **an extractor while the
   bot wants more income than it owns and nothing is pressing** → a production building if
   energy is in surplus (another dominion source first, for a route that pays by site) — the
-  one whose best unit the demand map wants most, cost as the tiebreak, since cheapest-first
-  meant a second barracks every time and never a second war factory → an
-  extractor on a free site. WHICH structures is derived from the
+  one whose best TRAINABLE unit the purchase valuation wants most, cost as the tiebreak: the
+  same valuation its units are then chosen by (`Bot.purchase_values_per_energy`, 2026-10-09;
+  cheapest-first meant a second barracks every time and never a second war factory, and the
+  demand map's own formula did the same against the learned model). A producer ordered but
+  not yet placed counts as owned, and a producer that trains nothing armed is never bought
+  here — both holes bought the bot one or two extra command centres in the opening, while its
+  own was a pending drop → an extractor on a free site. WHICH structures is derived from the
   buildable set classified by component (`EnergyExtractor`, `Production`) and, for dominion,
   by the faction's route (see §Dominion routes) — never hardcoded, so a newly-added building is picked up automatically. **One
   rung is no longer fixed** — see §The opening's income rung reads the game — and one hazard

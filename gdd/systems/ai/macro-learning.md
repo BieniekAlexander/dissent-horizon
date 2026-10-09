@@ -91,8 +91,8 @@ end-to-end RL is REJECTED for now** unless a fast abstract simulator is built fi
 the fight generator, the trainer and the pinned requirements; `CombatModel` reads the export;
 `BotDifficulty.should_use_learned_production` switches `BotProduction`'s unit choice onto it
 (on in every tier since 2026-10-07, Alex; a run may set it false). The decision-sim pair is `sims/bot/production/counter_the_tanks{,_learned}`.
-Regenerate the model with `generate_fights.tscn` (three shards of 2,000 took 55 minutes) and
-`train.py` (20 seconds).
+Regenerate the model with `generate_fights.tscn` (three shards of 2,000 took 55 minutes at the
+90 s window; about 70 minutes at 240 s with an airfield, 2026-10-09) and `train.py` (20 seconds).
 
 **First fit (2026-10-07): 6,000 fights, 17 armed units (Colonial, Anarchical, Technocratic),
 held out by fight:**
@@ -143,6 +143,56 @@ across both batches, p ≈ 0.06). Over the ten, the learned side fielded 878 Col
 Constables (20 to 7) — and fewer turrets (6 to 14). Rows:
 `tools/selfplay/results/learned_production/random_maps.jsonl`.
 
+**One valuation for every purchase (2026-10-09).** The 32-match ledger
+above showed the model's choice and the bot's army disagreeing: the model picked the mech
+13,193 of the 13,302 times a war factory asked and the aircraft 5,250 of 5,907 times an
+airfield did, both ahead of the recruit per energy — and the batch still built 4,588 recruits
+to 90 mechs, because it built 196 barracks to 58 war factories and 12 airfields. The
+producer and tech rungs were pricing buildings with the demand map's strength-per-energy
+(cheap infantry ten to one) while the unit choice used the model. All three now read
+`Bot.purchase_values_per_energy` — the model's marginal per energy where it knows every type
+and an enemy composition is believed (the phantom opening force counts), else the demand map,
+never both in one answer — and a producer is priced by the best unit it can train TODAY
+(`Bot.producer_values`; a locked unit used to price a barracks by the Guard behind a tech
+building the bot did not own). The same ledger explained the extra command centres Alex had
+watched: chosen 448 of 637 times at a score of 0, as the lone "unowned" producer while the
+bot's own centre was still a pending drop, by a rung that did not count ordered builds. It
+counts them now and refuses a producer worth nothing.
+
+Measured the same day, 8 matches HARD against HARD, Colonial mirror, every tier default (so
+personalities drawn and both slots on the model — the 32-match ledger pinned spread to 0 with
+one slot on the model, so the two are a direction, not a controlled pair), per slot:
+
+| per slot | 32-match ledger | after parts 1–2 (old model) | parts 1–3 (retrained model) |
+|---|---|---|---|
+| command centres | 1.50 (every slot 0 bought a second) | **1.00** (all 16 slots) | 1.00 |
+| barracks / war factories / airfields | 3.06 / 0.91 / 0.19 | 1.94 / 1.00 / **0.88** | 2.44 / 1.00 / 0.75 |
+| recruits (anti-light / anti-mech) | 71.7 / 6.3 | 43.8 / 16.3 | 46.5 / 15.2 |
+| mech anti-light / aircraft light | 1.4 / 0.8 | **4.3** / 0.9 | 3.3 / **1.9** |
+| tech2 and the Guard | 0.19 / 1.3 | 0 / 0 | 0 / 0 |
+
+The retrained model moves the mix further toward the Sloop, as its tables say it should, and
+gives back a little of the mech; against the ledger the recruit count is a third lower, the
+mech two to three times higher and the Sloop more than double. Eight matches each, so these
+are directions; the 200-match test of a ten-point edge is still the harness's.
+
+The last row is the consistent valuation at work rather than a loss: under the demand map the
+Guard scored 7.4 against the recruit's 3.1 and the tech rung bought its building; the model
+rates it near the mech per energy, under the 1.3 margin, so the tech rung now waits on it as
+the unit choice always did. Whether that margin is right is the search's question.
+
+**Retrained with a 240 s window and an airfield per flying side (2026-10-09, the shipped
+model; corpus `tools/combat_model/out/airfield_2026-10-09/`).** The 90 s window cut off what an
+untouchable aircraft does — it kept all its value and killed too slowly for the margin to
+show — and with no airfield a charged clip fired once. 6,000 fights, 4,037 with an airfield,
+398 running the whole window; held-out R² 0.685 (was 0.655), winner right 85.5% (was 82.9%).
+What moved in the Colonial own-side tables: the Sloop at five is 1.12 (was 0.60) and the
+recruit's FIRST unit fell from 0.117 to 0.069 per 100 energy, under the mech's 0.074 and level
+with the Sloop's 0.063 — the cheap-infantry edge the first corpus gave it is gone at the
+margin where the bot buys. The Drake's table past three bodies is extrapolation (three cost
+more than the budget ceiling) and reads low; TODO: a budget range that reaches four Drakes, or
+a per-type cap. `counter_the_tanks{,_learned}` pass on it.
+
 **Each side is drawn from one faction** (Alex, 2026-10-07: a mixed side is reachable only by
 capture, too rare to model yet); the two sides may differ, and a faction appears in proportion
 to its armed units.
@@ -150,11 +200,10 @@ to its armed units.
 **What the fights cannot see** (2026-10-07). The model values a unit only by what it does in a
 short, flat, unordered fight, so a unit whose worth lies elsewhere is undervalued:
 
-- TODO — **charged weapons and rearming.** There is no airfield in the arena and the window is
-  90 s, so a charged clip fires once. The Drake (four rockets, `charged: true`) shows half its
-  value — fielded alone it destroyed 35% of the enemy's value and kept 48% of its own, with 60
-  of 110 fights timing out because nothing could reach it — and none of the sortie cadence. It
-  needs an airfield in the arena and a window several sorties long.
+- **Charged weapons and rearming** — built 2026-10-09: a side that flies gets its faction's
+  airfield four cells behind its army and the window is 240 s, several sorties long. (At 90 s
+  with no airfield the Drake showed half its value: fielded alone it destroyed 35% of the
+  enemy's value and kept 48% of its own, with 60 of 110 fights timing out.)
 - TODO — **support and control.** The Avalanche alone destroys 4% of the enemy's value, as
   designed; its freeze IS its payload, so it fires on its own, and the model found the combo
   with infantry (Avalanche × Constable 0.41, Avalanche × anti-mech Recruit 0.31 — two of the

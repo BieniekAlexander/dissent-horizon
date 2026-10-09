@@ -27,6 +27,11 @@ func after_all() -> void:
 
 func _boot() -> void:
 	_scenario = (load(SCENE) as PackedScene).instantiate()
+	# The tier exactly: these tests are about the readout, not the personality, and a drawn
+	# personality whose curiosity dial is low prices information under what a scout costs and
+	# never sends one (seen 2026-10-09, the day the posture layer's biases joined the draw).
+	for slot: PlayerSlot in _scenario.player_slots:
+		slot.config_overrides = {"personality_spread": 0.0, "decision_temperature": 0.0}
 	add_child_autofree(_scenario)
 	# Let the navmesh sync and the brain build its managers + scout grid.
 	for _i: int in 90:

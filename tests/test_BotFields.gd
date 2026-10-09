@@ -173,6 +173,22 @@ func test_arrival_seconds_is_field_distance_over_speed_in_world_units() -> void:
 	)
 
 
+func test_with_nothing_believed_the_arrival_is_the_opening_prior() -> void:
+	# No source at all: the read is the prior the posture layer pushed, INF without one; a
+	# believed walker is measured as before, whatever the prior says.
+	var fields: FixtureFields = FixtureFields.over_open(Rect2(0.0, 0.0, 45.0, 45.0))
+	assert_eq(fields.arrival_seconds_at(Vector2(22.5, 22.5)), INF, "no prior yet")
+	fields.prior_arrival_seconds = 37.0
+	assert_eq(fields.arrival_seconds_at(Vector2(22.5, 22.5)), 37.0)
+	assert_false(fields.is_quiet_at(Vector2(22.5, 22.5)), "37 s is inside the quiet horizon")
+	var with_walker: FixtureFields = FixtureFields.over_open(Rect2(0.0, 0.0, 45.0, 45.0))
+	with_walker.prior_arrival_seconds = 37.0
+	with_walker.add_walker(Vector2i(0, 4), 2.5)
+	assert_almost_eq(
+		with_walker.arrival_seconds_at(Vector2(22.5, 22.5)), 8.0, 1e-6, "4 hops of 5 at 2.5"
+	)
+
+
 func test_the_presence_penalty_covers_a_piece_s_reach_and_bends_the_enemy_field() -> void:
 	var lattice: Lattice = _open_lattice()
 	# One 1,000-energy piece standing at the centre of (3, 3), reaching one pitch.
@@ -304,6 +320,25 @@ func test_arrival_between_two_points_reads_a_field_at_the_destination() -> void:
 	var flyer: Dictionary = {"speed": 10.0, "nav_class": NavAgentClass.Size.SMALL, "is_air": true}
 	assert_almost_eq(fields.arrival_seconds_between(from, to, flyer), 30.0 / 10.0, 0.001)
 	assert_eq(fields.arrival_seconds_between(from, to, {}), INF, "what cannot move never arrives")
+
+
+func test_a_destination_asked_about_last_snapshot_is_swept_inside_the_next_rebuild() -> void:
+	var fields: FixtureFields = _fixture()
+	var walker: Dictionary = {"speed": 2.0, "nav_class": NavAgentClass.Size.SMALL, "is_air": false}
+	var from: Vector2 = fields.lattice.centre_of(Vector2i(1, 1))
+	var to: Vector2 = fields.lattice.centre_of(Vector2i(1, 7))
+	var key: String = BotFields.point_field_key(Vector2i(1, 7), NavAgentClass.Size.SMALL)
+	var before: float = fields.arrival_seconds_between(from, to, walker)  # swept on the spot
+	fields.refresh()
+	while fields.is_pending():
+		fields.advance(40)
+	assert_true(fields._point_fields.has(key), "the next rebuild swept it within its budget")
+	assert_almost_eq(fields.arrival_seconds_between(from, to, walker), before, 0.001)
+	# That read asked again, so the next snapshot keeps it; the one after, unasked, lets it go.
+	fields.rebuild_now()
+	assert_true(fields._point_fields.has(key), "asked about last snapshot: kept warm")
+	fields.rebuild_now()
+	assert_false(fields._point_fields.has(key), "a destination nobody asks about is not kept warm")
 
 
 func test_reach_coverage_is_the_share_of_the_band_a_gun_at_each_cell_covers() -> void:

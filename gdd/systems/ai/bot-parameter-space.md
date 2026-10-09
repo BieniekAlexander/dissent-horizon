@@ -105,6 +105,31 @@ target's score times `retarget_switch_margin`, so multiplying every weight by on
 changes no decision. One of the four has to be the ruler; searching all four would spend a
 dimension of compute on a free scale.
 
+## The posture layer (2026-10-09)
+
+Thirteen fields appended for [objective-selection](objective-selection.md) §The build, every
+one searched and every one shipping at the value that changes nothing (gains 0, biases 0.5,
+parity 1). A gain's SIGN is the search's to choose: its range is [−1, 1].
+
+| Later field | Was | Now read by |
+|---|---|---|
+| `commitment_economy_gain`, `commitment_bias` | no economy sense at all | `BotPosture` → `income_structure_target`, `army_commit_threshold` |
+| `aggression_army_gain`, `aggression_exposure_gain`, `aggression_bias` | — | `BotPosture` → `attack_value_ratio`, `guard_strength_ratio` |
+| `risk_momentum_gain`, `risk_threat_gain`, `risk_bias` | — | `BotPosture` → `economy_reserve`; the opening prior's scale |
+| `curiosity_stale_gain`, `curiosity_bias` | `BotScout.INFORMATION_VALUE_ENERGY`, fixed | `BotScout.information_value_energy` |
+| `posture_dead_band`, `posture_hold_seconds` | — | `BotPosture.update`, the hysteresis |
+| `assumed_enemy_income_parity` | — | `BotIncome`, the prior's share of own income |
+
+The dials DIVIDE the fields they reach by 2^(2d − 1), clamped to the field's range, so the
+ranges above are the bounds of what a posture can play as well as of the search.
+
+**A personality draw moves the biases as it moves every other field**, so a drawn bot's
+`economy_reserve`, say, is jittered twice — directly, and through its `risk_bias` — and a
+bias drawn far from 0.5 tilts five parameters at once. That is what a dial is for (a
+correlated tilt the direct draws cannot express), and it has one visible consequence already:
+a curiosity bias drawn low prices information under what a scout costs, and that bot never
+scouts. A test or an experiment that wants the tier plays at spread 0, as before.
+
 ## The tiers ship flat
 
 Every new field has the same value in every tier — the value that reproduces today's play.

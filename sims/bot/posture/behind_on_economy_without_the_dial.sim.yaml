@@ -1,0 +1,34 @@
+description: |
+  The control for behind_on_economy_holds: the same armies and the same three enemy
+  extractors in A's sight, with the commitment dial's gain at the tier's 0. The economy lead
+  then reaches nothing, A's commit threshold stays 3, and its 4 recruits commit on the
+  stalemate clock as in commitment/behind_side_waits. Axis: POSTURE (commitment), control.
+setting: { kind: flat, size: 80 }
+given:
+  A:
+    settings: { difficulty: HARD, vision: full, config: { scout_unit_budget: 0 } }
+    with:
+      home:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: west
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 4 } ]
+        at: { from: A.home, distance: 6, bearing: east }
+        formation: cluster
+  B:
+    settings: { difficulty: HARD, vision: full, config: { scout_unit_budget: 0 } }
+    with:
+      home:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: east
+      extractors:
+        of: [ { piece: nt_extractor, count: 3 } ]
+        at: { from: B.home, distance: 8, bearing: south }
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 2 } ]
+        at: { from: B.home, distance: 6, bearing: west }
+        formation: cluster
+run: { for: 60s, seed: 1 }
+expect:
+  - not: [ { slot: A, check: posture, is: ATTACK, by: 4s } ]
+  - { slot: A, check: posture, is: ATTACK, by: 15s }

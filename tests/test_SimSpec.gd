@@ -531,6 +531,34 @@ func test_a_bot_state_check_names_a_thinking_slot() -> void:
 	assert_eq(leaf.name, "posture")
 
 
+func test_a_checks_near_may_be_a_place_beside_a_group() -> void:
+	var text: String = _valid().replace(
+		"  - { of: B.army, check: dead }",
+		(
+			"  - { slot: A, check: placed, piece: cl_bioLight_antiLight, "
+			+ "near: { from: A.army, distance: 7, bearing: north }, within: 7 }"
+		)
+	)
+	var spec: SimSpec = SimSpec.parse(text, "f")
+	assert_eq(spec.errors, [] as Array[String])
+	var near: Variant = spec.expect_root.leaves()[0].arguments["near"]
+	assert_true(near is SimSpec.Placement, "parsed as a placement, not left as a mapping")
+	assert_eq((near as SimSpec.Placement).from_ref, "A.army")
+	assert_eq((near as SimSpec.Placement).bearing, "north")
+	assert_eq((near as SimSpec.Placement).distance_units, 7.0)
+
+
+func test_a_place_beside_an_unknown_group_is_refused() -> void:
+	var text: String = _valid().replace(
+		"  - { of: B.army, check: dead }",
+		(
+			"  - { slot: A, check: placed, piece: cl_bioLight_antiLight, "
+			+ "near: { from: A.nobody, distance: 7, bearing: north }, within: 7 }"
+		)
+	)
+	assert_true(_has_error(SimSpec.parse(text, "f"), "A.nobody"))
+
+
 func test_a_bot_state_check_on_an_inert_slot_is_refused() -> void:
 	var text: String = _valid().replace(
 		"  - { of: B.army, check: dead }", "  - { slot: B, check: posture, is: ATTACK }"

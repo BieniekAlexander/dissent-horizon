@@ -167,14 +167,14 @@ static func _build_distance_to(a_check: SimSpec.Check, a_roster: SimGroupRoster)
 static func _build_command(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Callable:
 	var wanted: String = str(a_check.arguments.get("is", ""))
 	var target_ref: String = str(a_check.arguments.get("target", ""))
-	var near_ref: String = str(a_check.arguments.get("near", ""))
+	var near: Variant = a_check.arguments.get("near", null)
 	var within: float = float(a_check.arguments.get("within", 0.0))
 	return func() -> bool:
 		var alive: Array = a_roster.living(a_check.group_ref, a_check.piece)
 		if alive.is_empty():
 			return false
 		var target_ids: Array = a_roster.member_ids(target_ref) if target_ref != "" else []
-		var there: Variant = a_roster.centroid(near_ref) if near_ref != "" else null
+		var there: Variant = a_roster.place_of(near) if near != null else null
 		for entity: Actor in alive:
 			var command: MoveCommand = entity.current_command()
 			if command == null or SimCheckLibrary._command_name(command) != wanted:
@@ -185,7 +185,7 @@ static func _build_command(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> 
 					return false
 				if not target_ids.has((aimed as Object).get_instance_id()):
 					return false
-			if near_ref != "":
+			if near != null:
 				if there == null:
 					return false
 				var destination: Vector2 = VU.in_xz(command.message.position)
@@ -268,30 +268,30 @@ static func _build_posture(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> 
 		return BotMilitary.Posture.keys()[military.current_posture()] == wanted
 
 
-## The army's objective lies within `within` of `near`'s centroid.
+## The army's objective lies within `within` of the place `near` names.
 static func _build_objective(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Callable:
-	var near_ref: String = str(a_check.arguments.get("near", ""))
+	var near: Variant = a_check.arguments.get("near", null)
 	var within: float = float(a_check.arguments.get("within", 0.0))
 	return func() -> bool:
 		var military: BotMilitary = SimCheckLibrary._military_of(a_roster, a_check.slot)
 		if military == null:
 			return false
 		var objective: Variant = military.current_objective()
-		var there: Variant = a_roster.centroid(near_ref)
+		var there: Variant = a_roster.place_of(near)
 		if objective == null or there == null:
 			return false
 		return VU.in_xz(objective as Vector3).distance_to(VU.in_xz(there as Vector3)) <= within
 
 
-## The slot ISSUED a build order for `piece` to stand within `within` of `near`'s centroid —
-## the placement decision, read off BotUsageLog.build_positions. Any issued order counts, so
-## a later re-placement cannot undo an earlier good one; `piece` "" matches any.
+## The slot ISSUED a build order for `piece` to stand within `within` of the place `near`
+## names — the placement decision, read off BotUsageLog.build_positions. Any issued order
+## counts, so a later re-placement cannot undo an earlier good one; `piece` "" matches any.
 static func _build_placed(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Callable:
-	var near_ref: String = str(a_check.arguments.get("near", ""))
+	var near: Variant = a_check.arguments.get("near", null)
 	var within: float = float(a_check.arguments.get("within", 0.0))
 	return func() -> bool:
 		var log: BotUsageLog = SimCheckLibrary._usage_of(a_roster, a_check.slot)
-		var there: Variant = a_roster.centroid(near_ref)
+		var there: Variant = a_roster.place_of(near)
 		if log == null or there == null:
 			return false
 		var centre: Vector2 = VU.in_xz(there as Vector3)

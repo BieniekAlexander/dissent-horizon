@@ -284,7 +284,9 @@ func test_the_new_parameters_are_pushed_into_their_managers() -> void:
 	)
 	assert_ne(source, "", "the brain's source is readable")
 	for field: String in [
-		"config.income_structure_target",  # → BotEconomy, the target itself
+		# → BotEconomy, the target itself — read off the posture layer's modulated copy
+		# (BotPosture.applied_to), which is what the economy plays by.
+		"played.income_structure_target",
 		"config.defend_threat_radius",  # → BotEconomy.safety, its third consumer
 		"config.build_concurrency",  # → BotProduction, the builder demand
 		"config.scout_unit_budget",  # → BotProduction, the scouting term
