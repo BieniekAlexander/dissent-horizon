@@ -35,9 +35,23 @@ if [ "${1:-}" = "--release" ]; then
   targets+=(template_release)
 fi
 
+# macOS: build against the SDK the installed toolchain designates, not whichever xcrun finds
+# newest. A Command Line Tools install can carry a newer SDK (a beta left behind by an update)
+# whose text stubs the installed linker cannot read, and the link then fails with "unknown
+# architecture ... malformed file" after a clean compile. $SDKROOT wins when set (SCons does not
+# forward it to the compiler, so it is passed as macos_sdk_path); otherwise the Command Line
+# Tools' own MacOSX.sdk link; with full Xcode that link is absent and xcrun's choice stands.
+sdk_args=()
+if [ "$(uname -s)" = "Darwin" ]; then
+  sdk_path="${SDKROOT:-$(xcode-select -p)/SDKs/MacOSX.sdk}"
+  if [ -d "$sdk_path" ]; then
+    sdk_args=(macos_sdk_path="$(cd "$sdk_path" && pwd -P)")
+  fi
+fi
+
 for target in "${targets[@]}"; do
   # The profile limits godot-cpp to the engine classes native/src uses, which is most of
   # what a first build costs; a class used without being listed there fails to compile.
   scons -C "$ROOT/native" -j "$jobs" target="$target" api_version="$api_version" \
-    build_profile="$ROOT/native/build_profile.json"
+    build_profile="$ROOT/native/build_profile.json" ${sdk_args[@]+"${sdk_args[@]}"}
 done
