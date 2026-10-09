@@ -8,9 +8,29 @@ document that actually owns the subject.
 
 ## Getting started
 
-It is a **[Godot](https://godotengine.org/) 4.7** project in GDScript. Download the engine from
-**<https://godotengine.org/download>**, then point it at `project.godot` in the repository root
-— there is no build script and nothing to install first.
+It is a **[Godot](https://godotengine.org/) 4.7** project in GDScript, with a few hot loops in a
+small C++ extension that has to be **built once before the project will open** — the scripts
+name its classes, so without it they fail to parse.
+
+1. **Install the engine** from **<https://godotengine.org/download>**.
+2. **Install the build tools:** a C++17 compiler and [SCons](https://scons.org/).
+   - macOS: `xcode-select --install` (the Command Line Tools), then `pip install scons`.
+   - Linux: your distribution's `g++` (or `clang`), then `pip install scons`.
+3. **Build the extension** from the repository root:
+   ```
+   tools/build_native.sh
+   ```
+   The first run fetches the `native/godot-cpp` submodule; a clean build takes under a minute.
+   The library lands in `bin/`, which is git-ignored. **Run it again after pulling any change
+   to `native/`.** Add `--release` to also build the library an export ships.
+4. **Open the project:** point Godot at `project.godot` in the repository root.
+
+On macOS the script builds against the SDK your installed toolchain designates (`$SDKROOT` if
+set), because a Command Line Tools update can leave behind a newer SDK its linker cannot read.
+If the link step fails anyway, check `xcode-select -p` points at the toolchain you expect.
+
+→ **[`gdd/systems/authoring/native-code.md`](gdd/systems/authoring/native-code.md)** — what is
+native and why, and the rules for changing it
 
 New to Godot? Start with the engine's own
 **[Step by step guide](https://docs.godotengine.org/en/stable/getting_started/step_by_step/index.html)**.
