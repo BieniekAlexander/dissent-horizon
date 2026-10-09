@@ -99,8 +99,10 @@ TODO: the bot neither loads Servants into trucks nor sentences them.
 ## The positional bonus is an event, not a rate
 
 **On a sentence completing, the Compound reduces the cooldown of every ability pool on every
-edge-adjacent friendly structure by a percentage.** Work Detail's passive per-occupant recharge
-rate is deprecated and replaced by this.
+edge-adjacent structure of its own by a percentage.** Its owner's only: an ally's building next
+door gets nothing, since allies share no passive bonuses
+([target-acquisition](target-acquisition.md) §Alliances). Work Detail's passive per-occupant
+recharge rate is deprecated and replaced by this.
 
 The reason for the swap is that the two halves of the building should tell one story. A passive
 rate rewards *holding* bodies, which is exactly what the sentence model stops rewarding; a

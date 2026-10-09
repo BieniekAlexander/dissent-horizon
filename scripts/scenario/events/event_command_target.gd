@@ -100,7 +100,8 @@ func _enemy_candidates(a_manager: ScenarioTriggerManager, a_spawning_id: int) ->
 		var c := node as Actor
 		if c == null:
 			continue
-		if c.commander_id == 0 or c.commander_id == a_spawning_id:
+		# Neutral, the spawner's own, and its allies' are not enemies.
+		if c.commander_id == 0 or c.is_on_side_of(a_spawning_id):
 			continue
 		if frame_filter >= 0 and (c.defense == null or c.defense.frame_type != frame_filter):
 			continue

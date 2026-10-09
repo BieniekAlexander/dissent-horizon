@@ -291,8 +291,8 @@ func get_enemies_in_aggro_range(
 		func(e):
 			return (
 				e is Actor
-				and e.commander_id != id
 				and e.commander_id != 0
+				and not is_allied_with(e.commander_id)
 				and e.target_priority <= min_target_priority
 				and e.is_visible_to(id)
 			)

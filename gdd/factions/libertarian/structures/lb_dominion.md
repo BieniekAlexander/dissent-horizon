@@ -30,13 +30,12 @@ commander by `LibertarianDominion`, on the faction scene, rather than once per O
 
 - **A tile two Opticons both see pays once.** Clustering Opticons wastes their overlap; the
   same de-duplication the Warlord's Retinue uses.
-- **A tile under one of your own fixtures pays nothing** — the Opticon itself included. Building
-  around an Opticon eats its income, which is what pushes it out of the base. An enemy or
-  neutral fixture does NOT shield a tile.
+- **A tile under one of your side's fixtures pays nothing** — your own or an ally's, the
+  Opticon itself included. Building around an Opticon eats its income, which is what pushes
+  it out of the base; an ally's base obstructs it just as yours does (Alex, 2026-10-08). An
+  enemy or neutral fixture does NOT shield a tile.
 - **Terrain is ignored.** Water, cliffs and other unbuildable tiles pay like open ground.
   TODO: "for now" — whether unbuildable terrain should keep paying is undecided.
-
-PLANNED — ALLIES: "your own fixtures" should become "your side's" once alliances exist.
 
 The bot builds Opticons through this route and spreads them by the same rule — see
 [bot-architecture](../../../systems/ai/bot-architecture.md) §Dominion routes. Placing any building shows

@@ -291,7 +291,8 @@ importer's renamed-component table would carry the scenes.
 `blast:` is one number governing what is damaged and what is status-affected alike:
 `Payload.apply` resolves the overlapping entities once and both damages that set and seeds its
 `EffectApplicator` children with it. The two can never drift apart, and area weapons
-friendly-fire by construction (the query is `TARGETABLE_ANY`) rather than by a flag. See
+friendly-fire by construction (the query is `TARGETABLE_ANY`) rather than by a flag — allies'
+pieces included ([target-acquisition](target-acquisition.md) §Alliances). See
 [authoring/spec-importer](../authoring/spec-importer.md) for the import side.
 
 ### The blast is measured at the contact

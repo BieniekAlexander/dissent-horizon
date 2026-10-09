@@ -53,7 +53,7 @@ Transitions announce themselves via `objective_state_changed`, emitted from the 
 |---|---|
 | `NONE` | nothing implicit; it runs until something external stops it (a probe, a sim) |
 | `MISSION` | the authored triggers — `EventWinLose`, objectives completing — plus the implicit wipe-out loss below for the local player. The default, so an authored scenario keeps the behaviour it was written against |
-| `HEGEMONY` | a commander is **removed from the match** when it has no command centre left, once it has placed one; the local player loses when removed and wins when armed and every rival is removed. Every skirmish scene sets it |
+| `HEGEMONY` | a commander is **removed from the match** when it has no command centre left, once it has placed one; the local player's ALLIANCE loses when every member is removed, and wins when it is armed and every rival alliance is removed. Every skirmish scene sets it |
 
 **HEGEMONY, the rules.** Every non-neutral commander is judged each tick
 (`Scenario._check_hegemony`), not only the local player, because a rival's removal is what
@@ -63,7 +63,16 @@ owns no centre for the opening seconds, and that is the opening, not a defeat. R
 every piece the commander still owns (`Commander.eliminate`) and switches its brain off;
 nothing is paid out for them. A command centre is identified by piece id,
 `Deployment.command_centre_ids()`, derived from the scenes each faction drops — so a new
-faction's entry there is the whole declaration. A session with no rival never wins. The
+faction's entry there is the whole declaration. A session with no rival never wins.
+
+**Removal is per player; the verdict is per alliance** (Alex, 2026-10-08). In a team game a
+player who loses every centre is removed alone, and only under HEGEMONY. The local player
+loses when every member of its alliance is removed — until then it keeps watching through its
+allies' shared vision — and wins when any member is armed and every commander outside the
+alliance is removed; a teammate is never a rival. The end-of-match summary marks the whole
+winning alliance (`MatchLog.end`'s `winners`), and a spectator session ends once commanders of
+two or more alliances have deployed and only one alliance is left standing.
+[combat/target-acquisition](../combat/target-acquisition.md) §Alliances. The
 self-play harness reads the verdict off `Commander.is_eliminated` under HEGEMONY and keeps
 its own MISSION-era adjudication otherwise.
 

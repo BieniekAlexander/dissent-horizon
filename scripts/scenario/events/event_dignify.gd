@@ -10,6 +10,12 @@ const _WARLORD_SCENE: PackedScene = preload(
 )
 
 
+## Own Irregulars only: the Warlord is the caster's, so dignifying an ally's Irregular would
+## take it from them.
+func _admits_allies() -> bool:
+	return false
+
+
 func _qualifies(a_candidate: Actor) -> bool:
 	return a_candidate.id == EntityIds.AN_BIO_LIGHT_BUILDER
 

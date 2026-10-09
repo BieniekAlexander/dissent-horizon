@@ -24,6 +24,19 @@ static func winner(events: Array) -> int:
 	return -1
 
 
+## Every commander id that won — the winner's whole alliance in a team game — or empty while the
+## match runs or when nobody won. A log written before alliances names only `winner`.
+static func winners(events: Array) -> Array:
+	for i: int in range(events.size() - 1, -1, -1):
+		if events[i].get("type") == MatchLog.MATCH_ENDED:
+			var named: Variant = events[i].get("winners")
+			if named is Array:
+				return (named as Array).map(func(id: Variant) -> int: return int(id))
+			var one: int = int(events[i]["winner"])
+			return [one] if one > 0 else []
+	return []
+
+
 ## Per commander id: {"units": units trained, "structures": structures whose construction
 ## finished}. Every commander in the header appears, at zero if it made nothing. Pieces a match
 ## starts with, or takes by capture, were not made and are not counted.

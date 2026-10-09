@@ -38,7 +38,8 @@ signal local_player_changed(a_commander: Commander)
 ##   MISSION   — the authored triggers decide (EventWinLose, objectives), plus the implicit
 ##               wipe-out loss for the local player below.
 ##   HEGEMONY  — a commander is removed from the match when it loses every command centre,
-##               once it has placed one; the local player wins when every rival is gone.
+##               once it has placed one; the local player's ALLIANCE wins when every rival
+##               alliance is gone, and loses when every member of it is.
 ## The default is MISSION so an authored scenario keeps the behaviour it was written against;
 ## every skirmish scene sets HEGEMONY.
 enum WinCondition { NONE, MISSION, HEGEMONY }
@@ -338,8 +339,11 @@ func is_eliminated(a_commander_id: int) -> bool:
 ## HEGEMONY: every non-neutral commander is judged, not only the local player, because a
 ## rival's removal is what the player's WIN is made of. A commander is armed the first tick
 ## it owns a command centre and eliminated the first armed tick it owns none; eliminating it
-## frees its pieces (Commander.eliminate). The local player then loses when it is eliminated,
-## and wins when it is armed and every rival is gone — a session with no rival never wins.
+## frees its pieces (Commander.eliminate). Removal is per PLAYER, the verdict per ALLIANCE: the
+## local player loses when every commander on its side is removed — until then an eliminated
+## player keeps watching through its allies' shared vision — and wins when its side is armed and
+## every rival alliance is gone. A session with no rival never wins.
+## gdd/systems/combat/target-acquisition.md §Alliances.
 func _check_hegemony() -> void:
 	if _game_over_seen:
 		return
@@ -356,20 +360,26 @@ func _check_hegemony() -> void:
 	if player == null:
 		_check_last_standing()
 		return
-	if player.is_eliminated:
+	if _side_standing(player).is_empty():
 		_on_game_over(false)
-	elif _hegemony_armed.get(player.id, false) and _rivals() > 0 and _rivals_standing() == 0:
+	elif _side_armed(player) and _rivals() > 0 and _rivals_standing() == 0:
 		_on_game_over(true)
 
 
-## A spectator session's HEGEMONY end: once two or more commanders have deployed and only one
-## is left standing, the match is over and it is the winner. Ending it records the verdict
-## and shows the summary; it stops nothing, and the self-play harness still adjudicates.
+## A spectator session's HEGEMONY end: once commanders of two or more alliances have deployed
+## and only one alliance is left standing, the match is over and that alliance won. Ending it
+## records the verdict and shows the summary; it stops nothing, and the self-play harness still
+## adjudicates.
 func _check_last_standing() -> void:
-	if _hegemony_armed.size() < 2:
+	var deployed: Dictionary = {}
+	for commander: Variant in commanders:
+		var c: Commander = commander as Commander
+		if c != null and _hegemony_armed.get(c.id, false):
+			deployed[c.alliance] = true
+	if deployed.size() < 2:
 		return
 	var standing: Array = _standing_commanders()
-	if standing.size() == 1:
+	if not standing.is_empty() and _one_alliance(standing):
 		end_match((standing[0] as Commander).id)
 
 
@@ -383,13 +393,37 @@ func _standing_commanders() -> Array:
 	)
 
 
-## Non-neutral commanders other than the local player.
+## Whether every commander in `a_commanders` is in one alliance.
+func _one_alliance(a_commanders: Array) -> bool:
+	return a_commanders.all(
+		func(c: Commander) -> bool: return c.is_allied_with((a_commanders[0] as Commander).id)
+	)
+
+
+## `a_commander`'s side — itself and its allies — that is still in the match.
+func _side_standing(a_commander: Commander) -> Array:
+	return _standing_commanders().filter(
+		func(c: Commander) -> bool: return a_commander.is_allied_with(c.id)
+	)
+
+
+## Whether any commander on `a_commander`'s side has placed a command centre (HEGEMONY).
+func _side_armed(a_commander: Commander) -> bool:
+	for commander: Variant in commanders:
+		var c: Commander = commander as Commander
+		if c != null and c.id != 0 and a_commander.is_allied_with(c.id):
+			if _hegemony_armed.get(c.id, false):
+				return true
+	return false
+
+
+## Non-neutral commanders outside the local player's alliance.
 func _rivals() -> int:
 	var player: Commander = local_player()
 	var count: int = 0
 	for commander: Variant in commanders:
 		var c: Commander = commander as Commander
-		if c != null and c.id != 0 and c != player:
+		if c != null and c.id != 0 and not _is_on_player_side(player, c):
 			count += 1
 	return count
 
@@ -399,9 +433,15 @@ func _rivals_standing() -> int:
 	var count: int = 0
 	for commander: Variant in commanders:
 		var c: Commander = commander as Commander
-		if c != null and c.id != 0 and c != player and not c.is_eliminated:
+		if c == null or c.id == 0 or c.is_eliminated:
+			continue
+		if not _is_on_player_side(player, c):
 			count += 1
 	return count
+
+
+func _is_on_player_side(a_player: Commander, a_commander: Commander) -> bool:
+	return a_player != null and a_player.is_allied_with(a_commander.id)
 
 
 ## MISSION's implicit loss, for the local player only.
@@ -674,6 +714,38 @@ func _build_commanders() -> void:
 		c.faction_scene = slot.faction
 		slot.commander = c
 		commanders.append(c)
+	_assign_alliances()
+
+
+## Place every slot's commander in its alliance (PlayerSlot.alliance → Commander.alliance), before
+## any piece exists: alliances are fixed for the match.
+## gdd/systems/combat/target-acquisition.md §Alliances.
+func _assign_alliances() -> void:
+	var indices: PackedInt32Array = alliance_indices(player_slots)
+	var members: Dictionary = {}  # alliance -> commander-id bits
+	for i: int in player_slots.size():
+		members[indices[i]] = int(members.get(indices[i], 0)) | (1 << (i + 1))
+	for i: int in player_slots.size():
+		(commanders[i + 1] as Commander).set_alliance(indices[i], members[indices[i]])
+
+
+## Each slot's alliance, 0 … Commander.NUM_MAX_COMMANDERS - 1, in slot order. Slots naming the
+## same team share one; a teamless slot (alliance 0) gets one of its own. Alliances are numbered
+## in order of first appearance, so the numbering never runs out: there are never more of them
+## than slots.
+static func alliance_indices(a_slots: Array) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var by_team: Dictionary = {}  # team -> alliance
+	var next: int = 0
+	for slot: PlayerSlot in a_slots:
+		if slot.alliance > 0 and by_team.has(slot.alliance):
+			out.append(int(by_team[slot.alliance]))
+			continue
+		if slot.alliance > 0:
+			by_team[slot.alliance] = next
+		out.append(next)
+		next += 1
+	return out
 
 
 ## Create a free-flying spectator camera when there is no human rig (spectator
@@ -1021,29 +1093,53 @@ func _on_game_over(a_won: bool) -> void:
 	if a_won:
 		end_match(player.id if player != null else -1)
 	else:
+		# The winner is whoever is left standing, when they are one alliance.
 		var rivals: Array = _standing_commanders().filter(
-			func(c: Variant) -> bool: return c != player
+			func(c: Variant) -> bool: return not _is_on_player_side(player, c)
 		)
-		end_match((rivals[0] as Commander).id if rivals.size() == 1 else -1)
+		end_match(
+			(rivals[0] as Commander).id if not rivals.is_empty() and _one_alliance(rivals) else -1
+		)
 	# TODO: the rest of a win/lose screen — pausing, a way back to the menu. gdd/tasks.md T-080.
 
 
-## End the match with `a_winner_id` the winner, or -1 for none: the event log records it and
-## the summary is shown, whether or not the debug view is up. Once; a later call is ignored.
+## End the match with `a_winner_id` the winner, or -1 for none — and its whole alliance with it:
+## the event log records them and the summary is shown, whether or not the debug view is up.
+## Once; a later call is ignored.
 func end_match(a_winner_id: int) -> void:
 	if match_log == null or match_log.is_ended():
 		return
-	match_log.end(a_winner_id)
+	match_log.end(a_winner_id, alliance_of(a_winner_id))
 	_show_match_summary(_match_summary_title(a_winner_id))
 
 
-## The heading of the end-of-match summary: the verdict as the local player hears it, or the
-## winner's name in a spectator session.
+## The ids of every commander in `a_commander_id`'s alliance, itself included, ascending; empty
+## for none (or neutral).
+func alliance_of(a_commander_id: int) -> Array:
+	if a_commander_id < 1 or a_commander_id >= commanders.size():
+		return []
+	var of: Commander = commanders[a_commander_id] as Commander
+	var out: Array = []
+	for commander: Variant in commanders:
+		var c: Commander = commander as Commander
+		if c != null and c.id > 0 and of.is_allied_with(c.id):
+			out.append(c.id)
+	return out
+
+
+## The heading of the end-of-match summary: the verdict as the local player hears it — Victory
+## when its alliance won — or the winner's name in a spectator session.
 func _match_summary_title(a_winner_id: int) -> String:
 	var player: Commander = local_player()
 	# A playback is watched, so it names the winner as a spectator session does.
 	if player != null and not is_playback():
-		return "Victory" if a_winner_id == player.id else "Defeat"
+		return "Victory" if a_winner_id > 0 and player.is_allied_with(a_winner_id) else "Defeat"
+	var winners: Array = alliance_of(a_winner_id)
+	if winners.size() > 1:
+		var names: PackedStringArray = PackedStringArray(
+			winners.map(func(id: int) -> String: return str(id))
+		)
+		return "Commanders %s win" % ", ".join(names)
 	return "Commander %d wins" % a_winner_id if a_winner_id > 0 else "Match over"
 
 

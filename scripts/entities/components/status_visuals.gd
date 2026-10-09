@@ -385,9 +385,9 @@ func _model_top() -> float:
 ## field, and drawing an enemy transport's remaining seats would hand over exactly the
 ## scouting information a garrison is meant to hide.
 ##
-## PLANNED — ALLIES. The rule wants to be "yours or an ally's"; alliances are planned
-## (gdd/systems/combat/target-acquisition.md §Alliances). Widen `_shows_capacity` when they
-## land; it is the only place that decides.
+## Capacity is shown for the local player's SIDE, an ally's units included
+## (gdd/systems/combat/target-acquisition.md §Alliances); `_shows_capacity` is the only
+## place that decides.
 func _update_capacity_pips(a_hidden: bool) -> void:
 	var slots: Array = [] if a_hidden or not _shows_capacity() else _capacity_slots()
 	var y: float = _model_top() + pip_margin
@@ -411,11 +411,12 @@ func _update_capacity_pips(a_hidden: bool) -> void:
 		_pip_sprites[i].visible = false
 
 
-## Whether the local player is entitled to this readout: it is theirs, and they have it
-## selected. Ownership first — the cheaper test, and the one that is true far less often.
+## Whether the local player is entitled to this readout: it is their side's — theirs or an
+## ally's — and they have it selected. Side first — the cheaper test, and the one that is true
+## far less often.
 func _shows_capacity() -> bool:
 	return (
-		_host.commander_id == RTSController.PLAYER_COMMANDER_ID
+		_host.is_on_side_of(RTSController.PLAYER_COMMANDER_ID)
 		and _host.selectable != null
 		and _host.selectable.is_selected()
 	)

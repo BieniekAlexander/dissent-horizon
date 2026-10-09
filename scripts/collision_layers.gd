@@ -74,7 +74,14 @@ static func all_side_bits(layers: int) -> int:
 	return out
 
 
-## The query mask for bodies on the targetable `layers` that are hostile to `commander_id`
-## (Entity.is_enemy_of): every side but its own, and never neutral.
-static func hostile_mask(layers: int, commander_id: int) -> int:
-	return all_side_bits(layers) & ~side_bits(layers, commander_id)
+## The query mask for bodies on the targetable `layers` that are hostile to a side whose
+## commander ids are the bits of `allied_ids` (bit k = commander k; Entity.allied_commander_ids):
+## every side but those, and never neutral — Entity.is_enemy_of, as a physics mask. Side slots
+## stay per COMMANDER rather than per alliance: alliances are fixed for a match, so leaving out
+## every ally's bit costs nothing, and a body never has to re-file when an alliance is formed.
+static func hostile_mask(layers: int, allied_ids: int) -> int:
+	var own: int = 0
+	for commander_id: int in range(1, Commander.NUM_MAX_COMMANDERS + 1):
+		if allied_ids & (1 << commander_id):
+			own |= side_bits(layers, commander_id)
+	return all_side_bits(layers) & ~own

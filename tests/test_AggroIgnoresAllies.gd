@@ -73,7 +73,7 @@ func test_side_bits_sit_clear_of_every_other_layer() -> void:
 func test_hostile_mask_is_every_side_but_the_askers_own() -> void:
 	for id: int in range(1, Commander.NUM_MAX_COMMANDERS + 1):
 		for layer: int in [GROUND, AIR]:
-			var mask: int = CollisionLayers.hostile_mask(layer, id)
+			var mask: int = CollisionLayers.hostile_mask(layer, 1 << id)
 			assert_eq(mask & CollisionLayers.side_bits(layer, id), 0, "own side excluded")
 			for other: int in range(1, Commander.NUM_MAX_COMMANDERS + 1):
 				if other != id:

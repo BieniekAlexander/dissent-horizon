@@ -90,6 +90,7 @@ static func header_for(a_scenario: Scenario, a_version: String) -> Dictionary:
 					"difficulty": int(slot.difficulty),
 					"is_bot": slot.is_bot,
 					"personality": slot.personality,
+					"alliance": slot.alliance,
 					"start_point": a_scenario.slot_start_point(i),
 				}
 			)

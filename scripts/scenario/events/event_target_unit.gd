@@ -25,7 +25,7 @@ class_name EventTargetUnit extends AbstractEvent
 
 ## Whose units may be picked.
 enum Scope {
-	OWN = 0,  ## only the activating commander's own units
+	OWN = 0,  ## the activating commander's side: its own units, and its allies' (_admits_allies)
 	ANY = 1,  ## anyone's — friendly, hostile or neutral
 }
 
@@ -33,12 +33,19 @@ enum Scope {
 
 ## Commander whose sanction this is. Set by the activating Sanction before execute, so
 ## the same event serves the human player and any bot. Under Scope.OWN it is also the
-## ownership filter; under Scope.ANY it only decides who gets the credit.
+## side filter; under Scope.ANY it only decides who gets the credit.
 var commander_id: int = 1
 
 ## The unit this cast acts on, handed over by the activating Sanction. Null means no unit
 ## was named, and the event does nothing.
 var target_unit: Actor = null
+
+
+## Whether Scope.OWN admits an ALLY's unit as well as the caster's own. Default: yes — a
+## friendly-target ability may be cast on an ally (target-acquisition.md §Alliances). A
+## subclass whose effect hands the caster the piece says no.
+func _admits_allies() -> bool:
+	return true
 
 
 ## Extra per-subclass admission test, asked after scope. Default: anything.
@@ -64,9 +71,17 @@ func accepts(a_candidate: Variant, a_commander_id: int) -> bool:
 	var is_structure: bool = unit.is_in_group("structure")
 	if not (unit.is_in_group("unit") or (is_structure and _admits_structures())):
 		return false
-	if scope == Scope.OWN and unit.commander_id != a_commander_id:
+	if scope == Scope.OWN and not _in_own_scope(unit, a_commander_id):
 		return false
 	return _qualifies(unit)
+
+
+## Whether `a_unit` is inside Scope.OWN for `a_commander_id`: theirs, or an ally's where
+## _admits_allies says so.
+func _in_own_scope(a_unit: Actor, a_commander_id: int) -> bool:
+	if a_unit.commander_id == a_commander_id:
+		return true
+	return _admits_allies() and a_unit.commander_id > 0 and a_unit.is_on_side_of(a_commander_id)
 
 
 ## The named target, if it is still one this event accepts; otherwise null.

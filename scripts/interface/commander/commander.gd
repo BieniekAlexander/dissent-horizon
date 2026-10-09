@@ -9,12 +9,47 @@ const NUM_MAX_COMMANDERS: int = 8
 @export_range(0, NUM_MAX_COMMANDERS + 1) var id: int
 
 
-## Whether `a_commander_id` is on this commander's side — whose pending pieces this one's HUD
-## shows, and whose planned sites it may not build over.
-## PLANNED — ALLIES: a side is the commander alone until alliances land
-## (gdd/systems/combat/target-acquisition.md §Alliances); then an ally answers true too.
+## The ALLIANCE this commander plays in, 0 … NUM_MAX_COMMANDERS - 1: one per slot in a
+## free-for-all, shared by teammates in a team game. -1 for the neutral world commander, and for
+## a commander no scenario has placed, which is then alone. Fixed for the match: Scenario assigns
+## it from PlayerSlot.alliance before any piece exists (set_alliance).
+## gdd/systems/combat/target-acquisition.md §Alliances.
+var alliance: int = -1
+
+## The commander ids in this commander's alliance, itself included, as bits (bit k = commander
+## k). 0 until Scenario fills it; read through allied_ids_mask(), which treats 0 as "alone".
+var _allied_ids: int = 0
+
+
+## Place this commander in `a_alliance`, whose members are the commander ids set in
+## `a_member_ids` (bit k = commander k). Scenario calls it once per commander at build.
+func set_alliance(a_alliance: int, a_member_ids: int) -> void:
+	alliance = a_alliance
+	_allied_ids = a_member_ids
+
+
+## The commander ids on this commander's side, itself included, as bits (bit k = commander k).
+## The neutral commander has no side at all: 0.
+func allied_ids_mask() -> int:
+	if id <= 0:
+		return 0
+	return _allied_ids | (1 << id)
+
+
+## Whether commander `a_commander_id` is this one or one of its allies. Neutral (0) is nobody's
+## ally, but the neutral commander still answers true for itself.
+func is_allied_with(a_commander_id: int) -> bool:
+	if a_commander_id == id:
+		return true
+	if a_commander_id <= 0:
+		return false
+	return (allied_ids_mask() >> a_commander_id) & 1 == 1
+
+
+## Whether `a_commander_id` is on this commander's side — itself or an ally: whose pending
+## pieces this one's HUD shows, and whose planned sites it may not build over.
 func shares_side_with(a_commander_id: int) -> bool:
-	return a_commander_id == id
+	return is_allied_with(a_commander_id)
 
 
 #endregion
@@ -1191,12 +1226,12 @@ func pending_dominion_collection_rate() -> float:
 ## laid yet, which hold no grid cells but have claimed the site. `a_except` is left out (the
 ## order asking about its own site). Read by placement: a site something on our side already
 ## means to build on is refused (see Build.meets_precondition).
-## PLANNED — ALLIES: only this commander's blueprints until alliances land (shares_side_with).
+## An ally's blueprints count: the side plans together (shares_side_with).
 func planned_footprint_cells(a_except: Actor = null) -> Dictionary:
 	var out: Dictionary = {}
 	if map == null:
 		return out
-	for piece: Actor in _owned_commandables():
+	for piece: Actor in _commandables_of(side_commanders()):
 		if piece == a_except or not piece.is_planned or piece.is_queued_for_deletion():
 			continue
 		var obs := piece.get_node_or_null("Fixture") as Fixture
@@ -1276,11 +1311,21 @@ func _commandables_of(a_commanders: Array) -> Array:
 func _enemy_commanders() -> Array:
 	if scenario == null:
 		return []
-	return scenario.commanders.filter(func(c: Commander): return c.id != id and c.id != 0)
+	return scenario.commanders.filter(
+		func(c: Commander): return c.id != 0 and not is_allied_with(c.id)
+	)
+
+
+## This commander and its allies: the side (shares_side_with). Just this commander when it is
+## outside a scenario.
+func side_commanders() -> Array:
+	if scenario == null:
+		return [self]
+	return scenario.commanders.filter(func(c: Commander): return is_allied_with(c.id))
 
 
 ## All enemy commandables within [radius] world units of [position]. An ENEMY is
-## owned by a different, non-neutral commander (excluding neutral id 0 matches
+## owned by a non-neutral commander outside this one's alliance (matching
 ## _enemy_commanders).
 ##
 ## OMNISCIENT: a physics overlap, so it returns fogged and stealthed enemies too. It is the
@@ -1295,7 +1340,7 @@ func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 		map.get_world_3d(), a_position, a_radius, CollisionLayers.TARGETABLE_ANY, NEARBY_MAX_RESULTS
 	)
 	return nearby.filter(
-		func(e): return e is Actor and e.commander_id != id and e.commander_id != 0
+		func(e): return e is Actor and e.commander_id != 0 and not is_allied_with(e.commander_id)
 	)
 
 
@@ -1308,7 +1353,7 @@ func visible_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 	)
 
 
-## Structures currently within this commander's vision that it does NOT own —
+## Structures currently within this commander's vision that its SIDE does not own —
 ## INCLUDING neutral (id 0) ones (extractors, mountains, Shelters, ExtractionSites). Unlike
 ## visible_enemies(), this deliberately keeps neutral structures so the snapshot
 ## memory remembers them too. "Structure" means an entity carrying a Structure
@@ -1328,7 +1373,7 @@ func visible_foreign_structures() -> Array:
 		# they're neither perceivable nor worth remembering as a fog-of-war snapshot.
 		if (
 			s.structure_is_active()
-			and s.commander_id != id
+			and not (s.commander_id > 0 and is_allied_with(s.commander_id))
 			and not s.is_planned
 			and (fog == null or fog.structure_in_vision(s))
 		):

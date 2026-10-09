@@ -45,11 +45,11 @@ func show_events(a_events: Array, a_title: String) -> void:
 	for header: String in HEADERS:
 		_add_cell(header)
 	var counts: Dictionary = MatchSummary.created_counts(a_events)
-	var winner: int = MatchSummary.winner(a_events)
+	var winners: Array = MatchSummary.winners(a_events)
 	var ids: Array = counts.keys()
 	ids.sort()
 	for id: int in ids:
-		_add_cell("Commander %d%s" % [id, "  (winner)" if id == winner else ""])
+		_add_cell("Commander %d%s" % [id, "  (winner)" if winners.has(id) else ""])
 		_add_cell(str(counts[id]["units"]))
 		_add_cell(str(counts[id]["structures"]))
 	_fill_breakdown(MatchSummary.created_by_piece(a_events), ids)

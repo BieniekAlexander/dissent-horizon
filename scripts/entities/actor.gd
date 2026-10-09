@@ -87,8 +87,8 @@ var in_sight_range: bool = false
 
 
 ## True while stealth is hiding this commandable from the LOCAL PLAYER completely — it is
-## STEALTHED and not theirs. Its model is drawn at zero alpha, its HP bar is suppressed and
-## its floating indicators are hidden, so nothing about it is on screen at all.
+## STEALTHED and neither theirs nor an ally's. Its model is drawn at zero alpha, its HP bar
+## is suppressed and its floating indicators are hidden, so nothing about it is on screen.
 ##
 ## Narrower than is_visible_to(): that asks whether a given commander can perceive this
 ## unit AT ALL (fog included, and answers for bots); this asks only whether STEALTH is what
@@ -98,7 +98,7 @@ func is_hidden_by_stealth() -> bool:
 	return (
 		stealth != null
 		and stealth.state == Stealth.State.STEALTHED
-		and commander_id != RTSController.PLAYER_COMMANDER_ID
+		and not is_on_side_of(RTSController.PLAYER_COMMANDER_ID)
 	)
 
 
@@ -782,7 +782,7 @@ func _hostiles_in_orbit_range() -> Array[Entity]:
 				get_world_3d(),
 				range_node.shape,
 				origin,
-				CollisionLayers.hostile_mask(pass_spec[1], commander_id)
+				CollisionLayers.hostile_mask(pass_spec[1], allied_commander_ids())
 			):
 				if not found.has(hostile):
 					found.append(hostile)
@@ -881,7 +881,7 @@ func _hostiles_in_region(
 		Hull.point(VU.in_xz(a_center)),
 		a_shape.shape,
 		a_center,
-		CollisionLayers.hostile_mask(a_layers, commander_id),
+		CollisionLayers.hostile_mask(a_layers, allied_commander_ids()),
 		exclude,
 		AGGRO_SCAN_MAX_RESULTS
 	)

@@ -428,11 +428,11 @@ func _physics_process(a_delta: float) -> void:
 
 
 ## On a sentence completing, reduce the cooldown of every ability pool on every
-## edge-adjacent friendly structure by SENTENCE_COOLDOWN_BONUS — Work Detail, carried by
+## edge-adjacent structure of its own by SENTENCE_COOLDOWN_BONUS — Work Detail, carried by
 ## whichever piece grants it (Abilities.SUPPORT_ABILITY). The three things that switch it
 ## off are asked of the SUPPORTER (this host, the Compound), same as the passive rate this
 ## replaces: it must be finished, and its commander's infrastructure must cover its upkeep.
-## Nothing beyond friendliness is asked of the structure being helped — matching the
+## Nothing beyond ownership is asked of the structure being helped — matching the
 ## passive it replaces, which never gated on the beneficiary's own state either.
 func _emit_positional_bonus() -> void:
 	var host := get_parent() as Actor
@@ -446,7 +446,9 @@ func _emit_positional_bonus() -> void:
 		return
 	for neighbor: Entity in SU.edge_adjacent_structures(host.map, host):
 		var supported := neighbor as Actor
-		if supported == null or not supported.is_friendly_to(host):
+		# The host's OWN structures: an ally shares vision, repair and friendly-target abilities,
+		# not passive bonuses (target-acquisition.md §Alliances).
+		if supported == null or supported.commander_id != host.commander_id:
 			continue
 		var pool := supported.get_node_or_null("Abilities") as Abilities
 		if pool != null:
