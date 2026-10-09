@@ -1651,7 +1651,7 @@ func set_selection(a_selection_start_position: Vector2, a_selection_end_position
 			var entity: Entity = click_target as Entity
 			if _selects_as_own(entity):
 				# Selecting your own unit never keeps an enemy info-selection around.
-				if not is_look_only and _has_enemy_selected():
+				if _has_enemy_selected():
 					deselect()
 				if additive_latched and selection.has(entity):
 					entity.selectable.deselect()
@@ -1767,12 +1767,12 @@ static func is_player_commandable(a_entity: Entity) -> bool:
 
 
 ## Whether `a_entity` is selected the way the player's own pieces are — additively, by box and by
-## double-click — rather than as a single info-selection. A look-only HUD owns nothing and orders
-## nothing, so every piece the watcher can see is selected that way.
+## double-click — rather than as a single info-selection. Only pieces the user owns are, so a
+## look-only HUD, which owns nothing, info-selects every piece one at a time, as a player does an
+## enemy's. Not is_player_commandable alone: a replay keeps its recorded human as the local player
+## (the simulation reads it), and the watcher does not own that player's pieces.
 func _selects_as_own(a_entity: Entity) -> bool:
-	if is_look_only:
-		return a_entity != null and a_entity.is_visible_in_tree()
-	return is_player_commandable(a_entity)
+	return not is_look_only and is_player_commandable(a_entity)
 
 
 ## True when the current selection is the player's own — the only selection the
@@ -2045,12 +2045,12 @@ func _handle_select_release(a_end_position: Vector2) -> void:
 	# BROADEN on a click takes every on-screen unit of that type — the double-click's reach,
 	# without the timing. On a DRAG it means nothing, so the box runs unmodified.
 	if is_click and is_player_unit and Input.is_action_pressed(MODIFIER_BROADEN):
-		_select_on_screen_units_of_type(target.id, target.commander_id)
+		_select_on_screen_units_of_type(target.id)
 		_last_click_target = null
 		return
 
 	if is_player_unit and _is_double_click(target):
-		_select_on_screen_units_of_type(target.id, target.commander_id)
+		_select_on_screen_units_of_type(target.id)
 		_last_click_target = null  # reset so a third quick click starts fresh
 		return
 
@@ -2101,18 +2101,14 @@ func _is_double_click(a_target: Entity) -> bool:
 
 
 ## Replaces the selection (or adds, when additive) with every on-screen,
-## player-owned commandable whose entity type matches `entity_type`. A look-only HUD owns
-## nothing, so it takes the pieces of that type belonging to `a_commander_id`, the clicked one's.
-func _select_on_screen_units_of_type(a_entity_type: StringName, a_commander_id: int = -1) -> void:
+## player-owned commandable whose entity type matches `entity_type`.
+func _select_on_screen_units_of_type(a_entity_type: StringName) -> void:
 	if !additive_latched:
 		deselect()
 	var candidates: Array = get_tree().get_nodes_in_group("piece").filter(
 		func(c: Variant) -> bool:
 			return (
-				c is Entity
-				and (c as Entity).id == a_entity_type
-				and _selects_as_own(c as Entity)
-				and (not is_look_only or (c as Entity).commander_id == a_commander_id)
+				c is Entity and (c as Entity).id == a_entity_type and _selects_as_own(c as Entity)
 			)
 	)
 	_select_units(commandables_on_screen(candidates))

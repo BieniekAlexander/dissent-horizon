@@ -70,6 +70,26 @@ func test_a_playback_has_the_look_only_hud_with_the_spectator_panel_in_the_grids
 	await _tear_down(scenario)
 
 
+## Multiple selection is only ever of the user's own pieces, and a watcher owns none — not even
+## the recorded player's, though that player is still the simulation's local player.
+func test_a_watcher_selects_every_piece_as_a_player_selects_an_enemys() -> void:
+	var live: Scenario = await _boot(null)
+	var own: Actor = _piece_of(live.local_player())
+	assert_true(_controller(live)._selects_as_own(own), "the player's own piece, live")
+	await _tear_down(live)
+	var recording: ReplayFile = await _record()
+	var scenario: Scenario = await _boot(recording)
+	var recorded: Actor = _piece_of(scenario.local_player())
+	var hud: RTSController = scenario.get_node("LookOnlyHUD") as RTSController
+	assert_false(hud._selects_as_own(recorded), "the recorded player's piece is not the watcher's")
+	DebugMode.configure(true)
+	DebugMode.toggle()
+	assert_true(DebugMode.is_active())
+	assert_false(hud._selects_as_own(recorded), "nor under the debug view")
+	DebugMode.configure(false)
+	await _tear_down(scenario)
+
+
 func test_a_session_opens_on_its_own_players_view() -> void:
 	Fog.active_commander_id = ReplayViewer.VIEW_EVERYTHING
 	var scenario: Scenario = await _boot(null)
@@ -108,6 +128,14 @@ func _tear_down(a_scenario: Scenario) -> void:
 	a_scenario.free()
 	await get_tree().process_frame
 	gut.error_tracker.disabled = false
+
+
+## A bare unit owned by `a_commander`, in its scenario's tree.
+func _piece_of(a_commander: Commander) -> Actor:
+	var piece: Actor = FakePieces.unit()
+	a_commander.add_child(piece)
+	piece.commander = a_commander
+	return piece
 
 
 func _controller(a_scenario: Scenario) -> RTSController:

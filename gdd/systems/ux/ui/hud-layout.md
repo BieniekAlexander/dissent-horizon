@@ -215,9 +215,11 @@ subtree `player.tscn` instances), built look-only by `Scenario._create_look_only
 - **It drives no commander** (`_commander()` is null), so it gives no orders: no path that
   builds one is reached, no grid key is dispatched, and right-clicks do nothing.
 - **What stays where it is:** the unit summary, the unit info panel and the minimap, at their
-  match positions. Selection works as it does on the player's own pieces — click, additive,
-  box, double-click for the type — for every piece the watcher can see; a double-click takes
-  that type from the clicked piece's commander only.
+  match positions. **Selection is one piece at a time**: multiple selection is only ever of
+  pieces the user owns, and a look-only HUD owns none — so every piece is selected as a player
+  selects an enemy's: a click selects it alone, and additive clicks, boxes and double-clicks
+  select nothing. A replay's recorded human is still the local player (the simulation reads it),
+  which is why the check is `RTSController._selects_as_own`, not `is_player_commandable` alone.
 - **The command grid's slot holds the `SpectatorPanel`**: a button per view (No fog, then each
   commander with a Fog — "Player N" for a human slot, "Bot N" otherwise) and, in a replay,
   Pause / Slower / Faster, which are the `ReplayViewer`'s own methods, so its keys and these
