@@ -364,7 +364,7 @@ static func unit_is_close_to_unit(
 ## one was the straggler.
 static func passable_cells_adjacent_to(structure: Entity, map: Map) -> Array[Vector2i]:
 	var result: Array[Vector2i] = _passable_footprint_neighbors(structure, map)
-	result.shuffle()
+	AU.shuffle(result, rng)
 	return result
 
 

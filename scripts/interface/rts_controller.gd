@@ -424,15 +424,9 @@ var _build_preview: Node3D = null
 var _build_preview_tool_type: Variant = null
 #endregion
 
-## A playback's HUD is for looking: selection, control groups and the info panel work, the
-## command grid is not drawn, and nothing this controller would turn into an order is issued.
-## Set from the scenario in _ready. gdd/systems/commands/recording-and-replay.md §Watching.
-var is_look_only: bool = false
-
 
 #region Lifecycle
 func _ready():
-	is_look_only = _scenario != null and _scenario.is_playback()
 	# Keep running while a SimulationClock hold pauses the world. Selection, hotkeys,
 	# right-click orders and the whole HUD live in _process / _unhandled_input, so the player
 	# can still look around and give orders during a scripted beat — the orders simply don't
@@ -1038,9 +1032,6 @@ func _notification(a_what: int) -> void:
 
 
 func _unhandled_input(a_event: InputEvent) -> void:
-	if is_look_only:
-		_look_only_input(a_event)
-		return
 	if a_event is InputEventMouseMotion:
 		mouse_position = a_event.position
 	elif is_command_armed() and ControlScheme.matches(a_event, ControlScheme.ARMED_CANCEL):
@@ -1124,26 +1115,6 @@ func _unhandled_input(a_event: InputEvent) -> void:
 
 
 #endregion
-
-
-## A playback's input: what changes only what the viewer sees — the pointer, selection and its
-## additive modifier, control groups. No branch that issues, arms or cancels an order is reached,
-## and no grid key is dispatched (the replay keys may share them — ReplayViewer).
-func _look_only_input(a_event: InputEvent) -> void:
-	if a_event is InputEventMouseMotion:
-		mouse_position = a_event.position
-	elif a_event.is_action_pressed("world_select"):
-		if _pointer_over_blocking_ui():
-			return
-		begin_drag_at(live_pointer_position())
-	elif a_event.is_action_released("world_select"):
-		end_drag_at(live_pointer_position())
-	elif a_event.is_action_pressed(MODIFIER_ADDITIVE):
-		additive_latched = true
-	elif a_event.is_action_released(MODIFIER_ADDITIVE):
-		additive_latched = false
-	elif get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX).size() > 0:
-		_dispatch_control_group(get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX))
 
 
 #region Issuing the current order
@@ -2106,8 +2077,7 @@ func _update_selection_owned_panels() -> void:
 	# point is that you reach an ability without first hunting down something that can cast it,
 	# so it has to stand with nothing selected at all.
 	$CommandsSection.visible = (
-		not is_look_only
-		and (has_selection or _command_family == ControlBinding.CommandFamily.ORDNANCE)
+		has_selection or _command_family == ControlBinding.CommandFamily.ORDNANCE
 	)
 	if _selector_panel != null:
 		_selector_panel.visible = not has_selection
@@ -3330,9 +3300,6 @@ func assign_command_to_units(
 		_reset_pending_state()
 		return false
 
-	if is_look_only:
-		_reset_pending_state()
-		return false
 	var modifiers: Dictionary = _order_modifiers(a_command_type, a_add_to_queue)
 	var capable: Array = OrderDispatcher.recipients(
 		a_command_type, selection, a_command_message, modifiers
@@ -3419,7 +3386,7 @@ func _on_order_applied(a_order: PlayerOrder, a_results: Array) -> void:
 ## touching the armed context, so a right-click over the minimap while an
 ## interact-style command is armed is simply ignored — exactly as specified.
 func issue_command_at_world_position(a_world_xz: Vector2) -> void:
-	if map == null or is_look_only:
+	if map == null:
 		return
 	# An armed sanction targets a position — fire it at the clicked point, matching
 	# the "move" right-click handler in _unhandled_input.
@@ -4653,8 +4620,6 @@ func _setup_sanction_bar() -> void:
 	_sanction_bar.offset_bottom = 8.0
 	_sanction_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_sanction_bar)
-	# Its buttons only ever give orders, which a playback does not take.
-	_sanction_bar.visible = not is_look_only
 
 	_sanction_bar_row = HBoxContainer.new()
 	_sanction_bar_row.name = "Row"

@@ -11,8 +11,9 @@ extends CanvasLayer
 ## the simulation reads (the implicit elimination rule), so switching it would play a different
 ## match.
 ##
-## The keys may share the command grid's positional keys: in playback the grid is not drawn and
-## the controller dispatches none of them (RTSController.is_look_only).
+## A playback is a spectator session (Scenario._build_commanders): the spectator camera, its HUD
+## and fog buttons are the watcher's, and this adds only the keys and the banner. The keys may
+## share the command grid's positional keys, since a spectator session has no grid.
 
 const ACTION_PAUSE: StringName = &"replay_pause"
 const ACTION_SLOWER: StringName = &"replay_slower"
@@ -39,8 +40,7 @@ func _ready() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	# Below the top strip (the sanctions button sits at the top centre).
-	panel.position.y = 72.0
+	panel.position.y = 8.0
 	add_child(panel)
 	_banner = Label.new()
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

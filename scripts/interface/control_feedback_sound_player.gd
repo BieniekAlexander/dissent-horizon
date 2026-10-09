@@ -8,6 +8,9 @@ extends Node
 static var _ATTACK_COMMAND_TYPES: Array[Script] = [Attack, AttackMove]
 
 @onready var _audio: AudioStreamPlayer = $AudioStreamPlayer
+## Which clip plays is the interface's own draw, never the simulation's: a line picked from the
+## global generator would move a replay off its recording (recording-and-replay.md).
+var _rng := RandomNumberGenerator.new()
 #endregion
 
 
@@ -45,6 +48,6 @@ func _play(a_entity: Entity, a_line_type: ControlFeedbackSounds.LineType) -> voi
 	var clips: Array = type_lines.get(a_line_type, [])
 	if clips.is_empty():
 		return
-	_audio.stream = clips.pick_random()
+	_audio.stream = AU.pick_random(clips, _rng)
 	_audio.play()
 #endregion

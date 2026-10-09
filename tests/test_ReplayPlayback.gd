@@ -20,26 +20,28 @@ func after_each() -> void:
 	PlaybackSpeed.reset()
 
 
-func test_a_live_match_has_no_viewer_and_a_hud_for_playing() -> void:
+func test_a_live_match_has_no_viewer_and_the_players_rig() -> void:
 	var scenario: Scenario = await _boot(null)
 	assert_false(scenario.is_playback())
 	assert_null(scenario.get_node_or_null("ReplayViewer"))
-	assert_false(_controller(scenario).is_look_only)
+	assert_not_null(scenario.local_player().get_node_or_null("Controller"), "the player's HUD")
+	assert_null(scenario.get_node_or_null("SpectatorHUD"))
 	await _tear_down(scenario)
 
 
-func test_a_playback_is_watched_through_the_viewer_with_a_hud_for_looking() -> void:
+func test_a_playback_is_a_spectator_session_with_the_viewer_on_top() -> void:
 	var recording: ReplayFile = await _record()
 	var scenario: Scenario = await _boot(recording)
 	assert_true(scenario.is_playback())
 	assert_true(scenario.order_stream.is_playback())
 	assert_not_null(scenario.get_node_or_null("ReplayViewer"), "the replay keys and banner")
-	var controller: RTSController = _controller(scenario)
-	assert_true(controller.is_look_only)
-	controller._update_selection_owned_panels()
-	assert_false(
-		(controller.get_node("CommandsSection") as Control).visible, "the command grid is hidden"
+	assert_not_null(scenario.get_node_or_null("SpectatorHUD"), "the spectator's HUD")
+	assert_not_null(scenario.get_node_or_null("SpectatorCamera"), "the spectator's camera")
+	assert_null(
+		scenario.local_player().get_node_or_null("Controller"), "no player HUD to play with"
 	)
+	assert_eq(scenario.local_player().id, 1, "the recorded human is still the simulation's player")
+	assert_eq(Fog.active_commander_id, 1, "watched from the recorded player's view first")
 	await _tear_down(scenario)
 
 

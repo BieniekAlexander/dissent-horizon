@@ -16,6 +16,9 @@ const _DEATH := preload("res://assets/audio/barks/death.otterbahn.wav")
 ## Each unit's entry is written out individually (rather than shared off one
 ## constant) so a future piece can get its own death clip without restructuring
 ## this file, even though every unit currently points at the same one.
+## Which clip plays is the audio's own draw, never the simulation's (see AU.shuffle).
+static var _rng := RandomNumberGenerator.new()
+
 static var lines: Dictionary[StringName, Array] = {
 	EntityIds.CL_BIO_LIGHT_ANTI_MECH: [_DEATH],
 	EntityIds.LB_AIRCRAFT_LIGHT_BUILDER: [_DEATH],
@@ -65,7 +68,7 @@ static func play_for(entity_id: StringName, tree: SceneTree) -> void:
 	if clips.is_empty():
 		return
 	var player := AudioStreamPlayer.new()
-	player.stream = clips.pick_random()
+	player.stream = AU.pick_random(clips, _rng)
 	player.finished.connect(player.queue_free)
 	tree.current_scene.add_child(player)
 	player.play()

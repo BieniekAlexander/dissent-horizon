@@ -18,6 +18,11 @@ const RUN_TICKS: int = 1800
 ## When the scripted orders are given, and by whom: the cluster's owner is told to walk away.
 const ORDER_TICKS: Array[int] = [90, 600]
 const ORDER_COMMANDER: int = 2
+## A human against a bot, for recording with the player's rig present.
+const HUMAN_HARNESS: String = "res://scenes/scenarios/skirmish.tscn"
+const HUMAN_RUN_TICKS: int = 900
+## Past the opening force's deferred spawn.
+const HUMAN_ORDER_TICK: int = 300
 
 
 func test_a_recorded_match_plays_back_identically() -> void:
@@ -52,6 +57,36 @@ func test_a_playback_missing_an_order_reports_drift() -> void:
 	assert_gt(drift, ORDER_TICKS[0], "drift is reported after the missing order, not before")
 
 
+## A match recorded with a HUMAN slot — the player's rig, its HUD, its fog — plays back as a
+## spectator session, which builds that slot without the rig. The two must play one match.
+func test_a_match_with_a_human_plays_back_as_a_spectator_session() -> void:
+	var scenario: Scenario = await _boot(null, HUMAN_HARNESS)
+	assert_not_null(scenario.local_player().get_node_or_null("Controller"), "recorded with a rig")
+	for tick: int in HUMAN_RUN_TICKS:
+		if scenario.tick == HUMAN_ORDER_TICK:
+			_give_order(scenario, scenario.local_player().id)
+		await get_tree().physics_frame
+	var recording: ReplayFile = ReplayFile.from_bytes(scenario.recorder.replay.to_bytes())
+	await _tear_down(scenario)
+	assert_eq(
+		(
+			recording
+			. records
+			. filter(func(r: Dictionary) -> bool: return r.get("type") == ReplayRecorder.ORDER_TYPE)
+			. size()
+		),
+		1,
+		"the human's order was recorded"
+	)
+	var playback: Scenario = await _boot(recording, HUMAN_HARNESS)
+	assert_null(playback.local_player().get_node_or_null("Controller"), "played back without one")
+	for tick: int in HUMAN_RUN_TICKS:
+		await get_tree().physics_frame
+	var drift: int = playback.recorder.first_drift_tick
+	await _tear_down(playback)
+	assert_eq(drift, -1, "the spectator playback never differed from the recording")
+
+
 func _record() -> ReplayFile:
 	var scenario: Scenario = await _boot(null)
 	for tick: int in RUN_TICKS:
@@ -72,9 +107,9 @@ func _play_back(recording: ReplayFile) -> int:
 	return drift
 
 
-func _boot(recording: ReplayFile) -> Scenario:
+func _boot(recording: ReplayFile, a_harness: String = HARNESS) -> Scenario:
 	gut.error_tracker.disabled = true
-	var scenario := (load(HARNESS) as PackedScene).instantiate() as Scenario
+	var scenario := (load(a_harness) as PackedScene).instantiate() as Scenario
 	scenario.rng_seed = SEED
 	scenario.replay_to_play = recording
 	await get_tree().process_frame
@@ -89,11 +124,11 @@ func _tear_down(scenario: Scenario) -> void:
 
 
 ## Send every builder the commander owns somewhere away from the cluster, as a player would.
-func _give_order(scenario: Scenario) -> void:
-	var builders: Array = scenario.commanders[ORDER_COMMANDER].get_children().filter(
+func _give_order(scenario: Scenario, a_commander: int = ORDER_COMMANDER) -> void:
+	var builders: Array = scenario.commanders[a_commander].get_children().filter(
 		func(n: Node) -> bool: return n is Actor and (n as Actor).can_move()
 	)
 	var message := CommandMessage.new(scenario.map, null, null, Vector3(6.0, 0.0, -6.0))
 	scenario.order_stream.submit(
-		PlayerOrder.command(ORDER_COMMANDER, MoveCommand, builders, message, {})
+		PlayerOrder.command(a_commander, MoveCommand, builders, message, {})
 	)

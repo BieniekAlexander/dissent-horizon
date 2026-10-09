@@ -234,7 +234,7 @@ func _ready() -> void:
 	# has no RTSController but can still be running a scripted sequence.
 	_create_scenario_hud(event_manager)
 
-	# A playback is watched, not played: its keys, its banner, and a HUD for looking.
+	# A playback is watched, as a spectator session (above): the replay keys and banner on top.
 	if is_playback():
 		_create_replay_viewer()
 
@@ -640,7 +640,11 @@ func _build_commanders() -> void:
 		var slot: PlayerSlot = player_slots[i]
 		var id: int = i + 1
 		var c: Commander
-		if slot.is_bot:
+		# A playback is a SPECTATOR session: nobody plays, so no slot gets the human rig, and
+		# the watcher gets the spectator camera and HUD (_ready). The human slot still names
+		# the local player below — the simulation reads it (the implicit elimination rule,
+		# HEGEMONY's verdict), so the playback judges the match as the recording did.
+		if slot.is_bot or is_playback():
 			c = Bot.new()
 		else:
 			c = load("res://scenes/player.tscn").instantiate()
@@ -648,8 +652,8 @@ func _build_commanders() -> void:
 			# is: debug mode can swap the player (play_as), and every commander keeps its
 			# own exploration.
 			(c.get_node("Fog") as Fog).watching_commander_id = id
-			if RTSController.PLAYER_COMMANDER_ID < 1:
-				RTSController.PLAYER_COMMANDER_ID = id
+		if not slot.is_bot and RTSController.PLAYER_COMMANDER_ID < 1:
+			RTSController.PLAYER_COMMANDER_ID = id
 		c.id = id
 		# Apply the slot's starting resources. Set before the commander enters the
 		# tree; Commander's resource fields are plain (not @onready) so this sticks. A slot
@@ -728,7 +732,8 @@ func _setup_spectator_hud() -> void:
 			continue
 		var btn := Button.new()
 		btn.name = "FogBtn_%d" % commander.id
-		btn.text = "Bot %d POV" % commander.id
+		# A playback's human slot is a Bot too (_build_commanders); it is named as the player.
+		btn.text = "%s %d POV" % ["Bot" if _is_bot_slot(commander) else "Player", commander.id]
 		btn.custom_minimum_size = Vector2(100.0, 28.0)
 		fog_row.add_child(btn)
 
@@ -819,8 +824,12 @@ func _refresh_spectator_label(a_label: RichTextLabel, a_commander: Commander) ->
 
 
 ## Set the initial active fog for spectator sessions: default to the first bot's
-## perspective so entity visibility is immediately meaningful.
+## perspective so entity visibility is immediately meaningful — or, in a playback, the recorded
+## player's.
 func _init_spectator_fog() -> void:
+	if is_playback() and local_player() != null and Fog.for_commander(local_player().id) != null:
+		Fog.active_commander_id = local_player().id
+		return
 	for commander: Commander in commanders:
 		if commander.id != 0 and commander is Bot:
 			Fog.active_commander_id = commander.id
@@ -845,6 +854,14 @@ func _create_bot_fogs() -> void:
 		fog.name = "Fog"
 		commander.add_child(fog)
 		fog.set_owner(self)
+
+
+## Whether `a_commander`'s slot is a bot's (a playback builds its human slot as a Bot too).
+func _is_bot_slot(a_commander: Commander) -> bool:
+	for slot: PlayerSlot in player_slots:
+		if slot != null and slot.commander == a_commander:
+			return slot.is_bot
+	return true
 
 
 ## Whether `a_commander`'s slot asked for no fog (PlayerSlot.omniscient, a simulation lever).
@@ -1065,7 +1082,8 @@ func end_match(a_winner_id: int) -> void:
 ## winner's name in a spectator session.
 func _match_summary_title(a_winner_id: int) -> String:
 	var player: Commander = local_player()
-	if player != null:
+	# A playback is watched, so it names the winner as a spectator session does.
+	if player != null and not is_playback():
 		return "Victory" if a_winner_id == player.id else "Defeat"
 	return "Commander %d wins" % a_winner_id if a_winner_id > 0 else "Match over"
 

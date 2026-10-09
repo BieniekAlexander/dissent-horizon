@@ -7,7 +7,7 @@ type: system-note
 
 Scoped 2026-09-29; the recording side and the order boundary are built (2026-10-08), and so is
 watching (2026-10-08): the start screen's replay panel, Save replay at a match's end, and a
-playback's viewer and look-only HUD. What is left is `TODO` or deferred below (`gdd/tasks.md`
+playback watched as a spectator session. What is left is `TODO` or deferred below (`gdd/tasks.md`
 T-037). One seed makes one match, tick for tick ([ai/selfplay-harness](../ai/selfplay-harness.md)
 §Determinism, [terrain-and-navigation/navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md)
 §Navigation is synchronous, for replay).
@@ -62,6 +62,25 @@ T-037). One seed makes one match, tick for tick ([ai/selfplay-harness](../ai/sel
   character no file name holds is taken back out of the field as typed, an autosave name is
   refused on saving, and a name already taken turns Save into Overwrite until the name changes.
   Written by `ReplayRecorder.write_kept`, which a headless run does not suppress (the player asked).
+- **A playback is a spectator session.** No slot gets the human rig (`player.tscn`): every slot
+  builds a `Bot`, its brain on only for a bot slot, and the watcher gets the spectator camera and
+  HUD — the fog buttons (a human slot's reads "Player N POV") and every commander's resources.
+  The human slot still names the local player (`RTSController.PLAYER_COMMANDER_ID`), because the
+  simulation reads it — the implicit elimination rule and HEGEMONY's verdict — and the recorded
+  match was judged against it. The view opens on that player's fog; the end-of-match summary
+  names the winner, as a spectator's does. `test_ReplayRoundTrip` records a skirmish with the
+  human's rig present and requires the spectator playback to match it digest for digest.
+- **What a playback replays is orders, never the interface.** A COMMAND order carries the command
+  script, the serials of the whole selection, the modifiers held and the message (target serial,
+  tool and variant, position, ability, sanction, quarter turns, deferral); which actors take it is
+  decided when it is applied (`OrderDispatcher.recipients`). No grid button, hotkey or panel is
+  recorded or consulted, which is why a playback needs no player HUD at all.
+- **Nothing the interface does may draw from the simulation's generators.** Godot's global
+  generator is seeded with the match, and `Array.pick_random` / `Array.shuffle` draw from it as
+  `randi` does: a voice line picked that way on a live click moved every later draw, and the
+  playback — where nobody clicks — drifted. Audio picks with its own generator; simulation code
+  uses `AU.pick_random` / `AU.shuffle` with `SU.rng`; `test_SeededRandomness` now flags both
+  methods.
 - **The viewer** (`ReplayViewer`, created by `Scenario` for a playback only): a banner — speed,
   paused, whose view — and the replay keys: `replay_pause` Q, `replay_slower` W, `replay_faster` E,
   `replay_switch_view` R, the grid's top row by position. Speed steps along 0.25× – 4×; pause is the
@@ -72,10 +91,6 @@ T-037). One seed makes one match, tick for tick ([ai/selfplay-harness](../ai/sel
   is not touched: the simulation reads it (`Scenario`'s implicit elimination rule), so changing
   it would play a different match. `Scenario._ready` resets the displayed fog to the local
   player's, so neither a replay's view nor a spectator session's carries into the next session.
-- **The HUD for looking** (`RTSController.is_look_only`, set from the scenario): pointer,
-  selection, the additive modifier and control groups work; the command grid and the sanction bar
-  are not drawn, no grid key is dispatched, and no path that builds an order is reached. The
-  recorded player's waypoints still show, as the orders land.
 - **Dialogs in a playback** show, with their buttons disabled; each is resolved by the recorded
   order on its tick. A recorded "Return to Main Menu" choice resolves the dialog without leaving
   (`EventShowDialog` does not bind the navigation in a playback); the viewer leaves through the
@@ -175,7 +190,10 @@ orders a player can give.
   machinery (the displayed fog). Not play-as: that changes the local player, which the
   simulation reads. Alerts and voice lines follow the perspective on show (TODO above: there are
   no alerts yet).
-- **The HUD is for looking**: selection and the info panel work; the command grid is hidden.
+- **The HUD is for looking**: the spectator session's. Superseded 2026-10-09: the first build kept
+  the player's rig with its grid hidden; reusing the spectator session instead means a playback
+  carries no player interface that could reach the simulation. TODO: the spectator HUD has no
+  selection or info panel, so a piece cannot be inspected during a playback.
 - **Pause and speed only** at first.
 - **Dialogs** show, and each is dismissed on the tick it was dismissed in the recording.
 - **Keys**: a replay-only set of actions — pause, faster, slower, switch view — which may use the
