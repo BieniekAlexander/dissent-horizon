@@ -400,6 +400,9 @@ $RECYCLE.BIN/
 # a headless import elsewhere cannot rebuild — a clone without it fails ~800 tests.
 .godot/*
 gdd/.obsidian/
+# Obsidian's window state, rewritten on every open; the vault's settings and plugins above
+# stay tracked, this one file never is.
+gdd/.obsidian/workspace.json
 
 # Terrain-visual preview renders (tools/terrain_visuals/visual_preview.gd)
 /tools/terrain_visuals/out/

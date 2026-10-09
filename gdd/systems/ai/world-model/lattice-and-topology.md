@@ -11,7 +11,7 @@ type: system-note
 SPACE: one coarse lattice over the map carrying the L2 channels, and DISTANCE FIELDS over
 passable ground that make "an approach", "reachable, but not in time" and "a risky path"
 reads rather than searches. Scoped 2026-10-08 against every system it touches (`/scope`); each
-decision below is Alex's and is dated where it was made. Work item: `gdd/tasks.md` T-101. The
+decision below is Alex's and is dated where it was made. The
 layers that read this are [layers](layers.md) §L2 and §L3; the purchase-side consumer is
 [macro-learning](../macro-learning.md) §2 (the threat clock); the placement consumers are
 [squads-and-relations](../squads-and-relations.md) §Placement beyond open ground.
@@ -96,7 +96,7 @@ defence beats a rush, income beats static defence, a rush beats income — so wh
 without the information is a DISPOSITION, not a derivation. The bot already holds one such
 prior for the enemy's unseen SIZE, `assumed_enemy_parity` ([bot-parameter-space](../bot-parameter-space.md));
 the clock gets its spatial twin — **as a role of the POSTURE VECTOR** (decided 2026-10-08,
-option 3 of the T-101 question): the `risk` and `aggression` dials of
+option 3 of the question Alex answered on 2026-10-08): the `risk` and `aggression` dials of
 [objective-selection](../objective-selection.md) say how near the bot assumes an unseen
 threat is and how soon it assumes first contact, so a turtle assumes the raid is near and a
 greedy bot assumes it has time, and the population's mixed equilibrium
