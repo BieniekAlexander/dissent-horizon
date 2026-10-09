@@ -212,25 +212,14 @@ A second plan there is refused today.
 `is_built` is group-keyed, so a unit is always built; constructing a vehicle on a pad wants exactly this rule, and the build system assumes everything it raises registers on the terrain grid.
 → [commands/construction](systems/commands/construction.md)
 
-### T-037 · Recording and replay #effort/high #needs-input #shelved
+### T-037 · Recording and replay #effort/high #scoped #shelved
 Built: a match is bit-reproducible from its seed (navigation synchronous project-wide, 2026-09-29). Left: human orders recorded as a tick-stamped stream and fed back into a re-run; pieces gain a spawn serial; orders land at tick start; compressed JSON-lines files with a version stamp and a per-second state hash. The stream is also the intended input exchange for future rollback netcode.
 → [commands/recording-and-replay](systems/commands/recording-and-replay.md), [ai/selfplay-harness](systems/ai/selfplay-harness.md) §Determinism
 
-> [!check] Status — 2026-10-08
-> Built: the order boundary and the record/replay core (every player action a `PlayerOrder` applied at tick start; spawn serials; versioned gzip JSON-lines files with a per-second digest and keep-three autosaves; debug mode invalidates), and now watching: the start screen's replay panel (`MainMenu`, `ReplayLibrary`), opening a playback through `SceneManager.play_replay` with refusals for another version, a debug-invalidated recording or a missing scenario; Save replay with a name at the foot of every end-of-match summary (`ReplaySaveForm`); a playback runs as a spectator session (every slot a `Bot`, spectator camera and HUD; the recorded human stays the simulation's local player) with `ReplayViewer` on top (banner, Q pause / W slower / E faster / R switch view); dialogs resolved only by the recording; UI clip picks no longer draw from the simulation's global generator (`pick_random`/`shuffle` now guarded); the header's start point per slot. Rules in recording-and-replay.md §What is built.
-> Tests: new `test_ReplayLibrary`, `test_ReplayViewer`, `test_ReplaySaveForm`, `test_ReplayPlayback`, `test_MainMenuReplays`, plus additions to `test_ReplayFile`; all pass. Full suite in this cloud container: 3995 tests, 166 failing against 161 on the untouched base — the container has no `.godot/imported` cache or UID cache, and the 5 extra are the new menu/scenario tests failing only on the container's "invalid UID" load warnings (they pass with those muted).
-> **Not done:** selecting and inspecting pieces in a playback — parked on the question below. Alerts and voice lines following the perspective — there is no alert system yet (note §The plan, `TODO`). Still open in the note: the codec decision and measuring one seed across two platforms. Deferred by design: seeking, rollback networking, play-from-here.
-
-> [!question] Q — 2026-10-09
-> Should a playback let the viewer select a piece and read its info panel?
-> **Why it matters:** a playback now runs as a spectator session, whose HUD is fog buttons and resource labels only — no selection, no info panel, no minimap. The note's §Watching asked for selection and the info panel.
-> **Options:**
-> 1. Give the spectator session selection and the info panel — a look-only HUD built from the rig's panels, so bot-watching gains it too.
-> 2. Leave playback as the spectator session is today.
->
-> **Leaning:** 1 — the note asked for it, and observing bots wants it just as much.
->
-> **Answer:**
+> [!check] Status — 2026-10-09
+> Built: the order boundary and the record/replay core (every player action a `PlayerOrder` applied at tick start; spawn serials; versioned gzip JSON-lines files with a per-second digest and keep-three autosaves; debug mode invalidates), and watching: the start screen's replay panel (`MainMenu`, `ReplayLibrary`), opening a playback through `SceneManager.play_replay` with refusals for another version, a debug-invalidated recording or a missing scenario; Save replay with a name at the foot of every end-of-match summary (`ReplaySaveForm`); a playback runs as a spectator session (every slot a `Bot`; the recorded human stays the simulation's local player) watched through the look-only HUD — the player's HUD scene (`scenes/interface/player_hud.tscn`, split out of `player.tscn`) with selection, info panel and minimap in place and the `SpectatorPanel` (views; Pause/Slower/Faster in a replay) in the command grid's slot — plus `ReplayViewer`'s banner and Q/W/E/R keys; a Hide HUD button above the minimap on every HUD, leaving Show HUD on the bottom edge; dialogs resolved only by the recording; UI clip picks off the simulation's global generator (`pick_random`/`shuffle` guarded); the header's start point per slot. Rules in recording-and-replay.md §What is built and ux/ui/hud-layout.md §The look-only HUD, §Hiding the HUD.
+> Tests: replay and HUD tests all pass (`test_ReplayLibrary`, `test_ReplayViewer`, `test_ReplaySaveForm`, `test_ReplayPlayback`, `test_MainMenuReplays`, `test_HudToggle`, `test_ReplayRoundTrip` incl. a human-rig skirmish played back as a spectator). This cloud container has no `.godot/imported` or UID cache, so its full suite is red on the untouched base too (161 failures); the only new ones are 4 menu/scenario tests failing on the container's "invalid UID" load warnings alone.
+> **Not done:** alerts and voice lines following the perspective — there is no alert system yet (note §The plan, `TODO`). Still open in the note: the codec decision and measuring one seed across two platforms. Deferred by design: seeking, rollback networking, play-from-here.
 
 ### T-038 · Move-line drag: the follow-ups #effort/medium #unscoped #shelved
 Built for the unarmed right click only. Left: the minimap, armed orders, navmesh snapping of slots, recording issued destinations in the replay (T-037).

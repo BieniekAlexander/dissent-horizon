@@ -64,7 +64,9 @@ T-037). One seed makes one match, tick for tick ([ai/selfplay-harness](../ai/sel
   Written by `ReplayRecorder.write_kept`, which a headless run does not suppress (the player asked).
 - **A playback is a spectator session.** No slot gets the human rig (`player.tscn`): every slot
   builds a `Bot`, its brain on only for a bot slot, and the watcher gets the spectator camera and
-  HUD — the fog buttons (a human slot's reads "Player N POV") and every commander's resources.
+  the look-only HUD — selection, the info panel, the minimap, and the view and replay buttons in
+  the command grid's slot (a human slot's view reads "Player N") — with every commander's
+  resources at the top left.
   The human slot still names the local player (`RTSController.PLAYER_COMMANDER_ID`), because the
   simulation reads it — the implicit elimination rule and HEGEMONY's verdict — and the recorded
   match was judged against it. The view opens on that player's fog; the end-of-match summary
@@ -192,8 +194,10 @@ orders a player can give.
   no alerts yet).
 - **The HUD is for looking**: the spectator session's. Superseded 2026-10-09: the first build kept
   the player's rig with its grid hidden; reusing the spectator session instead means a playback
-  carries no player interface that could reach the simulation. TODO: the spectator HUD has no
-  selection or info panel, so a piece cannot be inspected during a playback.
+  carries no player interface that could reach the simulation. The spectator session's HUD is
+  the player's HUD scene built look-only — selection, the info panel and the minimap where they
+  are in a match, the watcher's buttons in the command grid's slot
+  ([ux/ui/hud-layout](../../ux/ui/hud-layout.md) §The look-only HUD).
 - **Pause and speed only** at first.
 - **Dialogs** show, and each is dismissed on the tick it was dismissed in the recording.
 - **Keys**: a replay-only set of actions — pause, faster, slower, switch view — which may use the

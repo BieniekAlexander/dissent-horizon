@@ -45,6 +45,31 @@ func test_a_playback_is_a_spectator_session_with_the_viewer_on_top() -> void:
 	await _tear_down(scenario)
 
 
+func test_a_playback_has_the_look_only_hud_with_the_spectator_panel_in_the_grids_place() -> void:
+	var recording: ReplayFile = await _record()
+	var scenario: Scenario = await _boot(recording)
+	var hud: RTSController = scenario.get_node_or_null("LookOnlyHUD") as RTSController
+	assert_not_null(hud, "the player's HUD scene, look-only")
+	assert_true(hud.is_look_only)
+	assert_null(hud._commander(), "it drives no commander")
+	hud._update_selection_owned_panels()
+	assert_false((hud.get_node("CommandsSection") as Control).visible, "no command grid")
+	assert_false((hud.get_node("EnergyBar") as Control).visible, "no commander's means")
+	assert_true((hud.get_node("MapSection") as Control).visible, "the minimap stays")
+	var panel: SpectatorPanel = hud.get_node("SpectatorPanel") as SpectatorPanel
+	var slot: Control = hud.get_node("CommandsSection") as Control
+	assert_eq(panel.offset_right, slot.offset_right, "in the command grid's slot")
+	assert_eq(panel.offset_top, slot.offset_top)
+	assert_eq(
+		panel.button_labels(),
+		["No fog", "Player 1", "Pause", "Slower", "Faster"] as Array[String],
+		"the views, then the replay controls"
+	)
+	panel.show_view(SpectatorPanel.VIEW_EVERYTHING)
+	assert_eq(Fog.active_commander_id, SpectatorPanel.VIEW_EVERYTHING)
+	await _tear_down(scenario)
+
+
 func test_a_session_opens_on_its_own_players_view() -> void:
 	Fog.active_commander_id = ReplayViewer.VIEW_EVERYTHING
 	var scenario: Scenario = await _boot(null)

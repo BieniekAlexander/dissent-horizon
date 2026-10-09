@@ -33,6 +33,8 @@ var _banner: Label = null
 
 func _ready() -> void:
 	layer = LAYER
+	# Put away with the rest of the HUD by its hide button.
+	add_to_group(RTSController.HUD_LAYER_GROUP)
 	# The keys have to work while the world is held — that is what un-pausing is.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var panel := PanelContainer.new()

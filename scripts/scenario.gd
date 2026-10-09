@@ -202,6 +202,7 @@ func _ready() -> void:
 		_setup_spectator_camera()
 		_setup_spectator_hud()
 		_init_spectator_fog()
+		_create_look_only_hud()
 
 	# Typed Entity (not Actor): commander/default_commander_id are Entity-level, and
 	# the "piece" group holds features such as ExtractionSite as well as Actors.
@@ -465,6 +466,9 @@ const MATCH_SUMMARY_LAYER: int = 15
 ## The scenario HUD's elapsed-time readout; authored layout, instanced in _create_scenario_hud.
 const SCENARIO_TIMER_SCENE: PackedScene = preload("res://scenes/interface/scenario_timer.tscn")
 const DEFAULT_LIGHTING_SCENE: String = "res://scenes/environment/default_lighting.tscn"
+## The player's HUD, which a spectator session instances look-only. A path rather than a preload:
+## loaded only by a session that has no player.
+const PLAYER_HUD_SCENE: String = "res://scenes/interface/player_hud.tscn"
 
 
 ## Add the default lighting rig unless the scenario (or its map) already carries a sun. A
@@ -703,43 +707,19 @@ func _setup_spectator_camera() -> void:
 
 
 ## Build a CanvasLayer HUD that shows one resource panel per non-neutral
-## commander, plus a fog-toggle row so the spectator can switch perspectives and a picker
-## for which category of the viewed bot's signals the debug overlay draws.
-## Called only in spectator mode (no human rig).
+## commander, and a picker for which category of the viewed bot's signals the debug overlay
+## draws. Whose view is drawn is chosen on the look-only HUD's SpectatorPanel, in the command
+## grid's place (_create_look_only_hud). Called only in spectator mode (no human rig).
 func _setup_spectator_hud() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "SpectatorHUD"
+	# Put away with the rest of the HUD by its hide button.
+	layer.add_to_group(RTSController.HUD_LAYER_GROUP)
 	add_child(layer)
 
 	var vbox := VBoxContainer.new()
 	vbox.position = Vector2(8.0, 8.0)
 	layer.add_child(vbox)
-
-	# ── Fog toggle row ──
-	var fog_row := HBoxContainer.new()
-	fog_row.name = "FogToggleRow"
-	fog_row.add_theme_constant_override("separation", 6)
-	vbox.add_child(fog_row)
-
-	var no_fog_btn := Button.new()
-	no_fog_btn.name = "FogBtn_NoFog"
-	no_fog_btn.text = "No Fog"
-	no_fog_btn.custom_minimum_size = Vector2(80.0, 28.0)
-	fog_row.add_child(no_fog_btn)
-
-	for commander: Commander in commanders:
-		if commander.id == 0 or not commander is Bot:
-			continue
-		var btn := Button.new()
-		btn.name = "FogBtn_%d" % commander.id
-		# A playback's human slot is a Bot too (_build_commanders); it is named as the player.
-		btn.text = "%s %d POV" % ["Bot" if _is_bot_slot(commander) else "Player", commander.id]
-		btn.custom_minimum_size = Vector2(100.0, 28.0)
-		fog_row.add_child(btn)
-
-	# Wire button callbacks now that all buttons exist.
-	_wire_spectator_fog_buttons(fog_row)
-	_refresh_spectator_fog_buttons(fog_row)
 
 	# ── Bot debug overlay category (shown only while the debug view is up) ──
 	var category_bar := BotDebugCategoryBar.new()
@@ -769,38 +749,6 @@ func _setup_spectator_hud() -> void:
 		label.tree_exiting.connect(_disconnect_spectator_label.bind(commander, refresh))
 
 
-func _wire_spectator_fog_buttons(a_fog_row: HBoxContainer) -> void:
-	var no_fog_btn: Button = a_fog_row.get_node("FogBtn_NoFog")
-	no_fog_btn.pressed.connect(
-		func() -> void:
-			Fog.active_commander_id = -2
-			_refresh_spectator_fog_buttons(a_fog_row)
-	)
-	for commander: Commander in commanders:
-		if commander.id == 0 or not commander is Bot:
-			continue
-		var btn: Button = a_fog_row.get_node("FogBtn_%d" % commander.id)
-		var cid: int = commander.id
-		btn.pressed.connect(
-			func() -> void:
-				Fog.active_commander_id = cid
-				_refresh_spectator_fog_buttons(a_fog_row)
-		)
-
-
-func _refresh_spectator_fog_buttons(a_fog_row: HBoxContainer) -> void:
-	var active_id: int = Fog.active_commander_id
-	var no_fog_btn: Button = a_fog_row.get_node_or_null("FogBtn_NoFog") as Button
-	if no_fog_btn != null:
-		no_fog_btn.disabled = (active_id == -2)
-	for commander: Commander in commanders:
-		if commander.id == 0 or not commander is Bot:
-			continue
-		var btn: Button = a_fog_row.get_node_or_null("FogBtn_%d" % commander.id) as Button
-		if btn != null:
-			btn.disabled = (active_id == commander.id)
-
-
 ## Untyped commander: it may already be freed by the time its label leaves the tree.
 func _disconnect_spectator_label(a_commander: Variant, a_refresh: Callable) -> void:
 	if not is_instance_valid(a_commander):
@@ -821,6 +769,16 @@ func _refresh_spectator_label(a_label: RichTextLabel, a_commander: Commander) ->
 			a_commander.dominion,
 		]
 	)
+
+
+## The spectator's look-only HUD: the player's HUD scene, driving no commander — selection,
+## the info panel and the minimap, with the SpectatorPanel in the command grid's place.
+## gdd/systems/ux/ui/hud-layout.md §The look-only HUD.
+func _create_look_only_hud() -> void:
+	var hud: RTSController = (load(PLAYER_HUD_SCENE) as PackedScene).instantiate() as RTSController
+	hud.name = "LookOnlyHUD"
+	hud.is_look_only = true
+	add_child(hud)
 
 
 ## Set the initial active fog for spectator sessions: default to the first bot's
@@ -857,7 +815,7 @@ func _create_bot_fogs() -> void:
 
 
 ## Whether `a_commander`'s slot is a bot's (a playback builds its human slot as a Bot too).
-func _is_bot_slot(a_commander: Commander) -> bool:
+func is_bot_slot(a_commander: Commander) -> bool:
 	for slot: PlayerSlot in player_slots:
 		if slot != null and slot.commander == a_commander:
 			return slot.is_bot
@@ -920,6 +878,7 @@ func _create_scenario_hud(a_event_manager: ScenarioTriggerManager) -> void:
 	# The elapsed-time readout: here and not in the player rig, so a spectator sees it too.
 	var timer_layer := CanvasLayer.new()
 	timer_layer.name = "ScenarioTimerLayer"
+	timer_layer.add_to_group(RTSController.HUD_LAYER_GROUP)
 	add_child(timer_layer)
 	var timer: ScenarioTimer = SCENARIO_TIMER_SCENE.instantiate()
 	timer_layer.add_child(timer)
