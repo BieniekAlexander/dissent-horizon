@@ -10,7 +10,7 @@ extends Node3D
 ##      that reveals unit command labels.
 ##   2. Only ever shows ONE bot: the one currently selected by the bot-view toggle
 ##      (Fog.active_commander_id, the spectator POV button). When the active view isn't a
-##      specific bot (player view / omniscient), nothing is drawn.
+##      specific bot (the player's own view), nothing is drawn.
 ##
 ## Which category shows is `active_category`, chosen from the spectator HUD's
 ## BotDebugCategoryBar. Created once per session by Scenario._ready. A new category is an enum
@@ -126,7 +126,7 @@ func readout_text() -> String:
 
 
 ## The bot currently selected by the bot-view toggle, or null when the active view isn't a
-## specific bot (player view = -1, omniscient = -2) or that commander isn't a Bot.
+## specific bot (the player's own view, -1) or that commander isn't a Bot.
 func _active_bot() -> Bot:
 	if scenario == null:
 		return null

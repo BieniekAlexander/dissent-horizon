@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/interface/hud/debug_panel.gd" id="1_panel"]
-[ext_resource type="Script" path="res://scripts/interface/hud/debug_fog_row.gd" id="2_fog"]
+[ext_resource type="PackedScene" path="res://scenes/interface/playback_controls.tscn" id="2_playback"]
 
 [node name="DebugPanel" type="PanelContainer" groups=["selection_blocking_ui"]]
 custom_minimum_size = Vector2(352, 0)
@@ -60,9 +60,9 @@ layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
 
-[node name="FogRow" type="HBoxContainer" parent="Margin/Column/Body"]
+[node name="PlaybackControls" parent="Margin/Column/Body" instance=ExtResource("2_playback")]
+unique_name_in_owner = true
 layout_mode = 2
-script = ExtResource("2_fog")
 
 [node name="BotsTitle" type="Label" parent="Margin/Column/Body"]
 layout_mode = 2
@@ -80,29 +80,34 @@ text = "Resources (energy, dominion)"
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="HSeparator" type="HSeparator" parent="Margin/Column/Body"]
+[node name="PieceCard" type="VBoxContainer" parent="Margin/Column/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HSeparator" type="HSeparator" parent="Margin/Column/Body/PieceCard"]
 layout_mode = 2
 
-[node name="FactionRow" type="HBoxContainer" parent="Margin/Column/Body"]
+[node name="FactionRow" type="HBoxContainer" parent="Margin/Column/Body/PieceCard"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Margin/Column/Body/FactionRow"]
+[node name="Label" type="Label" parent="Margin/Column/Body/PieceCard/FactionRow"]
 custom_minimum_size = Vector2(70, 0)
 layout_mode = 2
 text = "Faction"
 
-[node name="FactionOption" type="OptionButton" parent="Margin/Column/Body/FactionRow"]
+[node name="FactionOption" type="OptionButton" parent="Margin/Column/Body/PieceCard/FactionRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
 
-[node name="PieceScroll" type="ScrollContainer" parent="Margin/Column/Body"]
+[node name="PieceScroll" type="ScrollContainer" parent="Margin/Column/Body/PieceCard"]
 custom_minimum_size = Vector2(0, 420)
 layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="PieceList" type="VBoxContainer" parent="Margin/Column/Body/PieceScroll"]
+[node name="PieceList" type="VBoxContainer" parent="Margin/Column/Body/PieceCard/PieceScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3

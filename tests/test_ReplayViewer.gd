@@ -45,12 +45,12 @@ func test_every_ladder_speed_is_one_playback_speed_allows() -> void:
 		assert_between(speed, PlaybackSpeed.MIN_MULTIPLIER, PlaybackSpeed.MAX_MULTIPLIER)
 
 
-func test_the_view_cycles_through_each_commander_then_everything() -> void:
-	var views: Array[int] = [1, 2, ReplayViewer.VIEW_EVERYTHING]
+func test_the_view_cycles_through_each_commander() -> void:
+	var views: Array[int] = [1, 2, 3]
 	assert_eq(ReplayViewer.next_view(views, 1), 2)
-	assert_eq(ReplayViewer.next_view(views, 2), ReplayViewer.VIEW_EVERYTHING)
-	assert_eq(ReplayViewer.next_view(views, ReplayViewer.VIEW_EVERYTHING), 1, "round again")
+	assert_eq(ReplayViewer.next_view(views, 3), 1, "round again")
 	assert_eq(ReplayViewer.next_view(views, 7), 1, "an unknown view starts at the first")
+	assert_eq(ReplayViewer.next_view([] as Array[int], 2), 2, "no views: the view stays")
 
 
 func test_pausing_is_the_playback_pause_hold() -> void:
@@ -71,9 +71,18 @@ func test_switching_the_view_never_changes_the_local_player() -> void:
 	var viewer: ReplayViewer = _viewer(null)
 	assert_eq(viewer.current_view(), 1, "the default view is the local player's")
 	viewer.switch_view()
-	assert_eq(Fog.active_commander_id, ReplayViewer.VIEW_EVERYTHING, "no fogs: only everything")
 	assert_eq(RTSController.PLAYER_COMMANDER_ID, 1, "the simulation's player is untouched")
-	assert_string_contains(viewer.banner_text(), "everything")
+	assert_string_contains(viewer.banner_text(), "Commander 1")
+
+
+func test_the_banner_says_when_the_fog_is_lifted() -> void:
+	RTSController.PLAYER_COMMANDER_ID = 1
+	Fog.active_commander_id = -1
+	var viewer: ReplayViewer = _viewer(null)
+	assert_false(viewer.banner_text().contains("no fog"))
+	Fog.set_view_lifted(true)
+	assert_string_contains(viewer.banner_text(), "Commander 1, no fog")
+	Fog.set_view_lifted(false)
 
 
 func test_the_speed_keys_set_the_playback_speed() -> void:

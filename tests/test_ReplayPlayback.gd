@@ -60,13 +60,14 @@ func test_a_playback_has_the_look_only_hud_with_the_spectator_panel_in_the_grids
 	var slot: Control = hud.get_node("CommandsSection") as Control
 	assert_eq(panel.offset_right, slot.offset_right, "in the command grid's slot")
 	assert_eq(panel.offset_top, slot.offset_top)
-	assert_eq(
-		panel.button_labels(),
-		["No fog", "Player 1", "Pause", "Slower", "Faster"] as Array[String],
-		"the views, then the replay controls"
+	assert_eq(panel.button_labels()[0], "Player 1", "the recorded human's view first")
+	assert_true(
+		(panel.find_child("PlaybackControls", true, false) as Control).visible,
+		"a replay's speed is the viewer's to set"
 	)
-	panel.show_view(SpectatorPanel.VIEW_EVERYTHING)
-	assert_eq(Fog.active_commander_id, SpectatorPanel.VIEW_EVERYTHING)
+	panel.set_fog_shown(false)
+	assert_true(Fog.is_lifted(), "the toggle lifts the fog")
+	assert_eq(Fog.active_commander_id, 1, "over the same view")
 	await _tear_down(scenario)
 
 
@@ -91,9 +92,11 @@ func test_a_watcher_selects_every_piece_as_a_player_selects_an_enemys() -> void:
 
 
 func test_a_session_opens_on_its_own_players_view() -> void:
-	Fog.active_commander_id = ReplayViewer.VIEW_EVERYTHING
+	Fog.active_commander_id = 2
+	Fog.set_view_lifted(true)
 	var scenario: Scenario = await _boot(null)
 	assert_eq(Fog.active_commander_id, -1, "a previous session's view does not carry over")
+	assert_false(Fog.is_view_lifted(), "nor does its fog setting")
 	await _tear_down(scenario)
 
 

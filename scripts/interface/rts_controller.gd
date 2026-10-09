@@ -432,10 +432,11 @@ var _build_preview: Node3D = null
 var _build_preview_tool_type: Variant = null
 #endregion
 
-## A LOOK-ONLY HUD: the spectator session's (Scenario._create_look_only_hud), a replay's included.
-## It drives no commander, so it gives no orders: selection, control groups, the info panel and
-## the minimap work, and the command grid's slot holds the SpectatorPanel instead. Set before
-## the HUD enters the tree. gdd/systems/ux/ui/hud-layout.md §The look-only HUD.
+## A LOOK-ONLY HUD: the spectator session's (Scenario._create_look_only_hud), a replay's included,
+## and any HUD whose player has detached (Scenario.spectate). It drives no commander, so it gives
+## no orders: selection, control groups, the info panel and the minimap work, and the command
+## grid's slot holds the SpectatorPanel instead. Set before the HUD enters the tree; afterwards,
+## through set_look_only. gdd/systems/ux/ui/hud-layout.md §The look-only HUD.
 @export var is_look_only: bool = false
 
 ## Whether the hide button has put the HUD away (set_hud_hidden).
@@ -445,6 +446,9 @@ var is_hud_hidden: bool = false
 var _hud_overlay: CanvasLayer = null
 var _hud_toggle: Button = null
 var _spectator_panel: SpectatorPanel = null
+## The HUD nodes a look-only layout put away, each with the visibility it gives back
+## (Node -> bool), so leaving look-only restores whatever each was showing.
+var _look_only_hidden: Dictionary = {}
 
 
 #region Lifecycle
@@ -546,22 +550,39 @@ func _ready():
 	_build_hud_toggle()
 
 
+## Turn this HUD look-only, or back into a player's, at runtime: the player detached from or
+## attached to a commander (Scenario.spectate / play_as).
+func set_look_only(a_is_look_only: bool) -> void:
+	if a_is_look_only == is_look_only:
+		return
+	is_look_only = a_is_look_only
+	if is_look_only:
+		_apply_look_only_layout()
+	else:
+		_remove_look_only_layout()
+	upate_hud_buttons()
+
+
 ## A look-only HUD's layout: everything that shows or spends a commander's means goes — the
-## resource bars, the production rail, the selectors, the debug panels (a debug piece would
-## change the match) — and the SpectatorPanel takes the command grid's slot.
+## resource bars, the production rail, the selectors, the tuning panel — and the SpectatorPanel
+## takes the command grid's slot. The debug menu stays, for its player setting, except in a
+## playback, which nothing may change.
 func _apply_look_only_layout() -> void:
-	for path: String in [
+	var paths: Array[String] = [
 		"DominionBar",
 		"EnergyBar",
 		"InfrastructureBar",
 		"ProductionSlot",
 		"Selectors",
 		"CommandsSection",
-		"DebugPanel",
 		"DebugTuningPanel",
-	]:
+	]
+	if _scenario == null or _scenario.is_playback():
+		paths.append("DebugPanel")
+	for path: String in paths:
 		var node: CanvasItem = get_node_or_null(path) as CanvasItem
 		if node != null:
+			_look_only_hidden[node] = node.visible
 			node.visible = false
 			node.process_mode = Node.PROCESS_MODE_DISABLED
 	var slot: Control = $CommandsSection as Control
@@ -576,6 +597,19 @@ func _apply_look_only_layout() -> void:
 	_spectator_panel.offset_bottom = slot.offset_bottom
 	_spectator_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_spectator_panel.bind(_scenario)
+
+
+## Give back what _apply_look_only_layout put away, and take the SpectatorPanel down.
+func _remove_look_only_layout() -> void:
+	for node: CanvasItem in _look_only_hidden:
+		if is_instance_valid(node):
+			node.process_mode = Node.PROCESS_MODE_INHERIT
+			node.visible = _look_only_hidden[node]
+	_look_only_hidden.clear()
+	if _spectator_panel != null:
+		remove_child(_spectator_panel)
+		_spectator_panel.queue_free()
+		_spectator_panel = null
 
 
 #endregion
@@ -660,9 +694,13 @@ func _bind_commander_panels() -> void:
 	_bind_deployment(commander.deployment if commander != null else null)
 
 
-## The player is now another commander (debug mode's player setting). Everything this
-## controller held on the old one's behalf is put down, and the panels follow the new one.
-func _on_local_player_changed(_a_commander: Commander) -> void:
+## The player is now another commander, or nobody (debug mode's player setting). Everything this
+## controller held on the old one's behalf is put down, the HUD turns look-only or back, and the
+## panels follow the new one.
+func _on_local_player_changed(a_commander: Commander) -> void:
+	set_look_only(a_commander == null)
+	if is_debug_piece_armed():
+		disarm_debug_piece()
 	deselect()
 	clear_pending_selection()
 	disarm_command()
@@ -4234,8 +4272,8 @@ static func cursor_evaluator(command_type: Script, command_message: CommandMessa
 ## beneath. Non-Actor map features (e.g. neutral Shelters) aren't fog-managed,
 ## so fall back to their render state (always drawn → still targetable to liberate).
 static func _is_perceptible(entity: Entity) -> bool:
-	# A fog-lifting debug view draws everything, so everything it draws can be pointed at.
-	if DebugMode.lifts_fog():
+	# A lifted fog draws everything, so everything it draws can be pointed at.
+	if Fog.is_lifted():
 		return true
 	# Own pieces are always known — except a planted charge, which its owner sees only in
 	# their own vision (fog.gd draws it on that test), and cannot pick out of it.
@@ -5309,12 +5347,6 @@ var _debug_piece: Dictionary = {}
 ## and the ghost read, like Commander's build-preview instances.
 var _debug_piece_source: Entity = null
 
-## Who a placed piece belongs to: a commander id, 0 for neutral, or DEBUG_OWNER_IS_PLAYER.
-var debug_placement_owner_id: int = DEBUG_OWNER_IS_PLAYER
-
-## A placed piece is the local player's, whoever that is at the time.
-const DEBUG_OWNER_IS_PLAYER: int = -1
-
 
 ## Arm `a_entry` for placement: the next world command puts one down.
 func arm_debug_piece(a_entry: Dictionary) -> void:
@@ -5342,11 +5374,9 @@ func disarm_debug_piece() -> void:
 		_debug_piece_source = null
 
 
-## The commander a placed piece is given to.
+## The commander a placed piece is given to: the local player, whoever that is at the time.
 func debug_placement_owner() -> Commander:
-	if debug_placement_owner_id == DEBUG_OWNER_IS_PLAYER:
-		return _commander()
-	return _scenario.commander_by_id(debug_placement_owner_id) if _scenario != null else null
+	return _commander()
 
 
 ## Put the armed piece down under the cursor, if it fits there; otherwise nothing happens,
@@ -5569,7 +5599,10 @@ func _on_deployment_changed() -> void:
 		_deployment_panel = null
 	if _deployment_panel != null:
 		_deployment_panel.deployment = deployment
-	var has_economy: bool = deployment == null or deployment.has_landed_command_centre()
+	# A look-only HUD shows no commander's means at all (_apply_look_only_layout).
+	var has_economy: bool = (
+		not is_look_only and (deployment == null or deployment.has_landed_command_centre())
+	)
 	for bar: Variant in [_dominion_bar, _energy_bar, _infrastructure_bar]:
 		if bar != null:
 			bar.visible = has_economy

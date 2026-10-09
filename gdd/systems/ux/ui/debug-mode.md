@@ -19,15 +19,15 @@ While active: commandables show their current command, the bot overlay draws for
 being viewed, and the cursor readout is up. While allowed and not active, a line above the
 testing-info hint names the key.
 
-**The fog is a setting of the view** (Alex, 2026-10-07). With the view down, the fog is always
-shown as the active viewer sees it. With it up, the **Fog** picker — in the debug menu, and in
-the spectator HUD — chooses between **Off** (lifted in the world and on the minimap, everything
-pointable, as the view always was) and **As the viewer sees it**: the local player's fog, or
-the fog of the bot a spectator is viewing. The second is for reading a bot's signals against
-what that bot can actually see. A session starts on Off. Lowering the view restores the
-viewer's fog either way; nothing the view revealed is remembered. The spectator's own **No
-Fog** button is a separate thing — the omniscient view, which shows everything whatever this
-setting says.
+**The debug view lifts the fog**: in the world and on the minimap, with everything pointable
+(`Fog.is_lifted`). Lowering the view restores the viewer's fog; nothing the view revealed is
+remembered. A spectator also has a fog toggle of their own, which the view overrides while up
+([hud-layout](hud-layout.md) §The look-only HUD).
+
+REJECTED (2026-10-09): a **Fog** picker in the debug menu and the spectator HUD, choosing
+between lifted and "as the viewer sees it", beside a spectator's omniscient **No fog** view —
+two controls for one fact. Reading a bot's signals against what that bot sees is now done with
+the view down: the spectator's fog toggle on, the bot's view chosen.
 
 The bot overlay shows one category of the viewed bot's signals at a time, chosen from the
 spectator HUD's **Bot overlay** picker (shown only while the view is up): world marks, plus a
@@ -46,8 +46,11 @@ A second menu, top-left, tunes the shared libraries and saves edited docs; it an
 editable readouts are [debug-tuning](debug-tuning.md).
 
 It carries five things, independent of each other: the **player** setting (§Playing as
-another commander), the **fog** setting (§The debug view), a **difficulty** picker per bot, an **energy and dominion** field per
-commander, and the **piece card** (§The piece spawner).
+another commander), the **playback speed** while playing (§Playback speed), a **difficulty**
+picker per bot, an **energy and dominion** field per commander, and the **piece card** (§The
+piece spawner). While spectating, the speed is the spectator panel's and the piece card is
+hidden (§Sessions); in a playback the menu is not offered at all, since nothing may change a
+recorded match.
 
 The resource fields accept digits only. Each shows the live amount until it is focused; Enter,
 or leaving the field, sets the commander's stockpile to what it holds, through
@@ -56,12 +59,12 @@ keyboard back, since a focused field swallows every hotkey.
 
 ## Playback speed
 
-Under `debug_allowed` — the view need not be up — the pause menu carries a playback section
-(`PlaybackControls`): a speed from 0.25× to 4× of real time, a pause, and "max speed", which
-runs the simulation as fast as the machine allows. The scenario timer names any speed but 1×,
-and a pause, so a stopped or racing clock reads as deliberate. Leaving the scenario restores
-real time. The pause menu belongs to the scenario, not the player rig, so a spectator session
-has the controls too.
+Under `debug_allowed`, and in every replay, the playback controls (`PlaybackControls`) offer a
+speed from 0.25× to 4× of real time, a pause, and "max speed", which runs the simulation as fast
+as the machine allows. They live in the spectator panel while spectating, and in the debug menu
+while playing — never in the pause menu, which stops the world they would be speeding. The
+scenario timer names any speed but 1×, and a pause, so a stopped or racing clock reads as
+deliberate. Leaving the scenario restores real time.
 
 **A tick never changes meaning.** The simulation is 30 ticks per GAME second at every speed;
 playback changes how many run per REAL second. It raises the engine's tick rate and its time
@@ -82,7 +85,7 @@ Pitfalls accepted:
   (`PlaybackSpeed.real_seconds`) because it moves at the player's pace, not the game's.
 - **Max speed is bounded by drawing**, not by a number: the engine runs up to a fixed number
   of ticks per frame drawn, so the screen updates a few times a second while it races.
-- **The pause outlives the menu.** It is its own `SimulationClock` reason, so it composes
+- **The pause is its own hold.** It is its own `SimulationClock` reason, so it composes
   with dialog and pause-menu holds; the world stays stopped until the toggle is cleared.
 
 ## The piece spawner
@@ -142,9 +145,9 @@ down.
 - It is a real piece to everything else: triggers, occurrence tallies and the elimination rule
   see it as they would a trained one, and a bot owner takes it up as one of its own.
 
-**Sessions.** Player sessions only: the spawner and its ghost live in the player rig.
-TODO: spectator (self-play) sessions, where spawning for a bot would be most useful, have no
-`RTSController` — the spawner would have to move to `Scenario` to reach them.
+**Sessions.** While playing only: a placed piece is the player's, and a spectator is nobody, so
+the card is hidden while spectating (Alex, 2026-10-09). To give a bot a piece, attach to it
+first.
 
 ## Debug delete
 
@@ -173,15 +176,15 @@ Outside the debug view, selection is unchanged
 
 ## Playing as another commander
 
-The debug menu's player setting lists commanders 1..N and Neutral, and starts at the
-session's human slot. It names two things: who owns a placed piece, and — for a commander —
-who the player is.
+The debug menu's player setting lists **Spectator** and commanders 1..N, and starts at the
+session's human slot, or at Spectator in a session with none. It names who the player is, and so
+who owns a placed piece. Neutral is the world, not a player, so it is not listed.
 
-**Neutral changes only the first.** It gives placed pieces to commander 0 and leaves the player
-as the commander most recently chosen. Neutral is the world, not a player, so there is no
-neutral seat to sit in.
+REJECTED (2026-10-09): a **Neutral** entry that gave placed pieces to commander 0 and left the
+player as they were. It read as a seat to sit in and did nothing visible from one.
 
-Choosing a commander swaps the player (`Scenario.play_as`):
+Choosing a commander swaps the player (`Scenario.play_as`), from another commander or from
+spectating — which turns a spectator session into play:
 
 - The controller drives the scenario's local player rather than the commander it is a child
   of, and re-binds every panel bound at startup — resource bars, production rail, sanction
@@ -189,10 +192,21 @@ Choosing a commander swaps the player (`Scenario.play_as`):
 - Selection, control groups, an armed order and any pending purchase are cleared.
 - The displayed fog is the new commander's. The rig's own `Fog` is pinned to the commander it
   was built for, as a bot's is, so every commander keeps its own exploration.
+- From spectating, the HUD stops being look-only: the spectator panel and the spectator's
+  top-left labels are put away, and the panels hidden for it come back.
 - The camera stays where it is.
 - **The slot left behind is handed to its bot, and the slot taken over has its bot put down.**
 - **The elimination rule judges whoever the player is now.** Swapping to a commander with
   nothing deployed can lose the match on the spot; that is accepted.
+
+Choosing **Spectator** detaches the player (`Scenario.spectate`), turning play into a spectator
+session: the slot is handed to its bot, the HUD turns look-only
+([hud-layout](hud-layout.md) §The look-only HUD), the spectator's top-left labels are built, and
+the view stays on the commander just left. With nobody played, the elimination rule judges no
+one and HEGEMONY ends the match as a spectator session's does.
+
+**A playback refuses both.** Its local player is the recording's, which the simulation reads;
+changing it would play a different match.
 
 ## A bot for every slot
 

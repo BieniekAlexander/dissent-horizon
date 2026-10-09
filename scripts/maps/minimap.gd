@@ -251,13 +251,13 @@ func _process(_a_delta: float) -> void:
 	var resolved_fog: Variant = Fog.get_active_fog()
 	_fog = resolved_fog if resolved_fog is Fog else null
 
-	var reveal_all: bool = DebugMode.lifts_fog()
+	var reveal_all: bool = Fog.is_lifted()
 
-	# Pass 1: the map layer through the fog. The debug reveal and the omniscient spectator see
-	# every cell in sight; with no fog to ask otherwise, terrain stays unseen.
+	# Pass 1: the map layer through the fog. A lifted fog sees every cell in sight; with no fog
+	# to ask otherwise, terrain stays unseen.
 	if _layer_dirty:
 		_rebuild_layer()
-	_draw_layer(reveal_all or Fog.active_commander_id == -2)
+	_draw_layer(reveal_all)
 
 	# Pass 2: draw commandable dots/squares on top of the terrain layer.
 	for entity: Entity in get_tree().get_nodes_in_group("piece"):

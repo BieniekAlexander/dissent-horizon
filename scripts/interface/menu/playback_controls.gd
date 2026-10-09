@@ -1,11 +1,10 @@
 class_name PlaybackControls
 extends VBoxContainer
 
-## The pause menu's debug playback section: a speed slider, a pause toggle that outlives the
-## menu, and "as fast as possible". Shown while the scenario has `debug_allowed`, and in every
-## replay playback, where speed is the viewer's to set. The
-## mechanism is PlaybackSpeed; this is only its controls. Layout is authored in
-## scenes/interface/playback_controls.tscn.
+## Playback speed: a speed slider, a pause toggle, and "as fast as possible". Carried by the
+## spectator panel while spectating and by the debug menu while playing; each host decides when
+## it shows (is_offered). The mechanism is PlaybackSpeed; this is only its controls. Layout is
+## authored in scenes/interface/playback_controls.tscn.
 
 @onready var _speed_slider: HSlider = %SpeedSlider
 @onready var _speed_label: Label = %SpeedLabel
@@ -16,8 +15,6 @@ extends VBoxContainer
 ## The scenario's clock, which the pause toggle holds. Null in a scene with no trigger manager,
 ## and the toggle is then disabled.
 var _clock: SimulationClock = null
-## Whether the scenario plays a recording back: the controls are offered whatever debug allows.
-var _is_playback: bool = false
 
 
 func _ready() -> void:
@@ -32,15 +29,25 @@ func _ready() -> void:
 	refresh()
 
 
-func bind(a_clock: SimulationClock, a_is_playback: bool = false) -> void:
+# Polled: the speed and the pause also change from the replay keys and the other host.
+func _process(_a_delta: float) -> void:
+	if is_visible_in_tree():
+		refresh()
+
+
+## Whether a session offers the controls: one that allows debug, and every replay playback,
+## where speed is the viewer's to set.
+static func is_offered(is_playback: bool) -> bool:
+	return DebugMode.is_allowed() or is_playback
+
+
+func bind(a_clock: SimulationClock) -> void:
 	_clock = a_clock
-	_is_playback = a_is_playback
 	refresh()
 
 
-## Read the controls back from the live state, which may have changed since they were last up.
+## Read the controls back from the live state.
 func refresh() -> void:
-	visible = DebugMode.is_allowed() or _is_playback
 	_uncapped_toggle.set_pressed_no_signal(PlaybackSpeed.is_uncapped())
 	if not PlaybackSpeed.is_uncapped():
 		_speed_slider.set_value_no_signal(PlaybackSpeed.multiplier() * TimeUtils.ticks_per_second())

@@ -1,8 +1,8 @@
 class_name Scenario
 extends Node3D
 
-## Emitted after the local player has become a different commander (see play_as). The HUD
-## rig re-binds to it.
+## Emitted after the local player has become a different commander (play_as), or none at all
+## (spectate, with a null `a_commander`). The HUD re-binds to it, or turns look-only.
 signal local_player_changed(a_commander: Commander)
 
 #region Configuration
@@ -141,6 +141,7 @@ func _ready() -> void:
 	# The viewed fog is a static, so a spectator session or a replay's view switch would
 	# otherwise carry into the next session: every session opens on its own player's view.
 	Fog.active_commander_id = -1
+	Fog.set_view_lifted(false)
 	_create_debug_mode()
 	_ensure_lighting()
 	if map == null:
@@ -509,6 +510,8 @@ const DEFAULT_LIGHTING_SCENE: String = "res://scenes/environment/default_lightin
 ## The player's HUD, which a spectator session instances look-only. A path rather than a preload:
 ## loaded only by a session that has no player.
 const PLAYER_HUD_SCENE: String = "res://scenes/interface/player_hud.tscn"
+## The spectator's top-left layer, found by name to put it away and to build it only once.
+const SPECTATOR_HUD_NAME: String = "SpectatorHUD"
 
 
 ## Add the default lighting rig unless the scenario (or its map) already carries a sun. A
@@ -781,10 +784,11 @@ func _setup_spectator_camera() -> void:
 ## Build a CanvasLayer HUD that shows one resource panel per non-neutral
 ## commander, and a picker for which category of the viewed bot's signals the debug overlay
 ## draws. Whose view is drawn is chosen on the look-only HUD's SpectatorPanel, in the command
-## grid's place (_create_look_only_hud). Called only in spectator mode (no human rig).
+## grid's place (_create_look_only_hud). Built for a spectator session, and whenever the player
+## detaches (spectate); put away when someone is played again.
 func _setup_spectator_hud() -> void:
 	var layer := CanvasLayer.new()
-	layer.name = "SpectatorHUD"
+	layer.name = SPECTATOR_HUD_NAME
 	# Put away with the rest of the HUD by its hide button.
 	layer.add_to_group(RTSController.HUD_LAYER_GROUP)
 	add_child(layer)
@@ -797,11 +801,6 @@ func _setup_spectator_hud() -> void:
 	var category_bar := BotDebugCategoryBar.new()
 	category_bar.name = "BotDebugCategoryBar"
 	vbox.add_child(category_bar)
-	# ── Debug view fog: lifted, or as the viewed bot sees it (also only while the view is up) ──
-	var debug_fog_row := DebugFogRow.new()
-	debug_fog_row.name = "DebugFogRow"
-	vbox.add_child(debug_fog_row)
-
 	vbox.add_child(HSeparator.new())
 
 	# ── Per-commander resource labels ──
@@ -1245,18 +1244,47 @@ func commander_by_id(a_commander_id: int) -> Commander:
 	return commanders[a_commander_id]
 
 
-## Make the local player commander `a_commander_id` (1..N). The slot left behind is handed
-## to its bot and the one taken over has its bot put down. False when there is nothing to
-## swap to, or the player already is that commander.
+## Make the local player commander `a_commander_id` (1..N) — from another commander, or from
+## spectating, which turns the session into play. The slot left behind is handed to its bot and
+## the one taken over has its bot put down; the view becomes the new player's own. False when
+## there is nothing to swap to, the player already is that commander, or this is a playback
+## (whose local player is the recording's, which the simulation reads).
 func play_as(a_commander_id: int) -> bool:
 	var target: Bot = commander_by_id(a_commander_id) as Bot
 	var current: Commander = local_player()
-	if a_commander_id < 1 or target == null or current == null or target == current:
+	if is_playback() or a_commander_id < 1 or target == null or target == current:
 		return false
 	if current is Bot:
 		set_ai_control(current as Bot, true)
 	set_ai_control(target, false)
 	RTSController.PLAYER_COMMANDER_ID = a_commander_id
+	Fog.active_commander_id = -1
+	_teardown_spectator_hud()
 	local_player_changed.emit(target)
 	return true
+
+
+## Detach the local player from its commander, turning the session into a spectator one: the
+## slot is handed to its bot, the HUD turns look-only, and the view stays on the commander just
+## left. False when there is no player to detach, or this is a playback (see play_as).
+func spectate() -> bool:
+	var current: Commander = local_player()
+	if is_playback() or current == null:
+		return false
+	if current is Bot:
+		set_ai_control(current as Bot, true)
+	RTSController.PLAYER_COMMANDER_ID = 0
+	Fog.active_commander_id = current.id
+	if get_node_or_null(SPECTATOR_HUD_NAME) == null:
+		_setup_spectator_hud()
+	local_player_changed.emit(null)
+	return true
+
+
+## Put away the spectator's top-left layer once someone is played again.
+func _teardown_spectator_hud() -> void:
+	var layer: Node = get_node_or_null(SPECTATOR_HUD_NAME)
+	if layer != null:
+		remove_child(layer)
+		layer.queue_free()
 #endregion

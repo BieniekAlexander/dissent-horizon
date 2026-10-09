@@ -12,7 +12,8 @@ extends CanvasLayer
 ## match.
 ##
 ## A playback is a spectator session (Scenario._build_commanders): the spectator camera, its HUD
-## and fog buttons are the watcher's, and this adds only the keys and the banner. The keys may
+## and its panel's views, fog toggle and speed controls are the watcher's, and this adds only the
+## keys and the banner. The keys may
 ## share the command grid's positional keys, since a spectator session has no grid.
 
 const ACTION_PAUSE: StringName = &"replay_pause"
@@ -21,8 +22,6 @@ const ACTION_FASTER: StringName = &"replay_faster"
 const ACTION_SWITCH_VIEW: StringName = &"replay_switch_view"
 ## The speeds the keys step through, as multiples of real time. Within PlaybackSpeed's range.
 const SPEEDS: Array[float] = [0.25, 0.5, 1.0, 2.0, 4.0]
-## The view that shows everything: no fog, every piece drawn (Fog.active_commander_id's -2).
-const VIEW_EVERYTHING: int = -2
 ## Above the HUD, below the dialog view and the pause menu.
 const LAYER: int = 8
 
@@ -57,8 +56,8 @@ func bind(a_scenario: Scenario, a_clock: SimulationClock) -> void:
 	_refresh()
 
 
-## Every frame: the pause menu's toggle and slider, and a spectator HUD's fog buttons, change
-## what the banner reports without passing through here.
+## Every frame: the spectator panel's speed controls, view buttons and fog toggle change what
+## the banner reports without passing through here.
 func _process(_a_delta: float) -> void:
 	_refresh()
 
@@ -101,21 +100,20 @@ func step_speed(a_direction: int) -> void:
 
 
 ## The next view after the one on screen: each commander that keeps a fog, in id order, then
-## everything, then round again.
+## round again.
 func switch_view() -> void:
 	Fog.active_commander_id = next_view(views(), current_view())
 	_refresh()
 
 
 ## The views on offer: every commander with a Fog of its own (an omniscient slot keeps none, and
-## has no view to show), then everything.
+## has no view to show).
 func views() -> Array[int]:
 	var out: Array[int] = []
 	if _scenario != null:
 		for commander: Commander in _scenario.commanders:
 			if commander.id > 0 and Fog.for_commander(commander.id) != null:
 				out.append(commander.id)
-	out.append(VIEW_EVERYTHING)
 	return out
 
 
@@ -127,8 +125,9 @@ func current_view() -> int:
 
 ## What the banner says.
 func banner_text() -> String:
-	var view: int = current_view()
-	var seen: String = "everything" if view == VIEW_EVERYTHING else "Commander %d" % view
+	var seen: String = "Commander %d" % current_view()
+	if Fog.is_lifted():
+		seen += ", no fog"
 	var parts: PackedStringArray = [
 		"REPLAY",
 		PlaybackSpeed.label_for(PlaybackSpeed.multiplier(), PlaybackSpeed.is_uncapped()),
@@ -153,7 +152,7 @@ func banner_text() -> String:
 
 #region Pure rules
 ## The speed one step from `a_current` along SPEEDS — from the step nearest it, so a speed set
-## elsewhere (the pause menu's slider) still steps sensibly — held at either end.
+## elsewhere (the spectator panel's slider) still steps sensibly — held at either end.
 static func next_speed(a_current: float, a_direction: int) -> float:
 	var nearest: int = 0
 	for i: int in SPEEDS.size():

@@ -79,26 +79,22 @@ func test_the_debug_view_lets_the_player_command_anyone() -> void:
 	RTSController.PLAYER_COMMANDER_ID = player_id
 
 
-# ─── THE FOG SETTING ─────────────────────────────────────────────────────────
+# ─── THE FOG ─────────────────────────────────────────────────────────────────
 
 
-func test_the_view_lifts_the_fog_by_default_and_only_while_up() -> void:
+func test_the_view_lifts_the_fog_only_while_up() -> void:
+	var was_lifted: bool = Fog.is_view_lifted()
+	Fog.set_view_lifted(false)
 	DebugMode.configure(true)
-	assert_false(DebugMode.lifts_fog(), "the view is down: the fog is shown")
+	assert_false(Fog.is_lifted(), "the view is down: the fog is shown")
 	DebugMode.toggle()
-	assert_true(DebugMode.lifts_fog(), "up, and lifting by default")
+	assert_true(Fog.is_lifted(), "up: the fog is lifted")
+	Fog.set_view_lifted(was_lifted)
 
 
-func test_the_view_can_show_the_fog_as_the_viewer_sees_it() -> void:
+func test_a_spectator_can_lift_the_fog_with_the_view_down() -> void:
+	var was_lifted: bool = Fog.is_view_lifted()
 	DebugMode.configure(true)
-	DebugMode.toggle()
-	DebugMode.set_fog_lifted(false)
-	assert_true(DebugMode.is_active(), "the view stays up")
-	assert_false(DebugMode.lifts_fog(), "but the fog is shown")
-
-
-func test_a_new_session_lifts_the_fog_again() -> void:
-	DebugMode.configure(true)
-	DebugMode.set_fog_lifted(false)
-	DebugMode.configure(true)
-	assert_true(DebugMode.is_fog_lifted())
+	Fog.set_view_lifted(true)
+	assert_true(Fog.is_lifted())
+	Fog.set_view_lifted(was_lifted)

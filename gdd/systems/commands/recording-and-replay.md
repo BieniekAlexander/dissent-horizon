@@ -86,10 +86,10 @@ T-037). One seed makes one match, tick for tick ([ai/selfplay-harness](../ai/sel
 - **The viewer** (`ReplayViewer`, created by `Scenario` for a playback only): a banner — speed,
   paused, whose view — and the replay keys: `replay_pause` Q, `replay_slower` W, `replay_faster` E,
   `replay_switch_view` R, the grid's top row by position. Speed steps along 0.25× – 4×; pause is the
-  `REASON_PLAYBACK_PAUSE` hold, so the pause menu's playback toggle agrees with it, and the pause
-  menu offers its playback controls in every playback whatever `debug_allowed` says.
+  `REASON_PLAYBACK_PAUSE` hold, so the spectator panel's playback toggle agrees with it, and the
+  panel offers its playback controls in every playback whatever `debug_allowed` says.
 - **The view is the displayed fog, never the local player.** Switching cycles each commander that
-  keeps a Fog, then everything (`Fog.active_commander_id` −2). `RTSController.PLAYER_COMMANDER_ID`
+  keeps a Fog; the spectator panel's fog toggle lifts the fog over it, and the banner says so. `RTSController.PLAYER_COMMANDER_ID`
   is not touched: the simulation reads it (`Scenario`'s implicit elimination rule), so changing
   it would play a different match. `Scenario._ready` resets the displayed fog to the local
   player's, so neither a replay's view nor a spectator session's carries into the next session.
@@ -188,8 +188,8 @@ orders a player can give.
   `user://replays/`, autosaves and kept ones alike. Choosing one plays it; a replay from another
   version is listed but refused on opening (§The file). Leaving playback is the pause menu's
   return to the title screen, as leaving a match is.
-- **The perspective is switchable**: each player's fog, or everything — the existing spectator
-  machinery (the displayed fog). Not play-as: that changes the local player, which the
+- **The perspective is switchable**: each player's fog, lifted or not — the existing spectator
+  machinery (the displayed fog). Not play-as, which a playback refuses: that changes the local player, which the
   simulation reads. Alerts and voice lines follow the perspective on show (TODO above: there are
   no alerts yet).
 - **The HUD is for looking**: the spectator session's. Superseded 2026-10-09: the first build kept
