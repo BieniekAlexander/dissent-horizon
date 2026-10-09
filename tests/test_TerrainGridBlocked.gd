@@ -78,3 +78,20 @@ func test_out_of_bounds_is_never_blocked():
 	grid.set_blocked(Vector2i(2, 2), true)
 	assert_false(grid.is_blocked(Vector2i(-1, 0)))
 	assert_false(grid.is_blocked(Vector2i(100, 100)))
+
+
+func test_the_impassable_mask_marks_terrain_reasons_but_not_buildings():
+	var grid := _make_grid()
+	var cells: int = (W - 1) * (W - 1)
+	grid.set_blocked(Vector2i(1, 1), true)
+	var water := PackedByteArray()
+	water.resize(cells)
+	water[3 * (W - 1) + 3] = 1
+	grid.set_submerged_mask(water)
+	grid.place_building([Vector2i(0, 4)], RefCounted.new())
+	var mask: PackedByteArray = grid.terrain_impassable_mask()
+	assert_eq(mask.size(), cells)
+	assert_eq(mask[1 * (W - 1) + 1], 1, "blocked")
+	assert_eq(mask[3 * (W - 1) + 3], 1, "submerged")
+	assert_eq(mask[4 * (W - 1) + 0], 0, "a building is not terrain")
+	assert_eq(mask.count(1), 2)

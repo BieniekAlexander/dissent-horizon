@@ -1,0 +1,18 @@
+; The game's native code (native/src). The libraries are build output, git-ignored: build them
+; with tools/build_native.sh before opening the project.
+[configuration]
+
+entry_symbol = "dissent_native_init"
+compatibility_minimum = "4.7"
+reloadable = false
+
+[libraries]
+
+linux.debug.x86_64 = "res://bin/libdissent_native.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "res://bin/libdissent_native.linux.template_release.x86_64.so"
+linux.debug.arm64 = "res://bin/libdissent_native.linux.template_debug.arm64.so"
+linux.release.arm64 = "res://bin/libdissent_native.linux.template_release.arm64.so"
+macos.debug = "res://bin/libdissent_native.macos.template_debug.universal.dylib"
+macos.release = "res://bin/libdissent_native.macos.template_release.universal.dylib"
+windows.debug.x86_64 = "res://bin/libdissent_native.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "res://bin/libdissent_native.windows.template_release.x86_64.dll"

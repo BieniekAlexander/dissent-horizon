@@ -105,6 +105,10 @@ func _remap_layers(a_old_dims: Vector2i, a_new_dims: Vector2i) -> void:
 ## map was resized since the bake — and reads as no voids; re-bake to restore them.
 @export var void_cells: PackedByteArray = PackedByteArray()
 
+## in_play_mask's memo and the [play_size, void_cells hash] it was computed for.
+var _in_play_mask: PackedByteArray = PackedByteArray()
+var _in_play_key: Array = []
+
 ## The shared palette these indices refer to.
 @export var catalog: TerrainTileCatalog
 
@@ -373,16 +377,30 @@ func cell_data_texture() -> ImageTexture:
 ## TerrainGrid.set_blocked_mask expects: every cell out of play. Ground material never
 ## blocks — impassability is always something visible in the terrain.
 func blocked_mask() -> PackedByteArray:
+	var mask: PackedByteArray = in_play_mask()
+	for i: int in mask.size():
+		mask[i] = 1 - mask[i]
+	return mask
+
+
+## is_cell_in_play over every cell (index = z*grid_width()+x, 1 = in play). Memoized: it is a
+## full-grid pass of script calls, read by the fog, the minimap and the blocked mask, and it
+## only moves when play_size or void_cells does, which the memo key catches. Returns a copy, so a
+## caller may edit it without touching the memo.
+func in_play_mask() -> PackedByteArray:
+	var key: Array = [play_size, hash(void_cells)]
+	if key == _in_play_key:
+		return _in_play_mask.duplicate()
 	var gw: int = grid_width()
 	var gd: int = grid_depth()
 	var mask := PackedByteArray()
-	mask.resize(gw * gd)  # zero-filled = all clear
+	mask.resize(gw * gd)
 	for z: int in gd:
 		for x: int in gw:
-			var cell := Vector2i(x, z)
-			if not is_cell_in_play(cell):
-				mask[z * gw + x] = 1
-	return mask
+			mask[z * gw + x] = 1 if is_cell_in_play(Vector2i(x, z)) else 0
+	_in_play_key = key
+	_in_play_mask = mask
+	return mask.duplicate()
 
 
 #endregion

@@ -18,6 +18,7 @@ The pipeline that turns these docs into scenes and generated data, plus code-lev
 | [composition-rework.md](composition-rework.md) | **plan** — the doc declares the component set; narrowing `kind:`, retiring the base scenes and the two-phase emission model |
 | [piece-vocabulary.md](piece-vocabulary.md) | **proposal**: what a piece is called. Facet adjectives, the building / unit / feature / token / emission partition, and the roster classified |
 | [unresolved-crashes.md](unresolved-crashes.md) | **log** — crashes and runtime errors whose root cause is not yet known, with evidence and where to start |
+| [native-code.md](native-code.md) | the C++ GDExtension: what is native and why, building it, and the exact-parity rule for a port |
 | [linting.md](linting.md) | `gdlint` config and what each disabled rule contradicts; `gdformat` as the house style and the failure modes to write around |
 
 **Belongs here:** the importer, the doc schema, generated-data formats, and standing audits

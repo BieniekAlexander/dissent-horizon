@@ -121,6 +121,37 @@ of the unit and structure script time, per the per-function timings: the command
 (~1.3 ms), synchronous path queries (~0.7 ms, and the spikes of item 10), path straightening
 (~0.7 ms), then velocity callbacks, avoidance priority and height snapping at 0.1–0.3 ms each.
 
+## Native ports, measured 2026-10-09
+
+The same skirmish (every slot a MEDIUM bot), 9,000 ticks headless with `--fixed-fps 30`, in a
+2-vCPU cloud container — slower than the M3 Pro above, so compare the two columns with each
+other, not with the earlier sections. Headless spectator play now carries the HUD's minimap,
+which is where most of the time had gone: a per-pixel fog blend of the whole minimap every
+frame, and a whole-map layer rebuild on every structure placed or lost.
+
+A script-profiler run of one match picked the three loops ported to C++
+([authoring/native-code](../authoring/native-code.md)): the minimap draw and layer rebuild, the
+terrain grid's cell queries, and fog sight stamping. Ticks 300+, ms.
+
+| | GDScript | native |
+|---|---|---|
+| full tick, mean / p50 / p95 / p99 | 43.4 / 40.3 / 62.2 / 85.9 | 16.2 / 14.3 / 31.5 / 44.3 |
+| script phase, mean | 14.6 | 11.5 |
+| fog, both commanders, mean | 1.5 | 0.7 |
+| ticks over 33.3 ms | 7,235 of 8,700 (83%) | 336 of 8,700 (3.9%) |
+| ticks over 150 ms | 29 | 3 |
+
+Both runs reached the same unit and piece counts minute by minute, so the ports changed nothing
+the simulation decides. The 26 stalls that went were the minimap rebuild. **TODO — the three
+left are shelters producing residents** (every ~10 s early on, ~300–370 ms each): spawn-point
+search projects each candidate onto the navmesh with `NavigationServer3D.map_get_closest_point`,
+2–3 ms a call on this map and already native. Answering "nearest passable cell" from the terrain
+grid instead would remove them; not built.
+
+What remains of a tick, by function: the per-actor order, command and movement logic (~11 ms at
+~100 pieces), the bot think pass (~2 ms mean), the engine (~3–5 ms), and per-frame visual work
+(`StatusVisuals`, ~2 ms) that runs even headless.
+
 ## The plan, ranked by payoff
 
 The fixes live in the notes that own each system. This is the index and the order.
@@ -134,7 +165,7 @@ The fixes live in the notes that own each system. This is the index and the orde
 | 5 | Staggered aggro re-acquire + allegiance in the query | Allegiance **built 2026-09-26**; the stagger is REJECTED (Alex, 2026-09-26) | aggro now 0.27 ms/tick, measured | [combat/scan-and-vision-cost](../combat/scan-and-vision-cost.md) |
 | 6 | Reference-counted, diffed fog; upload only the viewed fog | **Built 2026-09-26** at one pixel per cell; coarser fog is TODO (deferred 1.40) | fog 7.5 → 1.0 ms p50, measured | [combat/scan-and-vision-cost](../combat/scan-and-vision-cost.md) |
 | 7 | `BotEconomy`'s build-spot outlier | **Built 2026-09-26**: the search is resumable | 115 ms spike → spread across ticks | [think-scheduling](think-scheduling.md) |
-| 8 | Minimap layer rebuilt on every `cells_changed` | TODO, not measured | full-map pass per placement → dirty rect | [incremental-navmesh](../terrain-and-navigation/incremental-navmesh.md) §What the build touches |
+| 8 | Minimap layer rebuilt on every `cells_changed` | **Built 2026-10-09**, by the native ports rather than a dirty rect | 300–450 ms stall per placement → gone, measured | [authoring/native-code](../authoring/native-code.md) |
 | 9 | Path straightening bounded by a reach, crossed-cell line test | **Built 2026-09-26** | 3.6 → 0.7 ms/tick, measured; its 6-tick spikes gone | [terrain-and-navigation/navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md) §What path straightening costs |
 | 10 | Every moving agent re-plans in one tick after a navmesh change | **Built 2026-09-27**: only paths the change reaches re-plan | worst tick after a change, median 35.6 → 3.8 ms, measured | [terrain-and-navigation/navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md) §Re-planning after a navmesh change |
 | 11 | A chasing unit re-plans whenever its target moves | **Built 2026-09-27** while the quarry is in straight-line reach; the rest is backlog | path queries −70%, measured | [terrain-and-navigation/navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md) §A path is the straight line whenever the unit can walk it |
@@ -162,7 +193,6 @@ from here when a measurement says so.
 |---|---|---|
 | Chasers out of straight-line reach: distance-relative re-plan threshold (or a staggered timer) | most of the remaining path queries in a fight | [navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md) §A path is the straight line |
 | Region relabel local to a change | the bots' last 10–13 ms single-tick cost | [incremental-navmesh](../terrain-and-navigation/incremental-navmesh.md) |
-| Minimap layer rebuilt only in the changed rectangle | unmeasured; a 68k-cell pass per placement with a HUD | [incremental-navmesh](../terrain-and-navigation/incremental-navmesh.md) §Not done |
 | Path straightening reads a cached per-class navigability grid | ~half of its 0.7 ms/tick | [navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md) §What path straightening costs |
 | Fog: edge-only re-stamp for a small move (0 A.D.'s "mostly-overlapping circles") | the part of fog that grows with moving units | [combat/scan-and-vision-cost](../combat/scan-and-vision-cost.md) §The fog of war |
 | `BotScout` reads the bot's own fog counts instead of raycasting | the scout's sight sweep; a behaviour change | same, TODO — follow-on |

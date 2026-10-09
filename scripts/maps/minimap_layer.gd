@@ -39,7 +39,7 @@ const POOR_ENERGY_PER_CELL: float = 60.0
 const RICH_ENERGY_PER_CELL: float = 120.0
 ## How strongly a start area tints the cells under it.
 const START_TINT: float = 0.35
-## How much an explored-but-unseen cell is darkened, 0..1.
+## How much an explored-but-unseen cell is darkened, 0..1 (MinimapCompositor applies it).
 const EXPLORED_DARKEN: float = 0.55
 #endregion
 
@@ -104,16 +104,6 @@ static func build(
 	for start: Dictionary in starts:
 		_tint_square(layer, width, depth, in_play, start.center, start.half, start.color)
 	return layer
-
-
-## A layer colour as fog shows it: unchanged in sight, darkened when explored, black unseen.
-static func fogged(color: Color, visibility: Fog.TerrainVisibility) -> Color:
-	match visibility:
-		Fog.TerrainVisibility.IN_SIGHT:
-			return color
-		Fog.TerrainVisibility.EXPLORED:
-			return color.darkened(EXPLORED_DARKEN)
-	return OUT_OF_PLAY
 
 
 static func _paint(
