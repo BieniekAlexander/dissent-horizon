@@ -86,13 +86,15 @@ Decided 2026-09-24: the game has alliances. Built 2026-10-09 to these decisions 
   nobody's ally.
 - **What allies share:** not being enemies (aggro, retaliation, capture, hijack, kill bounties,
   scripted assaults), **vision** (each `Fog` counts every allied vision source as its own, and
-  an ally's stealth hides nothing from its side), **repair** (`Repair.repairable_cause`), and
+  an ally's stealth hides nothing from its side), **repair** (`Repair.repairable_cause`) and
+  **healing** — the heal aura mends an ally's infantry, being Repair's BIO counterpart, though
+  it is passive (`HealAOE.heals`; Alex, 2026-10-09) — and
   **friendly-target abilities** (`EventTargetUnit` Scope.OWN admits an ally's unit). Also the
   readouts that follow from shared sight: allied blueprints shown and refused as building
   sites, capacity pips on a selected allied unit, allied structures' ranges round a placement.
 - **What they do not share:** orders, garrisons and transports (`Occupy`, docking, `Embark`
-  stay owner-only), resuming an ally's construction, and passive bonuses — the Compound's
-  Work Detail cooldown cut reaches only its owner's buildings. **Dignify** stays own-only
+  stay owner-only), resuming an ally's construction, and passive bonuses other than healing —
+  the Compound's Work Detail cooldown cut reaches only its owner's buildings. **Dignify** stays own-only
   (`EventDignify._admits_allies`): the Warlord it makes is the caster's, so it would take an
   ally's Irregular.
 - **Splash hurts allies**, as it hurts one's own pieces: the blast query is `TARGETABLE_ANY`,
@@ -113,8 +115,6 @@ aggro query leaves out every ally's bit instead (`CollisionLayers.hostile_mask` 
 asker's allied ids). Fixed teams make that free, and it is what would let mid-match diplomacy
 work without re-filing every body.
 
-TODO: the heal aura (`HealAOE`) still mends only its owner's units — see
-[tasks](../../tasks.md) T-028.
 
 ## Aggro filters allegiance in the physics query
 

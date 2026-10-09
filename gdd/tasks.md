@@ -182,25 +182,14 @@ The Recruit needs an animation showing the Spot action while it channels and hol
 Built: one drone at a time, firing from inside; the Shock Drone fires at long range (a stub). Open: what each other drone confers, and how long a swap takes.
 → [design-framework/static-defence](design-framework/static-defence.md) §Libertarians
 
-### T-028 · Alliances #effort/high #needs-input #shelved
+### T-028 · Alliances #effort/high #scoped #done
 Up to 8 players and up to 7 alliances; possibly 8 alliances under the hood, shown only in a team-game mode. Widens every "yours" rule to "yours or an ally's": `is_enemy_of`/`is_friendly_to`, shared vision, capacity pips.
 → [combat/target-acquisition](systems/combat/target-acquisition.md) §Alliances
 
 > [!check] Status — 2026-10-09
-> Built to the answers given in chat on 2026-10-08 (fixed teams; allies share vision, repair and friendly-target abilities only; HEGEMONY removes players singly and judges alliances; `PlayerSlot.alliance` field only, 0 = own alliance, teams 1–7 over 8 alliances under the hood; bots know allies are not enemies; allied fixtures shield Libertarian dominion tiles; splash hurts allies). `Commander.alliance` / `is_allied_with`, `Scenario.alliance_indices`, `Entity.is_on_side_of`, `CollisionLayers.hostile_mask` over the side's ids, shared `Fog` sight, `Repair`, `EventTargetUnit` (Dignify own-only), per-alliance `_check_hegemony`, `MatchLog`/`MatchSummary` winners. Rules in combat/target-acquisition.md §Alliances and scenario-scripting/objectives-and-completion.md.
-> Tests: `test_Alliances.gd` (24) passes. The full suite in this cloud container is red on untouched `main` too (173 failures from missing imports and invalid UIDs); against that baseline nothing new fails (`test_NavChangeReplanning`'s async case failed once under shard load and passes alone).
-> **Not done:** the heal aura — parked on the question below. Out of scope by the answers: a team picker in the start screen, bot coordination.
-
-> [!question] Q — 2026-10-09
-> Should the heal aura (`HealAOE`, `an_support1`) also mend an ally's biological units?
-> **Why it matters:** it is the BIO counterpart of Repair, which allies now share, but it is a passive aura rather than an order or a targeted ability, and passive bonuses were kept owner-only. Today `HealAOE._physics_process` compares commander ids; option 1 makes it `is_friendly_to`.
-> **Options:**
-> 1. Heal allies too — it mends what Repair mends, by frame.
-> 2. Owner only — an aura is a passive bonus, like Work Detail's.
->
-> **Leaning:** 1 — a heal is a repair for flesh, and splitting the two by frame would be hard to explain.
->
-> **Answer:**
+> Built to the answers given in chat on 2026-10-08 (fixed teams; allies share vision, repair, healing and friendly-target abilities; HEGEMONY removes players singly and judges alliances; `PlayerSlot.alliance` field only, 0 = own alliance, teams 1–7 over 8 alliances under the hood; bots know allies are not enemies; allied fixtures shield Libertarian dominion tiles; splash hurts allies). The heal-aura question was answered 2026-10-09 (option 1: allies healed, `HealAOE.heals`). Rules in combat/target-acquisition.md §Alliances and scenario-scripting/objectives-and-completion.md; PR #16.
+> Tests: `test_Alliances.gd` (25) and `test_Repair.gd` pass. The full suite in this cloud container is red on untouched `main` too (173 failures from missing imports and invalid UIDs); against that baseline nothing new fails.
+> **Not done (out of scope by the answers):** a team picker on the start screen, bot coordination between allies.
 
 ### T-029 · Fog resolution: one pixel per cell, or coarser? #effort/medium #needs-input
 Coarser is cheaper and blurs vision edges and the per-cell structure-sighting test.

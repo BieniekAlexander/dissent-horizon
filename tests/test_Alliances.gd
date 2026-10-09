@@ -212,6 +212,16 @@ func test_dignify_takes_only_the_casters_own_irregulars() -> void:
 	assert_false(event.accepts(_unit(builder, _ally), ME), "the Warlord would be the caster's")
 
 
+func test_the_heal_aura_mends_an_allys_infantry_but_not_an_enemys() -> void:
+	var clinic: Actor = _unit(FakePieces.BUILDING, _me)
+	var aura := HealAOE.new()
+	clinic.add_child(aura)
+	assert_true(aura.heals(_unit(SOLDIER, _me)))
+	assert_true(aura.heals(_unit(SOLDIER, _ally)), "the BIO counterpart of Repair")
+	assert_false(aura.heals(_unit(SOLDIER, _foe)))
+	assert_false(aura.heals(_unit(MACHINE, _ally)), "machines are Repair's")
+
+
 func test_allies_cannot_capture_each_other() -> void:
 	var truck: Actor = _unit(FakePieces.TRUCK, _me)
 	assert_false(Garrison.can_capture(truck, _unit(FakePieces.BUILDER, _ally)))
