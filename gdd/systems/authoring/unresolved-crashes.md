@@ -87,3 +87,7 @@ three runs of three). Reruns eventually report all four shards.
 new per-tick job of that session), two of three runs still lost a shard; with it on, five of
 six. The job is not the cause. The rate has risen from about half to most runs since the
 morning; what changed in between is unknown.
+**A smaller reproduction, 2026-10-09:** one test file that boots `skirmish.tscn` three times
+(three tests, 60 physics frames each, nothing else) segfaults with the same backtrace in about
+half of single-shard runs, at HEAD as well (worktree, with the working-tree `skirmish.tscn` copied
+in). It dies during the third boot. Start there: it needs no other file and runs in ~12 s.

@@ -4,8 +4,9 @@ extends CanvasLayer
 ## The in-scenario pause screen. `show_pause_menu` (Escape) raises it, the same key drops it,
 ## and while it is up the simulation is held. It offers the way out of a running scenario:
 ## back to the title screen, through SceneManager — the same call the victory dialog's return
-## button makes — and, under `debug_allowed`, the playback-speed controls (PlaybackControls),
-## and while the debug view is up, the match summary read from the match's event log.
+## button makes — and, while the debug view is up, the match summary read from the match's event
+## log. Playback speed is not here: it is the spectator panel's and the debug menu's
+## (PlaybackControls), so the world can be sped up without stopping it.
 ##
 ## A CanvasLayer of its own, ABOVE ScenarioDialogView's: a pause menu that a scripted dialog
 ## could cover would be unreachable exactly when the player most wants to leave.
@@ -47,7 +48,6 @@ const LAYER: int = 20
 #region Properties
 @onready var _return_button: Button = %ReturnButton
 @onready var _volume_slider: HSlider = %VolumeSlider
-@onready var _playback_controls: PlaybackControls = %PlaybackControls
 @onready var _match_summary: MatchSummaryView = %MatchSummary
 
 ## The scenario's clock, supplied by Scenario.bind. Null in a scene with no trigger manager.
@@ -101,7 +101,6 @@ func _exit_tree() -> void:
 ## Give the menu the scenario's clock. Called by Scenario when it builds the menu; idempotent.
 func bind(a_manager: ScenarioTriggerManager) -> void:
 	_clock = a_manager.simulation_clock
-	_playback_controls.bind(_clock, a_manager.is_playback())
 
 
 ## Give the menu the match's event log, which its summary reads.
@@ -127,8 +126,7 @@ func open() -> void:
 	if _clock != null:
 		_clock.hold(SimulationClock.REASON_PAUSE_MENU)
 	visible = true
-	# Re-read on every open: debug permission and the speed can both change while closed.
-	_playback_controls.refresh()
+	# Re-read on every open: the debug view can change while closed.
 	_match_summary.visible = DebugMode.is_active() and _match_log != null
 	if _match_summary.visible:
 		_match_summary.present(_match_log, "Match so far")

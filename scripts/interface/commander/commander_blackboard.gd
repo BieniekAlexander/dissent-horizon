@@ -320,13 +320,11 @@ func _snapshot_key(a_structure_id: int, a_cell: Vector2i) -> String:
 
 
 ## Mirrors fog.gd's active-fog resolution: snapshots render only for the commander
-## whose view is currently on screen, and never under the omniscient spectator or
-## a fog-lifting debug view (both of which show real structures directly).
+## whose view is currently on screen, and never while the fog is lifted (which shows real
+## structures directly).
 func _commander_is_active_viewer() -> bool:
 	var active_id: int = Fog.active_commander_id
-	if active_id == -2:
-		return false
-	if DebugMode.lifts_fog():
+	if Fog.is_lifted():
 		return false
 	var viewer_id: int = active_id if active_id >= 1 else RTSController.PLAYER_COMMANDER_ID
 	return _commander.id == viewer_id

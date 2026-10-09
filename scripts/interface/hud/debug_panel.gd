@@ -1,8 +1,8 @@
 class_name DebugPanel
 extends PanelContainer
 
-## The debug menu: who the player is, each bot's difficulty, every commander's energy and
-## dominion, and the piece spawner's card.
+## The debug menu: who the player is (or nobody, spectating), the playback speed while playing,
+## each bot's difficulty, every commander's energy and dominion, and the piece spawner's card.
 ## Up exactly while the debug view is (DebugMode.is_active()), and while up it replaces the
 ## top-right HUD, whose nodes are named in `hidden_while_up`. A button folds it to its title
 ## bar. See gdd/systems/ux/ui/debug-mode.md.
@@ -10,10 +10,12 @@ extends PanelContainer
 ## The LAYOUT is authored, in scenes/interface/debug_panel.tscn, and instanced into the
 ## player HUD; this script fills the rows the session decides (commanders, factions, pieces).
 
-## The label a commander id is listed under. Neutral is the world, not a seat: choosing it
-## changes who owns placed pieces and nothing else.
-const NEUTRAL_LABEL: String = "Neutral"
+## The world's commander id. Neutral is the world, not a seat, so it is never listed.
 const NEUTRAL_ID: int = 0
+## The player setting's entry for playing nobody (Scenario.spectate). An id no commander can
+## have, since the option's ids are commander ids.
+const SPECTATOR_ID: int = Commander.NUM_MAX_COMMANDERS
+const SPECTATOR_LABEL: String = "Spectator"
 ## Text on the fold button while the body is shown, and while it is folded.
 const FOLD_TEXT: String = "–"
 const UNFOLD_TEXT: String = "+"
@@ -32,6 +34,8 @@ const RESOURCE_FIELD_WIDTH: float = 72.0
 @onready var _body: Control = %Body
 @onready var _fold_button: Button = %FoldButton
 @onready var _player_option: OptionButton = %PlayerOption
+@onready var _playback_controls: PlaybackControls = %PlaybackControls
+@onready var _piece_card: Control = %PieceCard
 @onready var _bot_rows: VBoxContainer = %BotRows
 @onready var _resource_rows: VBoxContainer = %ResourceRows
 @onready var _faction_option: OptionButton = %FactionOption
@@ -53,6 +57,9 @@ var _starting_player_id: int = NEUTRAL_ID
 ## Whether the card has opened yet: the player's faction is chosen on the first opening only,
 ## so a faction browsed since stays put.
 var _has_opened: bool = false
+## Whether the playback controls have their clock yet: the HUD is built before the scenario's
+## trigger manager, which owns it.
+var _is_clock_bound: bool = false
 
 
 func _ready() -> void:
@@ -82,6 +89,7 @@ func _ready() -> void:
 
 
 func _process(_a_delta: float) -> void:
+	_show_for_mode()
 	var is_up: bool = DebugMode.is_active()
 	if is_up == _is_up:
 		return
@@ -107,32 +115,39 @@ func _process(_a_delta: float) -> void:
 			node.visible = _restored_visibility.get(node.get_instance_id(), true)
 
 
+## What differs between playing and spectating: the playback speed is the spectator panel's
+## while spectating, and the piece card places nothing from a look-only HUD.
+func _show_for_mode() -> void:
+	var is_spectating: bool = _controller != null and _controller.is_look_only
+	_playback_controls.visible = not is_spectating
+	_piece_card.visible = not is_spectating
+	if not _is_clock_bound and _scenario != null and _scenario.trigger_manager() != null:
+		_playback_controls.bind(_scenario.trigger_manager().simulation_clock)
+		_is_clock_bound = true
+
+
 #region Rows
-## One entry per commander 1..N, then Neutral; the selected one is who owns placed pieces.
+## Spectator, then one entry per commander 1..N; the selected one is who the player is.
 func _build_players() -> void:
 	_player_option.clear()
+	_player_option.add_item(SPECTATOR_LABEL, SPECTATOR_ID)
 	for commander: Commander in _commanders():
 		if commander.id != NEUTRAL_ID:
 			_player_option.add_item("Commander %d" % commander.id, commander.id)
-	_player_option.add_item(NEUTRAL_LABEL, NEUTRAL_ID)
-	var owner_id: int = RTSController.PLAYER_COMMANDER_ID
-	if (
-		_controller != null
-		and _controller.debug_placement_owner_id != RTSController.DEBUG_OWNER_IS_PLAYER
-	):
-		owner_id = _controller.debug_placement_owner_id
-	_player_option.select(_player_option.get_item_index(owner_id))
+	var player: Commander = _scenario.local_player() if _scenario != null else null
+	var player_id: int = player.id if player != null else SPECTATOR_ID
+	_player_option.select(_player_option.get_item_index(player_id))
 
 
-## A commander becomes the player (Scenario.play_as); Neutral only takes over placement.
+## A commander becomes the player (Scenario.play_as) and Spectator detaches it
+## (Scenario.spectate). A choice the scenario refuses snaps the picker back to who the player is.
 func _on_player_selected(a_index: int) -> void:
 	var id: int = _player_option.get_item_id(a_index)
-	if id == NEUTRAL_ID:
-		_controller.debug_placement_owner_id = NEUTRAL_ID
+	if _scenario == null:
 		return
-	_controller.debug_placement_owner_id = RTSController.DEBUG_OWNER_IS_PLAYER
-	if _scenario != null:
-		_scenario.play_as(id)
+	var is_changed: bool = _scenario.spectate() if id == SPECTATOR_ID else _scenario.play_as(id)
+	if not is_changed:
+		_build_players()
 
 
 ## A difficulty picker per commander that has a bot.

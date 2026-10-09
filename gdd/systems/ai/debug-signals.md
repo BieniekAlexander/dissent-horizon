@@ -7,7 +7,7 @@ type: system-note
 
 Everything a bot holds or derives that could be drawn for the person watching it, grouped
 into the CATEGORIES the debug overlay shows one at a time. The overlay draws for the bot being
-viewed (the spectator HUD's POV toggle) while the debug view is up, and the spectator HUD's
+viewed (the spectator panel's view buttons) while the debug view is up, and the spectator HUD's
 **Bot overlay** picker chooses the category. A category is world marks plus a text readout in
 the top-right corner. See [debug-mode](../ux/ui/debug-mode.md) §The debug view.
 

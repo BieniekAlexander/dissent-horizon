@@ -210,7 +210,9 @@ team colours, whether start tints should outlive the opening).
 A spectator session — a replay included, which is one (recording-and-replay.md) — is watched
 through the player's own HUD scene, `scenes/interface/player_hud.tscn` (the `Controller`
 subtree `player.tscn` instances), built look-only by `Scenario._create_look_only_hud` with
-`RTSController.is_look_only` set.
+`RTSController.is_look_only` set. A match's HUD turns look-only the same way when the player
+detaches through the debug menu, and back when one is attached
+(`RTSController.set_look_only`; [debug-mode](debug-mode.md) §Playing as another commander).
 
 - **It drives no commander** (`_commander()` is null), so it gives no orders: no path that
   builds one is reached, no grid key is dispatched, and right-clicks do nothing.
@@ -220,13 +222,18 @@ subtree `player.tscn` instances), built look-only by `Scenario._create_look_only
   selects an enemy's: a click selects it alone, and additive clicks, boxes and double-clicks
   select nothing. A replay's recorded human is still the local player (the simulation reads it),
   which is why the check is `RTSController._selects_as_own`, not `is_player_commandable` alone.
-- **The command grid's slot holds the `SpectatorPanel`**: a button per view (No fog, then each
-  commander with a Fog — "Player N" for a human slot, "Bot N" otherwise) and, in a replay,
-  Pause / Slower / Faster, which are the `ReplayViewer`'s own methods, so its keys and these
-  buttons are one control.
+- **The command grid's slot holds the `SpectatorPanel`**: a button per view (each commander
+  with a Fog — "Bot N" while its bot plays it, "Player N" otherwise), a **Fog of war** toggle,
+  and the playback controls (under `debug_allowed`, and in every replay;
+  [debug-mode](debug-mode.md) §Playback speed). The replay keys drive the same speed and pause.
+- **The fog toggle is the spectator's**, lifting the fog over whichever view is on screen. The
+  debug view lifts it regardless, so while that is up the toggle reads off and is locked;
+  lowering the view gives the spectator's setting back. It goes with the panel: a player attached
+  again sees their own fog.
 - **What goes:** the resource bars, the production rail, the selectors, the sanction bar and the
-  debug panels — each shows or spends a commander's means, and a debug piece would change the
-  match. The per-commander resource labels stay in the spectator's top-left layer.
+  tuning panel — each shows or spends a commander's means. The debug menu stays, for its player
+  setting, without its piece card; in a replay it goes too. The per-commander resource labels
+  stay in the spectator's top-left layer.
 
 ## Hiding the HUD
 

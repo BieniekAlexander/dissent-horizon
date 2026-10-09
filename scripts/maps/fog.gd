@@ -35,10 +35,13 @@ var watching_commander_id: int = -1
 
 ## Which commander's fog currently drives entity visibility and renders its mesh.
 ## -1  (default)  → use RTSController.PLAYER_COMMANDER_ID (normal gameplay).
-## -2             → omniscient: all entities visible, no fog plane rendered.
 ## ≥ 1            → that specific commander's Fog is active (spectator mode).
-## Changed by the spectator HUD toggle buttons.
+## Changed by the spectator panel's view buttons.
 static var active_commander_id: int = -1
+
+## Whether the spectator panel's fog toggle has lifted the fog over the view. Static like
+## active_commander_id, and read only through is_lifted, which adds the debug view's lift.
+static var _is_view_lifted: bool = false
 
 ## Registry: commander_id → Fog node, for look-up by the minimap and spectator HUD.
 ## Keyed by the RESOLVED viewer id (see viewer_commander_id), so there is exactly one key
@@ -216,37 +219,26 @@ func _physics_process(_a_delta: float) -> void:
 	# Fog is sampled per-fragment in the terrain shader (conforms to terrain height) instead of
 	# being a flat plane. Exactly one node — the ELECTED DRIVER, see terrain_fog_driver_id —
 	# pushes the ACTIVE commander's fog texture into the terrain material each frame;
-	# a fog-lifting debug view / omniscient disable it.
-	var debug_view: bool = DebugMode.lifts_fog()
+	# a lifted fog (Fog.is_lifted) disables it.
+	var is_fog_lifted: bool = Fog.is_lifted()
 	if viewer_id == Fog.terrain_fog_driver_id():
-		_drive_terrain_fog(debug_view)
+		_drive_terrain_fog(is_fog_lifted)
 
 	# ── Entity visibility: only one system touches this per frame ──
-	if active_id == -2:
-		# Omniscient spectator: every Fog instance runs this — idempotent and cheap.
-		for entity: Entity in get_tree().get_nodes_in_group("piece"):
-			entity.visible = true
-			if entity is Actor:
-				var stealthed: bool = (
-					entity.stealth != null and entity.stealth.state == Stealth.State.STEALTHED
-				)
-				(entity as Actor).in_sight_range = not stealthed
-		_apply_figure_visibility(viewer_id, true)
-	elif is_active:
-		_apply_figure_visibility(viewer_id, debug_view)
+	if is_active:
+		_apply_figure_visibility(viewer_id, is_fog_lifted)
 		for entity: Entity in get_tree().get_nodes_in_group("piece"):
 			if entity.is_on_side_of(viewer_id):
 				# Own and allied units are always visible to their side. Set this explicitly
 				# rather than skipping: when the active view switches directly from
 				# another commander (spectator POV), that commander's fog had hidden
-				# these as enemies, and nothing else would clear that stale state
-				# (switching via "no fog" works only because it forces everything
-				# visible). Garrisoned occupants are out of the tree, so untouched.
+				# these as enemies, and nothing else would clear that stale state.
+				# Garrisoned occupants are out of the tree, so untouched.
 				#
 				# The one exception is a planted charge, which its owner sees only inside their
 				# own vision — it carries none of its own.
 				entity.visible = (
-					debug_view
+					is_fog_lifted
 					or PlantedCharge.of(entity) == null
 					or fog_clear_at(VU.in_xz(entity.global_position))
 				)
@@ -271,7 +263,7 @@ func _physics_process(_a_delta: float) -> void:
 				fog_clear = structure_in_vision(entity)
 			else:
 				fog_clear = fog_clear_at(VU.in_xz(entity.global_position))
-			entity.visible = debug_view or fog_clear
+			entity.visible = is_fog_lifted or fog_clear
 			if entity is Actor:
 				var stealthed: bool = (
 					entity.stealth != null and entity.stealth.state == Stealth.State.STEALTHED
@@ -285,10 +277,9 @@ func _physics_process(_a_delta: float) -> void:
 #region Public API
 ## The test a drawing owned by `a_owner_id` must pass, point by point, to be seen by whoever is
 ## watching: the displayed fog's `fog_clear_at`, or an invalid Callable when everything of
-## theirs is shown — it is the viewer's own, or the view is omniscient or a fog-lifting debug
-## view.
+## theirs is shown — it is the viewer's own, or the fog is lifted.
 static func active_sight_test(a_owner_id: int) -> Callable:
-	if DebugMode.lifts_fog():
+	if Fog.is_lifted():
 		return Callable()
 	var active_fog: Variant = Fog.get_active_fog()
 	if not (active_fog is Fog) or (active_fog as Fog).viewer_commander_id() == a_owner_id:
@@ -296,12 +287,26 @@ static func active_sight_test(a_owner_id: int) -> Callable:
 	return (active_fog as Fog).fog_clear_at
 
 
-## The Fog node currently driving entity visibility and the rendered plane.
-## Returns null in omniscient mode (active_commander_id == -2).
+## True while the fog is lifted over whatever view is on screen: every piece drawn and
+## pointable, the terrain and minimap unshrouded. The debug view always lifts it; a spectator
+## lifts it with the spectator panel's toggle. Every fog reader asks this.
+static func is_lifted() -> bool:
+	return DebugMode.is_active() or _is_view_lifted
+
+
+## The spectator's own fog setting (SpectatorPanel), which a debug view overrides while up.
+static func is_view_lifted() -> bool:
+	return _is_view_lifted
+
+
+static func set_view_lifted(is_lifted_now: bool) -> void:
+	_is_view_lifted = is_lifted_now
+
+
+## The Fog node currently driving entity visibility and the rendered plane, or null when that
+## commander keeps none (an omniscient slot).
 static func get_active_fog() -> Variant:
 	var active_id: int = Fog.active_commander_id
-	if active_id == -2:
-		return null
 	if active_id == -1:
 		return Fog.for_commander(RTSController.PLAYER_COMMANDER_ID)
 	return Fog.for_commander(active_id)
@@ -439,13 +444,12 @@ func _structure_pixels(a_structure: Node, a_cells: Array) -> PackedInt32Array:
 
 ## Feed the terrain material the ACTIVE commander's fog so the shroud renders on the ground.
 ## Called only by the elected driver (terrain_fog_driver_id). Disabled (full-bright terrain)
-## during debug-view or omniscient spectator, or when there is no active fog.
-func _drive_terrain_fog(a_debug_view: bool) -> void:
+## while the fog is lifted, or when there is no active fog.
+func _drive_terrain_fog(a_is_lifted: bool) -> void:
 	if _fogged_materials.is_empty():
 		return
-	var active_id: int = Fog.active_commander_id
 	var active_fog: Variant = Fog.get_active_fog()
-	if a_debug_view or active_id == -2 or not (active_fog is Fog):
+	if a_is_lifted or not (active_fog is Fog):
 		for material: ShaderMaterial in _fogged_materials:
 			material.set_shader_parameter("fog_enabled", 0.0)
 		return

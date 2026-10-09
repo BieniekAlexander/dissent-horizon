@@ -550,7 +550,7 @@ the last window elapses, which is otherwise the moment it vanishes.
 
 **Everything a watcher needs is already there and costs the framework nothing**: every slot in
 a spec is a bot, so `Scenario` takes the session for a spectator one and supplies its own
-pan/zoom camera, the resource readout and the fog toggles (No Fog / Bot N POV). There is no
+pan/zoom camera, the resource readout, and the spectator panel's views and fog toggle. There is no
 human rig to make current, which is exactly the condition that path tests for.
 
 Two things an arena adds for the watcher only, both cosmetic and both absent headless:

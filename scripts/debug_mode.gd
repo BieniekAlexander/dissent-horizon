@@ -2,8 +2,8 @@ class_name DebugMode
 extends Node
 
 ## The session's debug view: command labels over units, the bot overlay, the cursor readout
-## and the debug menu, all asking `DebugMode.is_active()` — and, unless the menu's fog picker
-## says to show it, the fog lifted in the world and on the minimap (`DebugMode.lifts_fog()`).
+## and the debug menu, all asking `DebugMode.is_active()` — and the fog lifted in the world and
+## on the minimap (`Fog.is_lifted()`).
 ##
 ## Two switches, owned by two people. `Scenario.debug_allowed` is the AUTHOR's — whether this
 ## session may show debug information at all. TOGGLE_ACTION is the PLAYER's — whether it is
@@ -24,31 +24,10 @@ static var _is_allowed: bool = false
 ## Whether the player has toggled the view on. Meaningless unless `_is_allowed`.
 static var _is_shown: bool = false
 
-## Whether the view lifts the fog (true) or shows it as the viewed commander sees it (false),
-## so a bot's signals can be read against what that bot can actually see. The debug menu's
-## fog picker writes it; it means nothing while the view is down, when fog is always shown.
-static var _is_fog_lifted: bool = true
-
 
 ## True while debug information should be drawn: the session allows it and it is toggled on.
 static func is_active() -> bool:
 	return _is_allowed and _is_shown
-
-
-## True while the debug view is up AND set to lift the fog. What every fog reader asks; with the
-## view down, or set to show the fog, each commander sees what its fog shows.
-static func lifts_fog() -> bool:
-	return is_active() and _is_fog_lifted
-
-
-## The fog setting the debug view will use, whether or not it is showing.
-static func is_fog_lifted() -> bool:
-	return _is_fog_lifted
-
-
-## Choose whether the debug view lifts the fog or shows it as the viewer sees it.
-static func set_fog_lifted(is_lifted: bool) -> void:
-	_is_fog_lifted = is_lifted
 
 
 ## True when the session permits the debug view, whether or not it is showing.
@@ -60,7 +39,6 @@ static func is_allowed() -> bool:
 static func configure(is_permitted: bool) -> void:
 	_is_allowed = is_permitted
 	_is_shown = false
-	_is_fog_lifted = true
 
 
 ## Flip the view. Ignored in a session that does not allow it, so a disallowed session can
