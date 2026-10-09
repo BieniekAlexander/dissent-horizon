@@ -496,6 +496,27 @@
 		"tooltip": "Build Chop Shop — 1200 energy, 15s",
 		"verbose": "Build Chop Shop — 1200 energy, 15s\nRequires: Safehouse\n1200 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 75 infrastructure upkeep\nTrains: Collective, Toxin Tractor, War Wagon, MLRS"
 	},
+	"command_tool_cell_activation": {
+		"context": "TRAIN",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			3,
+			2
+		],
+		"id": "cell_activation",
+		"label": "Cell Activation",
+		"needs_docking": false,
+		"producers": [
+			"cl_tech1"
+		],
+		"scene": "",
+		"tooltip": "Research Cell Activation — 500 energy, 30s",
+		"upgrade": true,
+		"verbose": "Research Cell Activation — 500 energy, 30s\nSleepers can plant beacons for the artillery.\nsleeper can use Spot\nResearched once, for every unit it affects; kept if the building is lost"
+	},
 	"command_tool_cl_airField": {
 		"context": "BUILD",
 		"context_grid": [
@@ -696,7 +717,7 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_bioLight_stealth.tscn",
 		"tooltip": "Train sleeper — 600 energy, 15s",
-		"verbose": "Train sleeper — 600 energy, 15s\nRequires: Operations Center\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16"
+		"verbose": "Train sleeper — 600 energy, 15s\nRequires: Operations Center\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nShotgun: 45 lead, reach 8"
 	},
 	"command_tool_cl_bioMedium_antiStrong": {
 		"context": "TRAIN",
@@ -964,7 +985,7 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_tech1.tscn",
 		"tooltip": "Build Operations Center — 800 energy, 25s",
-		"verbose": "Build Operations Center — 800 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nResearches: Advanced Targetting, Rapid Rearmament, Reinforced Hulls"
+		"verbose": "Build Operations Center — 800 energy, 25s\nRequires: Barracks\n1000 HP · medium armour · mech frame\n4×4 cells · vision 24\nCosts 50 infrastructure upkeep\nResearches: Advanced Targetting, Rapid Rearmament, Reinforced Hulls, Cell Activation"
 	},
 	"command_tool_cl_tech2": {
 		"context": "BUILD",

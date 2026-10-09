@@ -569,7 +569,7 @@
 		"reveals": "",
 		"title": "Spot",
 		"valence": "NEUTRAL",
-		"verbose": "A Recruit walks within range of the chosen point, holds still while it calls the strike\nin, and leaves a [[beacon|Beacon]] standing there. It then STAYS on the beacon until a\nBombard fires on it — that commitment is what the artillery is paying for. The nearest\nloaded Bombard fires as soon as it can, unless you have switched the Bombard to manual.\n\nA Sleeper walks to the point itself, plants a beacon on the ground over 3 seconds, and\nmoves on. Its beacon stands until a Bombard is ordered onto it.\n\nA LOCAL ability: it is an order given to the spotter, not something the commander calls in,\nso it has no cell on the ORDNANCE card."
+		"verbose": "A Recruit walks within range of the chosen point, holds still while it calls the strike\nin, and leaves a [[beacon|Beacon]] standing there. It then STAYS on the beacon until a\nBombard fires on it — that commitment is what the artillery is paying for. The nearest\nloaded Bombard fires as soon as it can, unless you have switched the Bombard to manual.\n\nA Sleeper, once Cell Activation is researched, walks to the point itself, plants a beacon\non the ground over 3 seconds, and moves on. Its beacon stands until a Bombard is ordered onto it.\n\nA LOCAL ability: it is an order given to the spotter, not something the commander calls in,\nso it has no cell on the ORDNANCE card."
 	},
 	"work_detail": {
 		"active_grid": [],

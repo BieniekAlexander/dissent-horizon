@@ -50,6 +50,10 @@ enum PreconditionFailureCause {
 	## An upgrade the commander already owns or is already researching. Its own cause because
 	## nothing clears it: an upgrade is bought once (see Commander.is_research_taken).
 	ALREADY_RESEARCHED,
+	## The caster may not use this ability until its commander researches an upgrade that
+	## unlocks it for this piece (UpgradeCatalog.is_ability_unlocked). Its own cause because the
+	## remedy is research, which neither waiting nor energy alone supplies.
+	MISSING_UPGRADE,
 }
 
 ## The causes a player can clear BY MOVING THE POINTER — the order is fine, this spot is not.
@@ -99,6 +103,7 @@ static var precondition_message_map: Dictionary = {
 	PreconditionFailureCause.SITE_PLANNED: "Already planned there",
 	PreconditionFailureCause.NO_NAVMESH_ACCESS: "Nowhere for the unit to appear",
 	PreconditionFailureCause.ALREADY_RESEARCHED: "Already researched",
+	PreconditionFailureCause.MISSING_UPGRADE: "Requires research",
 }
 
 static var unmet_need_to_precondition: Dictionary = {

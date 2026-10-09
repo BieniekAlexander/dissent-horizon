@@ -37,7 +37,9 @@ with Alex, 2026-09-30.
   in force when they need it, so a piece trained before the research and one trained after
   cannot disagree. The one exception is the hit-point maximum, which is read in too many
   places to look up each time: the piece re-applies it whenever its commander changes or
-  researches something.
+  its owned upgrades change (`Commander.upgrades_changed`).
+- **It is never lost in play.** `Commander.revoke_upgrade` exists for the debug menu's upgrade
+  card alone ([debug-mode](../ux/ui/debug-mode.md) §The debug menu).
 - **It survives the building.** Losing the structure that researched an upgrade does not take it
   back. That matches the rule for tech gates: losing a gate blocks new purchases, and what is
   already fielded stays ([pacing/tree-shape](pacing/tree-shape.md) §Pitfalls).
@@ -56,6 +58,15 @@ would mean). An effect about an ability also names the **`ability:`**.
 | `hp_factor` | the hit-point maximum is multiplied by this | the factors **multiply** |
 | `rearm_rate_factor` | a docked aircraft refills its charged weapon this many times as fast (piece only, and it must carry a `charged:` weapon) | the factors multiply, and with the bay's own charge rate |
 | `cooldown_rate_factor` | the pool holding this ability recharges this many times as fast (piece + ability) | the factors multiply |
+| `unlocks: true` | the piece may not use this ability until the upgrade is owned (piece + ability) | owning **any one** of them unlocks it |
+
+**An unlocked ability is a permission, not a capability.** The piece's `Abilities` pool still
+grants the ability before the research, so its button stays on the card, drawn LOCKED, and the
+order is refused (`MISSING_UPGRADE`, "Requires research"). Every command that casts from a pool
+asks `UpgradeCatalog.is_ability_unlocked` in its precondition, and the button asks it of the
+selection before falling back to the commander's other casters: a selection of locked pieces
+must not borrow an unlocked piece's pool. The first one is [[cell_activation|Cell Activation]],
+which gates the Sleeper's Spot and leaves the Recruit's alone (Alex, 2026-10-09).
 
 Every factor is a RATE, so 2.0 halves a rearm and 1.5 takes a 30-second cooldown to 20. A
 rate is what the code multiplies; a duration cut of a third is the same 1.5.

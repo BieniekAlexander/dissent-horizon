@@ -37,14 +37,17 @@ extends MoveCommand
 
 
 #region Preconditions
-## A unit not granted the ability simply cannot do this, and one whose charge is spent must
-## wait; anything else about the order (reachability, whether the ground is worth spotting)
-## is not a precondition's business.
+## A unit not granted the ability simply cannot do this, one whose commander has not researched
+## the upgrade gating it for this piece may not (the Sleeper's Cell Activation), and one whose
+## charge is spent must wait; anything else about the order (reachability, whether the ground
+## is worth spotting) is not a precondition's business.
 static func meets_precondition(
 	actor: Actor, _message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
 	if actor == null or not _can_spot(actor):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	if not UpgradeCatalog.is_ability_unlocked(actor, ABILITY_ID):
+		return PreconditionFailureCause.MISSING_UPGRADE
 	if not _pool(actor).is_ready(ABILITY_ID):
 		return PreconditionFailureCause.ABILITY_NO_CHARGES
 	return PreconditionFailureCause.NONE

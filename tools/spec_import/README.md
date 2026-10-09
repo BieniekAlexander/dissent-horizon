@@ -774,7 +774,8 @@ upgrade nothing researches is a warning, since its button can never be drawn.
 
 A modifier selects by `piece:` or by `frame: BIO|MECH` (every unit of that frame), and carries
 exactly one effect: `range` (a shape id; needs `ability:`), `hp_factor`, `rearm_rate_factor`
-(the piece must carry a `charged:` weapon) or `cooldown_rate_factor` (needs `ability:`). A
+(the piece must carry a `charged:` weapon), `cooldown_rate_factor` (needs `ability:`) or
+`unlocks: true` (needs `ability:`; the ability is locked for that piece until researched). A
 factor is a positive number, 1.25 meaning a quarter more. The effects are
 `SpecRegistry.MODIFIER_EFFECTS`; a new one is added there together with the runtime reader
 that honours it. What each one does: the upgrades note §What an upgrade can change.

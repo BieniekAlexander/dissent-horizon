@@ -81,6 +81,9 @@ static func precondition_for(
 	# Not granted → the unit simply does not have it.
 	if pool == null or not pool.grants(ability_id):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	# Granted, but gated behind research for this piece (an upgrade's `unlocks:`).
+	if not UpgradeCatalog.is_ability_unlocked(actor, ability_id):
+		return PreconditionFailureCause.MISSING_UPGRADE
 	# A DARK BUILDING CASTS NOTHING, and unlike a spent charge this is never deferred: the
 	# additive modifier queues an order that waiting will fulfil, and waiting does not close
 	# an infrastructure shortfall. See Abilities.is_operational.

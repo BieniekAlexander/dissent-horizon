@@ -107,7 +107,28 @@ custom_minimum_size = Vector2(0, 420)
 layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="PieceList" type="VBoxContainer" parent="Margin/Column/Body/PieceCard/PieceScroll"]
+[node name="ScrollBody" type="VBoxContainer" parent="Margin/Column/Body/PieceCard/PieceScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="PieceList" type="VBoxContainer" parent="Margin/Column/Body/PieceCard/PieceScroll/ScrollBody"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="UpgradeCard" type="VBoxContainer" parent="Margin/Column/Body/PieceCard/PieceScroll/ScrollBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HSeparator" type="HSeparator" parent="Margin/Column/Body/PieceCard/PieceScroll/ScrollBody/UpgradeCard"]
+layout_mode = 2
+
+[node name="UpgradesTitle" type="Label" parent="Margin/Column/Body/PieceCard/PieceScroll/ScrollBody/UpgradeCard"]
+layout_mode = 2
+text = "Upgrades (selected player)"
+
+[node name="UpgradeList" type="HFlowContainer" parent="Margin/Column/Body/PieceCard/PieceScroll/ScrollBody/UpgradeCard"]
+unique_name_in_owner = true
+layout_mode = 2

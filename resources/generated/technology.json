@@ -261,6 +261,15 @@
 			"an_infrastructure"
 		]
 	},
+	"cell_activation": {
+		"build_time_ticks": 900,
+		"cost": {
+			"dominion": 0,
+			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
 	"cl_airField": {
 		"build_time_ticks": 750,
 		"cost": {

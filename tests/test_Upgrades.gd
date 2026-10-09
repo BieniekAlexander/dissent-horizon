@@ -379,3 +379,30 @@ func test_a_rearm_factor_on_a_piece_without_a_charged_weapon_is_refused() -> voi
 func test_a_factor_must_be_positive() -> void:
 	var doc: Dictionary = _modifier_doc({"frame": "BIO", "hp_factor": 0})
 	assert_eq(_errors_mentioning(_registry(doc), "must be a positive number").size(), 1)
+
+
+# --- unlocks: a gate on one piece's use of one ability -----------------------------
+
+
+func test_an_unlocks_modifier_imports_clean_and_is_generated_as_a_gate() -> void:
+	var doc: Dictionary = _modifier_doc(
+		{"piece": "fake_spotter", "ability": "spot", "unlocks": true}
+	)
+	var r: RefCounted = _registry(doc)
+	assert_eq(_errors_mentioning(r, "fake_upgrade"), [])
+	var modifies: Array = (
+		JSON.parse_string(SpecGenerators.upgrades_json(r))["fake_upgrade"]["modifies"]
+	)
+	assert_eq(modifies[0], {"piece": "fake_spotter", "ability": "spot", "unlocks": true})
+
+
+func test_an_unlocks_modifier_needs_an_ability() -> void:
+	var doc: Dictionary = _modifier_doc({"piece": "fake_spotter", "unlocks": true})
+	assert_eq(_errors_mentioning(_registry(doc), "unlocks needs an ability").size(), 1)
+
+
+func test_an_unlocks_modifier_must_be_true() -> void:
+	var doc: Dictionary = _modifier_doc(
+		{"piece": "fake_spotter", "ability": "spot", "unlocks": false}
+	)
+	assert_eq(_errors_mentioning(_registry(doc), "unlocks must be `true`").size(), 1)

@@ -11,9 +11,10 @@ extends RefCounted
 ##
 ## What an upgrade DOES is authored on its doc as `modifies:` entries, each naming WHICH pieces
 ## (a `piece` id, or every unit of a `frame`), optionally one of their abilities, and one effect:
-## an ability's `range`, or a factor on hit points, on rearm speed or on an ability's recharge
-## speed. Readers ask this class for the value in force (range_for, factor_for), so an upgrade
-## reaches pieces already on the field as well as future ones.
+## an ability's `range`, a factor on hit points, on rearm speed or on an ability's recharge
+## speed, or `unlocks` — the piece may not use that ability until the upgrade is owned. Readers
+## ask this class for the value in force (range_for, factor_for, is_ability_unlocked), so an
+## upgrade reaches pieces already on the field as well as future ones.
 ##
 ## Why: gdd/systems/macroeconomics/upgrades.md.
 ##
@@ -27,7 +28,8 @@ const HP_FACTOR: StringName = &"hp_factor"
 const REARM_RATE_FACTOR: StringName = &"rearm_rate_factor"
 const COOLDOWN_RATE_FACTOR: StringName = &"cooldown_rate_factor"
 
-## id -> {"title": String, "modifies": [{"piece" | "frame", "ability"?, <one effect key>}]}.
+## id -> {"title": String, "faction": String, "modifies": [{"piece" | "frame", "ability"?,
+## <one effect key>}]}.
 static var _entries: Dictionary = _load()
 
 
@@ -51,6 +53,17 @@ static func is_upgrade(a_id: Variant) -> bool:
 
 static func title_of(a_id: StringName) -> String:
 	return str((_entries.get(a_id, {}) as Dictionary).get("title", String(a_id)))
+
+
+## Every upgrade whose doc names `a_faction` first in `ui.factions` (the faction key the debug
+## roster uses), sorted by title.
+static func ids_of_faction(a_faction: String) -> Array[StringName]:
+	var out: Array[StringName] = []
+	for id: StringName in _entries:
+		if str((_entries[id] as Dictionary).get("faction", "")) == a_faction:
+			out.append(id)
+	out.sort_custom(func(a: StringName, b: StringName) -> bool: return title_of(a) < title_of(b))
+	return out
 
 
 ## The upgrade's `modifies:` entries, each a Dictionary with a selector (`piece` or `frame`),
@@ -106,6 +119,39 @@ static func factor_for(a_piece: Entity, a_key: StringName, a_ability: StringName
 			):
 				factor *= float(m[a_key])
 	return factor
+
+
+## Whether `a_piece` may use `a_ability` as far as research goes: true unless some upgrade
+## `unlocks` that ability for this piece and its commander owns none of them. One owned gate is
+## enough when several upgrades name the same one.
+##
+## PERMISSION, not capability: the piece's `Abilities` pool still grants the ability, which is
+## what keeps the button on its card (drawn LOCKED) rather than absent until the research.
+static func is_ability_unlocked(a_piece: Entity, a_ability: StringName) -> bool:
+	if a_piece == null:
+		return true
+	var gates: Array[StringName] = upgrades_unlocking(a_piece.id, a_ability)
+	if gates.is_empty():
+		return true
+	if a_piece.ownership == null or a_piece.commander == null:
+		return false
+	var commander: Commander = a_piece.commander
+	return gates.any(func(id: StringName) -> bool: return commander.has_upgrade(id))
+
+
+## Every upgrade that `unlocks` `a_ability` for the piece `a_piece_id`, in table order.
+static func upgrades_unlocking(a_piece_id: StringName, a_ability: StringName) -> Array[StringName]:
+	var out: Array[StringName] = []
+	for upgrade_id: StringName in _entries:
+		for modifier: Variant in (_entries[upgrade_id] as Dictionary).get("modifies", []):
+			var m: Dictionary = modifier if modifier is Dictionary else {}
+			if (
+				m.get("unlocks", false)
+				and StringName(str(m.get("piece", ""))) == a_piece_id
+				and StringName(str(m.get("ability", ""))) == a_ability
+			):
+				out.append(upgrade_id)
+	return out
 
 
 ## Whether a modifier's selector picks `a_piece`: its `piece` id, or — for a `frame` selector —

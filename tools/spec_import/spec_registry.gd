@@ -1919,13 +1919,22 @@ const UPGRADE_KEYS: Array = [
 ## one frame), an optional `ability`, and exactly one EFFECT key. A new effect is added here
 ## together with the reader that honours it.
 const MODIFIER_SELECTORS: Array = ["piece", "frame"]
-const MODIFIER_EFFECTS: Array = ["range", "hp_factor", "rearm_rate_factor", "cooldown_rate_factor"]
+const MODIFIER_EFFECTS: Array = [
+	"range", "hp_factor", "rearm_rate_factor", "cooldown_rate_factor", "unlocks"
+]
 const MODIFIER_KEYS: Array = [
-	"piece", "frame", "ability", "range", "hp_factor", "rearm_rate_factor", "cooldown_rate_factor"
+	"piece",
+	"frame",
+	"ability",
+	"range",
+	"hp_factor",
+	"rearm_rate_factor",
+	"cooldown_rate_factor",
+	"unlocks"
 ]
 ## The effects that are about one of the piece's abilities, so need `ability:`; the others
 ## refuse one.
-const ABILITY_EFFECTS: Array = ["range", "cooldown_rate_factor"]
+const ABILITY_EFFECTS: Array = ["range", "cooldown_rate_factor", "unlocks"]
 const FRAMES: Array = ["BIO", "MECH"]
 
 
@@ -2016,6 +2025,10 @@ func _validate_modifier(a_spec: Dictionary, a_entry: Variant) -> void:
 		var radius: float = _library_radius(a_spec, "modifies.range", entry["range"])
 		if radius > 0.0:
 			entry["range_metres"] = radius
+	elif effect == "unlocks":
+		# A gate, not an amount: the only thing to say is that it is one.
+		if not (entry["unlocks"] is bool and entry["unlocks"]):
+			_err(a_spec, "modifies: unlocks must be `true` — it gates the ability, nothing more")
 	elif not _is_number(entry[effect]) or float(entry[effect]) <= 0.0:
 		_err(
 			a_spec,

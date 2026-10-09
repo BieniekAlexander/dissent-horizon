@@ -118,7 +118,7 @@ script = ExtResource("18_fuytj")
 
 [node name="Production" type="Node" parent="."]
 script = ExtResource("2_spec")
-producible_types = Array[StringName]([&"advanced_targetting", &"rapid_rearmament", &"reinforced_hulls"])
+producible_types = Array[StringName]([&"advanced_targetting", &"rapid_rearmament", &"reinforced_hulls", &"cell_activation"])
 
 [editable path="Selectable"]
 [editable path="Hurtbox"]

@@ -61,7 +61,8 @@ The spotter's charge is spent when the channel starts and its recharge is held u
 
 Decided 2026-10-06. Spot is ONE order that two spotters carry out their own ways, and the
 piece declares which: a `BeaconPlanter` component (`plants_beacons: true`) makes the order
-PLANT rather than HOLD. The Sleeper (`cl_bioLight_stealth`) plants; the Recruit holds.
+PLANT rather than HOLD. The Sleeper (`cl_bioLight_stealth`) plants, once its commander has
+researched [[cell_activation|Cell Activation]]; the Recruit holds.
 
 - **It walks to the point itself**, not to Spot's range of it: a stealthed infiltrator goes
   where a Recruit could not stand. An order aimed over a piece plants on the ground beneath
