@@ -1384,7 +1384,7 @@ func _learned_values_per_energy(a_types: Array) -> Dictionary:
 ## trains that the bot has the tech for, on purchase_values_per_energy — one answer for every
 ## producer asked at once, so they are all on the same scale. 0 for a building that trains
 ## nothing armed the bot could field. A locked unit no longer counts (it did until 2026-10-09,
-## so a barracks was priced by the Guard behind a tech building the bot did not own): what a
+## so a barracks was priced by the Constable behind a tech building the bot did not own): what a
 ## producer is worth is what it can make today; unlocking is the tech rung's measure.
 func producer_values(a_structure_types: Array, a_demand: Dictionary = {}) -> Dictionary:
 	var producibles: Dictionary = {}  # structure type -> its armed, trainable types

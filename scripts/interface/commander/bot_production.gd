@@ -279,7 +279,7 @@ func _best_unit_for(a_structure: Actor, a_demand: Dictionary) -> StringName:
 		# Only units the bot can TRAIN TODAY. A tech-locked unit scores on its gun like any
 		# other, wins the comparison, and then fails the spend gate every tick — and the caller
 		# banks for it rather than falling back, so the producer stands idle on a unit the bot
-		# has no building for. Measured 2026-10-04 (piece-usage audit): the Guard was picked
+		# has no building for. Measured 2026-10-04 (piece-usage audit): the Constable was picked
 		# 46,707 of 56,794 barracks decisions and the Avalanche 9,247 of 10,212 war-factory
 		# decisions, neither ever trained, while the bot owned no tech structure.
 		if not _bot.has_tech_for(t):

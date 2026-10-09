@@ -153,7 +153,7 @@ producer and tech rungs were pricing buildings with the demand map's strength-pe
 `Bot.purchase_values_per_energy` — the model's marginal per energy where it knows every type
 and an enemy composition is believed (the phantom opening force counts), else the demand map,
 never both in one answer — and a producer is priced by the best unit it can train TODAY
-(`Bot.producer_values`; a locked unit used to price a barracks by the Guard behind a tech
+(`Bot.producer_values`; a locked unit used to price a barracks by the Constable behind a tech
 building the bot did not own). The same ledger explained the extra command centres Alex had
 watched: chosen 448 of 637 times at a score of 0, as the lone "unowned" producer while the
 bot's own centre was still a pending drop, by a rung that did not count ordered builds. It
@@ -169,16 +169,16 @@ one slot on the model, so the two are a direction, not a controlled pair), per s
 | barracks / war factories / airfields | 3.06 / 0.91 / 0.19 | 1.94 / 1.00 / **0.88** | 2.44 / 1.00 / 0.75 |
 | recruits (anti-light / anti-mech) | 71.7 / 6.3 | 43.8 / 16.3 | 46.5 / 15.2 |
 | mech anti-light / aircraft light | 1.4 / 0.8 | **4.3** / 0.9 | 3.3 / **1.9** |
-| tech2 and the Guard | 0.19 / 1.3 | 0 / 0 | 0 / 0 |
+| tech2 and the Constable | 0.19 / 1.3 | 0 / 0 | 0 / 0 |
 
-The retrained model moves the mix further toward the Sloop, as its tables say it should, and
-gives back a little of the mech; against the ledger the recruit count is a third lower, the
-mech two to three times higher and the Sloop more than double. Eight matches each, so these
+The retrained model moves the mix further toward the Clipper, as its tables say it should,
+and gives back a little of the Sloop; against the ledger the Recruit count is a third lower,
+the Sloop two to three times higher and the Clipper more than double. Eight matches each, so these
 are directions; the 200-match test of a ten-point edge is still the harness's.
 
 The last row is the consistent valuation at work rather than a loss: under the demand map the
-Guard scored 7.4 against the recruit's 3.1 and the tech rung bought its building; the model
-rates it near the mech per energy, under the 1.3 margin, so the tech rung now waits on it as
+Constable scored 7.4 against the Recruit's 3.1 and the tech rung bought its building; the
+model rates it near the Sloop per energy, under the 1.3 margin, so the tech rung now waits on it as
 the unit choice always did. Whether that margin is right is the search's question.
 
 **Retrained with a 240 s window and an airfield per flying side (2026-10-09, the shipped
@@ -186,9 +186,9 @@ model; corpus `tools/combat_model/out/airfield_2026-10-09/`).** The 90 s window 
 untouchable aircraft does — it kept all its value and killed too slowly for the margin to
 show — and with no airfield a charged clip fired once. 6,000 fights, 4,037 with an airfield,
 398 running the whole window; held-out R² 0.685 (was 0.655), winner right 85.5% (was 82.9%).
-What moved in the Colonial own-side tables: the Sloop at five is 1.12 (was 0.60) and the
-recruit's FIRST unit fell from 0.117 to 0.069 per 100 energy, under the mech's 0.074 and level
-with the Sloop's 0.063 — the cheap-infantry edge the first corpus gave it is gone at the
+What moved in the Colonial own-side tables: the Clipper at five is 1.12 (was 0.60) and the
+Recruit's FIRST unit fell from 0.117 to 0.069 per 100 energy, under the Sloop's 0.074 and
+level with the Clipper's 0.063 — the cheap-infantry edge the first corpus gave it is gone at the
 margin where the bot buys. The Drake's table past three bodies is extrapolation (three cost
 more than the budget ceiling) and reads low; TODO: a budget range that reaches four Drakes, or
 a per-type cap. `counter_the_tanks{,_learned}` pass on it.
