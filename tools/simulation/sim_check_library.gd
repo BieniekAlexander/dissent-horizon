@@ -30,6 +30,7 @@ static var _BUILDERS: Dictionary = {
 	"hit_rate": SimCheckLibrary._build_hit_rate,
 	"posture": SimCheckLibrary._build_posture,
 	"objective": SimCheckLibrary._build_objective,
+	"placed": SimCheckLibrary._build_placed,
 	"ordered": SimCheckLibrary._build_ordered,
 	"refused": SimCheckLibrary._build_refused,
 	"chosen": SimCheckLibrary._build_chosen,
@@ -280,6 +281,24 @@ static func _build_objective(a_check: SimSpec.Check, a_roster: SimGroupRoster) -
 		if objective == null or there == null:
 			return false
 		return VU.in_xz(objective as Vector3).distance_to(VU.in_xz(there as Vector3)) <= within
+
+
+## The slot ISSUED a build order for `piece` to stand within `within` of `near`'s centroid —
+## the placement decision, read off BotUsageLog.build_positions. Any issued order counts, so
+## a later re-placement cannot undo an earlier good one; `piece` "" matches any.
+static func _build_placed(a_check: SimSpec.Check, a_roster: SimGroupRoster) -> Callable:
+	var near_ref: String = str(a_check.arguments.get("near", ""))
+	var within: float = float(a_check.arguments.get("within", 0.0))
+	return func() -> bool:
+		var log: BotUsageLog = SimCheckLibrary._usage_of(a_roster, a_check.slot)
+		var there: Variant = a_roster.centroid(near_ref)
+		if log == null or there == null:
+			return false
+		var centre: Vector2 = VU.in_xz(there as Vector3)
+		for position: Vector3 in log.build_positions(a_check.piece):
+			if VU.in_xz(position).distance_to(centre) <= within:
+				return true
+		return false
 
 
 ## The actuator has ISSUED at least `at_least` (default 1) orders of `kind` for `piece`

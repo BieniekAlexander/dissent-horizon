@@ -6,6 +6,12 @@ extends GutTest
 
 class StubBot:
 	extends Bot
+
+	## The learned choice reads the clocked composition; this stub has no fields, so its
+	## plain counts stand in for the weights.
+	func believed_enemy_composition_clocked() -> Dictionary:
+		return believed_enemy_composition()
+
 	var own: Dictionary = {}
 	var enemy: Dictionary = {}
 

@@ -1,0 +1,38 @@
+description: |
+  WHERE THE ARMY STANDS reads the approach band, not the bearing to the nearest believed
+  structure. The believed enemy structure lies east (the threat axis), but the believed enemy
+  army stands north and far nearer, so the enemy's walk to home — the band — runs north. The
+  army, massing (it may not attack), stands on the band: its objective lands beside the marker
+  a builder holds on the north approach, not out east. Axis: POSITIONING.
+  Rule: gdd/systems/ai/world-model/lattice-and-topology.md §Distance fields, §Defending assets.
+setting: { kind: flat, size: 120 }
+given:
+  A:
+    settings:
+      difficulty: HARD
+      vision: full
+      config: { scout_unit_budget: 0, may_attack: false }
+    with:
+      base:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: west
+      army:
+        of: [ { piece: cl_bioLight_antiMech, count: 3 } ]
+        at: { from: A.base, distance: 6, bearing: south }
+        formation: cluster
+      marker:
+        of: [ { piece: cl_bioLight_builder, count: 1 } ]
+        at: { from: A.base, distance: 14, bearing: north }
+  B:
+    with:
+      structure:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: east
+      raiders:
+        of: [ { piece: cl_bioLight_antiMech, count: 4 } ]
+        at: { from: A.base, distance: 40, bearing: north }
+        formation: cluster
+run: { for: 20s, seed: 1 }
+expect:
+  - { slot: A, check: posture, is: MASS, by: 6s }
+  - { slot: A, check: objective, near: A.marker, within: 8, by: 12s }

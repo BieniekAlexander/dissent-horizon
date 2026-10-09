@@ -76,3 +76,14 @@ four Godot processes ran, so memory pressure is a suspect for the SIGKILLs at le
 
 **Where to start if it recurs:** run with fewer shards (does two crash?), and watch memory while
 the suite runs. The shard log (`.godot/gut_shards/shard_N.log`) has the backtrace.
+
+**Recurred 2026-10-08 (evening, spatial-model session):** six of eight full runs lost one shard,
+each at a different test (`test_VisualOptOut`, `test_WeaponTurret`, `test_WorkDetail`,
+`test_WeaponReachAcrossTheAirLine`, twice more), signal 11 with the same deep, repeating C++
+backtrace; the last three with the Godot editor CLOSED, so an open editor is not the whole
+story. Every file a shard lost passes alone (the one a shard died in, `test_DefendLeash`,
+three runs of three). Reruns eventually report all four shards.
+**A/B'd in place the same evening:** with the bot's new `fields` job stubbed out (the one
+new per-tick job of that session), two of three runs still lost a shard; with it on, five of
+six. The job is not the cause. The rate has risen from about half to most runs since the
+morning; what changed in between is unknown.

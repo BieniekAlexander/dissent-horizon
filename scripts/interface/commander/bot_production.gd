@@ -323,7 +323,8 @@ func _learned_scores(a_types: Array) -> Array:
 	var model: CombatModel = combat_model if combat_model != null else CombatModel.shared()
 	if model == null or not a_types.all(func(t: StringName) -> bool: return model.knows(t)):
 		return []
-	var enemy: Dictionary = _bot.believed_enemy_composition()
+	# Each believed unit weighed by the threat clock, not counted as one (Bot._clocked).
+	var enemy: Dictionary = _bot.believed_enemy_composition_clocked()
 	if enemy.is_empty():
 		return []
 	var own: Dictionary = _bot.own_armed_composition()

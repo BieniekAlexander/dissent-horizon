@@ -91,6 +91,7 @@ const CHECK_ARGUMENTS: Dictionary = {
 	# `claimed` (a claim is about units) and `believes` (a belief is about the other side).
 	"posture": ["is"],
 	"objective": ["near", "within"],
+	"placed": ["near", "within"],
 	"ordered": ["kind", "at_least"],
 	"refused": ["kind", "cause", "at_least"],
 	"chosen": ["domain"],
@@ -100,7 +101,7 @@ const CHECK_ARGUMENTS: Dictionary = {
 }
 ## The checks that are about a SLOT's bot and take `slot:`; `believes` takes both.
 const SLOT_CHECKS: Array[String] = [
-	"posture", "objective", "ordered", "refused", "chosen", "considered", "believes"
+	"posture", "objective", "placed", "ordered", "refused", "chosen", "considered", "believes"
 ]
 const POSTURES: Array[String] = ["ATTACK", "MASS", "DEFEND"]
 #endregion
@@ -959,7 +960,7 @@ func _validate_bot_check(a_check: Check) -> void:
 			errors.append("%s names no `domain`" % where)
 		if a_check.piece == "":
 			errors.append("%s names no `piece`" % where)
-	if a_check.name == "objective" and not a_check.arguments.has("near"):
+	if a_check.name in ["objective", "placed"] and not a_check.arguments.has("near"):
 		errors.append("%s names no `near`" % where)
 	if (
 		a_check.name == "command"

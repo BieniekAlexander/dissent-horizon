@@ -1,0 +1,52 @@
+description: |
+  A STATIC DEFENCE IS PLACED TO COVER THE APPROACH BAND. The bearing rule alone would put a
+  turret out east, toward the believed enemy structure; the enemy's army stands north and
+  near, so the band — and the demand that buys the turret — is there. With the coverage
+  weight set high enough that the band outweighs the frontage bearing, the turret is ordered
+  onto the north approach. Axis: POSITIONING. The weight is set rather than left at the tier's
+  default, so this asks whether the mechanism places on the band, not whether the default
+  weight is tuned to. Rule: gdd/systems/ai/world-model/lattice-and-topology.md §Distance fields.
+setting: { kind: flat, size: 120 }
+given:
+  A:
+    settings:
+      difficulty: HARD
+      vision: full
+      energy: 3000
+      config:
+        scout_unit_budget: 0
+        may_attack: false
+        defence_propensity: 3.0
+        place_coverage_weight: 20.0
+      # The barracks is listed so the owned one counts as a producer: the defence rung runs only
+      # once there is a producer of a type the bot may build to stand in front of.
+      consider: { structures: [ cl_defense_antiLight, cl_barracks ] }
+    with:
+      base:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: west
+      infrastructure:  # the turret's prerequisite (technology.json: requires cl_infrastructure)
+        of: [ { piece: cl_infrastructure, count: 1 } ]
+        at: { from: A.base, distance: 8, bearing: west }
+      barracks:  # the defence rung only runs once there is a producer to stand in front of
+        of: [ { piece: cl_barracks, count: 1 } ]
+        at: { from: A.base, distance: 8, bearing: south }
+      builders:
+        of: [ { piece: cl_bioLight_builder, count: 2 } ]
+        at: { from: A.base, distance: 6, bearing: south }
+      army:
+        of: [ { piece: cl_bioLight_antiMech, count: 2 } ]
+        at: { from: A.base, distance: 6, bearing: east }
+  B:
+    with:
+      structure:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: east
+      raiders:
+        of: [ { piece: cl_bioLight_antiMech, count: 4 } ]
+        at: { from: A.base, distance: 14, bearing: north }
+        formation: cluster
+run: { for: 30s, seed: 1 }
+expect:
+  - { slot: A, check: ordered, kind: build, piece: cl_defense_antiLight, by: 20s }
+  - { slot: A, check: placed, piece: cl_defense_antiLight, near: B.raiders, within: 10, by: 20s }

@@ -204,6 +204,13 @@ func _configure_slots() -> String:
 			slot.starting_energy = int(wanted["starting_energy"])
 		if wanted.has("starting_dominion"):
 			slot.starting_dominion = int(wanted["starting_dominion"])
+		# BotBrain jobs this slot leaves unscheduled (PlayerSlot.disabled_bot_jobs), for an A/B
+		# of a job against its absence; an unknown name fails the boot as it does for a scene.
+		if wanted.has("disabled_jobs"):
+			var names: Array[StringName] = []
+			for name: Variant in wanted["disabled_jobs"]:
+				names.append(StringName(str(name)))
+			slot.disabled_bot_jobs = names
 		slots.append(slot)
 	_scenario.player_slots = slots
 	return ""

@@ -209,7 +209,9 @@ already read, so the army and the buildings agree about which way is forward; fo
 it faces the map's middle until something has been seen. The reserve stages by the same rule
 toward its objective.
 
-PLANNED — the rest of "which positions matter":
+PLANNED — the rest of "which positions matter", now specified in
+[world-model/lattice-and-topology](world-model/lattice-and-topology.md) (approved 2026-10-08:
+the approach band, arrival time, the guard's arrival term, `HoldPolicy` posts):
 
 - **Approach coverage** for static defence, below: a chokepoint is where the approach samples
   bunch, so the same term that places a turret finds the chokepoint.

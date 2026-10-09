@@ -316,7 +316,10 @@ Written up as a proposal, with three candidate representations and a recommendat
 region — a frost field, a radiation field, a gathering Blizzard — and the bot walks into all of
 them, because nothing it reads says "keep clear".
 
-> **TODO — an avoid-region signal.** A lingering area effect publishes a signal the bot reads
+> **TODO — an avoid-region signal.** The bot-side half is settled (2026-10-08): the lattice's
+> `avoid` channel is a cost term in the distance fields the bot DECIDES on, and routing stays
+> with the navmesh — [world-model/lattice-and-topology](world-model/lattice-and-topology.md)
+> §Distance fields, where navmesh region costs are rejected. The pathing half is still open. A lingering area effect publishes a signal the bot reads
 > as "stay clear of this region", and only effects that last longer than about 3 seconds
 > publish one: steering around every brief blast would be excessive and twitchy. Undecided:
 > what the signal is (a group the effect joins, a registry on the Map, a flag on the emission's

@@ -207,6 +207,8 @@ func build(
 			else BotUsageLog.refused(cause)
 		)
 	)
+	if cause == MoveCommand.PreconditionFailureCause.NONE:
+		usage.record_build_position(a_type, a_world_pos)
 	# Register the purchase on the commander's production queue BEFORE constructing the
 	# command, so the command registers as a holder of it (see MoveCommand._init) and the
 	# cost is reserved / refunded with the order. Without this the builder would walk to

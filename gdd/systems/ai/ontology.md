@@ -11,7 +11,7 @@ type: system-note
 bot's model of the game is MADE OF: the kinds of thing in the game, the affordances a thing
 has and how each is derived from the code, the temporal rules that say what the bot can
 perceive at all, attention as the sensor the human tiers look with, and the one rule for
-cues. [world-model](world-model.md) is the machinery that holds these; this note is the
+cues. [world-model](world-model/README.md) is the machinery that holds these; this note is the
 vocabulary it holds them in. The brief is [brief.md](brief.md).
 
 Two tests run through everything here, both decided in the world-model note:
@@ -92,7 +92,7 @@ rather than their identity. Their CUES (§Cues) are the only part of them tracke
 Tracks, groups, fields, regions, engagements and objectives are constructs of the MODEL over
 the game. A human has none of them as game facts — they are how a human organises game facts
 in their head — which is exactly why they live on the bot and not on `Commander`
-([world-model](world-model.md) §The model). This note is the ontology of the game as
+([world-model](world-model/README.md) §The model). This note is the ontology of the game as
 perceived; the model's own constructs are defined where they are built.
 
 ---

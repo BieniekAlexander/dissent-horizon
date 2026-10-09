@@ -516,7 +516,7 @@ answer for it.
 
 **A turret is bought where the DEMAND clears its cost, never to a count** (2026-10-07;
 `BotEconomy._defence_demand`, `tests/test_BotDefenceDemand.gd`). The demand is
-[world-model](world-model.md) §L3's: per own region — the ground within
+[world-model/layers](world-model/layers.md) §L3's: per own region — the ground within
 `DEFENCE_REGION_RADIUS` of a built structure — the VALUE standing there × its VULNERABILITY,
 where vulnerability is the lattice's `tension − |own − enemy|` over the tension, read off
 presence until the lattice exists: own influence is the cost of the bot's armed units and
@@ -867,7 +867,10 @@ freezes for ~90 s until the stall timeout releases it.
 > above — cover 0.430 against 0.306 of it. **This is the same class of bug as the ring scan,
 > one module over**, and it is the first thing to test against the start-position instrument.
 > Anchoring the grid so its bucket boundaries are symmetric about the map centre is the fix to
-> try. A second, smaller source: the opening deployment scatter draws from the one shared
+> try — and it is BUILT (2026-10-08): the scout grid now indexes through the map-centred
+> `Lattice` ([world-model/lattice-and-topology](world-model/lattice-and-topology.md)), whose
+> cells reflect onto each other by construction. Whether the 8/8 bias moved with it is the
+> measurement still to take. A second, smaller source: the opening deployment scatter draws from the one shared
 > `SU.rng` in deploy order, so the two openings differ by ~0.3 world units from tick 30 — but
 > that follows the SLOT, and the measured bias follows the POSITION 8/8, so it is a noise
 > source rather than the cause.
@@ -1031,7 +1034,7 @@ building the builder would have to come back for anyway. Cover: `tests/test_BotB
 
 TODO: this reads the threat AT the site, not ALONG the walk — a builder whose path crosses a
 defended choke still goes. The lattice's `threat` channel is the read for that
-([world-model](world-model.md) §L2), and this rule becomes one query of it.
+([world-model/lattice-and-topology](world-model/lattice-and-topology.md)), and this rule becomes one query of it.
 
 ## Dominion routes
 

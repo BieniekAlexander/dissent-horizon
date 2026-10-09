@@ -13,7 +13,7 @@ machine learning models the bot's MACROECONOMIC decisions — what to buy, and w
 the hand-written valuation it uses now. The decisions are folded in where they apply (§Decided).
 What exists is [bot-architecture](bot-architecture.md); the knobs a search may move today are
 [bot-parameter-space](bot-parameter-space.md); the signals a model would read are
-[world-model](world-model.md) and [debug-signals](debug-signals.md). The work item is
+[world-model](world-model/README.md) and [debug-signals](debug-signals.md). The work item is
 `gdd/tasks.md` T-100.
 
 **Scope: the purchase decision only.** Combat decision-making (targeting, engagement, retreat)
@@ -188,8 +188,11 @@ and qualitative spatial reasoning frames the question as "can they get there in 
 ([Forbus, Mahoney & Dill, IEEE 2002](https://www.qrg.northwestern.edu/papers/Files/QRG_Dist_Files/QRG_2002/ForbusMahoneyDill_IEEE2002.pdf)).
 The learnable part is the falloff's shape and scale: a few parameters per bot, fitted by the
 outer search or learned inside the value function (§3) with the margin as a feature. It needs
-the world model's lattice, `threat` and `approach` channels ([world-model](world-model.md)
-§Migration steps 3–5) and `TrackTable.velocity` for heading.
+the world model's lattice, `threat` and `approach` channels and `TrackTable.velocity` for
+heading. The topology half — the distance fields the arrival time is read off, the approach
+band, and the fog rule that leaves an unscouted base with no arrival time — is approved and
+`PLANNED` in [world-model/lattice-and-topology](world-model/lattice-and-topology.md)
+(2026-10-08); this stage builds on its step 3.
 
 ### 3. A state value — the short and long term
 
@@ -247,7 +250,7 @@ of P(unseen composition, tech | seen), learned from self-play logs where the tru
 replacing the fixed `assumed_enemy_parity` prior (which, measured 2026-10-07, caps every bot's
 read at `1 / parity` — [bot-parameter-space](bot-parameter-space.md) §Where holding-others-equal
 is a lie, item 3). It fills the world model's per-commander knowledge
-([world-model](world-model.md) §L1).
+([world-model/layers](world-model/layers.md) §L1).
 
 ## Three ways to assemble them
 
@@ -285,7 +288,7 @@ options the components of A would feed, not alternatives to them.
 ## What the signal framework gives a model
 
 The world model is already shaped like AlphaStar's observation — an entity list, spatial
-layers and scalars ([world-model](world-model.md) §Frameworks adapted), and that is the input
+layers and scalars ([world-model](world-model/README.md) §Frameworks adapted), and that is the input
 side of every model above:
 
 | Model input | Source |
@@ -357,7 +360,7 @@ that follow:
 > **TODO — whether the learned valuation is BETTER.** Not worse than the demand map at 32
 > matches, and 4 of 10 on random maps (§1); showing a ten-point edge needs about 200
 > counterbalanced matches. Then stage 2, the threat clock, which waits on the world model's
-> lattice (world-model.md §Migration steps 3–5).
+> lattice (world-model/lattice-and-topology.md, build order steps 1–3).
 
 The 2026-10-04 balance result was rerun on 2026-10-07: [bot-randomness](bot-randomness.md)
 §Strength is a search.

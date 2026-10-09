@@ -102,7 +102,7 @@ func test_a_scout_still_held_is_claimed_for_scouting() -> void:
 	# Fully blind, so keeping the one scout out pays for itself.
 	for i: int in 10:
 		scout._scout_grid[Vector2i(i, 0)] = -INF
-		scout._scout_grid_positions[Vector2i(i, 0)] = Vector3(i * BotScout.SCOUT_GRID_SIZE, 0, 0)
+		scout._scout_grid_positions[Vector2i(i, 0)] = Vector3(i * BotFields.PITCH, 0, 0)
 	scout._update_scouts()
 	assert_true(_claims.owns(unit, BotScout.CLAIM_OWNER))
 

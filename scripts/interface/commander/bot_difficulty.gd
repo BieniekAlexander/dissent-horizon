@@ -36,6 +36,10 @@ var combat_period_seconds: float = 0.5
 var strategy_period_seconds: float = 0.5
 ## Scouting: updating what has been seen, and dispatching scouts.
 var scout_period_seconds: float = 0.5
+## The spatial fields (BotFields): how often the bot re-reads where the enemy can reach and
+## how soon. Slower than the decision periods by design — the ground changes slowly and a
+## refresh is several lattice sweeps — and not set by set_all_periods, which paces decisions.
+var field_refresh_seconds: float = 3.0
 
 ## Combat units wanted before the army commits to an attack. The aggression dial.
 var army_commit_threshold: int = 3
@@ -222,6 +226,26 @@ var guard_strength_ratio: float = 1.5
 ## further out and turtles more; low enough and a raid inside the base is ignored.
 var defend_threat_radius: float = 10.0
 
+## WHETHER THE BOT HAS SPATIAL FIELDS AT ALL (BotFields): off, `Bot.fields()` is null, the
+## fields job idles, and every consumer keeps the rule it had before the fields existed — the
+## station point by bearing, the guard by matchup alone, placement without coverage, the
+## demand map unclocked. Not searched (a boolean); it exists so a tier can be compared against
+## itself with the fields and without, as `should_use_learned_production` does for the
+## valuation. On in every tier.
+var should_use_fields: bool = true
+
+## THE THREAT CLOCK'S SHAPE (lattice-and-topology.md §Difficulty): how many seconds of margin
+## — the believed enemy's arrival time at the base beyond the time the bot needs to field an
+## answer — before that enemy stops weighing on what the bot buys. A threat that arrives
+## before the answer could weighs in full; one with this much time to spare weighs 1/e of
+## the way down to the floor. Low is twitchy, high is placid.
+var arrival_margin_falloff_seconds: float = 30.0
+
+## How much a static defence's placement is pulled toward COVERING THE APPROACH BAND, in cells
+## of sprawl a full coverage is worth against the compactness ruler (BotEconomy's placement
+## score). 0 places a turret by bearing alone.
+var place_coverage_weight: float = 8.0
+
 # ── VARIETY ─────────────────────────────────────────────────────────────────────────
 # Two matches on one map used to play out identically because every decision was a pure
 # function of state and these parameters. Both knobs below are drawn from the BOT'S OWN seeded
@@ -284,6 +308,8 @@ const SEARCH_RANGES: Dictionary = {
 	# Appended, not filed beside squad_cap: the draw order is the table's, so a field added
 	# mid-table gives every existing seed a different personality.
 	"guard_strength_ratio": [0.5, 3.0],
+	"arrival_margin_falloff_seconds": [5.0, 120.0],
+	"place_coverage_weight": [0.0, 20.0],
 }
 
 # ── PER-UNIT TARGETING ──────────────────────────────────────────────────────────────
@@ -329,6 +355,7 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			# defends what it owns, and scouts not at all — a sparring partner rather than scenery,
 			# which is what an INERT brain made it.
 			config.set_all_periods(2.0)
+			config.field_refresh_seconds = 6.0
 			config.army_commit_threshold = 9999
 			config.preserve_min_cost = -1
 			config.retarget_switch_margin = 3.0
@@ -342,6 +369,7 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			config.decision_temperature = 0.0
 		PlayerSlot.Difficulty.EASY:
 			config.set_all_periods(1.5)
+			config.field_refresh_seconds = 4.0
 			config.army_commit_threshold = 8
 			config.preserve_min_cost = -1
 			config.retarget_switch_margin = 2.5
@@ -351,6 +379,7 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			config.squad_cap = 1
 		PlayerSlot.Difficulty.MEDIUM:
 			config.set_all_periods(0.667)
+			config.field_refresh_seconds = 3.0
 			config.army_commit_threshold = 5
 			config.preserve_min_cost = 250
 			config.retarget_switch_margin = 1.6
@@ -360,6 +389,7 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			config.squad_cap = 2
 		PlayerSlot.Difficulty.HARD:
 			config.set_all_periods(0.4)
+			config.field_refresh_seconds = 2.0
 			config.army_commit_threshold = 3
 			config.preserve_min_cost = 0
 			config.retarget_switch_margin = 1.3
@@ -372,6 +402,7 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 			# frame-perfect micro and an execution layer these parameters cannot express. This is
 			# the fast end of the same ramp, not that. See bot-roadmap.md §Difficulty first.
 			config.set_all_periods(0.1)
+			config.field_refresh_seconds = 1.0
 			config.army_commit_threshold = 2
 			config.preserve_min_cost = 0
 			config.retarget_switch_margin = 1.1

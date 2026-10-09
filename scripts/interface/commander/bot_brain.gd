@@ -43,6 +43,9 @@ const PRESERVATION_PERIOD_SECONDS: float = 1.0
 ## tick short of budget delays scouting rather than a fight; momentum before everything,
 ## because the military reads it.
 ## Above everything: until the command centre is down the bot has no economy to run.
+## Perception before any decision that reads it: the fields are rebuilt before the managers
+## on the same tick look at them.
+const JOB_PRIORITY_FIELDS: int = 110
 const JOB_PRIORITY_DEPLOYMENT: int = 100
 const JOB_PRIORITY_MOMENTUM: int = 90
 const JOB_PRIORITY_TARGETING: int = 80
@@ -116,6 +119,7 @@ var _jobs: Array[BotJob] = []
 ## Every job a brain runs, by name — what `PlayerSlot.disabled_bot_jobs` may name.
 ## `tests/test_BotJobSwitches.gd` holds it to the jobs `_build_jobs` actually makes.
 const JOB_NAMES: Array[StringName] = [
+	&"fields",
 	&"deployment",
 	&"momentum",
 	&"targeting",
@@ -238,7 +242,11 @@ func _build_jobs() -> void:
 	var combat: Callable = func() -> float: return config.combat_period_seconds
 	var strategy: Callable = func() -> float: return config.strategy_period_seconds
 	var scouting: Callable = func() -> float: return config.scout_period_seconds
+	var fields: Callable = func() -> float: return config.field_refresh_seconds
 	_jobs = [
+		# The spatial fields: a rebuild begun each period and carried on in pieces until it is
+		# complete (BotFields.advance), so no tick pays for every sweep at once.
+		BotJob.new(&"fields", self, fields, JOB_PRIORITY_FIELDS, _tick_fields, _fields_pending),
 		BotJob.new(
 			&"deployment",
 			self,
@@ -296,6 +304,22 @@ func _build_jobs() -> void:
 	]
 
 
+## The fields job's work: begin a rebuild when none is pending, then carry it on within the
+## allowance. A bot with no map has no fields and the job idles.
+func _tick_fields(a_allowance: int) -> int:
+	var fields: BotFields = bot.fields()
+	if fields == null:
+		return IDLE_JOB_WORK_UNITS
+	if not fields.is_pending():
+		fields.refresh()
+	return maxi(IDLE_JOB_WORK_UNITS, fields.advance(a_allowance))
+
+
+func _fields_pending() -> bool:
+	var fields: BotFields = bot.fields()
+	return fields != null and fields.is_pending()
+
+
 ## Wrap a manager's `tick() -> int` (work units spent) as a job's work callable. The allowance
 ## is not passed down: these ticks always finish, and report what they cost. (The economy's and
 ## the scout's ticks take the allowance themselves, and are registered unwrapped.)
@@ -343,6 +367,7 @@ func _apply_config() -> void:
 	_economy.place_frontage_bias = config.place_frontage_bias
 	_economy.place_shelter_bias = config.place_shelter_bias
 	_economy.place_corridor_weight = config.place_corridor_weight
+	_economy.place_coverage_weight = config.place_coverage_weight
 	_production.utility_unit_cap = config.utility_unit_cap
 	# The two errand counts the utility demand is sized against. Both are already parameters
 	# of other managers; production reads them because a builder and a scout are units it has
@@ -366,6 +391,8 @@ func _apply_config() -> void:
 	if bot != null:
 		bot.structure_demand_weight = config.structure_demand_weight
 		bot.demand_coverage_falloff = config.demand_coverage_falloff
+		bot.arrival_margin_falloff_seconds = config.arrival_margin_falloff_seconds
+		bot.use_fields = config.should_use_fields
 
 
 ## The momentum signal, or null before the strategy layer is built (first think). Lets a

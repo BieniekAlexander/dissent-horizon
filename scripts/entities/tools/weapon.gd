@@ -475,6 +475,12 @@ func ground_reach() -> float:
 	return _range_radius(attack_range_shape_ground)
 
 
+## This weapon's ground reach read off its range NODE rather than the shape _ready resolves,
+## so a weapon that is not in the tree — a build preview — can answer. -1.0 with no node.
+func preview_ground_reach() -> float:
+	return _range_radius(range_node(false))
+
+
 ## This weapon's reach against one targetable layer (a CollisionLayers.Mask bit), or -1.0
 ## when it cannot hit that layer at all.
 func reach_on_layer(a_layer: int) -> float:
@@ -566,7 +572,14 @@ func resize_clip(a_clip_size: int) -> void:
 func _range_radius(a_shape_node: CollisionShape3D) -> float:
 	if a_shape_node == null or a_shape_node.shape == null:
 		return -1.0
-	var scale: float = a_shape_node.global_transform.basis.x.length()
+	# A node outside the tree (a build preview, asked through preview_ground_reach) has no
+	# global transform to read — the engine returns identity with an error — so its own
+	# transform's scale stands in; the range node is never nested under a scaled parent.
+	var scale: float = (
+		a_shape_node.global_transform.basis.x.length()
+		if a_shape_node.is_inside_tree()
+		else a_shape_node.transform.basis.x.length()
+	)
 	if a_shape_node.shape is CylinderShape3D:
 		return (a_shape_node.shape as CylinderShape3D).radius * scale
 	if a_shape_node.shape is SphereShape3D:
