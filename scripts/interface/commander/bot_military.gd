@@ -377,6 +377,12 @@ func _tick_guard() -> void:
 ## value. Whoever is not needed is the reserve, and goes on to the wave — so a threat that
 ## never ends no longer swallows everything built while it stands. A unit that cannot hurt
 ## any threat never guards. At least one unit answers any threat, however cheap.
+##
+## THE ARRIVAL TERM (decided 2026-10-08, lattice-and-topology.md §Defending assets across
+## space): a unit counts toward the guard only if it can reach the worst-threatened structure
+## before the threats there have destroyed it — its arrival time along its class's field
+## against the structure's time to kill. A unit that arrives after the building has fallen is
+## worth nothing there, whatever its matchup. Not applied with no fields (a bot with no map).
 func _size_guard(a_threats: Array) -> void:
 	var needed: float = 0.0
 	for threat: Dictionary in a_threats:
@@ -387,7 +393,7 @@ func _size_guard(a_threats: Array) -> void:
 		var best: float = 0.0
 		for threat: Dictionary in a_threats:
 			best = maxf(best, _bot.matchup(unit, threat["enemy"]))
-		if best > 0.0:
+		if best > 0.0 and _arrives_in_time(unit, a_threats):
 			answers.append([unit, _bot.unit_cost(unit.id) * best])
 	answers.sort_custom(
 		func(a: Array, b: Array) -> bool:
@@ -407,6 +413,30 @@ func _size_guard(a_threats: Array) -> void:
 	)
 	_guard.set_members(chosen)
 	_reserve.set_members(rest)
+
+
+## Whether `a_unit` can reach the structure the worst of `a_threats` stands at before the
+## threats on that structure have destroyed it. True with no fields to read.
+func _arrives_in_time(a_unit: Actor, a_threats: Array) -> bool:
+	var fields: BotFields = _bot.fields()
+	if fields == null or a_threats.is_empty():
+		return true
+	var worst: Dictionary = a_threats[0]
+	for threat: Dictionary in a_threats:
+		if threat["value"] > worst["value"]:
+			worst = threat
+	var structure: Actor = worst["structure"]
+	var attackers: Array = []
+	for threat: Dictionary in a_threats:
+		if threat["structure"] == structure:
+			attackers.append(threat["enemy"])
+	var to_kill: float = _bot.time_to_kill(structure, attackers)
+	var arrival: float = fields.arrival_seconds_between(
+		VU.in_xz(a_unit.global_position),
+		VU.in_xz(structure.global_position),
+		_bot.mobility_of(a_unit)
+	)
+	return arrival <= to_kill
 
 
 ## Every threat to the base, at the radius this military judges one by — a command centre's
@@ -491,10 +521,21 @@ func _staging_point(a_objective: Vector3) -> Vector3:
 ## at once — next to the building that is exposed, on the side the threat comes from — and
 ## it is what replaced massing on the base centroid, which stood the army in the middle of
 ## its own buildings on whichever side they happened to be. Home itself with no structure.
+##
+## ON THE APPROACH BAND where there is one (BotFields.approach_post): the explored band cell
+## at least STAGING_OFFSET from the anchor that lies nearest home along the enemy's walk —
+## the ground the enemy would actually cross, which the bearing from the frontmost structure
+## only approximates. The bearing rule stands where nothing is believed yet.
 func _station_point(a_direction: Vector2) -> Vector3:
 	var home: Vector3 = _home_anchor_position()
 	var front: Actor = _bot.frontmost_structure(a_direction)
 	var anchor: Vector3 = front.global_position if front != null else home
+	var fields: BotFields = _bot.fields()
+	if fields != null:
+		var post: Variant = fields.approach_post(VU.in_xz(anchor), a_direction, STAGING_OFFSET)
+		if post != null:
+			var xz: Vector2 = post
+			return Vector3(xz.x, _bot.map.terrain_height_at(xz), xz.y)
 	return anchor + VU.from_xz(a_direction) * STAGING_OFFSET
 
 

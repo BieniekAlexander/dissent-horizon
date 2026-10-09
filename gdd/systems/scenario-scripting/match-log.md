@@ -11,7 +11,7 @@ as JSON-ready records. **Every after-the-fact view of a match reads the log and 
 same live and from a file. Built 2026-10-07.
 
 It is the project's one HISTORY, and the bot does not read it. The bot's world model keeps state
-and deliberately no event log ([ai/world-model](../ai/world-model.md) §The model), and the bot
+and deliberately no event log ([ai/world-model/layers](../ai/world-model/layers.md) §The model), and the bot
 signals the debug overlay draws are that state ([ai/debug-signals](../ai/debug-signals.md)), so
 none of them could be reused as events. The log hooks the game itself, which is also what makes
 it cover a human player.

@@ -15,7 +15,7 @@ game situation and assert what the bot DECIDES, organised so the state space is 
 purpose rather than by accident. It extends the existing sim harness
 ([simulation-tests](../scenario-scripting/simulation-tests.md)) rather than adding a third
 one; every lever it needs exists in the engine and is missing only from the spec grammar.
-The decisions it tests are the [world-model](world-model.md)'s reads and the actuation they
+The decisions it tests are the [world-model](world-model/README.md)'s reads and the actuation they
 drive; the brief is [brief.md](brief.md) §Training.
 
 ## What the harness has, and what it lacks
@@ -86,6 +86,7 @@ One family, read from the bot's own records; each takes `slot:` and the usual te
 |---|---|---|
 | `posture` | `is: ATTACK / MASS / DEFEND` | `BotMilitary.current_posture()` |
 | `objective` | `near: <group>`, `within: N` | the military's attack objective lies within N of that group's centroid |
+| `placed` | `piece:`, `near: <group>`, `within: N` | a build order for that piece was issued to stand within N of the group — where a turret went (2026-10-08) |
 | `ordered` | `kind: build / train / attack / move_at / …`, `piece:`, `of:` (optional), `at_least: N` | `BotUsageLog.actions` records that many ISSUED orders of that kind for that piece — and `of:` narrows to orders whose target is in that group |
 | `refused` | same, plus `cause:` | the actuator refused it, with that precondition cause |
 | `chosen` | `domain: train / production_structure / defence_structure / …`, `piece:` | `BotUsageLog.choices` records it as chosen in that domain |
@@ -274,6 +275,25 @@ Control: one army size changed per pair; axis **commitment**. Writing them found
    seen enemy or not, so an `attack_value_ratio` above that never fires on value and every
    attack waits on the stalemate clock — see [bot-parameter-space](bot-parameter-space.md)
    §Where holding-others-equal is a lie, item 3.
+
+### fields/ — where the army stands, where a turret goes, who guards
+
+Built 2026-10-08 with the spatial model
+([world-model/lattice-and-topology](world-model/lattice-and-topology.md)), under
+`sims/bot/fields/`. Each puts the believed enemy STRUCTURE east — the threat axis the bearing
+rules read — and the believed enemy ARMY north and nearer, so the approach band runs north
+and a decision that reads the band parts from one that reads the bearing:
+
+- **`stage_on_the_approach`** — a massing army's objective lands beside a marker on the north
+  approach (`objective near: A.marker`), not out east. Green.
+- **`turret_covers_the_band`** — with `place_coverage_weight` set high enough to outweigh the
+  frontage bearing, the turret is ordered onto the north approach (`placed`, the check added
+  for it). Green; its control with the weight at 0 places by bearing and goes red, which is
+  what makes it a test of the term rather than of the default weight.
+- **`guard_arrives_in_time`** — a near unit answers a raid on an outlying building and a far
+  one, whose walk is longer than the building's time to kill, does not. `needs:` a way to
+  start a slot with a wave out and a staged reserve: without one the posture is DEFEND and
+  the whole army answers, so it reads specification-red until that setting exists.
 
 ## What the runner adds
 

@@ -51,7 +51,8 @@ def parse_nodes(path):
         if m:
             cur = {"name": m.group(1), "type": m.group(2), "parent": m.group(3),
                    "kind": ext.get(m.group(4)) or m.group(2), "pos": None,
-                   "start": "start_position" in line}
+                   "start": "start_position" in line
+                   or "start_point" in (ext.get(m.group(4)) or "")}
             nodes.append(cur)
             continue
         if cur is not None and line.startswith("transform = Transform3D("):
@@ -59,8 +60,9 @@ def parse_nodes(path):
             cur["pos"] = (v[9], v[10], v[11])
         elif line.startswith("["):
             cur = None
+    # Pieces sit under the root; a skirmish's start-point markers sit under its Map.
     return [n for n in nodes if n["pos"] is not None
-            and n["parent"] == "." and n["type"] != "DirectionalLight3D"]
+            and n["parent"] in (".", "Map") and n["type"] != "DirectionalLight3D"]
 
 
 def report(tscn, tres):
@@ -102,7 +104,8 @@ def report(tscn, tres):
                 worst = max(worst, dv)
                 n += 1
         mism = cells = 0
-        for j in range(gd):
+        # A map with no painted tiles stores an empty array; there is nothing to compare.
+        for j in (range(gd) if tiles else ()):
             for i in range(gw):
                 x, z = i - chw, j - chd
                 if not in_play(x, z):
@@ -136,7 +139,8 @@ def report(tscn, tres):
             d = ((a["pos"][0] - b["pos"][0]) ** 2 + (a["pos"][2] - b["pos"][2]) ** 2) ** 0.5
             if d < closest:
                 closest, pair = d, (a["name"], b["name"])
-    print("  closest pair of authored entities: %.3f  (%s, %s)" % (closest, pair[0], pair[1]))
+    if pair is not None:
+        print("  closest pair of authored entities: %.3f  (%s, %s)" % (closest, pair[0], pair[1]))
     starts = sorted([n for n in parse_nodes(tscn) if n["start"]], key=lambda n: n["name"])
     if len(starts) == 2:
         a, b = starts[0]["pos"], starts[1]["pos"]

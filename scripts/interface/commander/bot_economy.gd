@@ -135,6 +135,11 @@ var place_shelter_bias: float = 0.6
 ## the bot pack buildings against terrain and against each other.
 var place_corridor_weight: float = 0.8
 
+## How many cells of sprawl a static defence's full COVERAGE of the approach band is worth
+## (BotFields.reach_coverage): the term that puts a turret where the enemy will walk rather
+## than merely forward. A PARAMETER (BotDifficulty.place_coverage_weight); 0 is bearing alone.
+var place_coverage_weight: float = 8.0
+
 ## HOW LONG ONE CONSTRUCTION JOB MAY HOLD A SLOT before the bot writes it off.
 ##
 ## `tick()` returns at the very top while `build_concurrency` jobs are in flight, so a Build
@@ -1623,6 +1628,17 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 				anchor, forward, bearing, turned, _orientation_bits(turned, true, forward)
 			)
 		)
+	# A STATIC DEFENCE is scored on how much of the approach band its gun would cover from
+	# each spot (lattice-and-topology.md §Distance fields: reach_coverage) — the term that
+	# rejected the turrets whose ranges covered cliffs. Nothing believed yet: no band, no term.
+	if a_type in _bot.buildable_defence_structure_types():
+		var fields: BotFields = _bot.fields()
+		var reach: float = _bot.ground_reach_of_type(a_type)
+		if fields != null and reach > 0.0:
+			var coverage: PackedFloat32Array = fields.reach_coverage(reach)
+			for part: Dictionary in rankings:
+				part["coverage"] = coverage
+				part["coverage_lattice"] = fields.lattice
 	return {
 		"type": a_type,
 		"dims": dims,
@@ -1820,6 +1836,7 @@ func _start_ranking(
 	# six hundred of those was most of what a decision cost. Only XZ matters to the score.
 	var world_seed: Vector2 = VU.in_xz(map.footprint_centroid(seed_origin, a_dims))
 	return {
+		"anchor": a_anchor,
 		"forward": a_forward,
 		"right": Vector2(-a_forward.y, a_forward.x),
 		"bearing": a_bearing,
@@ -1857,6 +1874,11 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 	var bearing: float = a_ranking["bearing"]
 	var basis_x: Vector2 = a_ranking["basis_x"]
 	var out: PackedInt64Array = a_ranking["out"]
+	var anchor: Vector2 = a_ranking["anchor"]
+	var coverage: PackedFloat32Array = a_ranking.get(
+		"coverage", PackedFloat32Array()
+	)
+	var lattice: Lattice = a_ranking.get("coverage_lattice", null)
 	var budget_end: int = _work + a_allowance
 	var dz: int = a_ranking["row"]
 	var first: int = dz
@@ -1900,6 +1922,10 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 				- bearing * along
 				- place_corridor_weight * float(clearance)
 			)
+			if not coverage.is_empty():
+				var cell: Vector2i = lattice.index_at(anchor + offset)
+				if lattice.is_in_bounds(cell):
+					cost -= place_coverage_weight * coverage[lattice.index_of(cell)]
 			out.append(
 				_pack(
 					cost, along, offset.dot(right), origin_z * width + origin_x, a_ranking["bits"]

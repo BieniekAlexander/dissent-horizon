@@ -228,3 +228,40 @@ func test_orders_are_totalled_issued_against_refused_per_kind() -> void:
 	assert_eq(
 		BotDebugInternalsLayer.action_lines(log.actions()), PackedStringArray(["  build  2 / 1"])
 	)
+
+
+# ─── FIELDS ──────────────────────────────────────────────────────────────────
+
+
+func test_a_bot_without_fields_draws_nothing_and_says_so() -> void:
+	var pen := BotDebugPen.new()
+	BotDebugFieldsLayer.new().draw(_bot, pen)
+	assert_true(pen.is_empty())
+	assert_eq(BotDebugFieldsLayer.new().readout(_bot), PackedStringArray(["no fields yet"]))
+
+
+func test_the_band_is_tiled_and_the_readout_counts_it() -> void:
+	var fields: FixtureFields = FixtureFields.over_open(Rect2(0.0, 0.0, 45.0, 45.0))
+	fields.add_walker(Vector2i(0, 4), 2.5)
+	fields.home = [Vector2i(8, 4)]
+	_bot._fields = fields
+	var band: int = 0
+	for b: int in fields.approach_band(NavAgentClass.Size.SMALL):
+		band += b
+	assert_gt(band, 0)
+	var pen := BotDebugPen.new()
+	BotDebugFieldsLayer.new().draw(_bot, pen)
+	# Every lattice cell the enemy can reach inside the horizon is a quad (two triangles), the
+	# band cells among them; nothing is drawn for quiet ground.
+	assert_gte(pen.triangle_vertex_count(), band * 6)
+	var lines: PackedStringArray = BotDebugFieldsLayer.new().readout(_bot)
+	assert_true(lines[2].contains("approach band: %d cells" % band), lines[2])
+	assert_true(lines[0].contains("ready"), lines[0])
+
+
+func test_arrival_shades_red_now_to_blue_at_the_horizon() -> void:
+	var layer := BotDebugFieldsLayer
+	assert_true(layer.arrival_color(0.0).is_equal_approx(layer.COLOR_SOON))
+	assert_true(
+		layer.arrival_color(BotFields.QUIET_HORIZON_SECONDS).is_equal_approx(layer.COLOR_LATE)
+	)

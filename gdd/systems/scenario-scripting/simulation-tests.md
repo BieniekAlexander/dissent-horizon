@@ -480,6 +480,7 @@ pass. The rule for them, and the situations they were written for, are
 |---|---|---|
 | `posture` | `slot`, `is: ATTACK / MASS / DEFEND` | `BotMilitary.current_posture()` is that |
 | `objective` | `slot`, `near: <group>`, `within: N` | the army's objective lies within N of that group's centroid |
+| `placed` | `slot`, `piece`, `near: <group>`, `within: N` | the actuator ISSUED a build order for that piece to stand within N of the group's centroid (`BotUsageLog.build_positions`) — the placement decision, which `ordered` counts but cannot locate. Added 2026-10-08 |
 | `ordered` | `slot`, `kind: <actuator verb>`, optional `piece`, `at_least` (default 1) | the actuator ISSUED that many orders of that kind (`BotUsageLog.actions`, a ledger by type) |
 | `refused` | `slot`, `kind`, optional `piece`, optional `cause: <PreconditionFailureCause>`, `at_least` | the actuator refused that many, with that cause when named |
 | `chosen` | `slot`, `domain: <choice domain>`, `piece` | the piece won a scored decision in that domain (`BotUsageLog.choices`) |

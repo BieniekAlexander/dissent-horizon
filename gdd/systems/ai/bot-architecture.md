@@ -516,7 +516,7 @@ answer for it.
 
 **A turret is bought where the DEMAND clears its cost, never to a count** (2026-10-07;
 `BotEconomy._defence_demand`, `tests/test_BotDefenceDemand.gd`). The demand is
-[world-model](world-model.md) §L3's: per own region — the ground within
+[world-model/layers](world-model/layers.md) §L3's: per own region — the ground within
 `DEFENCE_REGION_RADIUS` of a built structure — the VALUE standing there × its VULNERABILITY,
 where vulnerability is the lattice's `tension − |own − enemy|` over the tension, read off
 presence until the lattice exists: own influence is the cost of the bot's armed units and
@@ -858,19 +858,54 @@ per-second dump shows why: on the losing side a builder walks the length of the 
 scouting errand while its partner stands still on a build that never completes, and the economy
 freezes for ~90 s until the stall timeout releases it.
 
-> **TODO — the leading suspect is `BotScout`'s frontier grid, which is a world-anchored
-> quantisation and is NOT carried onto itself by the map's reflection.** `_grid_index_at`
-> computes `roundi((local.x + _map_half_w) / SCOUT_GRID_SIZE)`; on this map that is
-> `roundi(x/5 + 15.9)`, and `round(u + 15.9) + round(15.9 − u)` is not constant in `u`, so a
-> point and its reflection land in buckets that are not mirror partners. The two commanders
-> therefore partition the map differently, value frontier targets differently, and — measured
-> above — cover 0.430 against 0.306 of it. **This is the same class of bug as the ring scan,
-> one module over**, and it is the first thing to test against the start-position instrument.
-> Anchoring the grid so its bucket boundaries are symmetric about the map centre is the fix to
-> try. A second, smaller source: the opening deployment scatter draws from the one shared
-> `SU.rng` in deploy order, so the two openings differ by ~0.3 world units from tick 30 — but
-> that follows the SLOT, and the measured bias follows the POSITION 8/8, so it is a noise
-> source rather than the cause.
+### The start-position bias: found 2026-10-09
+
+The 2026-10-08 attribution (the scout grid's world-anchored quantisation) was right in kind and
+wrong in the particular: once the grid indexed through the map-centred `Lattice` it was
+mirror-exact, and the bias stayed. The instrument that found it was the generator's symmetric
+mode ([map-generation](../terrain-and-navigation/map-generation.md) §Symmetric maps) with both
+bots pinned (`personality_spread` and `decision_temperature` 0): on a map that is exactly its
+own image, two deterministic bots must stay mirror-identical until they fight, and the first
+half-second sample at which they differ is where the bot carries a world axis. Three did, and
+each is fixed where it lives:
+
+1. **The fog rounded.** `FogRaster.world_to_pixel` rounded, which put nominal pixel centres on
+   cell CORNERS; every read at a cell centre was a tie, resolved toward +x and +z on both halves
+   of the map. The scout grid's first sight sweep already disagreed by four lattice points at
+   half a second. It floors now, so a pixel is a cell and a point reads the cell it is in
+   ([scan-and-vision-cost](../combat/scan-and-vision-cost.md) §The fog of war), and the lattice
+   puts its points on cell centres whatever the map's parity (`Lattice.covering`).
+2. **The base was the origin before the drop.** `Bot.base_centroid` returned the world origin
+   while the bot owned no structure, so every "nearest to the base" read of the opening — the
+   threat axis above all — measured from the map centre, a frame both bots shared; the two
+   nearest beliefs tied and both bots chose the same one. The army is the base until a
+   structure stands.
+3. **The threat axis faced a drone.** The HEGEMONY opening parks a reveal drone over every
+   shelter for every player, so each bot sees the other's six, unarmed and immobile, and
+   remembered for three minutes. `threat_direction` took the nearest believed unit without
+   asking whether it could attack, and the whole base was laid out facing a drone. It now
+   applies `base_threats`' rule — what cannot hurt is no threat — through the belief filter.
+
+With the three fixes the two bots are identical through the command-centre drop and the first
+seventy seconds, and part at the first fight, which tree order decides. Measured on the
+symmetric map (`map_seed: 1`, played at seed 3), pinned, twelve matches, start points swapped
+on half:
+
+| build | the first start point won |
+|---|---|
+| before (the T-102 measurement) | 11 of 12 |
+| fog fix alone | 9 of 12 |
+| all three | 7 of 12, one stalemate (7–4) |
+
+Seven to four is what twelve coin flips look like; eleven to one was not. Every match of the
+three batches reports 14 `push_error`s that are main's own (spectator HUD buttons without
+tooltips), none from the bot.
+
+A one-pixel scouting difference still appears at 17 s — a unit standing exactly on a cell edge
+stamps one pixel differently from its image, which floor cannot cure — and is accepted: noise
+with no preferred side, where the three above all preferred one. The opening deployment scatter
+drawing from the shared `SU.rng` in deploy order is the other accepted noise; it follows the
+slot, not the position.
 
 ## The bot works lithium ponds, not just extraction sites
 
@@ -1031,7 +1066,7 @@ building the builder would have to come back for anyway. Cover: `tests/test_BotB
 
 TODO: this reads the threat AT the site, not ALONG the walk — a builder whose path crosses a
 defended choke still goes. The lattice's `threat` channel is the read for that
-([world-model](world-model.md) §L2), and this rule becomes one query of it.
+([world-model/lattice-and-topology](world-model/lattice-and-topology.md)), and this rule becomes one query of it.
 
 ## Dominion routes
 

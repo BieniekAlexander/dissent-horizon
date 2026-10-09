@@ -59,6 +59,14 @@ directly**; it changes what every lower decision concludes.
 | `risk` | cautious ←→ greedy | `economy_reserve`, expansion distance, how thin it will run |
 | `curiosity` | blind ←→ informed | `INFORMATION_VALUE_ENERGY`, so scouting competes harder when the plan depends on what is out there |
 
+**The dials are also the bot's disposition where INFORMATION is missing** (Alex, 2026-10-08):
+what the bot assumes about an enemy it has not seen is a posture, not a derivation. The first
+consumer is spatial — the threat clock's arrival time before any sighting, when there is no
+believed source to measure from, read off `risk` and `aggression` rather than off new
+`BotDifficulty` fields ([world-model/lattice-and-topology](world-model/lattice-and-topology.md)
+§Passability is relative). The humility prior `assumed_enemy_parity` is the same kind of
+assumption for the enemy's unseen size, and is a candidate to fold in when this layer is built.
+
 All-in is then `commitment` high and `risk` high; booming is `commitment` low and `risk`
 high; turtling is `aggression` low and `risk` low. **None of those is written down anywhere**
 — they are regions a player would recognise, which is the test the representation has to

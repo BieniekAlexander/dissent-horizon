@@ -28,6 +28,8 @@ var _choices: Dictionary = {}
 var _actions: Dictionary = {}
 ## type -> Array of [x, z] where a targeted sanction of that ability was cast.
 var _cast_positions: Dictionary = {}
+## piece id → the world positions its build orders were issued at (record_build_position).
+var _build_positions: Dictionary = {}
 ## The latest choices, oldest first: [{"domain", "chosen", "chosen_score", "runner_up",
 ## "runner_up_score"}]. The tables above keep counts and lose which decision came when.
 var _recent: Array[Dictionary] = []
@@ -71,6 +73,24 @@ func record_cast_position(a_ability: StringName, a_world: Vector3) -> void:
 	var positions: Array = _cast_positions.get(String(a_ability), [])
 	positions.append([snappedf(a_world.x, 0.01), snappedf(a_world.z, 0.01)])
 	_cast_positions[String(a_ability)] = positions
+
+
+## Where a build order for `a_type` was ISSUED to stand — the placement decision, which the
+## action ledger counts but cannot locate. A decision sim's `placed` check reads these.
+func record_build_position(a_type: StringName, a_world: Vector3) -> void:
+	var positions: Array = _build_positions.get(String(a_type), [])
+	positions.append(a_world)
+	_build_positions[String(a_type)] = positions
+
+
+## Every issued build position of `a_type`, oldest first; every type's with "".
+func build_positions(a_type: String = "") -> Array:
+	if a_type != "":
+		return _build_positions.get(a_type, []).duplicate()
+	var all: Array = []
+	for type: String in _build_positions:
+		all.append_array(_build_positions[type])
+	return all
 
 
 ## The latest choices, oldest first — see `_recent`.

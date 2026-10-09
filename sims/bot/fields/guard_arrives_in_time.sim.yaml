@@ -1,0 +1,44 @@
+description: |
+  THE GUARD TAKES ONLY WHAT CAN ARRIVE BEFORE THE BUILDING FALLS. With a wave out east and a
+  raid on an outlying building north of home, the staged reserve answers it — but a reserve
+  unit standing far to the south, whose walk is longer than the building's time to kill under
+  the raid, is left in the reserve, and the near one goes. Axis: POSITIONING.
+  Rule: gdd/systems/ai/world-model/lattice-and-topology.md §Defending assets across space.
+needs: |
+  a way to start a thinking slot with a wave already out and a staged reserve (a `squads:`
+  setting), so the guard can form without a wave being launched and reinforcements trained
+  inside the window; today the reserve is only ever units trained after the launch.
+setting: { kind: flat, size: 120 }
+given:
+  A:
+    settings:
+      difficulty: HARD
+      vision: full
+      config: { scout_unit_budget: 0, squad_cap: 3, guard_strength_ratio: 0.5 }
+    with:
+      base:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: west
+      outpost:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: { from: A.base, distance: 30, bearing: north }
+      near:
+        of: [ { piece: cl_bioLight_antiMech, count: 1 } ]
+        at: { from: A.base, distance: 8, bearing: north }
+      far:
+        of: [ { piece: cl_bioLight_antiMech, count: 1 } ]
+        at: { from: A.base, distance: 40, bearing: south }
+  B:
+    with:
+      structure:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: east
+      raid:
+        of: [ { piece: cl_bioLight_antiMech, count: 4 } ]
+        at: { from: A.outpost, distance: 4, bearing: north }
+        formation: cluster
+        orders: [ { attack: { target: A.outpost } } ]
+run: { for: 30s, seed: 1 }
+expect:
+  - { of: A.near, check: command, is: AttackMove, near: B.raid, within: 10, by: 15s }
+  - not: [ { of: A.far, check: command, is: AttackMove, near: B.raid, within: 10, by: 15s } ]

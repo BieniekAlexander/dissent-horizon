@@ -82,6 +82,16 @@ class FakeBot:
 	func matchup(a_attacker: Actor, _a_target: Actor) -> float:
 		return 0.0 if harmless.has(a_attacker) else 1.0
 
+	## The guard's arrival term reads these: every stub walks at 2.0, and a raid destroys its
+	## building in `kill_seconds`.
+	var kill_seconds: float = INF
+
+	func mobility_of(_a_piece: Actor) -> Dictionary:
+		return {"speed": 2.0, "nav_class": NavAgentClass.Size.SMALL, "is_air": false}
+
+	func time_to_kill(_a_target: Actor, _a_attackers: Array) -> float:
+		return kill_seconds
+
 	func is_base_under_threat(_a_threat_radius: float = 30.0) -> bool:
 		return under_threat
 
@@ -391,6 +401,26 @@ func test_a_unit_that_cannot_hurt_the_threat_never_guards() -> void:
 	assert_true(_military._guard.has(useful))
 	assert_false(_military._guard.has(useless), "it would stand beside the raider uselessly")
 	assert_true(_military._reserve.has(useless))
+
+
+func test_a_unit_that_cannot_arrive_before_the_building_falls_never_guards() -> void:
+	# Open ground under home and the raided building, so arrival is distance over speed.
+	_bot._fields = FixtureFields.over_open(Rect2(-60.0, -60.0, 140.0, 140.0))
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military.squad_cap = 3
+	_military.reinforce_fraction = 1.0
+	_military.guard_strength_ratio = 3.0
+	var near := _armed_unit(FakeBot.HOME)  # 30 units from the building: 15 s at 2.0
+	var far := _armed_unit(FakeBot.HOME + Vector3(60.0, 0.0, 0.0))  # 90 units: 45 s
+	_raid_at_home(float(FakeBot.UNIT_PRICE))
+	_bot.kill_seconds = 20.0
+	_tick_attack()
+	assert_true(_military._guard.has(near), "it gets there with the building standing")
+	assert_false(_military._guard.has(far), "it would arrive at rubble")
+	_bot.kill_seconds = INF
+	_tick_attack()
+	assert_true(_military._guard.has(far), "a building nobody can kill waits for anyone")
 
 
 func test_the_guard_is_not_released_to_the_wave_while_it_holds() -> void:

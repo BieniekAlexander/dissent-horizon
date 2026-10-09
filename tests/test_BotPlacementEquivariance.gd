@@ -64,6 +64,9 @@ class FakeBot:
 	var base: Vector3 = Vector3.ZERO
 	var threat: Variant = null
 	var production: Array = [PRODUCTION]
+	## The one static defence type, with a gun reaching this far; none unless a test says.
+	var defence: Array = []
+	var defence_reach: float = 12.0
 
 	func base_centroid() -> Vector3:
 		return base
@@ -73,6 +76,12 @@ class FakeBot:
 
 	func buildable_production_structure_types() -> Array:
 		return production
+
+	func buildable_defence_structure_types() -> Array:
+		return defence
+
+	func ground_reach_of_type(_a_type: StringName) -> float:
+		return defence_reach
 
 	func nearest_believed_enemy_structure_position(_a_accept: Variant = null) -> Variant:
 		return threat
@@ -429,3 +438,31 @@ func test_both_orientations_of_a_long_footprint_are_ranked() -> void:
 
 func _turns_of(a_economy: BotEconomy) -> int:
 	return int(a_economy._spot_turns.values()[0]) if not a_economy._spot_turns.is_empty() else -1
+
+
+# ─── COVERAGE OF THE APPROACH BAND ──────────────────────────────────────────
+
+const DEFENCE: StringName = &"fake_defence"
+
+
+## The believed threat lies EAST, so the bearing pulls a frontage building east; but the
+## fields say the enemy's actual walk to home comes down from the NORTH (a believed group
+## there), so the approach band runs north from the base. A turret goes where the band is.
+func test_a_defence_is_pulled_onto_the_approach_band_not_merely_forward() -> void:
+	var bot: FakeBot = _bot_at(Vector2.ZERO, Vector2(40.0, 0.0))
+	bot.defence = [DEFENCE]
+	# A 35-unit lattice at pitch 5 puts a cell centre on the base at (0, 0), so the band from
+	# the walker runs due north THROUGH the base rather than up a column beside it (on the
+	# 32-cell map's own lattice the centres sit at ±2.5, by Lattice.covering's parity rule).
+	var fields: FixtureFields = FixtureFields.over_open(Rect2(-17.5, -17.5, 35.0, 35.0))
+	fields.home = [fields.lattice.index_at(Vector2.ZERO)]
+	fields.add_walker(fields.lattice.index_at(Vector2(0.0, 14.0)), 2.0)  # inside the 32-cell map
+	bot._fields = fields
+	var economy := StubEconomy.new(bot, null)
+	economy.place_coverage_weight = 0.0
+	var by_bearing: Vector2 = _xz(economy._find_build_spot(DEFENCE))
+	economy = StubEconomy.new(bot, null)
+	economy.place_coverage_weight = 20.0
+	var by_coverage: Vector2 = _xz(economy._find_build_spot(DEFENCE))
+	assert_gt(by_bearing.x, absf(by_bearing.y), "bearing alone: east, toward the believed threat")
+	assert_gt(by_coverage.y, absf(by_coverage.x), "with coverage: north, onto the band")

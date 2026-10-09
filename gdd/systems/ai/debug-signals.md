@@ -11,7 +11,7 @@ viewed (the spectator HUD's POV toggle) while the debug view is up, and the spec
 **Bot overlay** picker chooses the category. A category is world marks plus a text readout in
 the top-right corner. See [debug-mode](../ux/ui/debug-mode.md) §The debug view.
 
-Each signal carries its level in the [world model](world-model.md) (L0 sightings, L1 tracks,
+Each signal carries its level in the [world model](world-model/README.md) (L0 sightings, L1 tracks,
 L2 situation, L3 assessment, L4 attention), and one of three costs:
 
 - **stored**: the bot keeps it; drawing it is free.
@@ -31,7 +31,7 @@ it shows why the bot did what it did, including when it was wrong.
 
 | Signal | Level | Cost | Shown as |
 |---|---|---|---|
-| Sight age per scout-grid point | L2 | stored | a marker per point, green → red over the expiry; grey if never seen |
+| Sight age per lattice cell (the scout grid's point at its centre) | L2 | stored | a marker per point, green → red over the expiry; grey if never seen |
 | Scouts out, their waypoint, their stall clock | L4 | stored | a ring per scout, cyan → orange toward the stall limit, white while waiting; a line to its waypoint |
 | Ever-seen and stale fractions | L2 | cheap | readout |
 | Scouts out against the allowance, and how many are waiting | L4 | stored | readout |
@@ -59,6 +59,20 @@ Remembered structure meshes are already drawn by the game itself (the blackboard
 | Safety, and its three terms (under attack, outgunned, bleeding) | L3 | cheap | readout |
 | The income target, and what safety bends it to | L3 | cheap | readout |
 | Static-defence demand per region (value, own, enemy, demand) | L3 | cheap | a ring per contested region, blue → magenta as its demand nears the cheapest turret's price, and a stick that high; readout, ranked |
+
+### Fields
+
+Built 2026-10-08 — the lattice reads of
+[world-model/lattice-and-topology](world-model/lattice-and-topology.md), every one STORED on
+the ready snapshot (`BotFields`); the overlay never triggers a sweep.
+
+| Signal | Level | Cost | Shown as |
+|---|---|---|---|
+| The approach band (SMALL) | L2 | stored | a magenta tile per band cell |
+| Enemy arrival time per cell | L2 | stored (a lookup per cell) | a tile red (now) → blue (the quiet horizon); quiet ground undrawn |
+| The presence penalty | L2 | stored | a yellow outline per penalised cell |
+| The post the army stands at | L3 | cheap | a white square and stick |
+| Lattice size, rebuild state, explored and passable fractions, sources, band size, arrival at base | L2/L3 | cheap | readout |
 
 ### Army
 
@@ -120,6 +134,9 @@ TODO: catalogued and not drawn, each for the reason given.
 - **Bot internals:** the usage log's per-piece choice counts and cast positions are not shown
   (the self-play report reads them from the log file).
 
-The world model's L2 channels (influence, threat by damage type, tension, vulnerability,
-value, approach, combat) are not built. Once they are, each is a heat map on the scout grid's
-lattice, and the scout grid's marker is the template for drawing one.
+The topology reads — arrival time, the approach band, quiet ground, the presence penalty,
+the chosen post — are built and drawn (§Fields above, 2026-10-08). The world model's other
+L2 channels (influence, threat by damage type, tension, vulnerability, value, combat) are
+not built — `PLANNED` in [world-model/lattice-and-topology](world-model/lattice-and-topology.md);
+once they are, each is a heat map on the same lattice, and the Fields layer's tile is the
+template for drawing one.

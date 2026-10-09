@@ -51,7 +51,8 @@ the players stand.**
 **What is taken, and what is not.**
 
 1. **No mirroring.** Comparable access comes from how resources are placed relative to the
-   starts, not from geometry.
+   starts, not from geometry. The one exception is a TRAINING control, never a shipped map:
+   §Symmetric maps.
 2. **AoE4's `contested` fraction, generalised.** Every resource — not only the ones meant for the
    middle — is placed against a *target favor* (§Favor). AoE4's un-raidable guaranteed node is
    **not** taken: there is no default "natural expansion", and no ENERGY feature is placed near
@@ -914,6 +915,101 @@ of later dressing (cliff faces, ramps, mountains, shores, waterfalls) →
 [visual-facets.md](visual-facets.md), which also holds the shortlist of what is worth building.
 
 *Invariant:* none on the map — it cannot fail a generation.
+
+## Symmetric maps — a training control
+
+The generator's `symmetric` parameter, off by default, makes the finished map point-symmetric
+about its centre: every corner height, tile, void cell, feature, water body and start point has
+an exact image under `(x, z) -> (-x, -z)` (Alex, 2026-10-09).
+
+### Why it exists, and why it is not a map rule
+
+The game is not meant to be played on symmetric maps, and §Precedent stands: fairness comes
+from placement, not geometry. The mode is for the self-play harness. A bot parameter search
+scores vectors by mirror matches, and on an authored map the side a vector draws can decide
+the match outright — on `skirmish.tscn` with the personality jitter pinned, the second start
+point won 12 of 12 ([world-model/lattice-and-topology](../ai/world-model/lattice-and-topology.md)
+§Measured). Swapping start points cancels that in expectation but not in variance: a close
+pairing reads one to one whatever the vectors are. A symmetric map makes every match carry
+vector signal, and it is the only ground on which a residual side effect is a BOT bug — which is
+how the September control copy exposed the grid-anchoring bias
+([ai/selfplay-results-2026-09-06](../ai/selfplay-results-2026-09-06.md) §The symmetric copy).
+That copy was made by rewriting a scene by hand and is no longer in the tree; this mode replaces
+it with something any seed can produce.
+
+Training should still mix symmetric and authored maps — a roster scored only on symmetric ground
+has never been scored on the situation a human puts it in. That is the trainer's business
+([ai/selfplay-harness](../ai/selfplay-harness.md)), not the generator's.
+
+### The operation
+
+Generate freely, then overwrite one half with the image of the other — Alex's framing. One
+step, `MapSymmetry.apply` on the `GeneratedMap`, with no randomness: a symmetric map is a
+deterministic function of the free one.
+
+**Point reflection, not a line.** The play area is a rectangle in diamond coordinates
+`s = x + z`, `t = x - z`; a reflection in x alone swaps `s` and `t`, so it maps the rectangle onto
+itself only when it is square. A 180° rotation maps it onto itself at any size, is exact on the
+corner grid (`(i, j) <-> (W-1-i, W-1-j)`) and on the cell grid, and is what `Map.mirror_map`'s
+secondary-axis setting and the September copy both declare. The dividing line is `s = 0`, and
+**the reference half is whichever side of it holds the first start** — a fixed half would sit the
+first start on overwritten ground half the time.
+
+**Two starts, one per alliance.** A point reflection pairs exactly two starts. The mode refuses
+(a generation error before any pass, so `is_valid()` is false) unless there are two alliances of
+one start each — two starts of ONE alliance would pair nothing. The first start is kept and the
+second becomes its image; it lies on the same ring at the opposite bearing, so §2's separation
+and edge rules hold by construction. **A first start whose clear box, with the ring pass 6 keeps
+on its level, reaches the axis is refused**: the mirror would rewrite part of its ground.
+
+**Where in the pipeline.** After pass 6 has shaped the heights and before the end-of-generation
+validation, so the route, pond, obstruction and balance checks run on the mirrored map rather
+than the free one — reflecting the terrain changes the routes between the starts, which §6
+already rejects about one seed in five, and a seed the mirrored map fails is retried like any
+other. Pass 7 derives decoration afterwards and needs no change. Not a numbered pass: a flag-gated
+step in `MapGenerator._run`, so the dock's pass list and `last_pass` are untouched, and a map
+inspected at `last_pass = 6` with the flag on is already mirrored.
+
+**The rules on the axis**, which is where a naive copy produces overlaps:
+
+| what | rule |
+|---|---|
+| corner heights, void cells, tile types | copy the reference half onto the other; the centre corner (odd grids) is its own image |
+| a feature entirely in the reference half | kept, and its image added — every placement's origin reflected (`origin' = grid - origin - dims`), the plan shared |
+| a feature with any footprint cell whose CORNER lies on or past the line | **dropped** before reflection (so is a pond whose cells or rim do: the rim's heights hold its water). A kept footprint's ground is then never rewritten, and no kept feature can overlap an image |
+| a feature entirely in the other half | dropped |
+| a flooded chasm (`chasm_waters`, a seed cell and a level) | the reference half's seeds are kept and reflected at the same level; a reflected seed whose basin, refilled on the mirrored heights, already contains a kept seed's cell is dropped — one stretch of water, one body |
+| the balance and obstruction reports | re-measured by the existing validation (`accessible_value`, `obstructed`, traversable and buildable fractions, openness). A kept feature's share is re-measured by walking distance over the mirrored ground; its image takes that share with the alliances swapped, so balance passes by construction. The swap is deliberate: a start stands on a grid corner, and seeding a distance field at the cell below it is a one-cell bias the image would not share |
+| `topology` and `elevation` | left as the free map's records — they describe how the reference half was made, and nothing downstream reads them for play |
+
+**Determinism.** No draw: the same free map always mirrors to the same symmetric map, so a seed
+still names one map and a replay re-derives it.
+
+### Interface
+
+- `MapGenerationParams.symmetric: bool = false`, in the "Passes" group with a `DESCRIPTIONS`
+  entry (`test_MapGeneratorDock` requires both).
+- The self-play harness: `map_symmetric: true` beside `map_seed` in a match config, read in
+  `run_match.gd._apply_generated_map` and recorded in the result beside `map_seed`.
+- The dock exposes it like any other parameter; nothing else in the editor changes.
+
+### Measured, 2026-10-09
+
+- **A seed is rejected more often.** With the default 1v1 parameters, 8 of seeds 1–24 make a
+  valid symmetric map against 20 free: mirroring moves the traversable share off its ±2% target,
+  and a first start near the axis is refused. The harness's 20 seeds still find one all but
+  always (0.67^20 ≈ 0.03% miss), at about 5 s per rejected seed.
+- **The written map is exact.** `verify_symmetry.py` on a symmetric map scene: residual 0.000
+  under the point reflection for heights, start points and all 50 placed entities.
+- **The start point still decides.** A 12-match MEDIUM Colonial mirror on one symmetric map
+  (`map_seed: 1`, played at seed 3), `personality_spread` and `decision_temperature` pinned to
+  0, one match seed each, start points swapped on half: **the FIRST start point won 11 of 12**,
+  from either slot. On authored `skirmish.tscn` the second point won 12 of 12. The ground is
+  identical for both sides, so the edge was the bot's — three world-anchored reads in its
+  opening, found with this mode and fixed the same day
+  ([bot-architecture](../ai/bot-architecture.md) §The start-position bias: found).
+
+---
 
 ---
 

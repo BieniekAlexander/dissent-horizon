@@ -40,6 +40,22 @@ func _owned_units() -> Array:
 	return _owned_commandables().filter(func(c: Actor): return not c.structure_is_active())
 
 
+## The bot's lattice and its fog-limited ground knowledge (BotFields), built on first use
+## once the map exists. Null before: a bare Bot in a test has no map and no lattice — and
+## null by choice when `use_fields` is off, which every consumer reads as "keep the old rule".
+var _fields: BotFields = null
+## A PARAMETER (BotDifficulty.should_use_fields, pushed in by BotBrain._apply_config).
+var use_fields: bool = true
+
+
+func fields() -> BotFields:
+	if not use_fields:
+		return null
+	if _fields == null:
+		_fields = BotFields.over(self)
+	return _fields
+
+
 func _owned_structures() -> Array:
 	return _owned_commandables().filter(func(c: Actor): return c.structure_is_active())
 
@@ -636,7 +652,14 @@ const DIRECTION_EPSILON: float = 1.0e-6
 func threat_direction(a_from_xz: Vector2) -> Vector2:
 	var believed: Variant = nearest_believed_enemy_structure_position()
 	if believed == null:
-		believed = nearest_believed_enemy_unit_position(base_centroid())
+		# A believed unit that cannot attack is no axis to face: the opening's reveal drones
+		# over every shelter (Scenario._reveal_shelters_at_start) are enemy-owned and
+		# remembered for minutes, and facing the nearest of them turned the whole base away
+		# from the map. The same rule as base_threats: what cannot hurt is not a threat.
+		believed = nearest_believed_enemy_unit_position(
+			base_centroid(),
+			func(a_entry: CommanderBlackboard.Entry) -> bool: return unit_can_attack(a_entry.type)
+		)
 	if believed != null:
 		var to_threat: Vector2 = VU.in_xz(believed) - a_from_xz
 		if to_threat.length_squared() > DIRECTION_EPSILON:
@@ -676,12 +699,19 @@ func frontmost_structure(a_direction: Vector2) -> Actor:
 ## NOTE: includes unbuilt structures (they occupy real space and anchor the base).
 func base_centroid() -> Vector3:
 	var all_s: Array = _owned_structures()
-	if all_s.is_empty():
+	# Before the command centre lands the ARMY is the base (starting-formations.md §Deferred
+	# deployment): a slot starts with units and no structure, and every "nearest to the base"
+	# read in the opening — the threat axis, the scout's home — must measure from where the bot
+	# actually is. Measuring from the world origin instead gave the two bots of a mirrored
+	# match one shared frame, and the opening tied and broke the same way for both
+	# (bot-architecture.md §The start-position bias, 2026-10-09).
+	var pieces: Array = all_s if not all_s.is_empty() else _owned_units()
+	if pieces.is_empty():
 		return Vector3.ZERO
 	var sum := Vector3.ZERO
-	for s: Actor in all_s:
-		sum += s.global_position
-	return sum / float(all_s.size())
+	for piece: Actor in pieces:
+		sum += piece.global_position
+	return sum / float(pieces.size())
 
 
 ## Owned, fully-built structures that have an OCCUPIABLE Garrison with remaining space.
@@ -1515,6 +1545,16 @@ var savings: BotSavings = BotSavings.new()
 ## A PARAMETER (BotDifficulty.demand_coverage_falloff).
 var demand_coverage_falloff: float = 1.0
 
+## THE THREAT CLOCK (lattice-and-topology.md §Distance fields; macro-learning.md §2): how
+## many seconds of margin before a believed enemy stops weighing on what the bot buys. A
+## PARAMETER (BotDifficulty.arrival_margin_falloff_seconds).
+var arrival_margin_falloff_seconds: float = 30.0
+
+## What a believed enemy that cannot reach the base at all — or whose route the fields do not
+## know — still weighs: a quarter of a pressing one. It is not nothing, because the bot will
+## have to go to it; it is not full, because it is not coming. A model constant to retune.
+const CLOCK_FLOOR: float = 0.25
+
 
 ## Per believed enemy TYPE: { type -> { "demand": float, "rep": Actor } }.
 ## demand = that type's summed importance across the believed enemy comp (units 1.0,
@@ -1536,8 +1576,11 @@ func enemy_demand_map() -> Dictionary:
 		return {}
 	var importance: Dictionary = {}  # type -> summed importance
 	var reps: Dictionary = {}  # type -> a live Actor of that type, or null
+	var answer: float = fastest_answer_seconds()
 	for entry: CommanderBlackboard.Entry in blackboard.believed():
-		var imp: float = structure_demand_weight if entry.is_structure else 1.0
+		# A unit weighs by the THREAT CLOCK: in full when it can reach the base before the
+		# bot could field an answer, falling off with the time to spare (clock_weight).
+		var imp: float = structure_demand_weight if entry.is_structure else _clocked(entry, answer)
 		importance[entry.type] = importance.get(entry.type, 0.0) + imp
 		if reps.get(entry.type) == null and is_instance_valid(entry.entity):
 			reps[entry.type] = entry.entity
@@ -1573,6 +1616,62 @@ func enemy_demand_map() -> Dictionary:
 			"rep": rep,
 		}
 	return demand
+
+
+## Piece id → the believed enemy units of that type, each weighed by the threat clock rather
+## than counted as one — the composition the learned valuation prices against, so a believed
+## army across the map presses less than one at the gate. Fog-limited like every belief.
+func believed_enemy_composition_clocked() -> Dictionary:
+	var weights: Dictionary = {}
+	if blackboard == null:
+		return weights
+	var answer: float = fastest_answer_seconds()
+	for entry: CommanderBlackboard.Entry in blackboard.believed_units():
+		weights[entry.type] = float(weights.get(entry.type, 0.0)) + _clocked(entry, answer)
+	return weights
+
+
+## One believed unit's weight on the clock: its arrival time at the base along its type's
+## field against the bot's fastest answer. 1 with no fields to read (a bot with no map).
+func _clocked(a_entry: CommanderBlackboard.Entry, a_answer_seconds: float) -> float:
+	var fields: BotFields = self.fields()
+	if fields == null:
+		return 1.0
+	var arrival: float = fields.arrival_seconds_between(
+		VU.in_xz(a_entry.last_known_location),
+		VU.in_xz(base_centroid()),
+		fields.mobility_of_type(a_entry.type)
+	)
+	return clock_weight(arrival, a_answer_seconds, arrival_margin_falloff_seconds)
+
+
+## THE CLOCK'S SHAPE: 1 when the threat arrives before the answer could, falling off
+## exponentially with the margin over `falloff` seconds toward CLOCK_FLOOR, and the floor
+## outright for a threat that cannot arrive (INF).
+static func clock_weight(arrival_seconds: float, answer_seconds: float, falloff: float) -> float:
+	if arrival_seconds == INF:
+		return CLOCK_FLOOR
+	var margin: float = arrival_seconds - answer_seconds
+	if margin <= 0.0 or falloff <= 0.0:
+		return 1.0
+	return CLOCK_FLOOR + (1.0 - CLOCK_FLOOR) * exp(-margin / falloff)
+
+
+## THE FASTEST ANSWER the bot could field: the shortest build time, in seconds, among the
+## armed units its built producers can train today. INF with no producer — every threat is
+## then pressing, since nothing can be made in time.
+func fastest_answer_seconds() -> float:
+	var best: int = -1
+	for s: Actor in _owned_structures():
+		if s.production == null or not s.production.trains_units() or not s.is_built:
+			continue
+		for t: StringName in considered_producible_types(s.production):
+			if not unit_can_attack(t) or not has_tech_for(t):
+				continue
+			var ticks: int = unit_build_time_ticks(t)
+			if ticks > 0 and (best < 0 or ticks < best):
+				best = ticks
+	return float(best) / TimeUtils.ticks_per_second() if best > 0 else INF
 
 
 ## How valuable building one more [unit_type] is against the current demand map: its
@@ -1669,6 +1768,78 @@ func _any_instance_of_type(a_type: StringName) -> Actor:
 
 
 # ─── AOE-SUICIDE UNITS (kamikaze cost-effectiveness) ────────────────────────
+
+
+## HOW A TYPE MOVES — {"speed": world units per second, "nav_class": NavAgentClass.Size,
+## "is_air": bool} — or an empty Dictionary when nothing carries the type's stats. Read off a
+## live instance of the type where one exists, else the build preview; TYPE stats only, never
+## a position, so a believed enemy's travel can be priced without reading where it is now.
+## The preview's nav class is the default (it is derived from the body on configure_for_map,
+## which a preview never runs); a live carrier is exact.
+func mobility_of_type(a_type: StringName) -> Dictionary:
+	var carrier: Node = _any_instance_of_type(a_type)
+	if carrier == null:
+		carrier = _preview_for_type(a_type)
+	if carrier == null:
+		return {}
+	var movement: Movement = carrier.get_node_or_null("Locomotion") as Movement
+	if movement == null:
+		return {}
+	return {
+		"speed": movement.speed,
+		"nav_class": movement.nav_agent_class,
+		"is_air": carrier.get_node_or_null("Aerial") != null,
+	}
+
+
+## THE LONGEST GROUND REACH a type's weapons have, in world units — a live instance's where
+## one stands, else the build preview's range node — or 0 for a type with no ground weapon.
+## What a static defence covers the approach with.
+func ground_reach_of_type(a_type: StringName) -> float:
+	var carrier: Node = _any_instance_of_type(a_type)
+	var in_tree: bool = carrier != null
+	if carrier == null:
+		carrier = _preview_for_type(a_type)
+	if carrier == null:
+		return 0.0
+	var loadout: Loadout = carrier.get_node_or_null("Loadout") as Loadout
+	if loadout == null:
+		return 0.0
+	var reach: float = 0.0
+	for weapon: Weapon in loadout.get_weapons():
+		reach = maxf(reach, weapon.ground_reach() if in_tree else weapon.preview_ground_reach())
+	return reach
+
+
+## HOW A LIVE PIECE MOVES, in mobility_of_type's shape, read off its own components — exact
+## where the type-level read is a default. Empty for a piece that cannot move.
+func mobility_of(a_piece: Actor) -> Dictionary:
+	if a_piece == null or a_piece.movement == null:
+		return {}
+	return {
+		"speed": a_piece.movement.speed,
+		"nav_class": a_piece.movement.nav_agent_class,
+		"is_air": a_piece.aerial != null,
+	}
+
+
+## SECONDS `a_attackers` NEED TO DESTROY `a_target` from its current HP, at the DPS each
+## would deal it (dps_against). INF when none of them can hurt it.
+func time_to_kill(a_target: Actor, a_attackers: Array) -> float:
+	if a_target == null or a_target.defense == null:
+		return INF
+	var dps: float = 0.0
+	for attacker: Actor in a_attackers:
+		dps += dps_against(attacker, a_target)
+	return a_target.defense.hp / dps if dps > 0.0 else INF
+
+
+## The DPS `a_attacker` deals `a_target`: its weapon for that target at the damage table's
+## multiplier, else its best gun (a crusher prices its fight on its gun).
+func dps_against(a_attacker: Actor, a_target: Actor) -> float:
+	if a_attacker == null or a_attacker.weapon_inventory == null:
+		return 0.0
+	return _dps_against(a_attacker.weapon_inventory, a_target) * matchup(a_attacker, a_target)
 
 
 ## Energy cost of a type, from the tech tree.

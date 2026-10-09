@@ -82,17 +82,25 @@ void FogRaster::set_play_mask(const PackedByteArray &p_in_play) {
 	texture_stale = true;
 }
 
+// Pixel p covers the world span [p, p + 1) / points_per_unit from (center - half): the span the
+// terrain shader draws its texel over, and with the one-cell margin Fog frames with, exactly
+// one terrain cell. The mapping is FLOOR, never round: a point on a pixel boundary (every cell
+// centre, under round) would otherwise resolve toward +x and +z on both halves of a mirrored
+// map, and two commanders in mirrored positions then read different pixels at the edge of the
+// same vision disc. Measured 2026-10-09 as a start-side bias the bots carried on a map that was
+// exactly its own image (gdd/systems/ai/bot-architecture.md §The start-position bias).
 // Script float arithmetic is double precision, so the mapping is done in doubles even though the
-// inputs arrive as single-precision Vector2s; a pixel boundary must fall where it did in script.
+// inputs arrive as single-precision Vector2s; a pixel boundary must fall where script put it.
 Vector2i FogRaster::world_to_pixel(const Vector2 &p_world_xz) const {
-	const double px = std::round((static_cast<double>(p_world_xz.x) - center.x + half_w) * points_per_unit);
-	const double py = std::round((static_cast<double>(p_world_xz.y) - center.y + half_d) * points_per_unit);
+	const double px = std::floor((static_cast<double>(p_world_xz.x) - center.x + half_w) * points_per_unit);
+	const double py = std::floor((static_cast<double>(p_world_xz.y) - center.y + half_d) * points_per_unit);
 	return Vector2i(static_cast<int>(px), static_cast<int>(py));
 }
 
+// The centre of pixel (px, py)'s span: the inverse of world_to_pixel.
 Vector2 FogRaster::pixel_to_world(int p_px, int p_py) const {
-	return Vector2(static_cast<float>(p_px / points_per_unit - half_w + center.x),
-			static_cast<float>(p_py / points_per_unit - half_d + center.y));
+	return Vector2(static_cast<float>((p_px + 0.5) / points_per_unit - half_w + center.x),
+			static_cast<float>((p_py + 0.5) / points_per_unit - half_d + center.y));
 }
 
 int FogRaster::index_at(const Vector2 &p_world_xz) const {

@@ -87,6 +87,16 @@ gameplay reader (`is_visible_to`, aggro, target release) gets the answer it alwa
 `tests/test_FogIncrementalSight.gd` holds it byte-equal to a from-scratch rebuild through
 random moves, captures, removals and footprint changes.
 
+**A pixel is a cell, and a point is read by the cell it is in.** The raster frames the
+terrain plus a one-cell margin at one pixel per cell, so pixel edges coincide with cell edges
+and the terrain shader draws texel `p` over exactly the span `world_to_pixel` maps to it. The
+mapping FLOORS. It rounded until 2026-10-09, which put nominal pixel centres on cell corners
+and made every read at a cell centre a tie, resolved toward +x and +z — the same side on both
+halves of a mirrored map, so two commanders in mirrored positions disagreed on the edge of
+identical vision discs. The bot's lattice points sit on cell centres for the same reason
+(`Lattice.covering`); a read taken exactly on a cell edge is still a tie and still resolves
+toward +x, so nothing that wants a mirror-exact answer should sample there.
+
 **Diff the sources each tick; do not hook every change.** Capture, a reach upgrade, death,
 garrisoning, stealth, construction: each changes vision, and a design that hooks each event
 misses the one nobody remembered. Walking the group is O(sources) and cheap; only the

@@ -4,8 +4,8 @@ extends RefCounted
 ## BotScout — maintains a fog-of-uncertainty grid and tasks the unit best SUITED to
 ## scouting (see _scout_score) to visit unseen / stale grid points continuously.
 ##
-## The scout grid divides the map into SCOUT_GRID_SIZE-world-unit intervals.
-## Each point carries a timestamp (Bot.seconds_elapsed()) of when it was last
+## The scout grid is the bot's LATTICE (BotFields.lattice): one point per lattice cell, at
+## its centre. Each point carries a timestamp (Bot.seconds_elapsed()) of when it was last
 ## in line-of-sight of an owned unit. A point is "expired" once that timestamp
 ## is more than SCOUT_EXPIRATION_TIMER seconds in the past.
 ##
@@ -15,8 +15,6 @@ extends RefCounted
 ## manager and given up only for a real errand or once the absence stops paying — see
 ## _update_scouts.
 
-## World units between scout grid columns/rows.
-const SCOUT_GRID_SIZE: int = 5
 ## Seconds before a scouted point is considered expired and worth revisiting.
 const SCOUT_EXPIRATION_TIMER: float = 60.0
 
@@ -84,16 +82,17 @@ var _ever_seen: Dictionary = {}
 ## Built once in _init; avoids recomputing per tick.
 var _scout_grid_positions: Dictionary = {}
 
-## The map's transform, inverted, cached at grid-build time: _grid_index_at runs it over
-## every sampled point of every candidate errand, and Transform3D.affine_inverse() is not
-## something to recompute a few thousand times per dispatch. IDENTITY when there is no map,
-## which is also what makes the selector exercisable against a synthetic grid.
-var _map_inverse: Transform3D = Transform3D.IDENTITY
-
-## Map half-extents in local space, cached for _grid_world_pos.
-var _map_half_w: float = 0.0
-var _map_half_d: float = 0.0
-## Full local-space extents (= world-space extents when Map scale = 1).
+## The geometry every grid index goes through (BotFields.lattice once there is a map). Before
+## the map exists — a bare Bot in a test — an anchored lattice half a pitch back from the
+## origin, so a synthetic grid of points at multiples of the pitch indexes by nearest
+## multiple, as hand-written test grids expect.
+var _lattice: Lattice = Lattice.anchored(
+	Vector2(-BotFields.PITCH * 0.5, -BotFields.PITCH * 0.5), BotFields.PITCH
+)
+## World units between grid points: the lattice's pitch.
+var _pitch: float = BotFields.PITCH
+## The map's world extents, for the enemy prior's span. Set from the lattice; a test writes
+## them directly.
 var _map_width: float = 0.0
 var _map_depth: float = 0.0
 
@@ -326,38 +325,22 @@ func debug_scouts() -> Array:
 # ─── GRID CONSTRUCTION ───────────────────────────────────────────────────────
 
 
+## One point per lattice cell, at the cell's centre, with the terrain's height there.
 func _build_scout_grid() -> void:
-	if _bot.map == null or _bot.map.height_map == null:
+	var fields: BotFields = _bot.fields()
+	if fields == null:
 		return
-	var hs: HeightMapShape3D = _bot.map.height_map
-	_map_inverse = _bot.map.global_transform.affine_inverse()
-	_map_width = float(hs.map_width - 1)
-	_map_depth = float(hs.map_depth - 1)
-	_map_half_w = _map_width * 0.5
-	_map_half_d = _map_depth * 0.5
-
-	var max_i: int = ceili(_map_width / float(SCOUT_GRID_SIZE))
-	var max_j: int = ceili(_map_depth / float(SCOUT_GRID_SIZE))
+	_lattice = fields.lattice
+	_pitch = _lattice.pitch
+	var size: Vector2 = _lattice.world_size()
+	_map_width = size.x
+	_map_depth = size.y
 	var init_ts: float = -(SCOUT_EXPIRATION_TIMER + 1.0)
-
-	for i: int in range(max_i + 1):
-		for j: int in range(max_j + 1):
-			var idx := Vector2i(i, j)
-			_scout_grid[idx] = init_ts
-			var world_pos: Vector3 = _grid_world_pos(idx)
-			world_pos.y = _bot.map.terrain_height_at(VU.in_xz(world_pos))
-			_scout_grid_positions[idx] = world_pos
-
-
-## World-space position of grid index (i, j). The map's global_transform handles
-## any translation or scale so this is correct even when the map is not at origin.
-func _grid_world_pos(a_idx: Vector2i) -> Vector3:
-	var local := Vector3(
-		-_map_half_w + min(float(a_idx.x) * SCOUT_GRID_SIZE, _map_width),
-		0.0,
-		-_map_half_d + min(float(a_idx.y) * SCOUT_GRID_SIZE, _map_depth)
-	)
-	return _bot.map.global_transform * local
+	for index: int in _lattice.cell_count():
+		var idx: Vector2i = _lattice.cell_of(index)
+		_scout_grid[idx] = init_ts
+		var xz: Vector2 = _lattice.centre_of(idx)
+		_scout_grid_positions[idx] = Vector3(xz.x, _bot.map.terrain_height_at(xz), xz.y)
 
 
 # ─── LOS UPDATE ──────────────────────────────────────────────────────────────
@@ -384,7 +367,7 @@ func _mark_seen_by(a_unit: Actor) -> int:
 	var radius_sq: float = vision * vision
 	var unit_xz: Vector2 = VU.in_xz(a_unit.global_position)
 	var centre: Vector2i = _grid_index_at(unit_xz)
-	var reach: int = ceili(vision / float(SCOUT_GRID_SIZE)) + 1
+	var reach: int = ceili(vision / _pitch) + 1
 	var spent: int = 0
 	for j: int in range(centre.y - reach, centre.y + reach + 1):
 		for i: int in range(centre.x - reach, centre.x + reach + 1):
@@ -1000,11 +983,11 @@ func _expected_sightings(
 	var at_destination: float = float(
 		_window_count(a_idx, a_window, a_unseen_only, a_expiry_threshold)
 	)
-	if a_distance < float(SCOUT_GRID_SIZE):
+	if a_distance < _pitch:
 		return at_destination
 
 	var to_xz: Vector2 = VU.in_xz(_scout_grid_positions[a_idx])
-	var samples: int = clampi(int(a_distance / float(SCOUT_GRID_SIZE)), 1, MAX_PATH_SAMPLES)
+	var samples: int = clampi(int(a_distance / _pitch), 1, MAX_PATH_SAMPLES)
 	var dark: int = 0
 	for i: int in range(1, samples + 1):
 		var along: Vector2 = a_from_xz.lerp(to_xz, float(i) / float(samples + 1))
@@ -1013,7 +996,7 @@ func _expected_sightings(
 			dark += 1
 	# Cells a corridor one vision WIDE and `a_distance` long covers, discounted by how much of
 	# the sampled path was still dark. The window's point count stands in for its width.
-	var corridor: float = a_distance / float(SCOUT_GRID_SIZE) * sqrt(float(a_window.size()))
+	var corridor: float = a_distance / _pitch * sqrt(float(a_window.size()))
 	return at_destination + corridor * float(dark) / float(samples)
 
 
@@ -1059,14 +1042,21 @@ func _is_candidate(a_idx: Vector2i, a_unseen_only: bool, a_expiry_threshold: flo
 	return not (a_unseen_only and _ever_seen.has(a_idx))
 
 
-## The grid index nearest a world-space XZ position — the inverse of _grid_world_pos, used to
-## sample what a scout would pass over on the way somewhere.
+## The grid index under a world-space XZ position, used to sample what a scout would pass
+## over on the way somewhere. The lattice's own indexing, so a point and its reflection land
+## in partner cells and two mirrored bots partition the map alike.
 func _grid_index_at(a_xz: Vector2) -> Vector2i:
-	var local: Vector3 = _map_inverse * Vector3(a_xz.x, 0.0, a_xz.y)
-	return Vector2i(
-		roundi((local.x + _map_half_w) / float(SCOUT_GRID_SIZE)),
-		roundi((local.z + _map_half_d) / float(SCOUT_GRID_SIZE))
-	)
+	return _lattice.index_at(a_xz)
+
+
+## SECONDS SINCE THE GROUND AT `a_xz` WAS LAST FOG-CLEAR — the lattice's `sight_age` channel,
+## stored here as the grid's timestamps until a second reader wants it on BotFields. INF for
+## ground never seen, or off the grid.
+func sight_age_at(a_xz: Vector2) -> float:
+	var idx: Vector2i = _grid_index_at(a_xz)
+	if not _ever_seen.has(idx):
+		return INF
+	return _bot.seconds_elapsed() - float(_scout_grid[idx])
 
 
 ## The grid offsets a unit seeing `a_vision_radius` covers from wherever it stands, cached by
@@ -1074,7 +1064,7 @@ func _grid_index_at(a_xz: Vector2) -> Vector2i:
 ## eye the bot owns. Taken from the unit's OWN vision radius, which is what keeps "how much a
 ## stop is worth" a property of the unit rather than a constant in this file.
 func _vision_window(a_vision_radius: float) -> Array:
-	var steps: int = maxi(1, floori(a_vision_radius / float(SCOUT_GRID_SIZE)))
+	var steps: int = maxi(1, floori(a_vision_radius / _pitch))
 	if not _window_cache.has(steps):
 		var offsets: Array = []
 		for dx: int in range(-steps, steps + 1):
