@@ -893,7 +893,7 @@ on half:
 
 | build | the first start point won |
 |---|---|
-| before (the T-102 measurement) | 11 of 12 |
+| before (the symmetric mode's first batch) | 11 of 12 |
 | fog fix alone | 9 of 12 |
 | all three | 7 of 12, one stalemate (7–4) |
 
