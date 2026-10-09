@@ -25,6 +25,7 @@ enum Category {
 	FIELDS,
 	ARMY,
 	ECONOMY,
+	POSTURE,
 	UNIT_CONTROL,
 	INTERNALS,
 }
@@ -37,6 +38,7 @@ const CATEGORY_LABELS: Dictionary = {
 	Category.FIELDS: "Fields",
 	Category.ARMY: "Army",
 	Category.ECONOMY: "Economy",
+	Category.POSTURE: "Posture",
 	Category.UNIT_CONTROL: "Unit control",
 	Category.INTERNALS: "Bot internals",
 }
@@ -68,6 +70,7 @@ var _layers: Dictionary = {
 	Category.FIELDS: BotDebugFieldsLayer.new(),
 	Category.ARMY: BotDebugArmyLayer.new(),
 	Category.ECONOMY: BotDebugEconomyLayer.new(),
+	Category.POSTURE: BotDebugPostureLayer.new(),
 	Category.UNIT_CONTROL: BotDebugUnitControlLayer.new(),
 	Category.INTERNALS: BotDebugInternalsLayer.new(),
 }

@@ -64,7 +64,7 @@ func readout(a_bot: Bot) -> PackedStringArray:
 				"scouts out: %d of %d allowed, %d waiting for a waypoint"
 				% [scouts.size(), scout.unit_budget, waiting]
 			),
-			"first scout worth: %d energy" % roundi(BotScout.INFORMATION_VALUE_ENERGY * stale),
+			"first scout worth: %d energy" % roundi(scout.information_value_energy * stale),
 		]
 	)
 

@@ -588,6 +588,8 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 	var military: BotMilitary = a_brain._military
 	var scout: BotScout = a_brain.get_scout()
 	var momentum: BotMomentum = a_brain.get_momentum()
+	var posture: BotPosture = a_brain.get_posture()
+	var income: BotIncome = a_brain.get_income()
 	# Exactly the test BotMilitary._objective_for(ATTACK) makes, and it must stay exactly that
 	# test: an ATTACK posture with no answer here is silently demoted to MASS, so a bot that
 	# has not FOUND the enemy cannot attack it however large its army grows. Reading the live
@@ -611,6 +613,11 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		"scout_observed_fraction": scout.observed_fraction() if scout != null else 0.0,
 		"scouts_out": (scout._scouts as Array).size() if scout != null else 0,
 		"momentum_loss_rate": momentum.loss_rate() if momentum != null else 0.0,
+		# The posture layer: the held dials (0.5 is neutral), and the economy signals the
+		# commitment dial reads — own income and the fog-limited enemy estimate, energy/s.
+		"dials": posture.dials() if posture != null else {},
+		"income_rate": income.own_rate() if income != null else 0.0,
+		"enemy_income_estimate": income.enemy_rate_estimate() if income != null else 0.0,
 		"idle_units": bot.get_idle_units().size(),
 		# The staging instrument: a release shows as the reserve dropping to 0 while the wave
 		# grows by the same count in one sample. The trickle shows as a reserve that never

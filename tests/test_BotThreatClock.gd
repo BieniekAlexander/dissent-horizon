@@ -50,6 +50,43 @@ func _believe_unit(a_id: int, a_type: StringName, a_at: Vector3) -> void:
 	_bot.blackboard._entries[a_id] = entry
 
 
+# ─── THE PHANTOM OPENING FORCE ───────────────────────────────────────────────
+
+
+## Before any sighting the enemy's starting units are assumed on their way, weighed at the
+## fields' opening prior; the first believed unit ends it for good
+## (gdd/systems/ai/objective-selection.md §The opening prior).
+func test_the_phantom_force_weighs_at_the_opening_prior_until_a_unit_is_seen() -> void:
+	_bot.phantom_force = {&"raider": 2, &"truck": 1}
+	assert_eq(_bot.believed_enemy_composition_clocked(), {}, "no prior yet: no phantom")
+	_bot._fields.prior_arrival_seconds = 5.0
+	assert_eq(
+		_bot.believed_enemy_composition_clocked(),
+		{&"raider": 2.0, &"truck": 1.0},
+		"arriving before the answer: in full"
+	)
+	assert_almost_eq(
+		float(_bot.enemy_demand_map()[&"raider"]["demand"]), 2.0, 1e-9, "the demand map too"
+	)
+	_bot._fields.prior_arrival_seconds = 40.0
+	assert_almost_eq(
+		float(_bot.believed_enemy_composition_clocked()[&"raider"]),
+		2.0 * Bot.clock_weight(40.0, 10.0, 30.0),
+		1e-9,
+		"further off, lighter"
+	)
+	_bot.blackboard.has_believed_unit = true
+	assert_eq(_bot.believed_enemy_composition_clocked(), {}, "lapsed at the first sighting")
+
+
+func test_the_blackboard_records_the_first_unit_it_ever_believes() -> void:
+	assert_false(_bot.blackboard.has_believed_unit)
+	var unit: Actor = FakePieces.unit({"speed": 2.0})
+	add_child_autofree(unit)
+	_bot.blackboard._upsert(unit, 0.0)
+	assert_true(_bot.blackboard.has_believed_unit)
+
+
 # ─── THE SHAPE ──────────────────────────────────────────────────────────────
 
 

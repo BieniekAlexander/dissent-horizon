@@ -104,11 +104,13 @@ greedy bot assumes it has time, and the population's mixed equilibrium
 new `BotDifficulty` fields: a detour factor and an assumed first-contact time were offered and
 declined in favour of the layer that will own every such disposition.
 
-> **TODO — the clock before any sighting waits on the posture layer**, which is itself
-> unapproved. Until it exists, an arrival time with no believed source to measure from is a
-> typed MISSING read, and every consumer keeps the radial sense it uses today in that case.
-> Status quo, not a fallback chosen here. (The first form of this question — a route across
-> unexplored ground — dissolved when the fields were allowed the true grid.)
+Built 2026-10-09: with nothing believed, `BotFields.arrival_seconds_at` answers with the
+posture layer's OPENING PRIOR — a first-contact time from the map's size, the start placement
+parameters and the enemy's starting units, scaled by `risk` and counting down from match
+start ([objective-selection](../objective-selection.md) §The opening prior). The lattice is
+not consulted for it (Alex, 2026-10-09: more complexity than the estimate is worth). It weighs
+a phantom of the enemy's opening roster in the demand map until the first real sighting. (The first form of this question — a
+route across unexplored ground — dissolved when the fields were allowed the true grid.)
 
 ## Distance fields: the topology primitive
 

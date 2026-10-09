@@ -132,6 +132,7 @@ sims/bot/
   errand/        capture, deposit, liberation, garrison
   placement/     where a building goes — coverage, exposure, corridor
   scouting/      where to look — information value, focus
+  posture/       how the dials tilt the decisions above — a lead commits sooner, a poorer side holds
 ```
 
 The domains are the world-model's reads, not the managers': `retreat/` and `targeting/`

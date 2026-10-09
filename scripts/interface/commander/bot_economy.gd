@@ -508,10 +508,13 @@ func _propose_savings() -> void:
 		and _owned_production_structure_count(buildable) >= production_structure_cap
 	)
 	var under_way: Array[StringName] = _types_under_way()
-	for t: StringName in buildable:
-		if capped or under_way.has(t) or not _bot.get_structures_of_type(t).is_empty():
-			continue
-		var value: float = _bot.best_producible_value(t, demand)
+	var unowned: Array = buildable.filter(
+		func(t: StringName) -> bool:
+			return not under_way.has(t) and _bot.get_structures_of_type(t).is_empty()
+	)
+	var values: Dictionary = _bot.producer_values(unowned, demand) if not capped else {}
+	for t: StringName in values:
+		var value: float = float(values[t])
 		if best.is_empty() or value > best["value"]:
 			best = {"type": t, "value": value}
 	var type: StringName = best.get("type", &"")
@@ -524,8 +527,17 @@ func _propose_savings() -> void:
 ## (Bot.best_producible_value against the enemy demand map), cost as the tiebreak. It used
 ## to be the cheapest, which after one of each meant a second barracks every time and never a
 ## second war factory however badly the army wanted vehicles. null when none is affordable.
+##
+## A producer ORDERED but not yet placed counts as owned here, for the unowned preference and
+## the cap alike: until 2026-10-09 it did not, and in the opening — the bot's command centre
+## still a pending drop, so it owned nothing — the rung read the centre as unowned and the
+## Servants built one or two more. The same hole sent a second barracks before the first was
+## placed. And A PRODUCER WORTH NOTHING IS NOT BOUGHT: the centre trains builders and the
+## dominion unit, nothing armed, so its value here is always 0 and it was only ever chosen as
+## the lone candidate; a building that trains no fighter is the utility demand's business.
 func _production_structure_to_build() -> Variant:
 	var buildable: Array = _bot.buildable_production_structure_types()
+	var under_way: Array[StringName] = _types_under_way()
 	if (
 		production_structure_cap >= 0
 		and _owned_production_structure_count(buildable) >= production_structure_cap
@@ -535,21 +547,21 @@ func _production_structure_to_build() -> Variant:
 	if candidates.is_empty():
 		return null
 	var unowned: Array = candidates.filter(
-		func(t): return _bot.get_structures_of_type(t).is_empty()
+		func(t): return _bot.get_structures_of_type(t).is_empty() and not under_way.has(t)
 	)
 	var pool: Array = unowned if not unowned.is_empty() else candidates
-	var demand: Dictionary = _bot.enemy_demand_map()
-	var value: Dictionary = {}
-	for t in pool:
-		value[t] = _bot.best_producible_value(t, demand)
+	var value: Dictionary = _bot.producer_values(pool, _bot.enemy_demand_map())
 	pool.sort_custom(
 		func(a, b):
 			if value[a] != value[b]:
 				return value[a] > value[b]
 			return _energy_cost(a) < _energy_cost(b)
 	)
-	_act.usage.record_choice("production_structure", value, pool[0])
-	return pool[0]
+	# A refused pick is recorded as nothing chosen, so the ledger reads the refusal rather than
+	# a purchase that never happened.
+	var picked: StringName = pool[0] if float(value[pool[0]]) > 0.0 else &""
+	_act.usage.record_choice("production_structure", value, picked)
+	return pool[0] if picked != &"" else null
 
 
 ## Which TECH structure to build now, or null. A tech structure is one some unit REQUIRES
@@ -576,11 +588,14 @@ func _best_tech(a_affordable: bool) -> Dictionary:
 	var demand: Dictionary = _bot.enemy_demand_map()
 	if demand.is_empty():
 		return {}
-	var owned_producible: Array = _owned_producible_types()
+	var owned_producible: Array = _owned_producible_types().filter(_bot.unit_can_attack)
+	# One answer for every armed unit an owned producer could make, locked or not, so the
+	# trainable best and the unlocked best are on one scale (Bot.purchase_values_per_energy).
+	var valued: Dictionary = _bot.purchase_values_per_energy(owned_producible, demand)["values"]
 	var trainable_best: float = 0.0
 	for t: StringName in owned_producible:
-		if _bot.has_tech_for(t) and _bot.unit_can_attack(t):
-			trainable_best = maxf(trainable_best, _bot.unit_composition_value(t, demand))
+		if _bot.has_tech_for(t):
+			trainable_best = maxf(trainable_best, float(valued[t]))
 	var under_way: Array[StringName] = _types_under_way()
 	var best_type: Variant = null
 	var best_gain: float = 0.0
@@ -592,9 +607,8 @@ func _best_tech(a_affordable: bool) -> Dictionary:
 			continue
 		var unlocked_best: float = 0.0
 		for t: StringName in owned_producible:
-			if not _bot.unit_can_attack(t) or not _bot.unit_requires_structure(t, ttype):
-				continue
-			unlocked_best = maxf(unlocked_best, _bot.unit_composition_value(t, demand))
+			if _bot.unit_requires_structure(t, ttype):
+				unlocked_best = maxf(unlocked_best, float(valued[t]))
 		if unlocked_best < tech_value_margin * maxf(trainable_best, 0.001):
 			continue
 		var gain: float = unlocked_best - trainable_best
@@ -629,6 +643,8 @@ func _owned_producible_types() -> Array:
 func _tech_candidates_scored() -> Dictionary:
 	var demand: Dictionary = _bot.enemy_demand_map()
 	var owned_producible: Array = _owned_producible_types()
+	var armed: Array = owned_producible.filter(_bot.unit_can_attack)
+	var valued: Dictionary = _bot.purchase_values_per_energy(armed, demand)["values"]
 	var scored: Dictionary = {}
 	for ttype: StringName in _bot.buildable_structure_types():
 		if not _bot.get_structures_of_type(ttype).is_empty():
@@ -638,8 +654,8 @@ func _tech_candidates_scored() -> Dictionary:
 		for t: StringName in owned_producible:
 			if _bot.unit_requires_structure(t, ttype):
 				unlocks_any = true
-				if _bot.unit_can_attack(t):
-					best = maxf(best, _bot.unit_composition_value(t, demand))
+				if armed.has(t):
+					best = maxf(best, float(valued[t]))
 		if unlocks_any:
 			scored[ttype] = best
 	return scored
@@ -720,9 +736,7 @@ func _defence_demand() -> Dictionary:
 ## structure that anything contests: [{"centre": Vector3, "value", "own", "enemy", "demand"}],
 ## in energy. A region with no tension is left out — it wants nothing.
 func defence_demand_by_region() -> Array:
-	var standing: Array = _bot.get_structures().filter(
-		func(s: Actor) -> bool: return s.is_built
-	)
+	var standing: Array = _bot.get_structures().filter(func(s: Actor) -> bool: return s.is_built)
 	if standing.is_empty():
 		return []
 	var own_armed: Array = _bot.get_units().filter(
@@ -795,8 +809,9 @@ func _owns_a_producer() -> bool:
 ## committed to, so a cap that ignored it would authorise one build too many every time.
 func _owned_production_structure_count(a_buildable: Array) -> int:
 	var count: int = 0
+	var under_way: Array[StringName] = _types_under_way()
 	for t in a_buildable:
-		count += _bot.get_structures_of_type(t).size()
+		count += _bot.get_structures_of_type(t).size() + under_way.count(t)
 	return count
 
 
@@ -1900,9 +1915,7 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 	var basis_x: Vector2 = a_ranking["basis_x"]
 	var out: PackedInt64Array = a_ranking["out"]
 	var anchor: Vector2 = a_ranking["anchor"]
-	var coverage: PackedFloat32Array = a_ranking.get(
-		"coverage", PackedFloat32Array()
-	)
+	var coverage: PackedFloat32Array = a_ranking.get("coverage", PackedFloat32Array())
 	var lattice: Lattice = a_ranking.get("coverage_lattice", null)
 	# LEVEL ONE, once per ranking: the lattice cells of the annulus ranked by the same terms,
 	# and the best one's block is the only ground level two scores (see _rank_regions).
@@ -2148,8 +2161,8 @@ const PLACEMENT_NAV_CLASS: int = NavAgentClass.Size.LARGE
 ##
 ## Cheapest test first: the geometry (in bounds, flat, and unoccupied as far as the bot knows —
 ## Build judges by the same knowledge, so a spot found here is not refused there), then the
-## written-off list, then the two NAVIGATION rules, which live in the map layer because they are facts
-## about the map rather than bot preferences — see NavPlacement.
+## written-off list, then the two NAVIGATION rules, which live in the map layer because they are
+## facts about the map rather than bot preferences — see NavPlacement.
 ##
 ## EVERY structure the bot places is required to keep a side on the navmesh, not only the
 ## ones that train units. A building nothing can walk to cannot be repaired, garrisoned or
@@ -2185,9 +2198,7 @@ func _dims_for_type(a_type: StringName) -> Vector2i:
 	var tool: Tool = Tool.for_type(a_type)
 	if tool != null:
 		var preview: Node = _bot.get_build_preview_instance(tool)
-		var s: Fixture = (
-			preview.get_node_or_null("Fixture") as Fixture if preview != null else null
-		)
+		var s: Fixture = preview.get_node_or_null("Fixture") as Fixture if preview != null else null
 		if s != null:
 			return s.dimensions
 	return Vector2i(2, 2)

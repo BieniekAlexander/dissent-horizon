@@ -8,7 +8,6 @@ extends Node
 const NUM_MAX_COMMANDERS: int = 8
 @export_range(0, NUM_MAX_COMMANDERS + 1) var id: int
 
-
 ## The ALLIANCE this commander plays in, 0 … NUM_MAX_COMMANDERS - 1: one per slot in a
 ## free-for-all, shared by teammates in a team game. -1 for the neutral world commander, and for
 ## a commander no scenario has placed, which is then alone. Fixed for the match: Scenario assigns
@@ -248,9 +247,7 @@ func infrastructure_provider_grant() -> int:
 	if faction == null or faction.infrastructure_source == &"":
 		return 0
 	# The default variant's: what the faction's provider is when nothing else is asked.
-	var source := (
-		get_build_preview_instance(Tool.for_type(faction.infrastructure_source)) as Actor
-	)
+	var source := get_build_preview_instance(Tool.for_type(faction.infrastructure_source)) as Actor
 	return maxi(source.infrastructure, 0) if source != null else 0
 
 
@@ -754,8 +751,7 @@ func trucks_tasked_on(a_shelter: Entity) -> Array[Actor]:
 	var tasked: Array[Actor] = []
 	tasked.assign(sequence_of.keys())
 	tasked.sort_custom(
-		func(a: Actor, b: Actor) -> bool:
-			return int(sequence_of[a]) < int(sequence_of[b])
+		func(a: Actor, b: Actor) -> bool: return int(sequence_of[a]) < int(sequence_of[b])
 	)
 	return tasked
 
@@ -936,9 +932,7 @@ func _route_rate() -> float:
 ## the player what to do about it. Counted over the same set the rate sums over, so the two
 ## can never disagree about which structures are live.
 func energy_source_count() -> int:
-	return _count_over(
-		func(c: Actor) -> bool: return c.get_node_or_null("EnergyExtractor") != null
-	)
+	return _count_over(func(c: Actor) -> bool: return c.get_node_or_null("EnergyExtractor") != null)
 
 
 ## How many owned structures generate dominion. ZERO means there is no steady dominion rate
@@ -1197,16 +1191,12 @@ func _count_pending(a_predicate: Callable) -> int:
 
 ## Infrastructure capacity pending pieces will add once they are up.
 func pending_infrastructure_provided() -> int:
-	return roundi(
-		_sum_pending(func(p: Actor) -> float: return float(maxi(p.infrastructure, 0)))
-	)
+	return roundi(_sum_pending(func(p: Actor) -> float: return float(maxi(p.infrastructure, 0))))
 
 
 ## Infrastructure upkeep pending pieces will add once they are up.
 func pending_infrastructure_required() -> int:
-	return roundi(
-		_sum_pending(func(p: Actor) -> float: return float(maxi(-p.infrastructure, 0)))
-	)
+	return roundi(_sum_pending(func(p: Actor) -> float: return float(maxi(-p.infrastructure, 0))))
 
 
 ## Energy/s the pending extractors will add once they run.
@@ -1308,6 +1298,12 @@ func _commandables_of(a_commanders: Array) -> Array:
 
 
 # Every Commander with id != 0 (neutral) and id != self.id is an enemy.
+## Every non-neutral commander outside this one's alliance. Read by the bot's posture layer for
+## the enemy's factions; the senses below go through _enemy_commanders.
+func enemy_commanders() -> Array:
+	return _enemy_commanders()
+
+
 func _enemy_commanders() -> Array:
 	if scenario == null:
 		return []

@@ -38,6 +38,10 @@ const W_RESPONSIBILITY: float = 1.5
 ## PLACEHOLDER. Roughly two units' worth, which says a bot that can see everything is
 ## better off than one that is two units richer and blind.
 const INFORMATION_VALUE_ENERGY: float = 400.0
+## The price the scout actually plays by: the constant above, scaled by the posture layer's
+## curiosity dial (BotBrain._apply_config) — a bot whose plan depends on what is out there
+## pays more for information. The constant on a scout no brain drives.
+var information_value_energy: float = INFORMATION_VALUE_ENERGY
 
 ## HOW MUCH OF THE ENEMY-LIKELIHOOD WEIGHT A POINT KEEPS AT THE BOT'S OWN FRONT DOOR.
 ## _enemy_prior runs from this at home to 1.0 at the far edge of the map. It is a floor
@@ -272,6 +276,23 @@ func mark_revealed(a_centre: Vector3, a_radius: float) -> void:
 		if VU.in_xz(_scout_grid_positions[idx]).distance_squared_to(centre) <= radius_sq:
 			_scout_grid[idx] = now
 			_ever_seen[idx] = true
+
+
+## The fraction of the scout-grid points within `a_radius` of `a_centre_xz` whose sighting is
+## fresh (inside SCOUT_EXPIRATION_TIMER): how well a region is scouted right now. 0 with no
+## point in the radius — unscouted, as unknown ground reads.
+func fresh_fraction_within(a_centre_xz: Vector2, a_radius: float) -> float:
+	var threshold: float = _bot.seconds_elapsed() - SCOUT_EXPIRATION_TIMER
+	var radius_sq: float = a_radius * a_radius
+	var inside: int = 0
+	var fresh: int = 0
+	for idx: Vector2i in _scout_grid_positions:
+		if VU.in_xz(_scout_grid_positions[idx]).distance_squared_to(a_centre_xz) > radius_sq:
+			continue
+		inside += 1
+		if float(_scout_grid[idx]) >= threshold:
+			fresh += 1
+	return float(fresh) / float(inside) if inside > 0 else 0.0
 
 
 ## True once every scout-grid point has been in sight at least once.
@@ -599,7 +620,7 @@ func _prune_progress() -> void:
 ## were an additional one and release them all.
 func _scouting_is_worth_it(a_candidate: Actor, a_rank: int = 0) -> bool:
 	var rank: int = a_rank if a_rank > 0 else _scouts.size() + 1
-	var value: float = INFORMATION_VALUE_ENERGY * stale_fraction() / float(rank)
+	var value: float = information_value_energy * stale_fraction() / float(rank)
 	return value > float(_bot.unit_cost(a_candidate.id)) * ABSENCE_RISK
 
 
@@ -701,9 +722,7 @@ func _pick_scout() -> Variant:
 	var scales: Dictionary = _score_scales(candidates)
 	# Ranked by a draw at the bot's temperature rather than by a sort, so which unit goes
 	# looking varies by match; with no generator or at 0 it is the sort it was.
-	var scores: Array = candidates.map(
-		func(u: Actor) -> float: return _scout_score(u, scales)
-	)
+	var scores: Array = candidates.map(func(u: Actor) -> float: return _scout_score(u, scales))
 	var ranked: Array = []
 	for i: int in BotSampling.order(scores, decision_temperature, rng):
 		ranked.append(candidates[i])

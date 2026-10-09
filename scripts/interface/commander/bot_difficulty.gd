@@ -246,6 +246,47 @@ var arrival_margin_falloff_seconds: float = 30.0
 ## score). 0 places a turret by bearing alone.
 var place_coverage_weight: float = 8.0
 
+# ── THE POSTURE LAYER ───────────────────────────────────────────────────────────────
+# Four dials above every decision (BotPosture; gdd/systems/ai/objective-selection.md), each
+# the bias below plus gain × the one or two signals it reads, clamped to [0, 1]; 0.5 leaves
+# the parameters a dial reaches exactly as set here, and every gain ships at 0, so a tier
+# plays as it did until a search or a draw moves these. Every one is searched.
+
+## `commitment` (booming 0 → all-in 1) per unit of ECONOMY LEAD — own income against the
+## estimated enemy's, in [−1, 1]. Positive: ahead on economy plays all-in; negative: ahead booms.
+var commitment_economy_gain: float = 0.0
+## `aggression` (defensive 0 → offensive 1) per unit of ARMY LEAD — own army value against the
+## believed enemy's under the humility prior, in [−1, 1]. Positive attacks when ahead.
+var aggression_army_gain: float = 0.0
+## `aggression` per unit of EXPOSURE — 1 while something of the bot's is under attack, else 0.
+## Negative turns defensive when raided; positive answers a raid by attacking.
+var aggression_exposure_gain: float = 0.0
+## `risk` (cautious 0 → greedy 1) per unit of MOMENTUM — how fast the army is bleeding against
+## the losing threshold, in [0, 1]. Negative banks more while losing.
+var risk_momentum_gain: float = 0.0
+## `risk` per unit of THREAT — how soon the nearest believed enemy could be at the base against
+## the quiet horizon, in [0, 1]. Negative banks more as a threat nears.
+var risk_threat_gain: float = 0.0
+## `curiosity` (blind 0 → informed 1) per unit of the scout grid's STALE FRACTION, in [0, 1].
+## Positive prices information higher the less the bot knows.
+var curiosity_stale_gain: float = 0.0
+## Where each dial rests with no signal. 0.5 is neutral; a tier that always leans all-in,
+## or always turtles, is written here rather than as a gain.
+var commitment_bias: float = 0.5
+var aggression_bias: float = 0.5
+var risk_bias: float = 0.5
+var curiosity_bias: float = 0.5
+## HYSTERESIS, shared by the dials: a dial moves only once its target has stood more than this
+## far from the held value (a fraction of the dial's range) …
+var posture_dead_band: float = 0.1
+## … for this many seconds without returning, and then snaps to the target. Low is twitchy;
+## high holds a posture through a fight. 0 follows the target at once.
+var posture_hold_seconds: float = 10.0
+## THE ENEMY'S ASSUMED INCOME as a fraction of the bot's own, where nothing has been scouted
+## — the economy twin of `assumed_enemy_parity` (BotIncome). 1 assumes parity; lower is
+## credulous and reads an unscouted enemy as poor.
+var assumed_enemy_income_parity: float = 1.0
+
 # ── VARIETY ─────────────────────────────────────────────────────────────────────────
 # Two matches on one map used to play out identically because every decision was a pure
 # function of state and these parameters. Both knobs below are drawn from the BOT'S OWN seeded
@@ -310,6 +351,20 @@ const SEARCH_RANGES: Dictionary = {
 	"guard_strength_ratio": [0.5, 3.0],
 	"arrival_margin_falloff_seconds": [5.0, 120.0],
 	"place_coverage_weight": [0.0, 20.0],
+	# The posture layer, appended 2026-10-09. A gain's sign is the search's to choose.
+	"commitment_economy_gain": [-1.0, 1.0],
+	"aggression_army_gain": [-1.0, 1.0],
+	"aggression_exposure_gain": [-1.0, 1.0],
+	"risk_momentum_gain": [-1.0, 1.0],
+	"risk_threat_gain": [-1.0, 1.0],
+	"curiosity_stale_gain": [-1.0, 1.0],
+	"commitment_bias": [0.0, 1.0],
+	"aggression_bias": [0.0, 1.0],
+	"risk_bias": [0.0, 1.0],
+	"curiosity_bias": [0.0, 1.0],
+	"posture_dead_band": [0.0, 0.5],
+	"posture_hold_seconds": [0.0, 60.0],
+	"assumed_enemy_income_parity": [0.0, 1.5],
 }
 
 # ── PER-UNIT TARGETING ──────────────────────────────────────────────────────────────

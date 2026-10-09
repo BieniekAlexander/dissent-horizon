@@ -28,15 +28,6 @@ var rng: RandomNumberGenerator = null
 ## How willing the unit choice is to take a near-best counter (BotDifficulty).
 var decision_temperature: float = 0.0
 
-## Whether the unit choice is scored by the learned combat model rather than the demand map
-## (BotDifficulty.should_use_learned_production, on in every tier; BotBrain pushes it). Off on a
-## bare manager, so a test of the demand map gets the demand map. gdd/systems/ai/macro-learning.md
-## §Decided: production is the one reader of the valuation that switches first.
-var should_use_learned_production: bool = false
-## The model the learned choice reads: CombatModel.shared() unless a test supplies one. Null
-## (no model trained) falls back to the demand map.
-var combat_model: CombatModel = null
-
 ## Energy that must still be banked AFTER a unit is paid for, mirroring BotEconomy.reserve
 ## (BotDifficulty.economy_reserve; pushed by BotBrain._apply_config).
 ##
@@ -294,14 +285,10 @@ func _best_unit_for(a_structure: Actor, a_demand: Dictionary) -> StringName:
 		if not _bot.has_tech_for(t):
 			continue
 		types.append(t)
-	var learned: Array = _learned_scores(types)
-	var scores: Array = (
-		learned
-		if not learned.is_empty()
-		else types.map(
-			func(t: StringName) -> float: return _bot.unit_composition_value(t, a_demand)
-		)
-	)
+	# The one valuation every purchase reads (Bot.purchase_values_per_energy): the model's
+	# marginal per energy where it applies, else the demand map.
+	var valued: Dictionary = _bot.purchase_values_per_energy(types, a_demand)
+	var scores: Array = types.map(func(t: StringName) -> float: return float(valued["values"][t]))
 	# A draw at the bot's temperature rather than the argmax, so two matches do not field the
 	# same mix; with no generator or at 0 it IS the argmax.
 	var chosen: int = BotSampling.pick(scores, decision_temperature, rng)
@@ -309,29 +296,8 @@ func _best_unit_for(a_structure: Actor, a_demand: Dictionary) -> StringName:
 	var scored: Dictionary = {}
 	for i: int in types.size():
 		scored[types[i]] = scores[i]
-	_act.usage.record_choice("train_learned" if not learned.is_empty() else "train", scored, picked)
+	_act.usage.record_choice("train_learned" if valued["learned"] else "train", scored, picked)
 	return picked
-
-
-## Each of `a_types` scored by the combat model: how far one more of it moves the predicted
-## margin against the believed enemy, per energy. Empty — fall back to the demand map — when
-## the switch is off, no model is trained, no enemy unit is believed, or the model does not know
-## every candidate (two scales cannot be compared within one choice).
-func _learned_scores(a_types: Array) -> Array:
-	if not should_use_learned_production or a_types.is_empty():
-		return []
-	var model: CombatModel = combat_model if combat_model != null else CombatModel.shared()
-	if model == null or not a_types.all(func(t: StringName) -> bool: return model.knows(t)):
-		return []
-	# Each believed unit weighed by the threat clock, not counted as one (Bot._clocked).
-	var enemy: Dictionary = _bot.believed_enemy_composition_clocked()
-	if enemy.is_empty():
-		return []
-	var own: Dictionary = _bot.own_armed_composition()
-	return a_types.map(
-		func(t: StringName) -> float:
-			return model.marginal(own, enemy, t) / float(maxi(1, _energy_cost(t)))
-	)
 
 
 func _cheapest_affordable_unit(a_structure: Actor) -> StringName:

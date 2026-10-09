@@ -417,10 +417,16 @@ static func explored_mask_over(lattice: Lattice, is_explored: Callable) -> Packe
 
 #endregion
 
-
 #region The fields — from believed sources
-## Whether the bot believes in any enemy piece at all: without one there is no enemy field,
-## no band, and no arrival time — the MISSING read the posture layer will fill
+## SECONDS UNTIL THE UNSEEN ENEMY IS ASSUMED TO ARRIVE — what arrival_seconds_at answers while
+## nothing is believed: the posture layer's opening prior, pushed each posture tick
+## (BotBrain._push_opening_prior; objective-selection.md §The opening prior). INF is no
+## prior, and the read is then MISSING as before.
+var prior_arrival_seconds: float = INF
+
+
+## Whether the bot believes in any enemy piece at all: without one there is no enemy field
+## and no band, and the arrival time is the opening prior above
 ## (lattice-and-topology.md §Passability is relative).
 func has_enemy_sources() -> bool:
 	_ensure_ready()
@@ -473,10 +479,13 @@ func approach_band(a_size: NavAgentClass.Size) -> PackedByteArray:
 
 
 ## SECONDS UNTIL THE NEAREST BELIEVED ENEMY UNIT COULD STAND AT `a_xz`: ground units along
-## their class's field at their type's speed, aircraft on the straight line at theirs. INF with
-## no believed mobile enemy, or none that can get there — the MISSING read, not zero.
+## their class's field at their type's speed, aircraft on the straight line at theirs. With
+## nothing believed at all, the opening prior (`prior_arrival_seconds`); INF with believed
+## enemies none of which can get there — the MISSING read, not zero.
 func arrival_seconds_at(a_xz: Vector2) -> float:
 	_ensure_ready()
+	if _enemy_sources().is_empty():
+		return prior_arrival_seconds
 	var cell: Vector2i = lattice.index_at(a_xz)
 	var best: float = INF
 	for key: String in _ground_arrival_keys():
@@ -489,9 +498,8 @@ func arrival_seconds_at(a_xz: Vector2) -> float:
 	return best
 
 
-## Whether `a_xz` is QUIET: no believed enemy unit can reach it inside QUIET_HORIZON_SECONDS.
-## True with nothing believed — quiet is what unknown ground reads as, and the posture layer
-## is what will say otherwise.
+## Whether `a_xz` is QUIET: no believed enemy unit can reach it inside QUIET_HORIZON_SECONDS —
+## or, with nothing believed, the opening prior does not expect one that soon.
 func is_quiet_at(a_xz: Vector2) -> bool:
 	return arrival_seconds_at(a_xz) > QUIET_HORIZON_SECONDS
 

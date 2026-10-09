@@ -173,6 +173,22 @@ func test_arrival_seconds_is_field_distance_over_speed_in_world_units() -> void:
 	)
 
 
+func test_with_nothing_believed_the_arrival_is_the_opening_prior() -> void:
+	# No source at all: the read is the prior the posture layer pushed, INF without one; a
+	# believed walker is measured as before, whatever the prior says.
+	var fields: FixtureFields = FixtureFields.over_open(Rect2(0.0, 0.0, 45.0, 45.0))
+	assert_eq(fields.arrival_seconds_at(Vector2(22.5, 22.5)), INF, "no prior yet")
+	fields.prior_arrival_seconds = 37.0
+	assert_eq(fields.arrival_seconds_at(Vector2(22.5, 22.5)), 37.0)
+	assert_false(fields.is_quiet_at(Vector2(22.5, 22.5)), "37 s is inside the quiet horizon")
+	var with_walker: FixtureFields = FixtureFields.over_open(Rect2(0.0, 0.0, 45.0, 45.0))
+	with_walker.prior_arrival_seconds = 37.0
+	with_walker.add_walker(Vector2i(0, 4), 2.5)
+	assert_almost_eq(
+		with_walker.arrival_seconds_at(Vector2(22.5, 22.5)), 8.0, 1e-6, "4 hops of 5 at 2.5"
+	)
+
+
 func test_the_presence_penalty_covers_a_piece_s_reach_and_bends_the_enemy_field() -> void:
 	var lattice: Lattice = _open_lattice()
 	# One 1,000-energy piece standing at the centre of (3, 3), reaching one pitch.

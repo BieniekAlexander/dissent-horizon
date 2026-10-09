@@ -1,0 +1,44 @@
+description: |
+  THE COMMITMENT DIAL HOLDS AN ARMY WHOSE SIDE IS BEHIND ON ECONOMY. A has 4 recruits to B's 2
+  and would commit (400 / max(200, 340) = 1.18, about 6 s on the clock — the control,
+  behind_on_economy_without_the_dial). But B owns three extractors A can see, priced at the
+  extractor's rate, 15 energy/s against A's none: an economy lead of −1. With the commitment
+  dial reading it at gain 0.5 the dial sits at 0, booming, and doubles A's commit threshold
+  from 3 to 6 — more units than it has — so A holds and builds rather than spending its army
+  while the opponent out-produces it. Axis: POSTURE (commitment). The gain is set rather than
+  left at the tier's 0, which plays the control exactly; the hold is set to 0 because the
+  question is the mapping, not the hysteresis (test_BotPosture has that): nothing is believed
+  on the first think, and the default 10 s hold would let the control's 6 s commit through
+  before the dial took the extractors in.
+  Rule: gdd/systems/ai/objective-selection.md §The economy signals.
+setting: { kind: flat, size: 80 }
+given:
+  A:
+    settings:
+      difficulty: HARD
+      vision: full
+      config: { scout_unit_budget: 0, commitment_economy_gain: 0.5, posture_hold_seconds: 0 }
+    with:
+      home:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: west
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 4 } ]
+        at: { from: A.home, distance: 6, bearing: east }
+        formation: cluster
+  B:
+    settings: { difficulty: HARD, vision: full, config: { scout_unit_budget: 0 } }
+    with:
+      home:
+        of: [ { piece: cl_support1, count: 1 } ]
+        at: east
+      extractors:
+        of: [ { piece: nt_extractor, count: 3 } ]
+        at: { from: B.home, distance: 8, bearing: south }
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 2 } ]
+        at: { from: B.home, distance: 6, bearing: west }
+        formation: cluster
+run: { for: 60s, seed: 1 }
+expect:
+  - not: [ { slot: A, check: posture, is: ATTACK, by: 60s } ]

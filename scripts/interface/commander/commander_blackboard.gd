@@ -84,6 +84,12 @@ func _init(a_commander: Commander) -> void:
 ## physics queries — is why Commander throttles this call to ~5 Hz. The player-
 ## facing snapshot layer is NOT updated here; see _ensure_snapshots() /
 ## refresh_snapshots(), both driven every physics frame.
+## Whether an enemy UNIT has ever been recorded here — the first real sighting, at which the
+## bot's phantom opening force lapses for good (Bot.phantom_force). Never cleared: a belief
+## that later expires does not un-see the opening.
+var has_believed_unit: bool = false
+
+
 func update() -> void:
 	var now: float = _commander.seconds_elapsed()
 
@@ -157,6 +163,8 @@ func _upsert(a_e: Actor, a_now: float) -> void:
 		entry.type = a_e.id
 		entry.is_structure = a_e.structure_is_active()
 		_entries[id] = entry
+		if not entry.is_structure:
+			has_believed_unit = true
 	entry.entity = a_e
 	entry.last_known_location = a_e.global_position
 	if entry.is_structure and _commander.map != null:
