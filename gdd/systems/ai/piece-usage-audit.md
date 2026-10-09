@@ -102,7 +102,7 @@ targeting, [bot-architecture](bot-architecture.md) §Sanction targeting beyond t
 Fifteen pieces `USED`, and the rest in four groups, each with a different owner:
 
 - **Two producers stood idle on units the bot could not train.** The picker scored every
-  producible type on its gun and took the best; the Guard (behind `cl_tech1`) won 46,707 of
+  producible type on its gun and took the best; the Constable (behind `cl_tech1`) won 46,707 of
   56,794 barracks decisions and the Avalanche (behind `cl_tech2`) 9,247 of 10,212 war-factory
   decisions, and the spend gate refused each one every tick while the caller banked for it.
   Neither was ever trained, and the bot owned no tech structure. That is the infantry-heavy,
@@ -138,7 +138,7 @@ that is the game or the scorer is the balance question the audit leaves to its o
 Eighteen pieces `USED`, up from fifteen. The tech rung bought `cl_tech2` in three of twelve
 slots (chosen 203 of 871 decisions) and the Avalanche was trained; `cl_tech1` was considered
 1,795 times and never chosen, at 0.76 of the winner — once the Avalanche is trainable the
-Guard is no longer `tech_value_margin` better than the best unit, which is the rule working as
+Constable is no longer `tech_value_margin` better than the best unit, which is the rule working as
 written and a finding about it: a margin against the single best unit never buys a sidegrade
 tech. Promotion went from refused every time to 87 casts; Scan from 97 casts at a repeat
 fraction of 0.39 (16 at 0.47 with the stamp alone, since a Scan's observer outlives the
