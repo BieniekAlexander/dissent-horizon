@@ -59,10 +59,11 @@ func test_a_block_more_wall_than_ground_is_a_wall() -> void:
 
 
 func test_a_lattice_cell_hanging_past_the_terrain_is_impassable() -> void:
-	# 12 wide at pitch 5 wants 3 cells centred on 6: cells span [-1.5, 13.5), and the outer
-	# ones only half-cover terrain — still passable, since what they cover is open; a lattice
-	# laid wholly off the terrain covers nothing and is a wall.
-	var lattice: Lattice = Lattice.covering(Rect2(0.0, 0.0, 12.0, 12.0), 5.0)
+	# 11 wide at pitch 5 wants 3 cells centred on 6: cells span [-1.5, 13.5), and the outer
+	# ones only half-cover the 12-cell terrain — still passable, since what they cover is open;
+	# a lattice laid wholly off the terrain covers nothing and is a wall. (An even extent would
+	# take 4 cells, by the parity rule in Lattice.covering.)
+	var lattice: Lattice = Lattice.covering(Rect2(0.5, 0.5, 11.0, 11.0), 5.0)
 	var mask: PackedByteArray = _mask(_terrain(), lattice)
 	assert_eq(mask.size(), 9)
 	assert_eq(mask[lattice.index_of(Vector2i(0, 0))], 1)

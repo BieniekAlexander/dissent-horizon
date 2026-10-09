@@ -15,6 +15,14 @@ extends RefCounted
 ## can reintroduce a world axis. Rule: gdd/systems/ai/world-model/lattice-and-topology.md
 ## §One lattice and §Determinism.
 ##
+## ITS POINTS SIT ON TERRAIN CELL CENTRES, whatever the map's parity. A lattice point is where
+## the bot reads the fog, and a read taken exactly on a cell edge resolves to the same side on
+## both halves of a mirrored map — the asymmetry the fog's own pixel rounding carried until
+## 2026-10-09. Centring an odd number of pitch-5 cells on an even-sized map puts every point on
+## an edge, so `covering` takes one cell more when the count's parity differs from the map's.
+## That assumes a terrain cell is one world unit (Map.CELL_SIZE) and an odd integer pitch; an
+## even pitch could not land on centres and both parities, and would need a different cure.
+##
 ## Indexing is unbounded on purpose: `index_at` floors any point to a cell and `is_in_bounds`
 ## is the separate question, so a sample taken off the edge of the map answers "that cell", and
 ## the caller decides. `anchored` builds a lattice with no extent at all, for a synthetic grid
@@ -36,11 +44,24 @@ var origin: Vector2 = Vector2.ZERO
 static func covering(bounds: Rect2, pitch: float) -> Lattice:
 	var lattice := Lattice.new()
 	lattice.pitch = pitch
-	lattice.width = maxi(1, ceili(bounds.size.x / pitch))
-	lattice.depth = maxi(1, ceili(bounds.size.y / pitch))
+	lattice.width = _cell_count(bounds.size.x, pitch)
+	lattice.depth = _cell_count(bounds.size.y, pitch)
 	var size := Vector2(float(lattice.width), float(lattice.depth)) * pitch
 	lattice.origin = bounds.get_center() - size * 0.5
 	return lattice
+
+
+## Cells to cover `extent` at `pitch`: enough to span it, and of the extent's parity so the
+## centred cells' centres fall on unit-cell centres (the module comment); the parity rule
+## applies only to an odd integer pitch, which is the one it can hold for.
+static func _cell_count(extent: float, pitch: float) -> int:
+	var count: int = maxi(1, ceili(extent / pitch))
+	var is_odd_integer_pitch: bool = (
+		is_equal_approx(pitch, roundf(pitch)) and roundi(pitch) % 2 == 1
+	)
+	if is_odd_integer_pitch and count % 2 != roundi(extent) % 2:
+		count += 1
+	return count
 
 
 ## A lattice with no extent, indexing from `origin` at `pitch` — for a synthetic grid whose

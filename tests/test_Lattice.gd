@@ -24,9 +24,9 @@ func test_a_square_map_is_covered_from_its_centre() -> void:
 
 
 func test_an_odd_remainder_is_split_over_both_edges() -> void:
-	# 22 wide at pitch 5 needs 5 cells (25): the extra 1.5 hangs over each edge equally, so
-	# the cell boundaries stay symmetric about the centre.
-	var lattice: Lattice = Lattice.covering(Rect2(-11.0, -3.0, 22.0, 6.0), 5.0)
+	# 21 wide at pitch 5 needs 5 cells (25): the extra 2 hang over each edge equally, so the
+	# cell boundaries stay symmetric about the centre.
+	var lattice: Lattice = Lattice.covering(Rect2(-10.5, -3.0, 21.0, 6.0), 5.0)
 	assert_eq(lattice.width, 5)
 	assert_eq(lattice.depth, 2)
 	assert_eq(lattice.origin, Vector2(-12.5, -5.0))
@@ -34,6 +34,19 @@ func test_an_odd_remainder_is_split_over_both_edges() -> void:
 	assert_true(lattice.is_in_bounds(Vector2i(4, 1)))
 	assert_false(lattice.is_in_bounds(Vector2i(5, 0)))
 	assert_false(lattice.is_in_bounds(Vector2i(0, -1)))
+
+
+func test_the_cell_count_takes_the_extents_parity_so_points_sit_on_cell_centres() -> void:
+	# 22 wide would fit in 5 cells, but 5 centred on an even extent puts every point on a cell
+	# edge; 6 puts them on centres. Checked for both parities and for the two maps that mattered.
+	for extent: int in [20, 21, 22, 23, 224, 231]:
+		var bounds := Rect2(-extent * 0.5, -extent * 0.5, extent, extent)
+		var lattice: Lattice = Lattice.covering(bounds, 5.0)
+		assert_eq(lattice.width % 2, extent % 2, "parity for %d" % extent)
+		assert_true(lattice.width * 5 >= extent, "covers %d" % extent)
+		for i: int in lattice.width:
+			var from_edge: float = lattice.centre_of(Vector2i(i, 0)).x - bounds.position.x
+			assert_almost_eq(fposmod(from_edge, 1.0), 0.5, 1e-6, "point %d of %d" % [i, extent])
 
 
 func test_a_point_and_its_reflection_land_in_partner_cells() -> void:

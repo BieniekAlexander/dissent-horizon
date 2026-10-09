@@ -30,6 +30,13 @@ class StubBot:
 	func unit_cost(_a_unit_type) -> int:
 		return PRICE
 
+	## Which believed TYPES can attack — the threat axis's filter, answered by name here
+	## because the real one reads a build preview the stub's commander has not got.
+	var armed_types: Array[StringName] = []
+
+	func unit_can_attack(a_type) -> bool:
+		return armed_types.has(a_type)
+
 	func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 		return pieces.filter(
 			func(p: Actor) -> bool:
@@ -283,3 +290,45 @@ func test_threats_near_two_structures_are_counted_once() -> void:
 	var raider: Actor = _enemy_unit(Vector3(5.0, 0.0, 0.0))
 	_reveal(Vector3.ZERO, 20.0)
 	assert_eq(_bot.get_enemies_threatening_base(RADIUS), [raider])
+
+
+# ─── THE OPENING FRAME ───────────────────────────────────────────────────────
+## A slot starts with units and no base (starting-formations.md §Deferred deployment), and
+## the senses that measure from "the base" must measure from the army until a structure
+## stands — never from the world origin, which the two bots of a mirrored match share.
+
+
+func test_the_base_is_the_army_until_a_structure_stands() -> void:
+	_piece(_bot, false, Vector3(10.0, 0.0, 20.0))
+	_piece(_bot, false, Vector3(30.0, 0.0, 40.0))
+	assert_eq(_bot.base_centroid(), Vector3(20.0, 0.0, 30.0))
+	_own_structure(Vector3(-50.0, 0.0, -50.0))
+	assert_eq(_bot.base_centroid(), Vector3(-50.0, 0.0, -50.0), "a structure takes over")
+
+
+func test_a_bot_that_owns_nothing_has_no_base() -> void:
+	assert_eq(_bot.base_centroid(), Vector3.ZERO)
+
+
+## A believed unit that cannot attack — the opponent's reveal drone over a shelter — is no
+## axis to face; the nearest believed unit that CAN attack is.
+func test_the_threat_axis_ignores_a_believed_unit_that_cannot_attack() -> void:
+	_bot.armed_types = [&"gun"]
+	_believe_unit(&"drone", Vector3(10.0, 0.0, 0.0))
+	_believe_unit(&"gun", Vector3(0.0, 0.0, 40.0))
+	assert_eq(_bot.threat_direction(Vector2.ZERO), Vector2(0.0, 1.0))
+
+
+func test_the_threat_axis_faces_the_map_centre_when_nothing_believed_can_attack() -> void:
+	_believe_unit(&"drone", Vector3(10.0, 0.0, 0.0))
+	assert_eq(_bot.threat_direction(Vector2(0.0, -30.0)), Vector2(0.0, 1.0))
+
+
+func _believe_unit(a_type: StringName, a_at: Vector3) -> void:
+	var entry := CommanderBlackboard.Entry.new()
+	entry.instance_id = _bot.blackboard._entries.size() + 1
+	entry.type = a_type
+	entry.is_structure = false
+	entry.last_known_location = a_at
+	entry.last_seen_time = 0.0
+	_bot.blackboard._entries[entry.instance_id] = entry

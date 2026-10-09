@@ -1005,11 +1005,9 @@ still names one map and a replay re-derives it.
   (`map_seed: 1`, played at seed 3), `personality_spread` and `decision_temperature` pinned to
   0, one match seed each, start points swapped on half: **the FIRST start point won 11 of 12**,
   from either slot. On authored `skirmish.tscn` the second point won 12 of 12. The ground is
-  identical for both sides, so the edge is the bot's, or something the mirror does not copy —
-  a placed structure's facing is not reflected.
-  TODO: find it, as [selfplay-results-2026-09-06](../ai/selfplay-results-2026-09-06.md) §The
-  symmetric copy found the build-spot scan; until then a start point's result on this mode
-  measures that bias, not the map.
+  identical for both sides, so the edge was the bot's — three world-anchored reads in its
+  opening, found with this mode and fixed the same day
+  ([bot-architecture](../ai/bot-architecture.md) §The start-position bias: found).
 
 ---
 

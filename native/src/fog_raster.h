@@ -39,9 +39,9 @@ public:
 	static constexpr int EXPLORED = 1;
 	static constexpr int IN_SIGHT = 2;
 
-	// Size the raster and fix its world framing: pixel (0, 0) sits at world
-	// (center - half) and there are `p_points_per_unit` pixels per world unit. Nothing explored,
-	// nothing in sight, every pixel in play.
+	// Size the raster and fix its world framing: pixel (0, 0) spans the world unit starting at
+	// (center - half) and there are `p_points_per_unit` pixels per world unit (see
+	// world_to_pixel). Nothing explored, nothing in sight, every pixel in play.
 	void configure(int p_width, int p_height, const godot::Vector2 &p_center, double p_half_w, double p_half_d,
 			double p_points_per_unit);
 	bool is_configured() const { return width > 0 && height > 0; }

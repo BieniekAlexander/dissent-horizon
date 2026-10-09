@@ -451,7 +451,10 @@ const DEFENCE: StringName = &"fake_defence"
 func test_a_defence_is_pulled_onto_the_approach_band_not_merely_forward() -> void:
 	var bot: FakeBot = _bot_at(Vector2.ZERO, Vector2(40.0, 0.0))
 	bot.defence = [DEFENCE]
-	var fields: FixtureFields = FixtureFields.over_open(_map.world_bounds())
+	# A 35-unit lattice at pitch 5 puts a cell centre on the base at (0, 0), so the band from
+	# the walker runs due north THROUGH the base rather than up a column beside it (on the
+	# 32-cell map's own lattice the centres sit at ±2.5, by Lattice.covering's parity rule).
+	var fields: FixtureFields = FixtureFields.over_open(Rect2(-17.5, -17.5, 35.0, 35.0))
 	fields.home = [fields.lattice.index_at(Vector2.ZERO)]
 	fields.add_walker(fields.lattice.index_at(Vector2(0.0, 14.0)), 2.0)  # inside the 32-cell map
 	bot._fields = fields

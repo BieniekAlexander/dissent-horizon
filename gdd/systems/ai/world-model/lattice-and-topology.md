@@ -229,8 +229,12 @@ precedent `should_use_learned_production` set.
 in integer arithmetic, so neighbour-expansion order cannot leak a world axis into it — two
 mirrored source sets give mirrored fields to the bit — and every set the bot derives (the
 band, quiet ground, the post) is a function of those scalars. The lattice is anchored on the
-map centre, which retired the scout grid's `roundi` world anchor (2026-10-08), the suspected
-cause of the start-position bias — whether the bias moved is not yet measured — ([bot-architecture](../bot-architecture.md) §What it was measured to fix).
+map centre, which retired the scout grid's `roundi` world anchor (2026-10-08); its points sit
+on terrain cell centres whatever the map's parity, because a lattice point is where the fog
+is read and a read on a cell edge is a tie the fog resolves the same way on both halves. The
+start-position bias itself lived elsewhere — the fog's own rounding, the base at the origin
+before the drop, the threat axis facing reveal drones — found and fixed 2026-10-09
+([bot-architecture](../bot-architecture.md) §The start-position bias: found).
 The test is a mirror residual of 0.000 per channel on the symmetric map
 (`tests/test_BotPlacementEquivariance.gd` is the model), run against a fixture, not a scene.
 Replays are unaffected: a bot's orders are re-derived from the seed and the fields are a

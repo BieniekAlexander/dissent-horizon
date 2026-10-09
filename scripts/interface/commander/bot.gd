@@ -652,7 +652,14 @@ const DIRECTION_EPSILON: float = 1.0e-6
 func threat_direction(a_from_xz: Vector2) -> Vector2:
 	var believed: Variant = nearest_believed_enemy_structure_position()
 	if believed == null:
-		believed = nearest_believed_enemy_unit_position(base_centroid())
+		# A believed unit that cannot attack is no axis to face: the opening's reveal drones
+		# over every shelter (Scenario._reveal_shelters_at_start) are enemy-owned and
+		# remembered for minutes, and facing the nearest of them turned the whole base away
+		# from the map. The same rule as base_threats: what cannot hurt is not a threat.
+		believed = nearest_believed_enemy_unit_position(
+			base_centroid(),
+			func(a_entry: CommanderBlackboard.Entry) -> bool: return unit_can_attack(a_entry.type)
+		)
 	if believed != null:
 		var to_threat: Vector2 = VU.in_xz(believed) - a_from_xz
 		if to_threat.length_squared() > DIRECTION_EPSILON:
@@ -692,12 +699,19 @@ func frontmost_structure(a_direction: Vector2) -> Actor:
 ## NOTE: includes unbuilt structures (they occupy real space and anchor the base).
 func base_centroid() -> Vector3:
 	var all_s: Array = _owned_structures()
-	if all_s.is_empty():
+	# Before the command centre lands the ARMY is the base (starting-formations.md §Deferred
+	# deployment): a slot starts with units and no structure, and every "nearest to the base"
+	# read in the opening — the threat axis, the scout's home — must measure from where the bot
+	# actually is. Measuring from the world origin instead gave the two bots of a mirrored
+	# match one shared frame, and the opening tied and broke the same way for both
+	# (bot-architecture.md §The start-position bias, 2026-10-09).
+	var pieces: Array = all_s if not all_s.is_empty() else _owned_units()
+	if pieces.is_empty():
 		return Vector3.ZERO
 	var sum := Vector3.ZERO
-	for s: Actor in all_s:
-		sum += s.global_position
-	return sum / float(all_s.size())
+	for piece: Actor in pieces:
+		sum += piece.global_position
+	return sum / float(pieces.size())
 
 
 ## Owned, fully-built structures that have an OCCUPIABLE Garrison with remaining space.
