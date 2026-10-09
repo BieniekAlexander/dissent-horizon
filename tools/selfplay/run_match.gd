@@ -304,11 +304,14 @@ func _strip_spectator_hud() -> void:
 ## `map_seed` in the config replaces the scenario's own Map with one MapGenerator makes from
 ## that seed — a skirmish on a random map, as the menu would start one. A rejected seed is
 ## retried at the next seed, and the seed actually played is recorded in the result.
+## `map_symmetric: true` beside it mirrors the map through its centre — the training control
+## of map-generation.md §Symmetric maps.
 func _apply_generated_map() -> String:
 	if not _config.has("map_seed"):
 		return ""
 	var writer := GeneratedMapWriter.new()
 	var params: MapGenerationParams = writer.default_params(_scenario.player_slots.size())
+	params.symmetric = bool(_config.get("map_symmetric", false))
 	var first_seed: int = int(_config["map_seed"])
 	var generated: GeneratedMap = null
 	for offset: int in MAP_SEED_ATTEMPTS:
@@ -692,6 +695,7 @@ func _emit(a_outcome: String, a_winner: int) -> void:
 		"config_path": _config_path,
 		"seed": _scenario.rng_seed,
 		"map_seed": _played_map_seed,
+		"map_symmetric": bool(_config.get("map_symmetric", false)),
 		"scenario": _config.get("scenario", DEFAULT_SCENARIO),
 		"win_condition": Scenario.WinCondition.keys()[_scenario.win_condition],
 		"swap_start_points": bool(_config.get("swap_start_points", false)),

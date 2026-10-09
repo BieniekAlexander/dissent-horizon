@@ -85,6 +85,9 @@ func _run() -> GeneratedMap:
 		passes.size() == MapGenerationParams.PASS_COUNT,
 		"a pass in the Pass enum with nothing here to run would stop the generator early"
 	)
+	if _params.symmetric and not _params.is_symmetric_start_count():
+		_result.errors.append("a symmetric map needs two alliances of one start each")
+		return _result
 	for index: int in mini(_params.last_pass, passes.size()):
 		# Validated before the cosmetic pass, which a rejected map would only waste.
 		if index + 1 == MapGenerationParams.Pass.VISUALS and not _validate():
@@ -92,6 +95,9 @@ func _run() -> GeneratedMap:
 		if not passes[index].call():
 			return _result
 		_result.passes_run = index + 1
+		# Not a pass: a flag-gated step on pass 6's heights, so the validation sees the mirror.
+		if index + 1 == MapGenerationParams.Pass.ELEVATION and _params.symmetric and not _mirror():
+			return _result
 	if _result.passes_run < MapGenerationParams.Pass.VISUALS:
 		_validate()
 	return _result
@@ -1201,6 +1207,44 @@ func _check_flat_fraction() -> bool:
 #endregion
 
 
+#region Symmetry
+## Overwrite the half without the first start with the image of the half with it
+## (map-generation.md §Symmetric maps). Kept features are re-measured by walking distance over
+## the mirrored ground, since pass 6's own passability describes the free map.
+func _mirror() -> bool:
+	# Built on first use: the fields need the mirrored terrain, starts and water, which exist
+	# only once MapSymmetry has written them — and held so every feature reads the same pair.
+	var fields: Array[PathField] = []
+	var share_of: Callable = func(point: Vector2) -> PackedFloat32Array:
+		if fields.is_empty():
+			fields.assign(_alliance_fields(_mirrored_passable_mask()))
+		return _walking_share(fields, Vector2i(point.floor()))
+	MapSymmetry.apply(_result, _params.start_clear_radius_cells, share_of)
+	return _result.errors.is_empty()
+
+
+## 1 per cell a unit can stand in, read off the finished terrain: in play, not steep, and not
+## under chasm water too deep to wade.
+func _mirrored_passable_mask() -> PackedByteArray:
+	var terrain: TerrainData = _result.terrain
+	var deep: Dictionary = _deep_chasm_cells()
+	var mask := PackedByteArray()
+	mask.resize(_grid.width * _grid.depth)
+	for z: int in _grid.depth:
+		for x: int in _grid.width:
+			var cell := Vector2i(x, z)
+			var is_passable: bool = (
+				terrain.is_cell_in_play(cell)
+				and terrain.cell_height_spread(cell) <= TerrainGrid.MAX_SLOPE_DIFF
+				and not deep.has(cell)
+			)
+			mask[z * _grid.width + x] = 1 if is_passable else 0
+	return mask
+
+
+#endregion
+
+
 #region Pass 6 — elevation
 ## Give every region a level, cliff the steps, ramp them for routes and connectivity, rebuild the
 ## terrain on its levels, and re-measure favor by the walking distances that leaves. Features are
@@ -1281,12 +1325,7 @@ static func _grown(cells: Array[Vector2i], margin: int) -> Array[Vector2i]:
 ## cell is traversable when it is in play, not steep, not under deep water and not a footprint.
 func _validate_obstruction() -> void:
 	var terrain: TerrainData = _result.terrain
-	var deep: Dictionary = {}
-	for water: Dictionary in _result.chasm_waters:
-		var basin: WaterBasin = WaterBasin.fill(terrain, water.seed_cell, water.level)
-		for cell: Vector2i in basin.depth_by_cell:
-			if basin.depth_by_cell[cell] > WaterBasin.WADE_DEPTH:
-				deep[cell] = true
+	var deep: Dictionary = _deep_chasm_cells()
 	var footprints: Dictionary = {}
 	for feature: MapFeature in _result.features:
 		for cell: Vector2i in feature.structure_cells():
@@ -1349,6 +1388,17 @@ func _validate_obstruction() -> void:
 				% [deviation * 100.0, _params.obstruction_tolerance * 100.0]
 			)
 		)
+
+
+## Cell -> true for every cell of chasm water too deep to wade.
+func _deep_chasm_cells() -> Dictionary:
+	var deep: Dictionary = {}
+	for water: Dictionary in _result.chasm_waters:
+		var basin: WaterBasin = WaterBasin.fill(_result.terrain, water.seed_cell, water.level)
+		for cell: Vector2i in basin.depth_by_cell:
+			if basin.depth_by_cell[cell] > WaterBasin.WADE_DEPTH:
+				deep[cell] = true
+	return deep
 
 
 ## Every currency's accessible value within tolerance of its even split — the pass 3

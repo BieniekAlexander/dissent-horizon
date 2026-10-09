@@ -918,11 +918,9 @@ of later dressing (cliff faces, ramps, mountains, shores, waterfalls) →
 
 ## Symmetric maps — a training control
 
-**PLANNED — approved 2026-10-09 (Alex), not built. `gdd/tasks.md` T-102.** The generator gains
-one parameter, `symmetric`, off by default. On, the finished map is point-symmetric about its
-centre: every corner height, void cell, feature, water body and start point has an exact image
-under `(x, z) -> (-x, -z)`. The plan below is the spec; delete this marker in the change that
-builds it, leaving the rules.
+The generator's `symmetric` parameter, off by default, makes the finished map point-symmetric
+about its centre: every corner height, tile, void cell, feature, water body and start point has
+an exact image under `(x, z) -> (-x, -z)` (Alex, 2026-10-09).
 
 ### Why it exists, and why it is not a map rule
 
@@ -945,21 +943,24 @@ has never been scored on the situation a human puts it in. That is the trainer's
 
 ### The operation
 
-Generate freely, then overwrite one half with the image of the other — Alex's framing. One pure
-step, `MapSymmetry.apply(generated) -> void` on the `GeneratedMap`, with no randomness: a
-symmetric map is a deterministic function of the free one.
+Generate freely, then overwrite one half with the image of the other — Alex's framing. One
+step, `MapSymmetry.apply` on the `GeneratedMap`, with no randomness: a symmetric map is a
+deterministic function of the free one.
 
 **Point reflection, not a line.** The play area is a rectangle in diamond coordinates
 `s = x + z`, `t = x - z`; a reflection in x alone swaps `s` and `t`, so it maps the rectangle onto
 itself only when it is square. A 180° rotation maps it onto itself at any size, is exact on the
 corner grid (`(i, j) <-> (W-1-i, W-1-j)`) and on the cell grid, and is what `Map.mirror_map`'s
-secondary-axis setting and the September copy both declare. The reference half is the half-plane
-`x + z < 0` (`s < 0`); the dividing line is `s = 0`.
+secondary-axis setting and the September copy both declare. The dividing line is `s = 0`, and
+**the reference half is whichever side of it holds the first start** — a fixed half would sit the
+first start on overwritten ground half the time.
 
 **Two starts, one per alliance.** A point reflection pairs exactly two starts. The mode refuses
-(a generation error, so `is_valid()` is false) when `alliance_count * starts_per_alliance != 2`.
-The first start is kept and the second becomes its image; it lies on the same ring at the
-opposite bearing, so §2's separation and edge rules hold by construction.
+(a generation error before any pass, so `is_valid()` is false) unless there are two alliances of
+one start each — two starts of ONE alliance would pair nothing. The first start is kept and the
+second becomes its image; it lies on the same ring at the opposite bearing, so §2's separation
+and edge rules hold by construction. **A first start whose clear box, with the ring pass 6 keeps
+on its level, reaches the axis is refused**: the mirror would rewrite part of its ground.
 
 **Where in the pipeline.** After pass 6 has shaped the heights and before the end-of-generation
 validation, so the route, pond, obstruction and balance checks run on the mirrored map rather
@@ -975,10 +976,10 @@ inspected at `last_pass = 6` with the flag on is already mirrored.
 |---|---|
 | corner heights, void cells, tile types | copy the reference half onto the other; the centre corner (odd grids) is its own image |
 | a feature entirely in the reference half | kept, and its image added — every placement's origin reflected (`origin' = grid - origin - dims`), the plan shared |
-| a feature touching the line `s = 0` with any footprint cell | **dropped** before reflection (so is a pond whose cells touch it). The halves are then disjoint and no kept feature can overlap an image |
+| a feature with any footprint cell whose CORNER lies on or past the line | **dropped** before reflection (so is a pond whose cells or rim do: the rim's heights hold its water). A kept footprint's ground is then never rewritten, and no kept feature can overlap an image |
 | a feature entirely in the other half | dropped |
 | a flooded chasm (`chasm_waters`, a seed cell and a level) | the reference half's seeds are kept and reflected at the same level; a reflected seed whose basin, refilled on the mirrored heights, already contains a kept seed's cell is dropped — one stretch of water, one body |
-| the balance and obstruction reports | re-measured by the existing validation (`accessible_value`, `obstructed`, traversable and buildable fractions, openness); each alliance sees identical geometry, so balance passes by construction and a failure is a bug |
+| the balance and obstruction reports | re-measured by the existing validation (`accessible_value`, `obstructed`, traversable and buildable fractions, openness). A kept feature's share is re-measured by walking distance over the mirrored ground; its image takes that share with the alliances swapped, so balance passes by construction. The swap is deliberate: a start stands on a grid corner, and seeding a distance field at the cell below it is a one-cell bias the image would not share |
 | `topology` and `elevation` | left as the free map's records — they describe how the reference half was made, and nothing downstream reads them for play |
 
 **Determinism.** No draw: the same free map always mirrors to the same symmetric map, so a seed

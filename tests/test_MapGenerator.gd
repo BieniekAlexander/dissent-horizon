@@ -543,4 +543,45 @@ func test_pond_charge_is_cells_times_richness_within_the_bound() -> void:
 			)
 			assert_lte(pond.pond_charge, params.pond_charge_max)
 			assert_gte(pond.pond_cells.size(), params.pond_cells_min)
+
+
+#endregion
+
+#region Symmetric maps
+## Seeds tried for a valid symmetric map: the mirror rejects a seed whose first start sits too
+## near the axis, or whose mirrored ground fails a check the free map passed.
+const _SYMMETRIC_SEED_ATTEMPTS: int = 6
+
+
+func test_a_symmetric_map_is_point_symmetric_and_valid_within_a_few_seeds() -> void:
+	var params: MapGenerationParams = _params()
+	params.last_pass = MapGenerationParams.Pass.ELEVATION
+	params.symmetric = true
+	var map: GeneratedMap = null
+	for generation_seed: int in _SYMMETRIC_SEED_ATTEMPTS:
+		map = MapGenerator.generate(params, generation_seed)
+		if map.is_valid():
+			break
+	assert_true(map.is_valid(), str(map.errors))
+	var corners: int = map.terrain.map_width()
+	var mismatched: int = 0
+	for j: int in corners:
+		for i: int in corners:
+			var image: int = (corners - 1 - j) * corners + (corners - 1 - i)
+			mismatched += (
+				0 if map.terrain.heights[j * corners + i] == map.terrain.heights[image] else 1
+			)
+	assert_eq(mismatched, 0)
+	var cells := Vector2(map.terrain.grid_width(), map.terrain.grid_depth())
+	assert_eq(map.starts[0].position + map.starts[1].position, cells)
+
+
+func test_a_symmetric_map_with_three_starts_is_refused() -> void:
+	var params: MapGenerationParams = _params()
+	params.alliance_count = 3
+	params.symmetric = true
+	var map: GeneratedMap = MapGenerator.generate(params, _SEEDS[0])
+	assert_false(map.is_valid())
+	assert_eq(map.passes_run, 0)
+	assert_false(params.warnings().is_empty())
 #endregion

@@ -82,6 +82,7 @@ Defaults`.
   "seed": 20260905,                  // Scenario.rng_seed — the whole match's randomness
   "scenario": "res://scenes/scenarios/skirmish.tscn",
   "map_seed": 4217,                  // play on a MapGenerator map from this seed, not the scene's own
+  "map_symmetric": false,            // with map_seed: mirror it through its centre, a training control
   "faction": "res://scenes/factions/colonial.tscn",  // forced onto BOTH slots
   "max_simulated_seconds": 1200,     // 20 minutes — the stalemate cap
   "max_wall_seconds": 900,           // the safety cap; a hung match must not eat a batch

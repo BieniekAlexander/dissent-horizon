@@ -37,7 +37,7 @@ const MIN_CHOKE_WIDTH: int = 10
 ## shows — the dock collects the leftovers under "Other" — but it shows with no company, which
 ## is what test_MapGeneratorDock watches for.
 const PROPERTY_GROUPS: Array = [
-	{name = "Passes", properties = ["last_pass"]},
+	{name = "Passes", properties = ["last_pass", "symmetric"]},
 	{name = "Extent", properties = ["play_size_min", "play_size_max", "ground_height"]},
 	{
 		name = "Starts",
@@ -186,6 +186,8 @@ const PROPERTY_GROUPS: Array = [
 ## is the short version. test_MapGeneratorDock checks every property has one.
 const DESCRIPTIONS: Dictionary = {
 	"last_pass": "The last pass to run. Stop early to inspect a pass on its own.",
+	"symmetric":
+	"Mirror the map through its centre after pass 6. A self-play training control; two starts only.",
 	"play_size_min":
 	"Smallest play-area sides (s, t), in diamonds. Each axis is drawn between its min and max.",
 	"play_size_max": "Largest play-area sides (s, t), in diamonds. Equal to min pins the size.",
@@ -340,6 +342,10 @@ enum Pass {
 ## The last pass to run: an earlier stop leaves the map as that pass left it, so each pass can
 ## be inspected alone. Passes run in order and none can be skipped.
 var last_pass: Pass = Pass.VISUALS
+## Point-symmetric about the centre: the half holding the first start is kept and the other
+## overwritten with its image, after pass 6 (map-generation.md §Symmetric maps). A training
+## control for self-play; shipped maps are never mirrored.
+var symmetric: bool = false
 #endregion
 
 #region Extent
@@ -625,6 +631,13 @@ func warnings() -> PackedStringArray:
 				% [clampi(last_pass, 1, PASS_COUNT), PASS_COUNT, pass_name(last_pass)]
 			)
 		)
+	if symmetric and not is_symmetric_start_count():
+		found.append(
+			(
+				"A symmetric map pairs exactly two starts, so it needs two alliances of one "
+				+ "start each; generation will fail."
+			)
+		)
 	if play_size_min.x > play_size_max.x or play_size_min.y > play_size_max.y:
 		found.append(
 			(
@@ -710,6 +723,11 @@ static func pass_name(a_pass: Pass) -> String:
 
 func start_count() -> int:
 	return alliance_count * starts_per_alliance
+
+
+## Whether the starts can be paired by a point reflection: two, in different alliances.
+func is_symmetric_start_count() -> bool:
+	return alliance_count == 2 and starts_per_alliance == 1
 
 
 func site_value() -> float:
