@@ -1,0 +1,355 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://cldm35yesp5qj" path="res://scripts/interface/rts_controller.gd" id="3_q8ke8"]
+[ext_resource type="Script" uid="uid://b516knf7hdkun" path="res://scripts/interface/hud/command_grid.gd" id="4_fjrip"]
+[ext_resource type="Script" uid="uid://cifbkg5b8mfnb" path="res://scripts/maps/minimap.gd" id="8_minimap"]
+[ext_resource type="Script" uid="uid://byjcppaifact3" path="res://scripts/interface/hud/info_view.gd" id="10_infoview"]
+[ext_resource type="PackedScene" uid="uid://c7objvw1e0001" path="res://scenes/interface/objective_view.tscn" id="11_objview"]
+[ext_resource type="PackedScene" uid="uid://d1qym633ecjpp" path="res://scenes/interface/help_overlay.tscn" id="12_help"]
+[ext_resource type="Script" uid="uid://c7nisc1wgx7d0" path="res://scripts/interface/hud/production_rail.gd" id="15_rail"]
+[ext_resource type="Script" uid="uid://biu5n1j1et8ni" path="res://scripts/interface/hud/selector_panel.gd" id="16_select"]
+[ext_resource type="Script" uid="uid://dg2xxijhyx7uj" path="res://scripts/interface/hud/control_group_panel.gd" id="17_cgroups"]
+[ext_resource type="Script" uid="uid://cks2fcme8424g" path="res://scripts/interface/hud/passive_ability_row.gd" id="18_passives"]
+[ext_resource type="Script" uid="uid://dqmvhdy1cylfa" path="res://scripts/interface/hud/info_widget_row.gd" id="19_widgets"]
+[ext_resource type="Script" uid="uid://d3qftodrdvjy6" path="res://scripts/interface/hud/condition_row.gd" id="20_effects"]
+[ext_resource type="Script" path="res://scripts/interface/hud/dominion_bar.gd" id="21_dombar"]
+[ext_resource type="Script" path="res://scripts/interface/hud/energy_bar.gd" id="22_enbar"]
+[ext_resource type="Script" path="res://scripts/interface/hud/infrastructure_bar.gd" id="23_infbar"]
+[ext_resource type="PackedScene" path="res://scenes/interface/debug_panel.tscn" id="24_debug"]
+[ext_resource type="PackedScene" path="res://scenes/interface/debug_tuning_panel.tscn" id="25_tuning"]
+
+[node name="Controller" type="CanvasLayer" unique_id=851979161 node_paths=PackedStringArray("selection_box")]
+script = ExtResource("3_q8ke8")
+selection_box = NodePath("SelectionBox")
+
+[node name="SelectionBox" type="ColorRect" parent="." unique_id=429736881]
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0.654902, 0.137255, 0.972549, 0.498039)
+
+[node name="DominionBar" type="Control" parent="." groups=["selection_blocking_ui"]]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 290.0
+offset_bottom = 41.0
+mouse_filter = 2
+script = ExtResource("21_dombar")
+
+[node name="ProductionSlot" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 324.0
+offset_top = -191.0
+offset_right = -374.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="ProductionRail" type="Control" parent="ProductionSlot" unique_id=1608019883 groups=["selection_blocking_ui"]]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("15_rail")
+
+[node name="MapSection" type="Control" parent="." unique_id=1965947438 groups=["selection_blocking_ui"]]
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -374.0
+offset_top = -191.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="MinimapBorder" type="ColorRect" parent="MapSection" unique_id=1051067280]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.35, 0.35, 0.35, 1)
+
+[node name="Minimap" type="TextureRect" parent="MapSection/MinimapBorder" unique_id=175631056]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("8_minimap")
+
+[node name="InfoSection" type="Control" parent="." unique_id=593031055 groups=["selection_blocking_ui"]]
+layout_mode = 3
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 324.0
+offset_top = -153.0
+offset_right = -374.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("10_infoview")
+
+[node name="Background" type="ColorRect" parent="InfoSection" unique_id=802320450]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 5.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.35, 0.35, 0.35, 0.2509804)
+
+[node name="Summary" type="Control" parent="InfoSection" unique_id=243269838]
+layout_mode = 1
+anchor_right = 0.4
+anchor_bottom = 1.0
+offset_top = 2.0
+offset_bottom = -32.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="NameLabel" type="Label" parent="InfoSection/Summary" unique_id=370129560]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Cards" type="ScrollContainer" parent="InfoSection/Summary" unique_id=610274355]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="Rows" type="VBoxContainer" parent="InfoSection/Summary/Cards"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+mouse_filter = 2
+
+[node name="Details" type="Control" parent="InfoSection" unique_id=710854947]
+layout_mode = 1
+anchor_left = 0.4
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 2.0
+offset_bottom = -32.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Cards" type="HFlowContainer" parent="InfoSection/Details" unique_id=1385580273]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Production" type="Control" parent="InfoSection/Details"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -28.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("15_rail")
+is_scoped = true
+
+[node name="Widgets" type="VBoxContainer" parent="InfoSection" unique_id=243269840]
+layout_mode = 1
+anchor_right = 0.4
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 8.0
+offset_right = -4.0
+offset_bottom = -62.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 3
+script = ExtResource("19_widgets")
+
+[node name="Conditions" type="HFlowContainer" parent="InfoSection" unique_id=243269841]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = -60.0
+offset_right = -4.0
+offset_bottom = -32.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/h_separation = 4
+script = ExtResource("20_effects")
+
+[node name="Passives" type="HFlowContainer" parent="InfoSection" unique_id=243269839]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = -30.0
+offset_right = -4.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/h_separation = 4
+script = ExtResource("18_passives")
+
+[node name="ControlGroups" type="Control" parent="." unique_id=1608019885 groups=["selection_blocking_ui"]]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 324.0
+offset_top = -191.0
+offset_right = -374.0
+offset_bottom = -155.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("17_cgroups")
+
+[node name="EnergyBar" type="Control" parent="." groups=["selection_blocking_ui"]]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -267.0
+offset_right = 300.0
+offset_bottom = -233.0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("22_enbar")
+
+[node name="InfrastructureBar" type="Control" parent="." groups=["selection_blocking_ui"]]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -229.0
+offset_right = 300.0
+offset_bottom = -195.0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("23_infbar")
+
+[node name="Selectors" type="Control" parent="." unique_id=1608019884 groups=["selection_blocking_ui"]]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -191.0
+offset_right = 324.0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("16_select")
+
+[node name="CommandsSection" type="Control" parent="." unique_id=1645374738 groups=["selection_blocking_ui"]]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -191.0
+offset_right = 324.0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="CommandsBorder" type="ColorRect" parent="CommandsSection" unique_id=822633084]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.35, 0.35, 0.35, 1)
+
+[node name="CommandsView" type="GridContainer" parent="CommandsSection/CommandsBorder" unique_id=249551403]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 6
+script = ExtResource("4_fjrip")
+
+[node name="ObjectiveView" parent="." unique_id=1188061862 instance=ExtResource("11_objview")]
+offset_left = 1583.0
+
+[node name="CommandErrorMessage" type="RichTextLabel" parent="." unique_id=1051783739]
+clip_contents = false
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -1.0
+offset_bottom = 0.223991
+grow_horizontal = 0
+horizontal_alignment = 2
+
+[node name="DebugPanel" parent="." instance=ExtResource("24_debug")]
+hidden_while_up = [NodePath("../ObjectiveView"), NodePath("../CommandErrorMessage")]
+
+[node name="DebugTuningPanel" parent="." instance=ExtResource("25_tuning")]
+hidden_while_up = [NodePath("../DominionBar"), NodePath("../EnergyBar"), NodePath("../InfrastructureBar")]
+
+[node name="HelpOverlay" parent="." unique_id=120632399 instance=ExtResource("12_help")]
+help_text = "To exit the game:
+- MacOS: CMD + Q
+- Windows/Linux: Alt+F4
+
+Press {{ show_pause_menu }} to return to the main menu.
+
+Most in-game buttons in this game have a tooltip. Hover over the button to see more information about the button. Additionally, holding {{ ui_verbose }} will provide additional information to tooltips and selections."

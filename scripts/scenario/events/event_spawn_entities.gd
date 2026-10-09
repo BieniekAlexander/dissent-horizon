@@ -238,7 +238,7 @@ func resolve_spawn_anchor() -> Vector3:
 			options.append(point)
 	if options.is_empty():
 		return spawn_position.global_position
-	return (options.pick_random() as Node3D).global_position
+	return (AU.pick_random(options, SU.rng) as Node3D).global_position
 
 
 ## How many of EACH scene to spawn this execution. Never negative: a negative result is a
@@ -309,10 +309,7 @@ func _apply_spawn_groups(a_node: Node) -> void:
 ## truck's cage, a Compound — exactly as readily as an open one. That is how a
 ## scenario starts a truck already carrying prisoners.
 func _garrison_all(
-	a_commandables: Array[Actor],
-	a_hosts: Array[Actor],
-	a_map: Map,
-	a_commander: Commander
+	a_commandables: Array[Actor], a_hosts: Array[Actor], a_map: Map, a_commander: Commander
 ) -> void:
 	if a_hosts.is_empty():
 		push_error("EventSpawnEntities '%s': no garrison hosts to spawn into" % name)

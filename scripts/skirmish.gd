@@ -67,6 +67,15 @@ func _deploy_all_forces() -> void:
 	_center_player_camera_on_starting_entities()
 
 
+## Slot `a_index`'s start point, as a replay's header records it (Scenario.slot_start_point).
+func slot_start_point(a_index: int) -> Dictionary:
+	var points: Array[Node3D] = _start_points()
+	if a_index < 0 or a_index >= points.size():
+		return {}
+	var point: Node3D = points[a_index]
+	return {"name": String(point.name), "x": point.global_position.x, "z": point.global_position.z}
+
+
 ## The scene's start-point marker nodes, sorted by name so the slot→point mapping is
 ## deterministic (slot order ↔ "StartPoint1", "StartPoint2", …) regardless of the
 ## order the group reports.

@@ -73,4 +73,21 @@ static func median(array: Array) -> float:
 
 static func mean(array: Array) -> float:
 	return AU.sum(array) * 1.0 / array.size()
+
+
+## A uniformly random element of `array` drawn from `rng`, or null when it is empty. In place of
+## Array.pick_random, which draws from Godot's GLOBAL generator: see `shuffle`.
+static func pick_random(array: Array, rng: RandomNumberGenerator) -> Variant:
+	return null if array.is_empty() else array[rng.randi_range(0, array.size() - 1)]
+
+
+## Shuffle `array` in place with `rng` (Fisher–Yates). In place of Array.shuffle, which draws from
+## Godot's GLOBAL generator — the one the simulation is seeded on, so a draw made anywhere outside
+## the simulation (a voice line) would move a replay off its recording.
+static func shuffle(array: Array, rng: RandomNumberGenerator) -> void:
+	for i: int in range(array.size() - 1, 0, -1):
+		var j: int = rng.randi_range(0, i)
+		var swap: Variant = array[i]
+		array[i] = array[j]
+		array[j] = swap
 #endregion

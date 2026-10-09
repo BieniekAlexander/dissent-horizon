@@ -96,6 +96,14 @@ func write_autosave() -> Error:
 	return replay.write(ReplayFile.DIRECTORY + name_now)
 
 
+## Write the recording so far as a KEPT replay at `a_path` — one the rotation never deletes
+## (ReplayNames). The caller has checked the name and asked before overwriting.
+func write_kept(a_path: String) -> Error:
+	if replay.header.get("version", "") == "":
+		replay.header["version"] = ReplayFile.current_version()
+	return replay.write(a_path)
+
+
 func _physics_process(_a_delta: float) -> void:
 	var period: int = maxi(roundi(DIGEST_PERIOD_SECONDS * TimeUtils.ticks_per_second()), 1)
 	if _scenario == null or _scenario.tick % period != 0:

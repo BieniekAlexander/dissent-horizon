@@ -137,6 +137,9 @@ func _ready() -> void:
 		rng_seed = int(replay_to_play.header.get("seed", rng_seed))
 	seed_simulation()
 	PurchaseTransaction.reset_ids()
+	# The viewed fog is a static, so a spectator session or a replay's view switch would
+	# otherwise carry into the next session: every session opens on its own player's view.
+	Fog.active_commander_id = -1
 	_create_debug_mode()
 	_ensure_lighting()
 	if map == null:
@@ -199,6 +202,7 @@ func _ready() -> void:
 		_setup_spectator_camera()
 		_setup_spectator_hud()
 		_init_spectator_fog()
+		_create_look_only_hud()
 
 	# Typed Entity (not Actor): commander/default_commander_id are Entity-level, and
 	# the "piece" group holds features such as ExtractionSite as well as Actors.
@@ -230,6 +234,10 @@ func _ready() -> void:
 	# than by the player rig because they belong to the SCENARIO — a spectator or test session
 	# has no RTSController but can still be running a scripted sequence.
 	_create_scenario_hud(event_manager)
+
+	# A playback is watched, as a spectator session (above): the replay keys and banner on top.
+	if is_playback():
+		_create_replay_viewer()
 
 	# In-world debug visualisation of the active bot's internals, one category at a time,
 	# gated on the debug view + the bot-view toggle. See BotDebugOverlay.
@@ -458,6 +466,9 @@ const MATCH_SUMMARY_LAYER: int = 15
 ## The scenario HUD's elapsed-time readout; authored layout, instanced in _create_scenario_hud.
 const SCENARIO_TIMER_SCENE: PackedScene = preload("res://scenes/interface/scenario_timer.tscn")
 const DEFAULT_LIGHTING_SCENE: String = "res://scenes/environment/default_lighting.tscn"
+## The player's HUD, which a spectator session instances look-only. A path rather than a preload:
+## loaded only by a session that has no player.
+const PLAYER_HUD_SCENE: String = "res://scenes/interface/player_hud.tscn"
 
 
 ## Add the default lighting rig unless the scenario (or its map) already carries a sun. A
@@ -482,6 +493,19 @@ func _spawn_initial_entities() -> void:
 ## it on, and every Skirmish deploys this way.
 func uses_deferred_deployment() -> bool:
 	return false
+
+
+## Where slot `a_index` (0-based) starts, as a replay's header records it: the start point's
+## name and its XZ position, or empty when this scenario places its slots by authoring rather
+## than at start points. Skirmish fills it. Informational: a playback re-derives the start from
+## the scene, as the match did.
+func slot_start_point(_a_index: int) -> Dictionary:
+	return {}
+
+
+## Whether this session plays a recording back rather than a match (replay_to_play).
+func is_playback() -> bool:
+	return replay_to_play != null
 
 
 ## Slot numbers (1-based commander ids) whose faction is missing — either the slot
@@ -620,7 +644,11 @@ func _build_commanders() -> void:
 		var slot: PlayerSlot = player_slots[i]
 		var id: int = i + 1
 		var c: Commander
-		if slot.is_bot:
+		# A playback is a SPECTATOR session: nobody plays, so no slot gets the human rig, and
+		# the watcher gets the spectator camera and HUD (_ready). The human slot still names
+		# the local player below — the simulation reads it (the implicit elimination rule,
+		# HEGEMONY's verdict), so the playback judges the match as the recording did.
+		if slot.is_bot or is_playback():
 			c = Bot.new()
 		else:
 			c = load("res://scenes/player.tscn").instantiate()
@@ -628,8 +656,8 @@ func _build_commanders() -> void:
 			# is: debug mode can swap the player (play_as), and every commander keeps its
 			# own exploration.
 			(c.get_node("Fog") as Fog).watching_commander_id = id
-			if RTSController.PLAYER_COMMANDER_ID < 1:
-				RTSController.PLAYER_COMMANDER_ID = id
+		if not slot.is_bot and RTSController.PLAYER_COMMANDER_ID < 1:
+			RTSController.PLAYER_COMMANDER_ID = id
 		c.id = id
 		# Apply the slot's starting resources. Set before the commander enters the
 		# tree; Commander's resource fields are plain (not @onready) so this sticks. A slot
@@ -679,42 +707,19 @@ func _setup_spectator_camera() -> void:
 
 
 ## Build a CanvasLayer HUD that shows one resource panel per non-neutral
-## commander, plus a fog-toggle row so the spectator can switch perspectives and a picker
-## for which category of the viewed bot's signals the debug overlay draws.
-## Called only in spectator mode (no human rig).
+## commander, and a picker for which category of the viewed bot's signals the debug overlay
+## draws. Whose view is drawn is chosen on the look-only HUD's SpectatorPanel, in the command
+## grid's place (_create_look_only_hud). Called only in spectator mode (no human rig).
 func _setup_spectator_hud() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "SpectatorHUD"
+	# Put away with the rest of the HUD by its hide button.
+	layer.add_to_group(RTSController.HUD_LAYER_GROUP)
 	add_child(layer)
 
 	var vbox := VBoxContainer.new()
 	vbox.position = Vector2(8.0, 8.0)
 	layer.add_child(vbox)
-
-	# ── Fog toggle row ──
-	var fog_row := HBoxContainer.new()
-	fog_row.name = "FogToggleRow"
-	fog_row.add_theme_constant_override("separation", 6)
-	vbox.add_child(fog_row)
-
-	var no_fog_btn := Button.new()
-	no_fog_btn.name = "FogBtn_NoFog"
-	no_fog_btn.text = "No Fog"
-	no_fog_btn.custom_minimum_size = Vector2(80.0, 28.0)
-	fog_row.add_child(no_fog_btn)
-
-	for commander: Commander in commanders:
-		if commander.id == 0 or not commander is Bot:
-			continue
-		var btn := Button.new()
-		btn.name = "FogBtn_%d" % commander.id
-		btn.text = "Bot %d POV" % commander.id
-		btn.custom_minimum_size = Vector2(100.0, 28.0)
-		fog_row.add_child(btn)
-
-	# Wire button callbacks now that all buttons exist.
-	_wire_spectator_fog_buttons(fog_row)
-	_refresh_spectator_fog_buttons(fog_row)
 
 	# ── Bot debug overlay category (shown only while the debug view is up) ──
 	var category_bar := BotDebugCategoryBar.new()
@@ -744,38 +749,6 @@ func _setup_spectator_hud() -> void:
 		label.tree_exiting.connect(_disconnect_spectator_label.bind(commander, refresh))
 
 
-func _wire_spectator_fog_buttons(a_fog_row: HBoxContainer) -> void:
-	var no_fog_btn: Button = a_fog_row.get_node("FogBtn_NoFog")
-	no_fog_btn.pressed.connect(
-		func() -> void:
-			Fog.active_commander_id = -2
-			_refresh_spectator_fog_buttons(a_fog_row)
-	)
-	for commander: Commander in commanders:
-		if commander.id == 0 or not commander is Bot:
-			continue
-		var btn: Button = a_fog_row.get_node("FogBtn_%d" % commander.id)
-		var cid: int = commander.id
-		btn.pressed.connect(
-			func() -> void:
-				Fog.active_commander_id = cid
-				_refresh_spectator_fog_buttons(a_fog_row)
-		)
-
-
-func _refresh_spectator_fog_buttons(a_fog_row: HBoxContainer) -> void:
-	var active_id: int = Fog.active_commander_id
-	var no_fog_btn: Button = a_fog_row.get_node_or_null("FogBtn_NoFog") as Button
-	if no_fog_btn != null:
-		no_fog_btn.disabled = (active_id == -2)
-	for commander: Commander in commanders:
-		if commander.id == 0 or not commander is Bot:
-			continue
-		var btn: Button = a_fog_row.get_node_or_null("FogBtn_%d" % commander.id) as Button
-		if btn != null:
-			btn.disabled = (active_id == commander.id)
-
-
 ## Untyped commander: it may already be freed by the time its label leaves the tree.
 func _disconnect_spectator_label(a_commander: Variant, a_refresh: Callable) -> void:
 	if not is_instance_valid(a_commander):
@@ -798,9 +771,23 @@ func _refresh_spectator_label(a_label: RichTextLabel, a_commander: Commander) ->
 	)
 
 
+## The spectator's look-only HUD: the player's HUD scene, driving no commander — selection,
+## the info panel and the minimap, with the SpectatorPanel in the command grid's place.
+## gdd/systems/ux/ui/hud-layout.md §The look-only HUD.
+func _create_look_only_hud() -> void:
+	var hud: RTSController = (load(PLAYER_HUD_SCENE) as PackedScene).instantiate() as RTSController
+	hud.name = "LookOnlyHUD"
+	hud.is_look_only = true
+	add_child(hud)
+
+
 ## Set the initial active fog for spectator sessions: default to the first bot's
-## perspective so entity visibility is immediately meaningful.
+## perspective so entity visibility is immediately meaningful — or, in a playback, the recorded
+## player's.
 func _init_spectator_fog() -> void:
+	if is_playback() and local_player() != null and Fog.for_commander(local_player().id) != null:
+		Fog.active_commander_id = local_player().id
+		return
 	for commander: Commander in commanders:
 		if commander.id != 0 and commander is Bot:
 			Fog.active_commander_id = commander.id
@@ -825,6 +812,14 @@ func _create_bot_fogs() -> void:
 		fog.name = "Fog"
 		commander.add_child(fog)
 		fog.set_owner(self)
+
+
+## Whether `a_commander`'s slot is a bot's (a playback builds its human slot as a Bot too).
+func is_bot_slot(a_commander: Commander) -> bool:
+	for slot: PlayerSlot in player_slots:
+		if slot != null and slot.commander == a_commander:
+			return slot.is_bot
+	return true
 
 
 ## Whether `a_commander`'s slot asked for no fog (PlayerSlot.omniscient, a simulation lever).
@@ -883,6 +878,7 @@ func _create_scenario_hud(a_event_manager: ScenarioTriggerManager) -> void:
 	# The elapsed-time readout: here and not in the player rig, so a spectator sees it too.
 	var timer_layer := CanvasLayer.new()
 	timer_layer.name = "ScenarioTimerLayer"
+	timer_layer.add_to_group(RTSController.HUD_LAYER_GROUP)
 	add_child(timer_layer)
 	var timer: ScenarioTimer = SCENARIO_TIMER_SCENE.instantiate()
 	timer_layer.add_child(timer)
@@ -899,6 +895,14 @@ func _create_scenario_hud(a_event_manager: ScenarioTriggerManager) -> void:
 	add_child(pause_menu)
 	pause_menu.bind(a_event_manager)
 	pause_menu.bind_match_log(match_log)
+
+
+## The replay viewer: the keys and the banner a playback is watched through (ReplayViewer).
+func _create_replay_viewer() -> void:
+	var viewer := ReplayViewer.new()
+	viewer.name = "ReplayViewer"
+	add_child(viewer)
+	viewer.bind(self, trigger_manager().simulation_clock)
 
 
 ## Start the match's event log (MatchLog). Not in the editor, which plays no match.
@@ -1037,7 +1041,8 @@ func end_match(a_winner_id: int) -> void:
 ## winner's name in a spectator session.
 func _match_summary_title(a_winner_id: int) -> String:
 	var player: Commander = local_player()
-	if player != null:
+	# A playback is watched, so it names the winner as a spectator session does.
+	if player != null and not is_playback():
 		return "Victory" if a_winner_id == player.id else "Defeat"
 	return "Commander %d wins" % a_winner_id if a_winner_id > 0 else "Match over"
 
@@ -1056,6 +1061,13 @@ func _show_match_summary(a_title: String) -> void:
 	add_child(layer)
 	view.present(match_log, a_title)
 	view.closed.connect(layer.queue_free)
+	# Save replay, on every end of a match — victory, defeat and a spectator's alike — unless
+	# debug mode ended the recording, which would only be refused when played.
+	if recorder != null and not recorder.is_invalid:
+		var form := ReplaySaveForm.new()
+		form.name = "ReplaySaveForm"
+		view.add_footer(form)
+		form.bind(recorder)
 
 
 ## Called when every PRIMARY trigger has fired — the scenario's declared work is finished, so

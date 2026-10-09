@@ -33,6 +33,10 @@ const _GLOBAL_DRAW_NAMES: Array[String] = [
 ## in the comment rather than added to make a red test green.
 const _ACKNOWLEDGED_GLOBAL_DRAWS: Array[String] = []
 
+## Array methods that draw from the global generator too. Matched as METHOD calls — `.shuffle(`
+## — where the names above are matched bare; AU.shuffle / AU.pick_random take a generator.
+const _GLOBAL_DRAW_METHODS: Array[String] = ["pick_random", "shuffle"]
+
 ## Calls that read the WALL CLOCK. Simulation code reading one would play differently on a
 ## replay of the same seed (gdd/systems/commands/recording-and-replay.md §Detecting drift).
 ## Conversions that take a time as an argument (`get_datetime_dict_from_unix_time`) are not
@@ -56,6 +60,7 @@ const _ACKNOWLEDGED_WALL_CLOCK_READS: Dictionary = {
 	"res://scripts/interface/scenario_highlight.gd": "a pulsing highlight",
 	"res://scripts/interface/commander/bot_scheduler.gd": "diagnostic job timing, never read back",
 	"res://scripts/replay/replay_recorder.gd": "names an autosave file",
+	"res://scripts/replay/replay_save_form.gd": "prefills a kept replay's name",
 }
 
 
@@ -238,6 +243,10 @@ func _global_draw_lines(a_path: String) -> Array[int]:
 		var code: String = _strip_strings_and_comments(lines[i])
 		for draw_name: String in _GLOBAL_DRAW_NAMES:
 			if _calls_bare(code, draw_name):
+				found.append(i + 1)
+				break
+		for method: String in _GLOBAL_DRAW_METHODS:
+			if code.contains("." + method + "()") and not code.contains("AU." + method):
 				found.append(i + 1)
 				break
 	return found

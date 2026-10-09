@@ -63,7 +63,10 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 		# Bound straight to the autoload, not to a method on this node: the player may sit on a
 		# victory screen indefinitely, and the navigation has to work even if this event's
 		# subtree has been freed in the meantime. Same reasoning as the clock binding above.
-		dialog.secondary_chosen.connect(SceneManager.to_main_menu)
+		# In a playback the recorded choice resolves the dialog but does not leave: the viewer
+		# leaves by the pause menu (recording-and-replay.md §Watching).
+		if not a_manager.is_playback():
+			dialog.secondary_chosen.connect(SceneManager.to_main_menu)
 	# Nobody is drawing dialogs in this session — a spectator view, or a headless test
 	# scenario. A hold with no window to dismiss would stop the world permanently, so resolve
 	# the request instead of emitting it into the void.

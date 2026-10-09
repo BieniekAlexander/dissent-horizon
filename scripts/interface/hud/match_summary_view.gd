@@ -56,6 +56,13 @@ func show_events(a_events: Array, a_title: String) -> void:
 	_source.text = "From the match event log: %d events" % a_events.size()
 
 
+## Put `a_control` at the foot of the summary, above the close button — the end of a match
+## adds its Save replay form here.
+func add_footer(a_control: Control) -> void:
+	_close_button.add_sibling(a_control)
+	_close_button.get_parent().move_child(a_control, _close_button.get_index())
+
+
 ## The text of every table cell, row by row, headers first.
 func cell_texts() -> Array[String]:
 	var out: Array[String] = []

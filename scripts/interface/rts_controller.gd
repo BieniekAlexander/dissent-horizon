@@ -21,6 +21,14 @@ static var PLAYER_COMMANDER_ID: int = 1
 
 const SELECTION_BLOCKING_UI_GROUP: StringName = &"selection_blocking_ui"
 
+## Other HUD layers whose visibility follows this HUD's hide button: the scenario timer, a
+## spectator's labels, the replay banner. A dialog and the pause menu are not HUD and stay up.
+## gdd/systems/ux/ui/hud-layout.md §Hiding the HUD.
+const HUD_LAYER_GROUP: StringName = &"hud_layer"
+## The hide button's size, and the gap it keeps above the minimap or the screen's bottom edge.
+const HUD_TOGGLE_SIZE: Vector2 = Vector2(96.0, 26.0)
+const HUD_TOGGLE_MARGIN: float = 4.0
+
 ## Ghosts of a structure that isn't on the map yet — the placement preview under the
 ## cursor and the blueprints marking claimed sites — are drawn at the "planned" opacity,
 ## one step fainter than a placed-but-unfinished structure (see MeshVisual's OPACITY_*).
@@ -424,6 +432,20 @@ var _build_preview: Node3D = null
 var _build_preview_tool_type: Variant = null
 #endregion
 
+## A LOOK-ONLY HUD: the spectator session's (Scenario._create_look_only_hud), a replay's included.
+## It drives no commander, so it gives no orders: selection, control groups, the info panel and
+## the minimap work, and the command grid's slot holds the SpectatorPanel instead. Set before
+## the HUD enters the tree. gdd/systems/ux/ui/hud-layout.md §The look-only HUD.
+@export var is_look_only: bool = false
+
+## Whether the hide button has put the HUD away (set_hud_hidden).
+var is_hud_hidden: bool = false
+## Holds what stays up while the HUD is hidden — the hide button and the drag box — on a layer
+## of its own: hiding this layer would otherwise hide them with it.
+var _hud_overlay: CanvasLayer = null
+var _hud_toggle: Button = null
+var _spectator_panel: SpectatorPanel = null
+
 
 #region Lifecycle
 func _ready():
@@ -518,6 +540,104 @@ func _ready():
 	$CommandsSection/CommandsBorder.add_child(_mode_banner)
 	_mode_banner.set_backdrop($CommandsSection/CommandsBorder as ColorRect)
 	_mode_banner.show_family(_command_family)
+
+	if is_look_only:
+		_apply_look_only_layout()
+	_build_hud_toggle()
+
+
+## A look-only HUD's layout: everything that shows or spends a commander's means goes — the
+## resource bars, the production rail, the selectors, the debug panels (a debug piece would
+## change the match) — and the SpectatorPanel takes the command grid's slot.
+func _apply_look_only_layout() -> void:
+	for path: String in [
+		"DominionBar",
+		"EnergyBar",
+		"InfrastructureBar",
+		"ProductionSlot",
+		"Selectors",
+		"CommandsSection",
+		"DebugPanel",
+		"DebugTuningPanel",
+	]:
+		var node: CanvasItem = get_node_or_null(path) as CanvasItem
+		if node != null:
+			node.visible = false
+			node.process_mode = Node.PROCESS_MODE_DISABLED
+	var slot: Control = $CommandsSection as Control
+	_spectator_panel = SpectatorPanel.new()
+	_spectator_panel.name = "SpectatorPanel"
+	_spectator_panel.add_to_group(SELECTION_BLOCKING_UI_GROUP)
+	add_child(_spectator_panel)
+	_spectator_panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_spectator_panel.offset_left = slot.offset_left
+	_spectator_panel.offset_top = slot.offset_top
+	_spectator_panel.offset_right = slot.offset_right
+	_spectator_panel.offset_bottom = slot.offset_bottom
+	_spectator_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_spectator_panel.bind(_scenario)
+
+
+#endregion
+
+
+#region Hiding the HUD
+## The hide button, just above the minimap's left edge — wherever there is a minimap, in a match
+## and a look-only HUD alike. Hidden, the HUD leaves this one button at the bottom of the screen,
+## at the same horizontal position, to bring it back.
+func _build_hud_toggle() -> void:
+	var map_section: Control = get_node_or_null("MapSection") as Control
+	if map_section == null:
+		return
+	_hud_overlay = CanvasLayer.new()
+	_hud_overlay.name = "HudOverlay"
+	_hud_overlay.layer = layer
+	add_child(_hud_overlay)
+	# The drag box is drawn while the HUD is hidden too: selecting does not stop.
+	selection_box.reparent(_hud_overlay, false)
+	_hud_toggle = Button.new()
+	_hud_toggle.name = "HudToggle"
+	_hud_toggle.focus_mode = Control.FOCUS_NONE
+	_hud_toggle.add_to_group(SELECTION_BLOCKING_UI_GROUP)
+	_hud_toggle.pressed.connect(func() -> void: set_hud_hidden(not is_hud_hidden))
+	_hud_overlay.add_child(_hud_toggle)
+	_hud_toggle.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_hud_toggle.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_hud_toggle.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_place_hud_toggle()
+
+
+## Put the HUD away, or bring it back. Hiding the controller's own layer hides every panel in
+## it — and a hidden panel no longer blocks a world click (pointer_over_blocking_ui reads
+## is_visible_in_tree) — so nothing per panel has to remember the state.
+func set_hud_hidden(a_hidden: bool) -> void:
+	is_hud_hidden = a_hidden
+	visible = not a_hidden
+	if is_inside_tree():
+		for node: Node in get_tree().get_nodes_in_group(HUD_LAYER_GROUP):
+			if node is CanvasLayer:
+				(node as CanvasLayer).visible = not a_hidden
+	_place_hud_toggle()
+
+
+## The toggle's place: above the minimap while the HUD is up, on the bottom edge while it is
+## hidden — the same horizontal position, the minimap's left edge, either way.
+func _place_hud_toggle() -> void:
+	if _hud_toggle == null:
+		return
+	var map_section: Control = get_node_or_null("MapSection") as Control
+	var bottom: float = -HUD_TOGGLE_MARGIN
+	if not is_hud_hidden and map_section != null:
+		bottom = map_section.offset_top - HUD_TOGGLE_MARGIN
+	var left: float = map_section.offset_left if map_section != null else -HUD_TOGGLE_SIZE.x
+	_hud_toggle.offset_left = left
+	_hud_toggle.offset_right = left + HUD_TOGGLE_SIZE.x
+	_hud_toggle.offset_bottom = bottom
+	_hud_toggle.offset_top = bottom - HUD_TOGGLE_SIZE.y
+	_hud_toggle.text = "Show HUD" if is_hud_hidden else "Hide HUD"
+	_hud_toggle.tooltip_text = (
+		"Bring the interface back" if is_hud_hidden else "Hide the interface to watch the map"
+	)
 
 
 ## The persistent panels that show one commander. Each is a child of this controller, and
@@ -1032,6 +1152,9 @@ func _notification(a_what: int) -> void:
 
 
 func _unhandled_input(a_event: InputEvent) -> void:
+	if is_look_only:
+		_look_only_input(a_event)
+		return
 	if a_event is InputEventMouseMotion:
 		mouse_position = a_event.position
 	elif is_command_armed() and ControlScheme.matches(a_event, ControlScheme.ARMED_CANCEL):
@@ -1115,6 +1238,26 @@ func _unhandled_input(a_event: InputEvent) -> void:
 
 
 #endregion
+
+
+## A look-only HUD's input: what changes only what the watcher sees — the pointer, selection and
+## its additive modifier, control groups. No branch that issues, arms or cancels an order is
+## reached, and no grid key is dispatched (the replay keys share them — ReplayViewer).
+func _look_only_input(a_event: InputEvent) -> void:
+	if a_event is InputEventMouseMotion:
+		mouse_position = a_event.position
+	elif a_event.is_action_pressed("world_select"):
+		if _pointer_over_blocking_ui():
+			return
+		begin_drag_at(live_pointer_position())
+	elif a_event.is_action_released("world_select"):
+		end_drag_at(live_pointer_position())
+	elif a_event.is_action_pressed(MODIFIER_ADDITIVE):
+		additive_latched = true
+	elif a_event.is_action_released(MODIFIER_ADDITIVE):
+		additive_latched = false
+	elif get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX).size() > 0:
+		_dispatch_control_group(get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX))
 
 
 #region Issuing the current order
@@ -1506,7 +1649,7 @@ func set_selection(a_selection_start_position: Vector2, a_selection_end_position
 		var click_target = get_cursor_target(a_selection_start_position)
 		if click_target is Entity:
 			var entity: Entity = click_target as Entity
-			if is_player_commandable(entity):
+			if _selects_as_own(entity):
 				# Selecting your own unit never keeps an enemy info-selection around.
 				if _has_enemy_selected():
 					deselect()
@@ -1528,7 +1671,7 @@ func set_selection(a_selection_start_position: Vector2, a_selection_end_position
 			. abs()
 		)
 		var boxed: Array = query_box_collisions(box).filter(
-			func(s: Selectable) -> bool: return is_player_commandable(s.get_entity())
+			func(s: Selectable) -> bool: return _selects_as_own(s.get_entity())
 		)
 		# A box that catches any unit skips structures, so dragging over a mixed group
 		# selects only the mobile units (structures are picked individually). Consider
@@ -1621,6 +1764,15 @@ static func is_player_commandable(a_entity: Entity) -> bool:
 	return (
 		a_entity != null and (a_entity.commander_id == PLAYER_COMMANDER_ID or DebugMode.is_active())
 	)
+
+
+## Whether `a_entity` is selected the way the player's own pieces are — additively, by box and by
+## double-click — rather than as a single info-selection. Only pieces the user owns are, so a
+## look-only HUD, which owns nothing, info-selects every piece one at a time, as a player does an
+## enemy's. Not is_player_commandable alone: a replay keeps its recorded human as the local player
+## (the simulation reads it), and the watcher does not own that player's pieces.
+func _selects_as_own(a_entity: Entity) -> bool:
+	return not is_look_only and is_player_commandable(a_entity)
 
 
 ## True when the current selection is the player's own — the only selection the
@@ -1879,7 +2031,7 @@ func _handle_select_release(a_end_position: Vector2) -> void:
 	# the Entity case (guard the cast so a Vector3 isn't cast to Entity).
 	var hit: Variant = get_cursor_target(select_down_position) if is_click else null
 	var target: Entity = hit as Entity if hit is Entity else null
-	var is_player_unit: bool = is_player_commandable(target)
+	var is_player_unit: bool = _selects_as_own(target)
 
 	# NARROW is a SET DIFFERENCE and takes the whole gesture: whatever the box or the click
 	# caught comes OUT of the selection and everything else stays. It deliberately ignores
@@ -1956,9 +2108,7 @@ func _select_on_screen_units_of_type(a_entity_type: StringName) -> void:
 	var candidates: Array = get_tree().get_nodes_in_group("piece").filter(
 		func(c: Variant) -> bool:
 			return (
-				c is Entity
-				and (c as Entity).id == a_entity_type
-				and is_player_commandable(c as Entity)
+				c is Entity and (c as Entity).id == a_entity_type and _selects_as_own(c as Entity)
 			)
 	)
 	_select_units(commandables_on_screen(candidates))
@@ -1975,6 +2125,8 @@ func _session_root() -> Node:
 ## change mid-match. A controller outside a scenario (a test rig, a HUD preview) drives the
 ## Commander it is a child of (see player.tscn).
 func _commander() -> Commander:
+	if is_look_only:
+		return null
 	var local: Commander = _scenario.local_player() if _scenario != null else null
 	return local if local != null else get_parent() as Commander
 
@@ -2077,10 +2229,11 @@ func _update_selection_owned_panels() -> void:
 	# point is that you reach an ability without first hunting down something that can cast it,
 	# so it has to stand with nothing selected at all.
 	$CommandsSection.visible = (
-		has_selection or _command_family == ControlBinding.CommandFamily.ORDNANCE
+		not is_look_only
+		and (has_selection or _command_family == ControlBinding.CommandFamily.ORDNANCE)
 	)
 	if _selector_panel != null:
-		_selector_panel.visible = not has_selection
+		_selector_panel.visible = not has_selection and not is_look_only
 	if _production_rail != null:
 		_production_rail.is_active = not has_selection
 
@@ -3300,6 +3453,9 @@ func assign_command_to_units(
 		_reset_pending_state()
 		return false
 
+	if is_look_only:
+		_reset_pending_state()
+		return false
 	var modifiers: Dictionary = _order_modifiers(a_command_type, a_add_to_queue)
 	var capable: Array = OrderDispatcher.recipients(
 		a_command_type, selection, a_command_message, modifiers
@@ -3386,7 +3542,7 @@ func _on_order_applied(a_order: PlayerOrder, a_results: Array) -> void:
 ## touching the armed context, so a right-click over the minimap while an
 ## interact-style command is armed is simply ignored — exactly as specified.
 func issue_command_at_world_position(a_world_xz: Vector2) -> void:
-	if map == null:
+	if map == null or is_look_only:
 		return
 	# An armed sanction targets a position — fire it at the clicked point, matching
 	# the "move" right-click handler in _unhandled_input.
@@ -4620,6 +4776,8 @@ func _setup_sanction_bar() -> void:
 	_sanction_bar.offset_bottom = 8.0
 	_sanction_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_sanction_bar)
+	# Its buttons only ever give orders, which a look-only HUD does not.
+	_sanction_bar.visible = not is_look_only
 
 	_sanction_bar_row = HBoxContainer.new()
 	_sanction_bar_row.name = "Row"

@@ -393,6 +393,12 @@ func raise_dialog(a_dialog: ScenarioDialog) -> void:
 	dialog_requested.emit(a_dialog)
 
 
+## Whether the scenario this host runs in is playing a recording back (Scenario.is_playback).
+func is_playback() -> bool:
+	var scenario: Scenario = Scenario.of(self) if is_inside_tree() else null
+	return scenario != null and scenario.is_playback()
+
+
 ## The open dialog numbered `a_serial`, or null once it is resolved.
 func dialog_by_serial(a_serial: int) -> ScenarioDialog:
 	return _open_dialogs.get(a_serial)

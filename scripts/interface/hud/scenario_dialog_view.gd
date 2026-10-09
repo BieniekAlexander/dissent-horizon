@@ -183,6 +183,12 @@ func _submit_resolution(a_dialog: ScenarioDialog, a_is_secondary: bool) -> bool:
 	return true
 
 
+## Whether this view is in a scenario playing a recording back.
+func _is_playback() -> bool:
+	var stream: OrderStream = OrderStream.of(self) if is_inside_tree() else null
+	return stream != null and stream.is_playback()
+
+
 ## `a_dialog` was resolved, by whatever route — a click here, a recorded order, a script. Drop it
 ## if it is still queued; a click resolved here has already been dropped.
 func _on_dialog_resolved(a_dialog: ScenarioDialog) -> void:
@@ -461,12 +467,18 @@ func _refresh() -> void:
 		_secondary_button.visible = dialog.has_secondary()
 		_secondary_button.text = dialog.secondary_text
 		_button.text = _acknowledge_text_of_current_page()
+		# A playback resolves each dialog on the tick the recording did, never on a click here.
+		var is_playback: bool = _is_playback()
+		_button.disabled = is_playback
+		_secondary_button.disabled = is_playback
 		_root.visible = true
-		_button.grab_focus()
+		if not is_playback:
+			_button.grab_focus()
 		return
 
 	# The help book is never a choice between two things; only event dialogs offer a secondary.
 	_secondary_button.visible = false
+	_button.disabled = false
 
 	if _help_open:
 		_show_page(_book.page_at(_help_index))

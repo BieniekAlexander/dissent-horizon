@@ -97,3 +97,21 @@ func test_a_kept_name_refuses_what_a_file_or_the_rotation_cannot_take() -> void:
 	assert_ne(ReplayNames.kept_name_refusal("autosaved_replay_mine"), "")
 	assert_ne(ReplayNames.kept_name_refusal("  "), "")
 	assert_eq(ReplayNames.default_kept_name("s1", 0), "s1_19700101T000000Z")
+
+
+func test_a_recording_debug_mode_ended_is_refused_for_playback() -> void:
+	var replay: ReplayFile = _replay()
+	assert_eq(replay.playback_refusal("v1"), "", "a clean recording of this version plays")
+	replay.records.append(
+		{"type": ReplayRecorder.INVALID_TYPE, "tick": 90, "reason": "debug delete"}
+	)
+	assert_eq(replay.invalid_reason(), "debug delete")
+	assert_string_contains(replay.playback_refusal("v1"), "debug delete")
+	assert_string_contains(replay.playback_refusal("v2"), "another version", "version first")
+
+
+func test_a_replay_names_its_scenario_and_length() -> void:
+	var replay: ReplayFile = _replay()
+	replay.header["scenario"] = "res://scenes/scenarios/skirmish.tscn"
+	assert_eq(replay.scenario_name(), "skirmish")
+	assert_eq(replay.length_ticks(), 30, "the last record's tick")

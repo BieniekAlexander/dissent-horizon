@@ -101,7 +101,7 @@ func _exit_tree() -> void:
 ## Give the menu the scenario's clock. Called by Scenario when it builds the menu; idempotent.
 func bind(a_manager: ScenarioTriggerManager) -> void:
 	_clock = a_manager.simulation_clock
-	_playback_controls.bind(_clock)
+	_playback_controls.bind(_clock, a_manager.is_playback())
 
 
 ## Give the menu the match's event log, which its summary reads.

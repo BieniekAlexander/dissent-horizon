@@ -205,6 +205,47 @@ TODO: the visual details are provisional — they were carried over unchanged fr
 generator's former review images, and want revisiting (symbol shapes, the palette against the
 team colours, whether start tints should outlive the opening).
 
+## The look-only HUD
+
+A spectator session — a replay included, which is one (recording-and-replay.md) — is watched
+through the player's own HUD scene, `scenes/interface/player_hud.tscn` (the `Controller`
+subtree `player.tscn` instances), built look-only by `Scenario._create_look_only_hud` with
+`RTSController.is_look_only` set.
+
+- **It drives no commander** (`_commander()` is null), so it gives no orders: no path that
+  builds one is reached, no grid key is dispatched, and right-clicks do nothing.
+- **What stays where it is:** the unit summary, the unit info panel and the minimap, at their
+  match positions. **Selection is one piece at a time**: multiple selection is only ever of
+  pieces the user owns, and a look-only HUD owns none — so every piece is selected as a player
+  selects an enemy's: a click selects it alone, and additive clicks, boxes and double-clicks
+  select nothing. A replay's recorded human is still the local player (the simulation reads it),
+  which is why the check is `RTSController._selects_as_own`, not `is_player_commandable` alone.
+- **The command grid's slot holds the `SpectatorPanel`**: a button per view (No fog, then each
+  commander with a Fog — "Player N" for a human slot, "Bot N" otherwise) and, in a replay,
+  Pause / Slower / Faster, which are the `ReplayViewer`'s own methods, so its keys and these
+  buttons are one control.
+- **What goes:** the resource bars, the production rail, the selectors, the sanction bar and the
+  debug panels — each shows or spends a commander's means, and a debug piece would change the
+  match. The per-commander resource labels stay in the spectator's top-left layer.
+
+## Hiding the HUD
+
+A **Hide HUD** button sits just above the minimap's left edge, on every HUD that has a minimap —
+a match's and a look-only one alike (`RTSController._build_hud_toggle`). Pressing it hides the
+HUD's layer, which hides every panel in it, and every other CanvasLayer in
+`RTSController.HUD_LAYER_GROUP` (the scenario timer, the spectator's labels, the replay banner).
+A dialog and the pause menu are not HUD and stay up. Hidden, the one button left is **Show
+HUD**, on the bottom edge of the screen at the same horizontal position.
+
+- **Hiding the layer, not the panels:** a panel under a hidden CanvasLayer reads
+  `is_visible_in_tree()` false, so it stops blocking world clicks with no per-panel state, and
+  the selection-owned panels can keep setting their own visibility underneath.
+- **What must outlive it lives on a nested layer** (`HudOverlay`): a CanvasLayer's children are
+  hidden with it, but a nested CanvasLayer is not. The button and the drag-selection box are
+  there, so selecting still draws its box with the HUD put away.
+- The help and debug hints that stack above the minimap (`help_overlay.tscn`) sit one button
+  higher to make room.
+
 ## A Control built in code is anchored AFTER it is added, never before
 
 `set_anchors_preset(PRESET_FULL_RECT, true)` resolves against the parent's CURRENT size, and a
