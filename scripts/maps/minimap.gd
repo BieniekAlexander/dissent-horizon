@@ -7,7 +7,8 @@ extends TextureRect
 ## Each frame:
 ##   1. The map layer (MinimapLayer: ground, ponds, neutral fixtures, start areas — one colour
 ##      per cell) is drawn through the fog: unchanged in sight, darkened when explored, black
-##      unseen. The layer is rebuilt only when the terrain grid's cells change.
+##      unseen. The layer is rebuilt only when the terrain grid's cells change; the per-pixel
+##      draw through the fog is a native MinimapCompositor (native/src/minimap_compositor.h).
 ##   2. Every commandable visible to the player is stamped in that
 ##      commandable's owner colour at the corresponding minimap position:
 ##        - structures (registered in map.structure_cell_map): 3×3 square
@@ -34,8 +35,6 @@ const DOT_RADIUS: int = 1
 
 ## Half-side of the structure square (side = 3 → half = 1, giving offsets -1..+1).
 const STRUCTURE_HALF: int = 1
-
-const _BYTES_PER_PIXEL: int = 4
 #endregion
 
 #region Properties
@@ -72,7 +71,9 @@ var _layer := PackedColorArray()
 var _layer_dirty: bool = true
 ## The neutral fixtures the layer draws, so the entity pass does not draw them again.
 var _layer_fixtures: Dictionary = {}
-var _pixel_bytes := PackedByteArray()
+## Draws the layer through the fog each frame; holds its own copies of the pixel framing and
+## the layer, refreshed whenever those are.
+var _compositor: MinimapCompositor = MinimapCompositor.new()
 ## True once _initialize_bounds() has resolved the Map node.
 var _ready_to_draw: bool = false
 ## The player's RTSController (an ancestor of this node), resolved in
@@ -104,6 +105,7 @@ var _world_units_per_pixel: float = 1.0
 
 #region Lifecycle
 func _ready() -> void:
+	_compositor.set_palette(MinimapLayer.OUT_OF_PLAY, MinimapLayer.EXPLORED_DARKEN)
 	_image = Image.create(WIDTH, HEIGHT, false, Image.FORMAT_RGBA8)
 	_image.fill(Color.BLACK)
 	texture = ImageTexture.create_from_image(_image)
@@ -356,21 +358,23 @@ func world_to_minimap(a_world_xz: Vector2) -> Vector2i:
 ## Fix each pixel's cell and world point for the current framing.
 func _index_pixels() -> void:
 	var terrain: TerrainData = _map.terrain_data
+	var cells_in_play: PackedByteArray = (
+		terrain.in_play_mask() if terrain != null else PackedByteArray()
+	)
 	_pixel_cells.resize(WIDTH * HEIGHT)
 	_pixel_worlds.resize(WIDTH * HEIGHT)
-	_pixel_bytes.resize(WIDTH * HEIGHT * _BYTES_PER_PIXEL)
 	for y: int in HEIGHT:
 		for x: int in WIDTH:
 			var i: int = y * WIDTH + x
 			var world: Vector2 = minimap_to_world(Vector2i(x, y))
 			_pixel_worlds[i] = world
 			var cell: Vector2i = _map.world_to_grid(world)
+			var index: int = cell.y * terrain.grid_width() + cell.x if terrain != null else -1
 			var in_play: bool = (
-				terrain != null
-				and terrain.is_cell_in_bounds(cell)
-				and terrain.is_cell_in_play(cell)
+				terrain != null and terrain.is_cell_in_bounds(cell) and cells_in_play[index] != 0
 			)
-			_pixel_cells[i] = cell.y * terrain.grid_width() + cell.x if in_play else -1
+			_pixel_cells[i] = index if in_play else -1
+	_compositor.set_pixels(_pixel_cells, _pixel_worlds)
 
 
 ## Gather ponds, neutral fixtures and start areas from the scene into a fresh layer.
@@ -381,16 +385,12 @@ func _rebuild_layer() -> void:
 		return
 	var width: int = terrain.grid_width()
 	var depth: int = terrain.grid_depth()
-	var in_play := PackedByteArray()
-	in_play.resize(width * depth)
-	var impassable := PackedByteArray()
-	impassable.resize(width * depth)
+	var in_play: PackedByteArray = terrain.in_play_mask()
+	# A map with no terrain grid has nothing impassable to show.
 	var grid: TerrainGrid = _map.terrain_grid
-	for z: int in depth:
-		for x: int in width:
-			var cell := Vector2i(x, z)
-			in_play[z * width + x] = 1 if terrain.is_cell_in_play(cell) else 0
-			impassable[z * width + x] = 1 if _is_impassable(grid, cell) else 0
+	var impassable: PackedByteArray = (
+		grid.terrain_impassable_mask() if grid != null else PackedByteArray()
+	)
 
 	var ponds: Array[Dictionary] = []
 	for body: WaterBody in _map.water_bodies:
@@ -427,15 +427,7 @@ func _rebuild_layer() -> void:
 		)
 
 	_layer = MinimapLayer.build(width, depth, in_play, ponds, fixtures, starts, impassable)
-
-
-## Whether no unit can cross `a_cell`: steep, blocked or deep water. A map with no terrain grid
-## has nothing impassable to show.
-static func _is_impassable(grid: TerrainGrid, cell: Vector2i) -> bool:
-	return (
-		grid != null
-		and (grid.is_too_steep(cell) or grid.is_blocked(cell) or grid.is_submerged(cell))
-	)
+	_compositor.set_layer(_layer)
 
 
 ## The live neutral fixtures in `cell_map` (Map.structure_cell_map), each with its cells.
@@ -463,24 +455,13 @@ static func _fixture_kind(entity: Entity) -> MinimapLayer.Fixture:
 	return MinimapLayer.Fixture.BUILDING
 
 
-## Write the layer into the image through the fog, one byte array rather than per-pixel calls.
+## Draw the layer into the image through the fog: unchanged in sight, darkened when explored,
+## OUT_OF_PLAY unseen; everything in sight when `a_reveal_all`, nothing seen with no fog.
 func _draw_layer(a_reveal_all: bool) -> void:
-	for i: int in _pixel_cells.size():
-		var cell: int = _pixel_cells[i]
-		var color: Color = MinimapLayer.OUT_OF_PLAY
-		if cell >= 0 and cell < _layer.size():
-			var visibility: Fog.TerrainVisibility = Fog.TerrainVisibility.UNSEEN
-			if a_reveal_all:
-				visibility = Fog.TerrainVisibility.IN_SIGHT
-			elif _fog != null:
-				visibility = _fog.terrain_visibility_at(_pixel_worlds[i])
-			color = MinimapLayer.fogged(_layer[cell], visibility)
-		var at: int = i * _BYTES_PER_PIXEL
-		_pixel_bytes[at] = color.r8
-		_pixel_bytes[at + 1] = color.g8
-		_pixel_bytes[at + 2] = color.b8
-		_pixel_bytes[at + 3] = 255
-	_image.set_data(WIDTH, HEIGHT, false, Image.FORMAT_RGBA8, _pixel_bytes)
+	var raster: FogRaster = _fog.raster() if _fog != null else null
+	_image.set_data(
+		WIDTH, HEIGHT, false, Image.FORMAT_RGBA8, _compositor.compose(raster, a_reveal_all)
+	)
 
 
 #endregion

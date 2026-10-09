@@ -11,6 +11,12 @@ cd "${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
 "$PWD/tools/install_godot.sh"
 
+# The scripts name the native classes, so the library must exist before the import parses them.
+if ! command -v scons >/dev/null 2>&1; then
+  pip install --quiet --break-system-packages scons
+fi
+"$PWD/tools/build_native.sh"
+
 # `.godot/` is git-ignored, so a fresh clone has no import cache and no class_name registry —
 # scripts referencing a `class_name` fail to parse until this has run. It is cheap once cached.
 # The engine reports leaked RIDs at exit even on success, so judge the run by the registry it writes.

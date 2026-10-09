@@ -100,7 +100,7 @@ func test_fields_saturate_at_the_cap() -> void:
 	var middle := Vector2i(15, 15)
 	assert_eq(
 		grid.distance_to_obstacle(middle),
-		TerrainGrid.FIELD_CAP_CELLS,
+		TerrainCells.FIELD_CAP_CELLS,
 		"open ground further than the cap from any edge reads as the cap"
 	)
-	assert_eq(grid.clearance_at(Vector2i.ZERO), TerrainGrid.FIELD_CAP_CELLS)
+	assert_eq(grid.clearance_at(Vector2i.ZERO), TerrainCells.FIELD_CAP_CELLS)

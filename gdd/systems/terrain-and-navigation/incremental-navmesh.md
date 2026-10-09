@@ -75,9 +75,10 @@ remove it.
 - **Merging cells into larger polygons is still out** — a separate rule about path directness,
   recorded after `NavManager._build_chunk`. Chunks keep one quad per cell.
 
-## Not done
+## The minimap rides along without a dirty rectangle
 
-**TODO — the minimap still re-derives its whole map layer on every `cells_changed`**
-(`Minimap._rebuild_layer`, 68k cells in GDScript). It was not measured, because it only runs
-with a player HUD, but it now costs more than the navmesh update it rides along with. It wants
-the same dirty rectangle.
+The minimap still re-derives its whole map layer on every `cells_changed`, and that is now
+cheap enough not to need the same dirty rectangle: its per-cell inputs come from the grid's
+native impassable mask and `TerrainData`'s memoized in-play mask
+([authoring/native-code](../authoring/native-code.md)). Measured 2026-10-09, the 300–450 ms
+stall every structure placement or loss used to cost is gone.

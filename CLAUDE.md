@@ -76,9 +76,11 @@ pointer discipline is what keeps it small.
 
 ## Running and testing
 
-No CLI build script. Open the project in Godot 4.7 by pointing the editor at `project.godot`.
+**Build the native library first: `tools/build_native.sh`** (again after pulling a change to
+`native/`). Scripts name its classes, so without it they fail to parse. Then open the project in
+Godot 4.7 by pointing the editor at `project.godot`.
 
-Web sessions get Godot from `.claude/hooks/session-start.sh`, which runs `tools/install_godot.sh`: the version is read from `project.godot`'s `config/features` (an optional `.godot-version` pins a patch release, e.g. `4.7.1-stable`), and the script also imports the project. `.godot/` is git-ignored **except `.godot/imported/`** — that holds the `.blend` scenes (importing needs Blender) and s3tc textures a headless import cannot rebuild, and a clone without it fails ~800 tests.
+Web sessions get Godot from `.claude/hooks/session-start.sh`, which runs `tools/install_godot.sh` and `tools/build_native.sh`: the version is read from `project.godot`'s `config/features` (an optional `.godot-version` pins a patch release, e.g. `4.7.1-stable`), and the script also imports the project. `.godot/` is git-ignored **except `.godot/imported/`** — that holds the `.blend` scenes (importing needs Blender) and s3tc textures a headless import cannot rebuild, and a clone without it fails ~800 tests.
 
 Tests use the [GUT](https://github.com/bitwes/Gut) addon. Run all tests headlessly, split
 across four Godot processes (~26 s rather than ~90 s in one):
@@ -338,7 +340,7 @@ Either route ends in a local session reading the working tree, so the rules abov
 
 ## Tech stack
 
-- **Godot 4.7**, GDScript only
+- **Godot 4.7**, GDScript, plus a few hot loops in a C++ GDExtension (`native/`) → [`gdd/systems/authoring/native-code.md`](gdd/systems/authoring/native-code.md)
 - **Addons**: `gut` (testing), `csv-data-importer` (terrain grid CSVs), `godot-improved-json` (JSON serialization), `terrain_brush` (in-editor terrain painting/sculpting), `map_generator` (the map-generation dock), `terrain_snap` (drag-snap entities to the grid/height), `editor_camera_angle`, `scene_visibility_tools`
 - Collision layers are centralised in `scripts/collision_layers.gd` (`CollisionLayers.Mask.*`)
 

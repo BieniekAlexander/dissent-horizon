@@ -106,24 +106,25 @@ func test_visibility_consults_the_players_own_fog() -> void:
 func _masked_fog(a_out_of_play: Array) -> Fog:
 	var fog := Fog.new()
 	add_child_autofree(fog)
-	fog._img_width = 4
-	fog._img_height = 4
-	fog._center = Vector2.ZERO
-	fog._world_half_w = 2.0
-	fog._world_half_d = 2.0
 	fog.POINTS_PER_UNIT = 1.0
-	fog._play_bounds_active = true
-	fog._play_mask = PackedByteArray()
-	fog._play_mask.resize(16)
-	fog._play_mask.fill(1)
-	# Byte 0 IS the value _build_play_mask pre-clears out-of-play pixels to, which is the
-	# whole trap: it is indistinguishable from "revealed" without the mask.
-	fog._fog_bytes = PackedByteArray()
-	fog._fog_bytes.resize(16)
-	fog._fog_bytes.fill(0)
+	fog._configure(4, 4, Vector2.ZERO, 2.0, 2.0)
+	var in_play := PackedByteArray()
+	in_play.resize(16)
+	in_play.fill(1)
 	for index: int in a_out_of_play:
-		fog._play_mask[index] = 0
+		in_play[index] = 0
+	fog.raster().set_play_mask(in_play)
+	# Byte 0 IS the value the play mask clears out-of-play pixels to, which is the whole trap:
+	# it is indistinguishable from "revealed" without the mask.
+	_fill_display(fog, 0)
 	return fog
+
+
+func _fill_display(a_fog: Fog, a_byte: int) -> void:
+	var bytes := PackedByteArray()
+	bytes.resize(16)
+	bytes.fill(a_byte)
+	a_fog.raster().set_fog_bytes(bytes)
 
 
 func test_a_revealed_in_play_pixel_is_in_vision() -> void:
@@ -133,7 +134,7 @@ func test_a_revealed_in_play_pixel_is_in_vision() -> void:
 
 func test_a_shrouded_in_play_pixel_is_not() -> void:
 	var fog: Fog = _masked_fog([])
-	fog._fog_bytes.fill(Fog.EXPLORED_ALPHA)
+	_fill_display(fog, Fog.EXPLORED_ALPHA)
 	assert_false(fog.fog_clear_at(Vector2(0.0, 0.0)))
 
 

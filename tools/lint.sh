@@ -64,4 +64,14 @@ if offenders:
 sys.exit(1 if offenders else 0)
 PY
 
+# --- Native code -----------------------------------------------------------------------
+# The C++ under native/src follows godot-cpp's own clang-format style (native/.clang-format is
+# its copy), Godot's C++ conventions rather than the GDScript ones. To format:
+# clang-format -i native/src/*.cpp native/src/*.h
+if command -v clang-format >/dev/null 2>&1; then
+  clang-format --dry-run --Werror native/src/*.cpp native/src/*.h || status=1
+else
+  echo "lint: clang-format not found — native/src was not checked" >&2
+fi
+
 exit $status

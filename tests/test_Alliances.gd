@@ -154,12 +154,7 @@ func _fog_for(a_viewer: int) -> Fog:
 	fog.watching_commander_id = a_viewer
 	add_child_autofree(fog)
 	fog.set_physics_process(false)
-	fog._img_width = 48
-	fog._img_height = 48
-	fog._world_half_w = 24.0
-	fog._world_half_d = 24.0
-	fog._center = Vector2.ZERO
-	fog._allocate_buffers()
+	fog._configure(48, 48, Vector2.ZERO, 24.0, 24.0)
 	return fog
 
 

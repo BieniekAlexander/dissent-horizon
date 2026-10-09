@@ -81,7 +81,7 @@ const RADIUS: float = 30.0
 ## The fog covers x, z ∈ [-64, 64) at one pixel per world unit.
 const FOG_SIZE: int = 128
 const FOG_HALF: float = 64.0
-## _fog_bytes: 0 is "clear", anything else is shrouded (Fog.fog_clear_at).
+## A display byte: 0 is "clear", anything else is shrouded (Fog.fog_clear_at).
 const SHROUDED: int = 255
 
 var _scenario: Scenario
@@ -119,27 +119,25 @@ func _shrouded_fog(a_watching_id: int) -> Fog:
 	var fog := Fog.new()
 	fog.watching_commander_id = a_watching_id
 	add_child_autofree(fog)
-	fog._img_width = FOG_SIZE
-	fog._img_height = FOG_SIZE
-	fog._center = Vector2.ZERO
-	fog._world_half_w = FOG_HALF
-	fog._world_half_d = FOG_HALF
 	fog.POINTS_PER_UNIT = 1.0
-	fog._play_bounds_active = false
-	fog._fog_bytes = PackedByteArray()
-	fog._fog_bytes.resize(FOG_SIZE * FOG_SIZE)
-	fog._fog_bytes.fill(SHROUDED)
+	fog._configure(FOG_SIZE, FOG_SIZE, Vector2.ZERO, FOG_HALF, FOG_HALF)
+	var shrouded := PackedByteArray()
+	shrouded.resize(FOG_SIZE * FOG_SIZE)
+	shrouded.fill(SHROUDED)
+	fog.raster().set_fog_bytes(shrouded)
 	assert_eq(Fog.for_commander(a_watching_id), fog, "guards the fixture: the fog is registered")
 	return fog
 
 
 ## Clear the bot's fog in a disc of `a_radius` about `a_at`.
 func _reveal(a_at: Vector3, a_radius: float) -> void:
+	var bytes: PackedByteArray = _fog.raster().fog_bytes()
 	for py: int in FOG_SIZE:
 		for px: int in FOG_SIZE:
 			var world := Vector2(px - FOG_HALF, py - FOG_HALF)
 			if world.distance_to(VU.in_xz(a_at)) <= a_radius:
-				_fog._fog_bytes[py * FOG_SIZE + px] = 0
+				bytes[py * FOG_SIZE + px] = 0
+	_fog.raster().set_fog_bytes(bytes)
 
 
 func _piece(

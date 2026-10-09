@@ -89,10 +89,12 @@ func test_pond_shade_follows_richness() -> void:
 
 
 func test_fog_darkens_explored_and_hides_unseen() -> void:
+	var compositor := MinimapCompositor.new()
+	compositor.set_palette(MinimapLayer.OUT_OF_PLAY, MinimapLayer.EXPLORED_DARKEN)
 	var color: Color = MinimapLayer.GROUND
-	assert_eq(MinimapLayer.fogged(color, Fog.TerrainVisibility.IN_SIGHT), color)
-	assert_lt(MinimapLayer.fogged(color, Fog.TerrainVisibility.EXPLORED).v, color.v)
-	assert_eq(MinimapLayer.fogged(color, Fog.TerrainVisibility.UNSEEN), MinimapLayer.OUT_OF_PLAY)
+	assert_eq(compositor.fogged(color, Fog.TerrainVisibility.IN_SIGHT), color)
+	assert_lt(compositor.fogged(color, Fog.TerrainVisibility.EXPLORED).v, color.v)
+	assert_eq(compositor.fogged(color, Fog.TerrainVisibility.UNSEEN), MinimapLayer.OUT_OF_PLAY)
 
 
 ## Ground no unit can cross draws as a barrier; deep water keeps its pond's shade, darkened.

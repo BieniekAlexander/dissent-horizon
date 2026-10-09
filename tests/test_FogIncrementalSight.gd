@@ -11,7 +11,7 @@ extends GutTest
 ## the way the fog used to, and requires identical display and explored bytes after every step.
 ## Why: gdd/systems/combat/scan-and-vision-cost.md §The fog of war.
 ##
-## The Fog is given its image dimensions directly, with no Map: sight stamping needs none.
+## The Fog is configured directly, with no Map: sight stamping needs none.
 ##
 ## PATHS, not preloads (see CLAUDE.md).
 
@@ -39,13 +39,8 @@ func before_each() -> void:
 	_fog.watching_commander_id = VIEWER
 	add_child_autofree(_fog)
 	_fog.set_physics_process(false)
-	_fog._img_width = SIZE_PX
-	_fog._img_height = SIZE_PX
-	_fog._world_half_w = SIZE_PX * 0.5
-	_fog._world_half_d = SIZE_PX * 0.5
-	_fog._center = Vector2.ZERO
-	_fog._allocate_buffers()
-	_ref_explored = _fog._explored_bytes.duplicate()
+	_fog._configure(SIZE_PX, SIZE_PX, Vector2.ZERO, SIZE_PX * 0.5, SIZE_PX * 0.5)
+	_ref_explored = _fog.raster().explored_bytes()
 	_sources.clear()
 
 
@@ -135,7 +130,7 @@ func test_counts_match_a_from_scratch_rebuild_through_random_changes() -> void:
 			_mutate(rng)
 		_fog._update_sight(_los())
 		var expected: PackedByteArray = _reference_display()
-		if _fog._fog_bytes != expected or _fog._explored_bytes != _ref_explored:
+		if _fog.raster().fog_bytes() != expected or _fog.raster().explored_bytes() != _ref_explored:
 			mismatches += 1
 	assert_eq(mismatches, 0, "display and explored bytes equal the rebuild after every step")
 
@@ -152,23 +147,25 @@ func test_every_count_returns_to_zero_when_every_source_is_gone() -> void:
 		unit.remove_from_group("los")
 	_fog._update_sight(_los())
 	var nonzero: int = 0
-	for count: int in _fog._sight_counts:
+	for count: int in _fog.raster().sight_counts():
 		if count != 0:
 			nonzero += 1
 	assert_eq(nonzero, 0, "no pixel is left in sight by a source that has gone")
-	assert_eq(_fog._stamps.size(), 0)
-	assert_false(_fog._fog_bytes.has(0), "every explored pixel reads explored, not in sight")
+	assert_eq(_fog.raster().stamp_count(), 0)
+	assert_false(
+		_fog.raster().fog_bytes().has(0), "every explored pixel reads explored, not in sight"
+	)
 
 
 func test_an_unchanged_source_leaves_the_texture_clean() -> void:
 	_sources.append(_unit(_viewer, Vector3.ZERO))
 	_fog._update_sight(_los())
-	_fog._is_texture_stale = false
+	_fog.raster().mark_texture_uploaded()
 	_fog._update_sight(_los())
-	assert_false(_fog._is_texture_stale, "nothing moved, so nothing needs uploading")
+	assert_false(_fog.raster().is_texture_stale(), "nothing moved, so nothing needs uploading")
 	_sources[0].global_position = Vector3(5.0, 0.0, 0.0)
 	_fog._update_sight(_los())
-	assert_true(_fog._is_texture_stale)
+	assert_true(_fog.raster().is_texture_stale())
 
 
 func test_a_reveal_shows_at_once_where_nothing_is_in_sight() -> void:
@@ -176,8 +173,8 @@ func test_a_reveal_shows_at_once_where_nothing_is_in_sight() -> void:
 	var idx: int = (
 		_fog._world_to_pixel(Vector2.ZERO).y * SIZE_PX + _fog._world_to_pixel(Vector2.ZERO).x
 	)
-	assert_eq(_fog._explored_bytes[idx], Fog.EXPLORED_ALPHA)
-	assert_eq(_fog._fog_bytes[idx], Fog.EXPLORED_ALPHA, "the display follows the reveal")
+	assert_eq(_fog.raster().explored_bytes()[idx], Fog.EXPLORED_ALPHA)
+	assert_eq(_fog.raster().fog_bytes()[idx], Fog.EXPLORED_ALPHA, "the display follows the reveal")
 
 
 ## A Map whose cells sit one world unit apart on the XZ plane, so a footprint needs no terrain.
@@ -193,6 +190,13 @@ func _pixel_index(a_cell: Vector2i) -> int:
 	return pixel.y * SIZE_PX + pixel.x
 
 
+## Put the pixel under `a_cell` in sight directly, with no vision source.
+func _put_in_sight(a_cell: Vector2i) -> void:
+	var bytes: PackedByteArray = _fog.raster().fog_bytes()
+	bytes[_pixel_index(a_cell)] = 0
+	_fog.raster().set_fog_bytes(bytes)
+
+
 func test_a_structure_is_seen_through_its_memoized_footprint_and_follows_a_new_one() -> void:
 	var map := FlatMap.new()
 	_fog._map = map
@@ -200,12 +204,12 @@ func test_a_structure_is_seen_through_its_memoized_footprint_and_follows_a_new_o
 	add_child_autofree(structure)
 	map.structure_cell_map[structure] = [Vector2i(0, 0), Vector2i(1, 0)]
 	assert_false(_fog.structure_in_vision(structure), "nothing in sight yet")
-	_fog._fog_bytes[_pixel_index(Vector2i(1, 0))] = 0
+	_put_in_sight(Vector2i(1, 0))
 	assert_true(_fog.structure_in_vision(structure), "any footprint cell in sight counts")
 	# Map REPLACES an entry when a footprint changes; the memo must follow the new array.
 	map.structure_cell_map[structure] = [Vector2i(5, 5)]
 	assert_false(_fog.structure_in_vision(structure), "the old footprint no longer counts")
-	_fog._fog_bytes[_pixel_index(Vector2i(5, 5))] = 0
+	_put_in_sight(Vector2i(5, 5))
 	assert_true(_fog.structure_in_vision(structure))
 	_fog._map = null
 	map.free()

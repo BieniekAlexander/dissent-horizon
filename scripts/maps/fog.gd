@@ -6,19 +6,27 @@ extends MeshInstance3D
 ## re-stamps only the sources whose stamp changed, and the texture is uploaded only for the
 ## fog being displayed, only when its bytes changed. So a tick in which nothing crossed a pixel
 ## does no fog work at all. See gdd/systems/combat/scan-and-vision-cost.md §The fog of war.
+##
+## The raster itself — counts, stamps, display and explored bytes, and every per-pixel lookup —
+## is a native FogRaster (native/src/fog_raster.h). This node keeps the registry, the texture
+## upload, the terrain-shader driver and hiding pieces under the shroud.
 
 ## Three-state terrain visibility as seen by a single commander.
 ##   UNSEEN    — tile has never been in any owned unit's vision radius.
 ##   EXPLORED  — tile was seen at some point but is currently fogged.
 ##   IN_SIGHT  — tile is inside an owned unit's vision radius this frame.
-enum TerrainVisibility { UNSEEN, EXPLORED, IN_SIGHT }
+enum TerrainVisibility {
+	UNSEEN = FogRaster.UNSEEN,
+	EXPLORED = FogRaster.EXPLORED,
+	IN_SIGHT = FogRaster.IN_SIGHT,
+}
 
 #region Properties
 var POINTS_PER_UNIT: float = 1.0  # overwritten in _initialize() = 1.0 / Map.CELL_SIZE
-# L8 byte value for "explored but not currently visible" (alpha ≈ 0.5)
-const EXPLORED_ALPHA: int = 127
+## L8 byte value for "explored but not currently visible" (alpha ≈ 0.5).
+const EXPLORED_ALPHA: int = FogRaster.EXPLORED_ALPHA
 ## An explored-buffer pixel no vision has ever touched.
-const UNEXPLORED_BYTE: int = 255
+const UNEXPLORED_BYTE: int = FogRaster.UNEXPLORED_BYTE
 
 ## The commander whose units are used to reveal this fog texture.
 ## -1 (default) falls back to RTSController.PLAYER_COMMANDER_ID so the node
@@ -41,37 +49,19 @@ static var active_commander_id: int = -1
 ## the player, which is what left player aggro ungated by fog.
 static var _fogs_by_commander: Dictionary = {}
 
-var _img_width: int
-var _img_height: int
+## The fog raster; unconfigured (every lookup unseen, nothing in vision) until _configure.
+var _raster: FogRaster = FogRaster.new()
+## The raster's world framing, kept for the terrain shader's fog_rect.
 var _center: Vector2
 var _world_half_w: float  # actual world half-extent in X
 var _world_half_d: float  # actual world half-extent in Z
-var _explored_bytes: PackedByteArray  # UNEXPLORED_BYTE = never seen, EXPLORED_ALPHA = seen before
-## Display buffer: 0 where a pixel is in sight now, its _explored_bytes value elsewhere. Kept
-## in step with _sight_counts by _apply_stamp rather than rebuilt.
-var _fog_bytes: PackedByteArray
-## How many of this commander's vision sources cover each pixel; in sight while above zero.
-## Counts rather than flags so a source that moves can be subtracted without re-stamping the rest.
-var _sight_counts: PackedInt32Array
-## Vision source instance id -> the SightStamp it last added to _sight_counts.
-var _stamps: Dictionary = {}
-## True when _fog_bytes has changed since the texture was last uploaded.
-var _is_texture_stale: bool = true
 ## Structure instance id -> [the footprint cells array it was built from, the in-play pixel
 ## indices those cells cover]. Memoized: resolving cells to pixels every tick for every
 ## structure was most of the fog's cost once sight became incremental, and it cannot change
 ## while the cells array does not (Map replaces an entry, never edits it).
 var _footprint_pixels: Dictionary = {}
-## Per-pixel play-bounds mask (1 = in the screen-aligned playspace, 0 = out). Out-of-play
-## pixels are held fully transparent (never shrouded/explored) so the fog stops at the play
-## area instead of hanging black over the chopped-off corners. Empty/ignored when the map has
-## no play bounds (see _play_bounds_active).
-var _play_mask: PackedByteArray
-var _play_bounds_active: bool = false
 var _fog_image: Image
 var _fog_texture: ImageTexture
-var _sight_disc_cache: Dictionary  # int radius_px -> Array[Vector2i]
-var _footprint_cache: Dictionary  # footprint signature "kind:hx:hz" -> Array[Vector2i]
 var _map: Map  # cached in _initialize; used to look up structure footprint cells
 ## Every world-geometry ShaderMaterial the shroud has to be pushed into — the terrain, plus
 ## one per water surface (see Map.fogged_materials). The elected driver writes the active
@@ -137,16 +127,22 @@ func _initialize() -> void:
 
 	# The fog texture is centred on the map; no plane to size any more (drawn by the terrain
 	# shader). _center feeds _world_to_pixel and the terrain shader's fog_rect.
-	_center = VU.in_xz(map.global_position)
-
-	_img_width = int(_world_half_w * 2.0 * POINTS_PER_UNIT)
-	_img_height = int(_world_half_d * 2.0 * POINTS_PER_UNIT)
-
-	_allocate_buffers()
+	var center: Vector2 = VU.in_xz(map.global_position)
+	_configure(
+		int(_world_half_w * 2.0 * POINTS_PER_UNIT),
+		int(_world_half_d * 2.0 * POINTS_PER_UNIT),
+		center,
+		_world_half_w,
+		_world_half_d
+	)
 	_build_play_mask()  # holds out-of-play pixels transparent (zeroes them in both byte buffers)
 
 	_fog_image = Image.create_from_data(
-		_img_width, _img_height, false, Image.FORMAT_L8, _explored_bytes
+		_raster.image_width(),
+		_raster.image_height(),
+		false,
+		Image.FORMAT_L8,
+		_raster.explored_bytes()
 	)
 	_fog_texture = ImageTexture.create_from_image(_fog_image)
 
@@ -205,10 +201,16 @@ func _physics_process(_a_delta: float) -> void:
 	# Only the displayed fog's texture is read (by the terrain shader, via the elected
 	# driver); every gameplay reader uses the bytes. A fog that becomes displayed while stale
 	# uploads on its first tick.
-	if _is_texture_stale and Fog.get_active_fog() == self:
-		_fog_image.set_data(_img_width, _img_height, false, Image.FORMAT_L8, _fog_bytes)
+	if _raster.is_texture_stale() and Fog.get_active_fog() == self:
+		_fog_image.set_data(
+			_raster.image_width(),
+			_raster.image_height(),
+			false,
+			Image.FORMAT_L8,
+			_raster.fog_bytes()
+		)
 		_fog_texture.update(_fog_image)
-		_is_texture_stale = false
+		_raster.mark_texture_uploaded()
 
 	# ── Drive the terrain-shader fog ──
 	# Fog is sampled per-fragment in the terrain shader (conforms to terrain height) instead of
@@ -318,54 +320,33 @@ static func terrain_fog_driver_id() -> int:
 	return best
 
 
+## This fog's raster, for a reader that works pixel by pixel (the minimap).
+func raster() -> FogRaster:
+	return _raster
+
+
 ## Returns the three-state terrain visibility for the fog pixel covering
 ## `world_xz`. Used by the minimap to colour terrain appropriately.
 func terrain_visibility_at(a_world_xz: Vector2) -> TerrainVisibility:
-	if _explored_bytes.is_empty() or _fog_bytes.is_empty():
-		return TerrainVisibility.UNSEEN
-	var pixel: Vector2i = _world_to_pixel(a_world_xz)
-	if pixel.x < 0 or pixel.x >= _img_width or pixel.y < 0 or pixel.y >= _img_height:
-		return TerrainVisibility.UNSEEN
-	var idx: int = pixel.y * _img_width + pixel.x
-	if _play_bounds_active and _play_mask[idx] == 0:
-		return TerrainVisibility.UNSEEN  # out of play: not real terrain
-	if _explored_bytes[idx] == UNEXPLORED_BYTE:
-		return TerrainVisibility.UNSEEN
-	if _fog_bytes[idx] == 0:
-		return TerrainVisibility.IN_SIGHT
-	return TerrainVisibility.EXPLORED
+	return _raster.terrain_visibility_at(a_world_xz) as TerrainVisibility
 
 
 ## Whether [a_world_xz] is currently within this commander's live vision (fog pixel clear).
 ## Unlike terrain_visibility_at this works for any registered commander's Fog, not only the
-## spectated one — `_fog_bytes` is kept current for every one each physics tick.
+## spectated one — every one's raster is kept current each physics tick.
 ##
-## OUT OF PLAY IS NOT IN VISION: the mask is tested BEFORE the byte, because byte 0 means
-## both "revealed" and "outside the play rectangle" and conflating them left anything sited
-## past the play edge permanently in sight. Why:
+## OUT OF PLAY IS NOT IN VISION: byte 0 means both "revealed" and "outside the play rectangle",
+## and conflating them left anything sited past the play edge permanently in sight. Why:
 ## gdd/systems/combat/target-acquisition.md §Out of play is not in vision.
 func fog_clear_at(a_world_xz: Vector2) -> bool:
-	if _fog_bytes.is_empty():
-		return false
-	var pixel: Vector2i = _world_to_pixel(a_world_xz)
-	if pixel.x < 0 or pixel.x >= _img_width or pixel.y < 0 or pixel.y >= _img_height:
-		return false
-	var idx: int = pixel.y * _img_width + pixel.x
-	if _play_bounds_active and _play_mask[idx] == 0:
-		return false
-	return _fog_bytes[idx] == 0
+	return _raster.fog_clear_at(a_world_xz)
 
 
 ## Whether [a_world_xz] has EVER been in this commander's vision — in sight now, or explored.
-## Works for any registered commander's Fog, since every one keeps its bytes current. Out of
-## play is never explored (`_apply_stamp` leaves those pixels alone).
+## Works for any registered commander's Fog, since every one keeps its raster current. Out of
+## play is never explored.
 func explored_at(a_world_xz: Vector2) -> bool:
-	if _explored_bytes.is_empty():
-		return false
-	var pixel: Vector2i = _world_to_pixel(a_world_xz)
-	if pixel.x < 0 or pixel.x >= _img_width or pixel.y < 0 or pixel.y >= _img_height:
-		return false
-	return _explored_bytes[pixel.y * _img_width + pixel.x] != UNEXPLORED_BYTE
+	return _raster.explored_at(a_world_xz)
 
 
 ## True when ANY grid cell [structure] occupies is currently in this fog's vision.
@@ -375,125 +356,46 @@ func explored_at(a_world_xz: Vector2) -> bool:
 ## has no registered footprint (or the Map is unavailable).
 func structure_in_vision(a_structure: Node) -> bool:
 	var origin_xz: Vector2 = VU.in_xz((a_structure as Node3D).global_position)
-	if _map == null or _fog_bytes.is_empty():
+	if _map == null or not _raster.is_configured():
 		return fog_clear_at(origin_xz)
 	var cells: Variant = _map.structure_cell_map.get(a_structure)
 	if cells == null or (cells as Array).is_empty():
 		return fog_clear_at(origin_xz)
-	for idx: int in _structure_pixels(a_structure, cells):
-		if _fog_bytes[idx] == 0:
-			return true
-	return false
+	return _raster.any_in_sight(_structure_pixels(a_structure, cells))
 
 
 ## Permanently reveal a circular area in world-space XZ (lift fog of war).
-## The pixels are written to _explored_bytes so the reveal persists across frames.
-## Safe to call before _initialize() completes — exits silently if not yet ready.
+## The pixels are written to the explored bytes so the reveal persists across frames.
+## Safe to call before _initialize() completes — does nothing while unconfigured.
 func reveal_region(a_world_xz: Vector2, a_radius_world: float) -> void:
-	if _explored_bytes.is_empty():
-		return
-	var pixel := _world_to_pixel(a_world_xz)
-	var radius_px := maxi(1, int(a_radius_world * POINTS_PER_UNIT))
-	for offset: Vector2i in _sight_disc(radius_px):
-		var px := pixel.x + offset.x
-		var py := pixel.y + offset.y
-		if px >= 0 and px < _img_width and py >= 0 and py < _img_height:
-			var idx := py * _img_width + px
-			if _play_bounds_active and _play_mask[idx] == 0:
-				continue  # out of play: stays transparent
-			_explored_bytes[idx] = EXPLORED_ALPHA
-			if _sight_counts[idx] == 0:
-				_fog_bytes[idx] = EXPLORED_ALPHA
-				_is_texture_stale = true
+	_raster.reveal_region(a_world_xz, a_radius_world)
 
 
 #endregion
 
 
 #region Sight counts
-## What one vision source last added to the sight counts, kept so it can be withdrawn exactly.
-class SightStamp:
-	var pixel: Vector2i
-	## The shared cached footprint from _vision_offsets: compared by identity, since equal
-	## footprints are one cached array.
-	var offsets: Array
-
-	func _init(a_pixel: Vector2i, a_offsets: Array) -> void:
-		pixel = a_pixel
-		offsets = a_offsets
-
-
-## Size every per-pixel buffer for the current image dimensions: nothing explored, nothing in
-## sight.
-func _allocate_buffers() -> void:
-	var pixel_count: int = _img_width * _img_height
-	_explored_bytes = PackedByteArray()
-	_explored_bytes.resize(pixel_count)
-	_explored_bytes.fill(UNEXPLORED_BYTE)
-	_fog_bytes = _explored_bytes.duplicate()
-	_sight_counts = PackedInt32Array()
-	_sight_counts.resize(pixel_count)
-	_stamps.clear()
-	_is_texture_stale = true
+## Size and frame the raster: `a_width` x `a_height` pixels centred on world `a_center`,
+## covering `a_half_w` x `a_half_d` world units either side, at POINTS_PER_UNIT. Nothing
+## explored, nothing in sight, every pixel in play.
+func _configure(
+	a_width: int, a_height: int, a_center: Vector2, a_half_w: float, a_half_d: float
+) -> void:
+	_center = a_center
+	_world_half_w = a_half_w
+	_world_half_d = a_half_d
+	_footprint_pixels.clear()
+	_raster.configure(a_width, a_height, a_center, a_half_w, a_half_d, POINTS_PER_UNIT)
 
 
 ## Bring the sight counts up to date with `a_sources` (the "los" group): re-stamp only a source
-## whose pixel or footprint changed, and withdraw the stamp of any source that no longer
-## counts. Diffing each tick, rather than hooking each event that changes vision (capture,
+## on this commander's side (allies' sight counts as its own — vision is shared within an
+## alliance) whose pixel or footprint changed, and withdraw the stamp of any source that no
+## longer counts. Diffing each tick, rather than hooking each event that changes vision (capture,
 ## death, garrisoning, an upgrade, construction), is what keeps it correct for the event
 ## nobody remembered.
 func _update_sight(a_sources: Array) -> void:
-	var viewer_id: int = viewer_commander_id()
-	var live: Dictionary = {}
-	for entity: Entity in a_sources:
-		# Allies' sight counts as this commander's own: vision is shared within an alliance.
-		if not entity.is_on_side_of(viewer_id) or not entity.grants_vision():
-			continue
-		var key: int = entity.get_instance_id()
-		live[key] = true
-		# Centre on the shape (it may be offset from the entity origin), and cover the shape's
-		# XZ cross-section — any shape type, not just a circle.
-		var vision_shape: CollisionShape3D = entity.vision_range_shape
-		var pixel: Vector2i = _world_to_pixel(VU.in_xz(vision_shape.global_position))
-		var offsets: Array = _vision_offsets(vision_shape)
-		var old: SightStamp = _stamps.get(key)
-		if old != null and old.pixel == pixel and is_same(old.offsets, offsets):
-			continue
-		if old != null:
-			_apply_stamp(old, -1)
-		var stamp := SightStamp.new(pixel, offsets)
-		_apply_stamp(stamp, 1)
-		_stamps[key] = stamp
-	for key: int in _stamps.keys():
-		if not live.has(key):
-			_apply_stamp(_stamps[key], -1)
-			_stamps.erase(key)
-
-
-## Add (`a_delta` 1) or withdraw (-1) one stamp from the sight counts, touching the display
-## bytes only where a pixel enters or leaves sight. Hot loop: every re-stamp walks a whole
-## footprint, twice for a move.
-func _apply_stamp(a_stamp: SightStamp, a_delta: int) -> void:
-	for offset: Vector2i in a_stamp.offsets:
-		var px: int = a_stamp.pixel.x + offset.x
-		var py: int = a_stamp.pixel.y + offset.y
-		if px < 0 or px >= _img_width or py < 0 or py >= _img_height:
-			continue
-		var idx: int = py * _img_width + px
-		if _play_bounds_active and _play_mask[idx] == 0:
-			continue  # out of play: keep it transparent, don't shroud/explore it
-		var count: int = _sight_counts[idx] + a_delta
-		_sight_counts[idx] = count
-		if count == 1 and a_delta > 0:
-			_fog_bytes[idx] = 0
-			_explored_bytes[idx] = EXPLORED_ALPHA
-			_is_texture_stale = true
-		elif count == 0:
-			_fog_bytes[idx] = _explored_bytes[idx]
-			_is_texture_stale = true
-
-
-#endregion
+	_raster.update_sight(a_sources, viewer_commander_id())
 
 
 #region Private helpers
@@ -526,15 +428,11 @@ func _structure_pixels(a_structure: Node, a_cells: Array) -> PackedInt32Array:
 	var cached: Variant = _footprint_pixels.get(key)
 	if cached != null and is_same(cached[0], a_cells):
 		return cached[1]
-	var pixels := PackedInt32Array()
+	var points := PackedVector2Array()
 	for cell: Vector2i in a_cells:
-		var pixel: Vector2i = _world_to_pixel(VU.in_xz(_map.grid_to_world(cell)))
-		if pixel.x < 0 or pixel.x >= _img_width or pixel.y < 0 or pixel.y >= _img_height:
-			continue
-		var idx: int = pixel.y * _img_width + pixel.x
-		if _play_bounds_active and _play_mask[idx] == 0:
-			continue  # out of play is not in vision (see fog_clear_at)
-		pixels.append(idx)
+		points.append(VU.in_xz(_map.grid_to_world(cell)))
+	# Out of play is not in vision (see fog_clear_at), so those pixels are left out.
+	var pixels: PackedInt32Array = _raster.in_play_pixels(points)
 	_footprint_pixels[key] = [a_cells, pixels]
 	return pixels
 
@@ -564,111 +462,38 @@ func _fog_rect_param() -> Vector4:
 
 
 func _world_to_pixel(a_world_xz: Vector2) -> Vector2i:
-	return Vector2i(
-		int(round((a_world_xz.x - _center.x + _world_half_w) * POINTS_PER_UNIT)),
-		int(round((a_world_xz.y - _center.y + _world_half_d) * POINTS_PER_UNIT))
-	)
+	return _raster.world_to_pixel(a_world_xz)
 
 
-## World XZ at the centre of fog pixel (px, py) — the inverse of _world_to_pixel (which uses
-## round(), so pixel px is centred at px/PPU, with no half-pixel offset).
-func _pixel_to_world(a_px: int, a_py: int) -> Vector2:
-	return Vector2(
-		float(a_px) / POINTS_PER_UNIT - _world_half_w + _center.x,
-		float(a_py) / POINTS_PER_UNIT - _world_half_d + _center.y
-	)
-
-
-## Build the per-pixel play mask from the map's play bounds, and pre-clear out-of-play pixels
-## in both byte buffers to 0 so they start (and stay) fully transparent. No-op — _play_bounds_active
-## stays false, the mask unused — for an un-migrated map with no TerrainData, which has no play
-## bounds to speak of and is left unchanged. A TerrainData map always has them.
+## Build the per-pixel play mask from the map's play bounds: out-of-play pixels are held fully
+## transparent, never shrouded or explored, so the fog stops at the play area instead of hanging
+## black over the chopped-off corners. Leaves every pixel in play for an un-migrated map with no
+## TerrainData, which has no play bounds to speak of. A TerrainData map always has them.
 func _build_play_mask() -> void:
 	var td: TerrainData = _map.terrain_data
 	if td == null:
-		_play_bounds_active = false
 		return
-	_play_bounds_active = true
-	_play_mask = PackedByteArray()
-	_play_mask.resize(_img_width * _img_height)
-	_play_mask.fill(1)
-	for py: int in _img_height:
-		for px: int in _img_width:
-			var cell: Vector2i = _map.world_to_grid(_pixel_to_world(px, py))
-			if not td.is_cell_in_play(cell):
-				var idx: int = py * _img_width + px
-				_play_mask[idx] = 0
-				_explored_bytes[idx] = 0  # out of play: fully transparent, never shrouded
-				_fog_bytes[idx] = 0
-
-
-func _sight_disc(a_radius_px: int) -> Array:
-	if _sight_disc_cache.has(a_radius_px):
-		return _sight_disc_cache[a_radius_px]
-	var disc: Array[Vector2i] = []
-	var r2 := a_radius_px * a_radius_px
-	for dx in range(-a_radius_px, a_radius_px + 1):
-		for dy in range(-a_radius_px, a_radius_px + 1):
-			if dx * dx + dy * dy <= r2:
-				disc.append(Vector2i(dx, dy))
-	_sight_disc_cache[a_radius_px] = disc
-	return disc
+	var width: int = _raster.image_width()
+	var height: int = _raster.image_height()
+	var cells_in_play: PackedByteArray = td.in_play_mask()
+	var gw: int = td.grid_width()
+	var mask := PackedByteArray()
+	mask.resize(width * height)
+	for py: int in height:
+		for px: int in width:
+			var cell: Vector2i = _map.world_to_grid(_raster.pixel_to_world(px, py))
+			var in_play: bool = (
+				cells_in_play[cell.y * gw + cell.x] != 0
+				if td.is_cell_in_bounds(cell)
+				else td.is_cell_in_play(cell)
+			)
+			mask[py * width + px] = 1 if in_play else 0
+	_raster.set_play_mask(mask)
 
 
 ## Pixel offsets (relative to the vision shape's centre pixel) covered by `vision_shape`
-## projected onto the XZ plane. The fog is a flat plane, so only the shape's XZ
-## cross-section matters. Handles the shapes we use — Cylinder/Sphere/Capsule (a circle,
-## or an ellipse under non-uniform scale) and Box (a rectangle) — and falls back to any
-## other shape's bounding box, so a new shape type still reveals (over-reveals at worst)
-## rather than crashing. Shapes are assumed axis-aligned. Cached by footprint signature
-## (kind + pixel half-extents) so identical footprints are computed once.
+## projected onto the XZ plane — what a vision source stamps. The rule is the raster's; this
+## exposes it to tests that rebuild the fog from scratch.
 func _vision_offsets(a_vision_shape: CollisionShape3D) -> Array:
-	var shape: Shape3D = a_vision_shape.shape
-	var xf: Transform3D = a_vision_shape.global_transform
-	# Axis-aligned: basis.x / basis.z carry only horizontal scale, no rotation.
-	var scale_x: float = Vector2(xf.basis.x.x, xf.basis.x.z).length()
-	var scale_z: float = Vector2(xf.basis.z.x, xf.basis.z.z).length()
-
-	# kind 0 = ellipse (circular in XZ), 1 = rectangle. `half` = world-space XZ half-extents.
-	var kind: int = 1
-	var half: Vector2 = Vector2.ZERO
-	if shape is CylinderShape3D:
-		var r: float = (shape as CylinderShape3D).radius
-		kind = 0
-		half = Vector2(r * scale_x, r * scale_z)
-	elif shape is SphereShape3D:
-		var r: float = (shape as SphereShape3D).radius
-		kind = 0
-		half = Vector2(r * scale_x, r * scale_z)
-	elif shape is CapsuleShape3D:
-		var r: float = (shape as CapsuleShape3D).radius
-		kind = 0
-		half = Vector2(r * scale_x, r * scale_z)
-	elif shape is BoxShape3D:
-		var s: Vector3 = (shape as BoxShape3D).size
-		half = Vector2(s.x * 0.5 * scale_x, s.z * 0.5 * scale_z)
-	else:
-		# Unknown shape: reveal its XZ bounding box so it still contributes vision.
-		var aabb: AABB = shape.get_debug_mesh().get_aabb()
-		half = Vector2(aabb.size.x * 0.5 * scale_x, aabb.size.z * 0.5 * scale_z)
-
-	var hx: int = int(half.x * POINTS_PER_UNIT)
-	var hz: int = int(half.y * POINTS_PER_UNIT)
-	var key: String = "%d:%d:%d" % [kind, hx, hz]
-	if _footprint_cache.has(key):
-		return _footprint_cache[key]
-
-	var offsets: Array[Vector2i] = []
-	for dz: int in range(-hz, hz + 1):
-		for dx: int in range(-hx, hx + 1):
-			var inside: bool = true
-			if kind == 0:
-				# Normalised ellipse test (a circle when hx == hz).
-				var nx: float = float(dx) / float(hx) if hx > 0 else 0.0
-				var nz: float = float(dz) / float(hz) if hz > 0 else 0.0
-				inside = nx * nx + nz * nz <= 1.0
-			if inside:
-				offsets.append(Vector2i(dx, dz))
-	_footprint_cache[key] = offsets
-	return offsets
+	return _raster.vision_offsets(a_vision_shape)
 #endregion
