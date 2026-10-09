@@ -73,3 +73,29 @@ visible = false
 custom_minimum_size = Vector2(360, 48)
 layout_mode = 2
 text = "Scenario"
+
+[node name="ReplaysHeading" type="Label" parent="Center/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 22
+text = "Replays"
+horizontal_alignment = 1
+
+[node name="ReplayScroll" type="ScrollContainer" parent="Center/Column"]
+custom_minimum_size = Vector2(360, 200)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ReplayList" type="VBoxContainer" parent="Center/Column/ReplayScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="ReplayStatus" type="Label" parent="Center/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.55, 0.45, 1)
+horizontal_alignment = 1
+autowrap_mode = 3

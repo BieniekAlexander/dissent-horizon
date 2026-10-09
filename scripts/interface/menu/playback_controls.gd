@@ -2,7 +2,8 @@ class_name PlaybackControls
 extends VBoxContainer
 
 ## The pause menu's debug playback section: a speed slider, a pause toggle that outlives the
-## menu, and "as fast as possible". Shown only while the scenario has `debug_allowed`. The
+## menu, and "as fast as possible". Shown while the scenario has `debug_allowed`, and in every
+## replay playback, where speed is the viewer's to set. The
 ## mechanism is PlaybackSpeed; this is only its controls. Layout is authored in
 ## scenes/interface/playback_controls.tscn.
 
@@ -15,6 +16,8 @@ extends VBoxContainer
 ## The scenario's clock, which the pause toggle holds. Null in a scene with no trigger manager,
 ## and the toggle is then disabled.
 var _clock: SimulationClock = null
+## Whether the scenario plays a recording back: the controls are offered whatever debug allows.
+var _is_playback: bool = false
 
 
 func _ready() -> void:
@@ -29,14 +32,15 @@ func _ready() -> void:
 	refresh()
 
 
-func bind(a_clock: SimulationClock) -> void:
+func bind(a_clock: SimulationClock, a_is_playback: bool = false) -> void:
 	_clock = a_clock
+	_is_playback = a_is_playback
 	refresh()
 
 
 ## Read the controls back from the live state, which may have changed since they were last up.
 func refresh() -> void:
-	visible = DebugMode.is_allowed()
+	visible = DebugMode.is_allowed() or _is_playback
 	_uncapped_toggle.set_pressed_no_signal(PlaybackSpeed.is_uncapped())
 	if not PlaybackSpeed.is_uncapped():
 		_speed_slider.set_value_no_signal(PlaybackSpeed.multiplier() * TimeUtils.ticks_per_second())

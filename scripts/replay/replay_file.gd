@@ -39,6 +39,10 @@ func to_bytes() -> PackedByteArray:
 
 ## The replay in `bytes`, or null when they are not one (not gzip, no header line first).
 static func from_bytes(bytes: PackedByteArray) -> ReplayFile:
+	# Not gzip at all (its two magic bytes): say so here rather than have the decompressor
+	# raise an engine error over a stray file in the replay folder.
+	if bytes.size() < 2 or bytes[0] != 0x1f or bytes[1] != 0x8b:
+		return null
 	var text: String = (
 		bytes.decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP).get_string_from_utf8()
 	)
@@ -76,7 +80,8 @@ static func read(a_path: String) -> ReplayFile:
 ## A header for `a_scenario`, stamped with `a_version`. One entry per player slot.
 static func header_for(a_scenario: Scenario, a_version: String) -> Dictionary:
 	var slots: Array = []
-	for slot: PlayerSlot in a_scenario.player_slots:
+	for i: int in a_scenario.player_slots.size():
+		var slot: PlayerSlot = a_scenario.player_slots[i]
 		(
 			slots
 			. append(
@@ -85,6 +90,7 @@ static func header_for(a_scenario: Scenario, a_version: String) -> Dictionary:
 					"difficulty": int(slot.difficulty),
 					"is_bot": slot.is_bot,
 					"personality": slot.personality,
+					"start_point": a_scenario.slot_start_point(i),
 				}
 			)
 		)
@@ -108,6 +114,37 @@ static func refusal(a_header: Dictionary, a_version: String) -> String:
 	if recorded != a_version:
 		return "recorded by another version of the game (%s; this is %s)" % [recorded, a_version]
 	return ""
+
+
+## Why this replay cannot be played by this build, or "" when it can: another version, or a
+## recording debug mode ended (gdd/systems/commands/recording-and-replay.md §Debug mode).
+func playback_refusal(a_version: String) -> String:
+	var refused: String = refusal(header, a_version)
+	if not refused.is_empty():
+		return refused
+	var reason: String = invalid_reason()
+	return "" if reason.is_empty() else "debug mode changed the match (%s)" % reason
+
+
+## Why debug mode ended this recording, or "" when it did not.
+func invalid_reason() -> String:
+	for record: Dictionary in records:
+		if record.get("type") == ReplayRecorder.INVALID_TYPE:
+			return str(record.get("reason", "debug mode"))
+	return ""
+
+
+## The scenario's name as a player reads it: its scene's file name, without the extension.
+func scenario_name() -> String:
+	return str(header.get("scenario", "")).get_file().get_basename()
+
+
+## How long the recording runs, in ticks: the last record's tick.
+func length_ticks() -> int:
+	var last: int = 0
+	for record: Dictionary in records:
+		last = maxi(last, int(record.get("tick", 0)))
+	return last
 
 
 ## This build's version stamp: the build number, the engine, and a hash of everything

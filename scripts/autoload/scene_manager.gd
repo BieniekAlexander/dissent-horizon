@@ -73,6 +73,24 @@ func go_to_packed(a_scene: PackedScene) -> Error:
 	return result
 
 
+## Play the replay at `a_path`, replacing the whole tree with its scenario set up to play it
+## back. Returns why it cannot be played — another version, a recording debug mode ended, no such
+## scenario — or "" once the swap is asked for. The start screen shows the refusal.
+## gdd/systems/commands/recording-and-replay.md §Watching.
+func play_replay(a_path: String) -> String:
+	var prepared: Dictionary = ReplayLibrary.prepare_playback(a_path)
+	if prepared.has("refusal"):
+		return prepared["refusal"]
+	var scenario: Scenario = prepared["scenario"]
+	_resume()
+	scene_change_requested.emit(scenario.scene_file_path)
+	var result: Error = get_tree().change_scene_to_node(scenario)
+	if result != OK:
+		scenario.free()
+		return "Could not open the replay: %s." % error_string(result)
+	return ""
+
+
 #endregion
 
 

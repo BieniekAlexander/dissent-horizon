@@ -56,6 +56,7 @@ const _ACKNOWLEDGED_WALL_CLOCK_READS: Dictionary = {
 	"res://scripts/interface/scenario_highlight.gd": "a pulsing highlight",
 	"res://scripts/interface/commander/bot_scheduler.gd": "diagnostic job timing, never read back",
 	"res://scripts/replay/replay_recorder.gd": "names an autosave file",
+	"res://scripts/replay/replay_save_form.gd": "prefills a kept replay's name",
 }
 
 

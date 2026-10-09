@@ -5,10 +5,10 @@ type: system-note
 
 # Recording and replay
 
-Scoped 2026-09-29; the recording side and the order boundary are built (2026-10-08), playback
-has a programmatic entry and a regression test, and the rest — the remaining order kinds and
-every screen a player watches a replay through — is `PLANNED` below (`gdd/tasks.md` T-037). One
-seed makes one match, tick for tick ([ai/selfplay-harness](../ai/selfplay-harness.md)
+Scoped 2026-09-29; the recording side and the order boundary are built (2026-10-08), and so is
+watching (2026-10-08): the start screen's replay panel, Save replay at a match's end, and a
+playback's viewer and look-only HUD. What is left is `TODO` or deferred below (`gdd/tasks.md`
+T-037). One seed makes one match, tick for tick ([ai/selfplay-harness](../ai/selfplay-harness.md)
 §Determinism, [terrain-and-navigation/navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md)
 §Navigation is synchronous, for replay).
 
@@ -47,6 +47,42 @@ seed makes one match, tick for tick ([ai/selfplay-harness](../ai/selfplay-harnes
   minute of play and requires the playback to match every digest — and a playback with an order
   removed to report drift.
 - **The wall-clock scan** in `tests/test_SeededRandomness.gd`, with its allow-list.
+- **Opening a replay**: `ReplayLibrary.prepare_playback` reads the file, refuses it (not a replay,
+  another version, a recording debug mode ended — `ReplayFile.playback_refusal` — or a scenario
+  this build lacks), and otherwise instances the header's scenario with `replay_to_play` set;
+  `SceneManager.play_replay` swaps the tree to it (`change_scene_to_node`, so it enters at idle
+  time, as a scenario always does) or hands the refusal back.
+- **The start screen's replay panel** (`MainMenu`, `scenes/menu/main_menu.tscn`): every file under
+  `user://replays/`, newest first by modification time (`ReplayLibrary.entries`); a kept replay
+  reads as its name, an autosave as when it was written. Choosing one plays it; a refused one stays
+  listed and its reason is shown under the list.
+- **Save replay** (`ReplaySaveForm`) at the foot of the end-of-match summary, which every end of a
+  match raises — victory, defeat, and a spectator's verdict alike; a mission's EventWinLose ends
+  the match through the same summary. Not offered once debug mode has ended the recording. A
+  character no file name holds is taken back out of the field as typed, an autosave name is
+  refused on saving, and a name already taken turns Save into Overwrite until the name changes.
+  Written by `ReplayRecorder.write_kept`, which a headless run does not suppress (the player asked).
+- **The viewer** (`ReplayViewer`, created by `Scenario` for a playback only): a banner — speed,
+  paused, whose view — and the replay keys: `replay_pause` Q, `replay_slower` W, `replay_faster` E,
+  `replay_switch_view` R, the grid's top row by position. Speed steps along 0.25× – 4×; pause is the
+  `REASON_PLAYBACK_PAUSE` hold, so the pause menu's playback toggle agrees with it, and the pause
+  menu offers its playback controls in every playback whatever `debug_allowed` says.
+- **The view is the displayed fog, never the local player.** Switching cycles each commander that
+  keeps a Fog, then everything (`Fog.active_commander_id` −2). `RTSController.PLAYER_COMMANDER_ID`
+  is not touched: the simulation reads it (`Scenario`'s implicit elimination rule), so changing
+  it would play a different match. `Scenario._ready` resets the displayed fog to the local
+  player's, so neither a replay's view nor a spectator session's carries into the next session.
+- **The HUD for looking** (`RTSController.is_look_only`, set from the scenario): pointer,
+  selection, the additive modifier and control groups work; the command grid and the sanction bar
+  are not drawn, no grid key is dispatched, and no path that builds an order is reached. The
+  recorded player's waypoints still show, as the orders land.
+- **Dialogs in a playback** show, with their buttons disabled; each is resolved by the recorded
+  order on its tick. A recorded "Return to Main Menu" choice resolves the dialog without leaving
+  (`EventShowDialog` does not bind the navigation in a playback); the viewer leaves through the
+  pause menu.
+- **The header's start point** per slot: `Scenario.slot_start_point` — the start point's name and
+  XZ for a Skirmish, empty for a scenario that places its slots by authoring. Informational: a
+  playback re-derives where each slot starts from the scene, as the match did.
 
 A replay is the scenario, its seed and slots, and the stream of **orders the human players
 gave**. Playback re-runs the simulation from the seed and feeds the orders back in on the ticks
@@ -54,11 +90,13 @@ they landed. Bots are not recorded: they re-derive their orders from the same se
 
 ## The plan
 
-PLANNED, not yet built:
+Everything below is built unless marked `TODO`; it is kept as the statement of what each part
+is for.
 
-- **Everything under §Watching** — the replay panel, Save replay, perspective, the HUD for looking,
-  replay keys — and launching a playback from the start screen.
-- **The header's start points** per slot.
+- TODO: **alerts and voice lines following the perspective.** There is no alert system yet, and
+  the only voice lines are the barks a player's own selection and orders play — in a playback the
+  viewer's selection barks, and no order is issued through the controller, so none are heard for
+  the recorded player's orders. Revisit when alerts exist.
 
 ### The order stream (Commands)
 
@@ -134,7 +172,9 @@ orders a player can give.
   version is listed but refused on opening (§The file). Leaving playback is the pause menu's
   return to the title screen, as leaving a match is.
 - **The perspective is switchable**: each player's fog, or everything — the existing spectator
-  and play-as machinery. Alerts and voice lines follow the perspective on show.
+  machinery (the displayed fog). Not play-as: that changes the local player, which the
+  simulation reads. Alerts and voice lines follow the perspective on show (TODO above: there are
+  no alerts yet).
 - **The HUD is for looking**: selection and the info panel work; the command grid is hidden.
 - **Pause and speed only** at first.
 - **Dialogs** show, and each is dismissed on the tick it was dismissed in the recording.

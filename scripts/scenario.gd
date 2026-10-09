@@ -137,6 +137,9 @@ func _ready() -> void:
 		rng_seed = int(replay_to_play.header.get("seed", rng_seed))
 	seed_simulation()
 	PurchaseTransaction.reset_ids()
+	# The viewed fog is a static, so a spectator session or a replay's view switch would
+	# otherwise carry into the next session: every session opens on its own player's view.
+	Fog.active_commander_id = -1
 	_create_debug_mode()
 	_ensure_lighting()
 	if map == null:
@@ -230,6 +233,10 @@ func _ready() -> void:
 	# than by the player rig because they belong to the SCENARIO — a spectator or test session
 	# has no RTSController but can still be running a scripted sequence.
 	_create_scenario_hud(event_manager)
+
+	# A playback is watched, not played: its keys, its banner, and a HUD for looking.
+	if is_playback():
+		_create_replay_viewer()
 
 	# In-world debug visualisation of the active bot's internals, one category at a time,
 	# gated on the debug view + the bot-view toggle. See BotDebugOverlay.
@@ -482,6 +489,19 @@ func _spawn_initial_entities() -> void:
 ## it on, and every Skirmish deploys this way.
 func uses_deferred_deployment() -> bool:
 	return false
+
+
+## Where slot `a_index` (0-based) starts, as a replay's header records it: the start point's
+## name and its XZ position, or empty when this scenario places its slots by authoring rather
+## than at start points. Skirmish fills it. Informational: a playback re-derives the start from
+## the scene, as the match did.
+func slot_start_point(_a_index: int) -> Dictionary:
+	return {}
+
+
+## Whether this session plays a recording back rather than a match (replay_to_play).
+func is_playback() -> bool:
+	return replay_to_play != null
 
 
 ## Slot numbers (1-based commander ids) whose faction is missing — either the slot
@@ -901,6 +921,14 @@ func _create_scenario_hud(a_event_manager: ScenarioTriggerManager) -> void:
 	pause_menu.bind_match_log(match_log)
 
 
+## The replay viewer: the keys and the banner a playback is watched through (ReplayViewer).
+func _create_replay_viewer() -> void:
+	var viewer := ReplayViewer.new()
+	viewer.name = "ReplayViewer"
+	add_child(viewer)
+	viewer.bind(self, trigger_manager().simulation_clock)
+
+
 ## Start the match's event log (MatchLog). Not in the editor, which plays no match.
 func _create_match_log() -> void:
 	if Engine.is_editor_hint():
@@ -1056,6 +1084,13 @@ func _show_match_summary(a_title: String) -> void:
 	add_child(layer)
 	view.present(match_log, a_title)
 	view.closed.connect(layer.queue_free)
+	# Save replay, on every end of a match — victory, defeat and a spectator's alike — unless
+	# debug mode ended the recording, which would only be refused when played.
+	if recorder != null and not recorder.is_invalid:
+		var form := ReplaySaveForm.new()
+		form.name = "ReplaySaveForm"
+		view.add_footer(form)
+		form.bind(recorder)
 
 
 ## Called when every PRIMARY trigger has fired — the scenario's declared work is finished, so

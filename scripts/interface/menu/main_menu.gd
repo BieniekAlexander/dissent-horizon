@@ -19,6 +19,11 @@ extends Control
 ##
 ## Ordering and unlocking are not modelled: every authored entry is available from the first
 ## launch.
+##
+## Below the scenarios, the REPLAY PANEL lists every replay under `user://replays/`, newest
+## first, autosaves and kept ones alike; choosing one plays it, and a replay this build cannot
+## play is listed all the same and refused, with the reason, when chosen.
+## gdd/systems/commands/recording-and-replay.md §Watching.
 
 #region Properties
 @export_category("Title")
@@ -33,9 +38,14 @@ extends Control
 ## skipped and reported (see ScenarioEntry).
 @export var scenarios: Array[ScenarioEntry] = []
 
+## Where the replay panel looks. A test points it elsewhere before the menu enters the tree.
+var replay_directory: String = ReplayFile.DIRECTORY
+
 @onready var _title_label: Label = %Title
 @onready var _buttons: Control = %Buttons
 @onready var _button_template: Button = %ButtonTemplate
+@onready var _replay_list: VBoxContainer = %ReplayList
+@onready var _replay_status: Label = %ReplayStatus
 #endregion
 
 
@@ -43,6 +53,7 @@ extends Control
 func _ready() -> void:
 	_refresh_title()
 	_build_buttons()
+	_build_replay_list()
 
 
 #endregion
@@ -71,10 +82,50 @@ func open(a_entry: ScenarioEntry) -> void:
 	SceneManager.go_to_packed(a_entry.scene)
 
 
+## The replay panel's rows, top to bottom (newest first). Empty when there are no replays.
+func replay_labels() -> Array[String]:
+	var labels: Array[String] = []
+	for child: Node in _replay_list.get_children():
+		if child is Button:
+			labels.append((child as Button).text)
+	return labels
+
+
+## Why the last replay chosen could not be played, or "".
+func replay_refusal() -> String:
+	return _replay_status.text
+
+
+## Play the replay at `a_path`; show the refusal instead when it cannot be played.
+func open_replay(a_path: String) -> void:
+	_replay_status.text = SceneManager.play_replay(a_path)
+
+
 #endregion
 
 
 #region Internal
+## One button per replay file, newest first; a line saying there are none when there are none.
+func _build_replay_list() -> void:
+	for child: Node in _replay_list.get_children():
+		child.queue_free()
+	_replay_status.text = ""
+	var entries: Array[Dictionary] = ReplayLibrary.entries(replay_directory)
+	if entries.is_empty():
+		var none := Label.new()
+		none.text = "No replays yet. Every match records one."
+		none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_replay_list.add_child(none)
+		return
+	for entry: Dictionary in entries:
+		var button: Button = _button_template.duplicate()
+		button.name = "Replay_%s" % String(entry["file"]).validate_node_name()
+		button.text = ReplayLibrary.label_for(entry)
+		button.visible = true
+		button.pressed.connect(open_replay.bind(entry["path"]))
+		_replay_list.add_child(button)
+
+
 ## Every live scenario button — the template is hidden and excluded, so this is exactly the
 ## set the player can press.
 func _scenario_buttons() -> Array[Button]:
