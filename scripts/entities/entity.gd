@@ -98,14 +98,35 @@ func is_neutral() -> bool:
 	return commander_id == 0
 
 
+## True when `other` is on this entity's side: the same owner, or an ally of it. Two neutral
+## pieces are friendly to each other; a neutral and an owned piece never are.
+## gdd/systems/combat/target-acquisition.md §Alliances.
 func is_friendly_to(a_other: Entity) -> bool:
-	return a_other != null and commander_id == a_other.commander_id
+	return a_other != null and is_on_side_of(a_other.commander_id)
 
 
-## True when `other` is an enemy of this entity: owned (not neutral) by a different
-## commander.
+## True when `other` is an enemy of this entity: owned (not neutral) by a commander outside
+## this entity's alliance.
 func is_enemy_of(a_other: Entity) -> bool:
-	return a_other != null and a_other.commander_id > 0 and a_other.commander_id != commander_id
+	return a_other != null and a_other.commander_id > 0 and not is_friendly_to(a_other)
+
+
+## True when commander `a_commander_id` owns this entity or is an ally of its owner — the test
+## for "yours or an ally's" when the asker has only an id (a viewer, the local player).
+func is_on_side_of(a_commander_id: int) -> bool:
+	if a_commander_id == commander_id:
+		return true
+	var owning: Commander = commander
+	return owning != null and owning.is_allied_with(a_commander_id)
+
+
+## The commander ids on this entity's side, as bits (bit k = commander k): what an aggro query
+## leaves out (CollisionLayers.hostile_mask). 0 for a neutral piece, which has no side.
+func allied_commander_ids() -> int:
+	var owning: Commander = commander
+	if owning != null:
+		return owning.allied_ids_mask()
+	return (1 << commander_id) if commander_id > 0 else 0
 
 
 #endregion
@@ -384,7 +405,7 @@ func hostiles_in_aggro(a_max_results: int = 32) -> Array[Entity]:
 			from,
 			node.shape,
 			global_position,
-			CollisionLayers.hostile_mask(pass_spec[1], commander_id),
+			CollisionLayers.hostile_mask(pass_spec[1], allied_commander_ids()),
 			exclude,
 			a_max_results
 		):
@@ -720,11 +741,16 @@ func is_attackable() -> bool:
 
 
 ## Whether commander [a_viewer_commander_id] can currently perceive this entity: its fog
-## pixel is clear for that commander AND it is not stealthed. Looks up the viewer's own Fog
-## instance directly, so it is correct for bots reasoning about their own vision regardless
-## of which commander is being spectated.
+## pixel is clear for that commander AND it is not stealthed from them. Stealth hides a piece
+## from the other side only: its owner and their allies see through it. Looks up the viewer's
+## own Fog instance directly, so it is correct for bots reasoning about their own vision
+## regardless of which commander is being spectated.
 func is_visible_to(a_viewer_commander_id: int) -> bool:
-	if stealth != null and stealth.state == Stealth.State.STEALTHED:
+	if (
+		stealth != null
+		and stealth.state == Stealth.State.STEALTHED
+		and not is_on_side_of(a_viewer_commander_id)
+	):
 		return false
 	var fog: Fog = Fog.for_commander(a_viewer_commander_id)
 	if fog == null:

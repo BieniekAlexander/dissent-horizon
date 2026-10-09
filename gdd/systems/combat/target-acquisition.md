@@ -67,17 +67,54 @@ a piece standing ENTIRELY outside the play rectangle can never be seen. That gro
 already unwalkable, unbuildable and un-meshed, so a piece out there is a broken authoring
 state either way — and invisible is the less exploitable of the two failures.
 
-## PLANNED — Alliances
+## Alliances
 
-Decided 2026-09-24: the game has alliances. At most 8 players, so at most 7 alliances. If it is
-simpler, there may always be 8 alliances under the hood, with alliance assignment shown only in
-a team-game mode.
+Decided 2026-09-24: the game has alliances. Built 2026-10-09 to these decisions (Alex,
+2026-10-08):
 
-Today a side is a commander: `Entity.is_enemy_of` / `is_friendly_to` compare commander ids, and
-vision is one `Fog` per commander. Alliances turn each "yours" rule into "yours or an ally's".
-The known places that want it: those two predicates, shared vision (and so the fog-gated aggro
-rule above), and the capacity pips ([condition-visuals](../ux/ui/condition-visuals.md)).
-The map generator already reasons in alliances.
+- **Teams are fixed before the match** on `PlayerSlot.alliance`: 0 is no team, 1…7 a team
+  (`PlayerSlot.NUM_TEAMS`). There is no diplomacy during a match. Under the hood there are 8
+  alliances (`Commander.NUM_MAX_COMMANDERS`), so a free-for-all of eight puts each player in
+  its own; a team game offers only 7, since an eighth team of one is a free-for-all slot.
+  `Scenario.alliance_indices` numbers them in order of first appearance, so a teamless slot can
+  never land in a team, and `Scenario._assign_alliances` hands each commander its alliance and
+  its members (`Commander.set_alliance`) before any piece exists.
+- **A side is a commander and its allies.** `Commander.is_allied_with` / `shares_side_with`,
+  `Entity.is_on_side_of` (asker has only an id) and `Entity.is_friendly_to` answer it;
+  `Entity.is_enemy_of` is "owned, and not on my side". A commander no scenario placed is alone,
+  which is what keeps every out-of-scenario test and tool behaving as before. Neutral is
+  nobody's ally.
+- **What allies share:** not being enemies (aggro, retaliation, capture, hijack, kill bounties,
+  scripted assaults), **vision** (each `Fog` counts every allied vision source as its own, and
+  an ally's stealth hides nothing from its side), **repair** (`Repair.repairable_cause`) and
+  **healing** — the heal aura mends an ally's infantry, being Repair's BIO counterpart, though
+  it is passive (`HealAOE.heals`; Alex, 2026-10-09) — and
+  **friendly-target abilities** (`EventTargetUnit` Scope.OWN admits an ally's unit). Also the
+  readouts that follow from shared sight: allied blueprints shown and refused as building
+  sites, capacity pips on a selected allied unit, allied structures' ranges round a placement.
+- **What they do not share:** orders, garrisons and transports (`Occupy`, docking, `Embark`
+  stay owner-only), resuming an ally's construction, and passive bonuses other than healing —
+  the Compound's Work Detail cooldown cut reaches only its owner's buildings. **Dignify** stays own-only
+  (`EventDignify._admits_allies`): the Warlord it makes is the caster's, so it would take an
+  ally's Irregular.
+- **Splash hurts allies**, as it hurts one's own pieces: the blast query is `TARGETABLE_ANY`,
+  so area weapons friendly-fire by construction ([projectiles](projectiles.md)).
+- **An ally's fixtures shield Libertarian dominion tiles** exactly as one's own do
+  ([lb_dominion](../../factions/libertarian/structures/lb_dominion.md)).
+- **HEGEMONY removes players one at a time and judges alliances.** A commander with no command
+  centre left is still eliminated alone and its pieces freed — under HEGEMONY only. The local
+  player loses when every member of its alliance is gone; until then it keeps watching
+  through its allies' shared vision. Its alliance wins when it is armed and every rival
+  alliance is gone, and the match log names every winner (`MatchLog.end`, `MatchSummary.winners`)
+  ([objectives-and-completion](../scenario-scripting/objectives-and-completion.md)).
+- **Bots know only that allies are not enemies** and see what their allies see. They do not
+  coordinate.
+
+**Pitfall accepted:** the side bits on a Hurtbox stay per COMMANDER, not per alliance — an
+aggro query leaves out every ally's bit instead (`CollisionLayers.hostile_mask` takes the
+asker's allied ids). Fixed teams make that free, and it is what would let mid-match diplomacy
+work without re-filing every body.
+
 
 ## Aggro filters allegiance in the physics query
 
@@ -98,9 +135,8 @@ The script-side `is_enemy_of` stays as a guard, and the vision filter stays in s
 cannot be a layer. **Fogged and stealthed enemies can therefore still fill the cap.** Raise the
 cap, or make it a floor on distinct enemies rather than raw hits, if that shows up in practice.
 
-**TODO — the side slot is the commander today; it becomes the alliance once
-[Alliances](#planned--alliances) land** (deferred 2.41). That is the one function
-`CollisionLayers.hostile_mask`, which would then exclude every side of the asker's alliance.
+**Alliances leave the side slot per commander:** `CollisionLayers.hostile_mask` excludes
+every side bit of the asker's alliance ([Alliances](#alliances)).
 
 ## Retaliation answers fire from past aggro
 

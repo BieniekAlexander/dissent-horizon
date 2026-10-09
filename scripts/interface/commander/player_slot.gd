@@ -19,6 +19,9 @@ enum Difficulty {
 	IMPOSSIBLE = 4,
 }
 
+## The most teams a team game offers (PlayerSlot.alliance 1 … NUM_TEAMS).
+const NUM_TEAMS: int = Commander.NUM_MAX_COMMANDERS - 1
+
 ## True → an AI-controlled Bot; false → the human player (the player.tscn rig).
 @export var is_bot: bool = true
 
@@ -30,6 +33,14 @@ enum Difficulty {
 ## null. There is no default: Commander.faction_scene is not exported precisely so
 ## that this is the only place a commander's faction can be configured.
 @export var faction: PackedScene
+
+## The team this slot plays on, 1 … NUM_TEAMS; 0 (the default) is no team — the slot is in an
+## alliance of its own, which is what a free-for-all is. Slots naming the same team are allies
+## for the whole match. Under the hood there are NUM_MAX_COMMANDERS alliances, so eight players
+## can each have one; a team game offers only NUM_TEAMS, since an eighth team of one is a
+## free-for-all slot. Scenario.assign_alliances turns this into Commander.alliance.
+## gdd/systems/combat/target-acquisition.md §Alliances.
+@export_range(0, NUM_TEAMS) var alliance: int = 0
 
 ## Bot difficulty (see Difficulty). Ignored for a human slot.
 @export var difficulty: Difficulty = Difficulty.MEDIUM

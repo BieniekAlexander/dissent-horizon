@@ -1,7 +1,8 @@
 class_name Repair
 extends MoveCommand
 
-## Restore hp to a damaged friendly MECHANICAL entity — a unit or a structure alike.
+## Restore hp to a damaged friendly MECHANICAL entity — a unit or a structure alike, the
+## repairer's own or an ally's.
 ##
 ## This used to be the FINISH-CONSTRUCTION command (now Assemble). The two were one
 ## command because a half-built structure and a battered tank both want "a worker walks
@@ -53,9 +54,10 @@ static func repairable_cause(
 	# gdd/systems/combat/planted-explosives.md §Defusing.
 	if _defuses(actor, subject):
 		return PreconditionFailureCause.NONE
-	# Friendly only, and specifically SAME-COMMANDER rather than merely non-hostile:
-	# a neutral (commander 0) building is nobody's to mend.
-	if subject.commander_id != actor.commander_id or subject.commander_id <= 0:
+	# Friendly only — the repairer's own side, an ally's pieces included — and specifically
+	# OWNED rather than merely non-hostile: a neutral (commander 0) building is nobody's to
+	# mend. Allies may repair each other (target-acquisition.md §Alliances).
+	if subject.commander_id <= 0 or not actor.is_friendly_to(subject):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	# A blueprint isn't damaged, it is unbuilt; an unfinished structure is Assemble's job.
 	# Both would otherwise read as "hp below max" and be silently repaired to completion.
@@ -73,15 +75,19 @@ static func repairable_cause(
 
 
 ## Whether repairing `a_subject` would take a marker out of play: it is a charge standing on
-## the ground (anyone's but a neutral's), or `a_actor`'s own piece with an enemy beacon or
-## charge riding on it.
+## the ground (anyone's but a neutral's), or a piece on `a_actor`'s side — its own or an
+## ally's — with an enemy beacon or charge riding on it.
 static func _defuses(actor: Actor, subject: Actor) -> bool:
 	if PlantedCharge.of(subject) != null:
 		return (
 			not PlantedCharge.is_riding(subject)
-			and (actor.is_enemy_of(subject) or subject.commander_id == actor.commander_id)
+			and (actor.is_enemy_of(subject) or actor.is_friendly_to(subject))
 		)
-	return subject.commander_id == actor.commander_id and subject.has_hostile_markers()
+	return (
+		subject.commander_id > 0
+		and actor.is_friendly_to(subject)
+		and subject.has_hostile_markers()
+	)
 
 
 ## Whether repairing `a_beacon` would take it out of play: it is an enemy's, still standing,

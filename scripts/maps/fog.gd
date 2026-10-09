@@ -233,8 +233,8 @@ func _physics_process(_a_delta: float) -> void:
 	elif is_active:
 		_apply_figure_visibility(viewer_id, debug_view)
 		for entity: Entity in get_tree().get_nodes_in_group("piece"):
-			if entity.commander_id == viewer_id:
-				# Own units are always visible to their owner. Set this explicitly
+			if entity.is_on_side_of(viewer_id):
+				# Own and allied units are always visible to their side. Set this explicitly
 				# rather than skipping: when the active view switches directly from
 				# another commander (spectator POV), that commander's fog had hidden
 				# these as enemies, and nothing else would clear that stale state
@@ -248,6 +248,10 @@ func _physics_process(_a_delta: float) -> void:
 					or PlantedCharge.of(entity) == null
 					or fog_clear_at(VU.in_xz(entity.global_position))
 				)
+				# An ally's piece is perceived like an enemy's in sight, except that its
+				# stealth hides nothing from this side (Entity.is_visible_to).
+				if entity is Actor and entity.commander_id != viewer_id:
+					(entity as Actor).in_sight_range = entity.visible
 				continue
 			# A structure that is merely PLANNED (a blueprint an enemy commander has ordered
 			# but not built) isn't on the map at all — it occupies no cells and can't be shot
@@ -442,7 +446,8 @@ func _update_sight(a_sources: Array) -> void:
 	var viewer_id: int = viewer_commander_id()
 	var live: Dictionary = {}
 	for entity: Entity in a_sources:
-		if entity.commander_id != viewer_id or not entity.grants_vision():
+		# Allies' sight counts as this commander's own: vision is shared within an alliance.
+		if not entity.is_on_side_of(viewer_id) or not entity.grants_vision():
 			continue
 		var key: int = entity.get_instance_id()
 		live[key] = true
@@ -510,6 +515,7 @@ func _apply_figure_visibility(a_viewer_id: int, a_show_all: bool) -> void:
 			figure.visible = (
 				a_show_all
 				or owner_id == a_viewer_id
+				or (entity != null and owner_id > 0 and entity.is_on_side_of(a_viewer_id))
 				or fog_clear_at(VU.in_xz(figure.global_position))
 			)
 

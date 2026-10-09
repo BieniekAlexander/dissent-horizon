@@ -58,6 +58,7 @@ func begin(a_scenario: Scenario) -> void:
 					"faction":
 					slot.faction.resource_path.get_file().get_basename() if slot.faction else "",
 					"is_bot": slot.is_bot,
+					"alliance": slot.commander.alliance,
 				}
 			)
 		)
@@ -82,13 +83,18 @@ func listen_to(a_commander: Commander) -> void:
 
 
 ## Record the match's end, with a final resource sample so every series reaches it. `a_winner`
-## is a commander id, or -1 for none. Recorded once; a second end is ignored.
-func end(a_winner: int) -> void:
+## is a commander id, or -1 for none; `a_winners` is every commander that won with it — its
+## whole alliance, in a team game — and defaults to just `a_winner`. Recorded once; a second end
+## is ignored.
+func end(a_winner: int, a_winners: Array = []) -> void:
 	if _is_ended:
 		return
 	_is_ended = true
 	_sample_stats()
-	record(MATCH_ENDED, {"winner": a_winner})
+	var winners: Array = a_winners.duplicate()
+	if winners.is_empty() and a_winner > 0:
+		winners = [a_winner]
+	record(MATCH_ENDED, {"winner": a_winner, "winners": winners})
 
 
 func is_ended() -> bool:

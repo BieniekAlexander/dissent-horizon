@@ -30,8 +30,7 @@ a question they were not asking.
 **"Ordered" means `Commander.pending_pieces()`:** blueprints, structures going up, one-off
 purchases still in the production queue, and units a producer has started. A standing queue entry
 is a policy rather than an order and is left out. Pieces count for their commander's SIDE
-(`Commander.shares_side_with`): allies' pending pieces will show, enemies' never do.
-PLANNED — ALLIES: a side is one commander until alliances land.
+(`Commander.shares_side_with`): allies' pending pieces show, enemies' never do.
 
 Where the rule is applied:
 

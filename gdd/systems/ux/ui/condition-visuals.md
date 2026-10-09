@@ -120,18 +120,13 @@ glance, which is the whole reason to draw it in the world rather than in the inf
   treats the loadout as one thing: an aircraft flies home when EVERY charged weapon is dry
   and sits on the pad until ALL of them are full. They are also the only explanation the
   player gets for an aircraft breaking off mid-fight to fly home.
-- **Shown only while SELECTED, and only on the local player's own units**
-  (`StatusVisuals._shows_capacity`). Both are detail you ask for about one unit rather
+- **Shown only while SELECTED, and only on the local player's side** — its own units and
+  an ally's (`StatusVisuals._shows_capacity`). Both are detail you ask for about one unit rather
   than something to track across the field, and drawing an enemy transport's remaining
   seats would hand over exactly the scouting information a garrison exists to hide.
 - **Rows wrap at `PIPS_PER_ROW` (8)**, filling from the top down so adding a round never
   shuffles the pips already drawn. The Clipper's 12-round clip is the piece this exists
   for; one line of 12 is two tank-lengths wide.
-
-> **PLANNED — ALLIES.** The rule wants to be "yours or an ally's". Alliances are planned
-> ([target-acquisition](../../combat/target-acquisition.md) §Alliances) and not built;
-> `_shows_capacity` is the single place that decides, so widening it is a one-line change
-> when they land.
 
 ### What this replaced
 

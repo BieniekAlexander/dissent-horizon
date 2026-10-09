@@ -101,6 +101,8 @@ The bot picks by distance; a pond pays double and is finite, so which is worth m
 Scout raycasts stop on terrain and fog does not, so ground behind a ridge is never counted as scouted. Resolves with T-008, or with the scout reading fog instead.
 → [combat/scan-and-vision-cost](systems/combat/scan-and-vision-cost.md)
 
+> [!note] T-008 is done and removed: terrain never obstructs sight ([combat/target-acquisition](systems/combat/target-acquisition.md) §Terrain on the line of fire), so this resolves with the scout reading fog.
+
 ### T-092 · How the bot is told to stay out of an area #effort/medium #unscoped
 Lingering effects over ~3 s (frost fields, the Blizzard's gathering) should publish an avoid-region signal; its form, weight and route into pathing are open.
 → [ai/bot-roadmap](systems/ai/bot-roadmap.md) §The gaps in the decision surface, gap 7
@@ -133,15 +135,6 @@ The macro valuation (demand map → strength per energy → savings) is one addi
 > **Answer:** My only feedback here is that I will frequently be making changes to the roster, and I'm aware that changes to the pieces will impact the quality of the bot's evaluations. I think the simulations can represent safe expectations of the evaluations, and failing simulations implies that retraining is warranted.
 
 ## Combat
-
-### T-008 · Does terrain obstruct shots, or sight? #effort/high #scoped #done
-Changes were recently made to make sure that navigation mesh obstructing fixtures obstruct attack lines, so that an actor on one side of an obstruction cannot attack a target on the other side of the obstruction; Some terrain features have these same sorts of elevation considerations such that a terrain mountain (represented in the world height map) also obstructs attack lines; there's some complexity here regarding projectile collisions happening with the height map surface, but not necessarily with structures, so help me actually come up with better definitions regarding how this is represented in the physics.
-Cases so far: a ridge should not block, high terrain such as a mountain probably should, a cliff between two elevations probably should not, artillery may be exempt; blocking sight is open too, subject to performance, balance and visual fidelity.
-→ [combat/target-acquisition](systems/combat/target-acquisition.md) §Line of fire
-
-> [!check] Status — 2026-10-08
-> Sight is never obstructed by terrain. A shot is obstructed by terrain when the weapon's reach is below `RangeShapes.artillery_reach()` (the artillery shape's radius): one `TERRAIN`-layer ray, `Attack._terrain_on_line`; rule in `target-acquisition.md` §Terrain on the line of fire. Tests in `test_LineOfFire.gd`.
-> **Not done:** no height judgement (a ridge above the 0.5 ray lift blocks); in-flight emissions still ignore terrain. T-007 now resolves toward fog (terrain does not hide ground from sight), so the scout should read fog.
 
 ### T-013 · Should aggro rise for long-reach pieces? #effort/low #needs-input
 `AGGRO_MAX_RADIUS` sits below both artillery classes and below `ground_range_long` / `air_range_long`, so a target in that band is never picked up idle.
@@ -181,10 +174,6 @@ The Recruit needs an animation showing the Spot action while it channels and hol
 ### T-025 · Security Tower: per-drone properties and swap time #effort/medium #needs-input
 Built: one drone at a time, firing from inside; the Shock Drone fires at long range (a stub). Open: what each other drone confers, and how long a swap takes.
 → [design-framework/static-defence](design-framework/static-defence.md) §Libertarians
-
-### T-028 · Alliances #effort/high #needs-input
-Up to 8 players and up to 7 alliances; possibly 8 alliances under the hood, shown only in a team-game mode. Widens every "yours" rule to "yours or an ally's": `is_enemy_of`/`is_friendly_to`, shared vision, capacity pips.
-→ [combat/target-acquisition](systems/combat/target-acquisition.md) §Alliances
 
 ### T-029 · Fog resolution: one pixel per cell, or coarser? #effort/medium #needs-input
 Coarser is cheaper and blurs vision edges and the per-cell structure-sighting test.

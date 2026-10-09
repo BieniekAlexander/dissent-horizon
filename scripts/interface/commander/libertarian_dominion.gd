@@ -2,8 +2,9 @@ class_name LibertarianDominion
 extends DominionRoute
 
 ## The Libertarian dominion route: every Opticon claims the tiles inside its vision, and each
-## claimed tile banks dominion every cycle unless one of the commander's own fixtures stands
-## on it. Why it works this way: gdd/factions/libertarian/structures/lb_dominion.md.
+## claimed tile banks dominion every cycle unless one of its side's fixtures — its own or an
+## ally's — stands on it. Why it works this way:
+## gdd/factions/libertarian/structures/lb_dominion.md.
 ##
 ## RUN ONCE PER COMMANDER RATHER THAN ONCE PER OPTICON, for the same reason AnarchicalDominion
 ## is: a tile two Opticons both see is ONE tile, and a per-piece generator cannot see its
@@ -267,8 +268,9 @@ func full_site_gain(a_preview: Entity) -> float:
 
 
 #region Private helpers
-## Tiles under a fixture this commander's side owns, the Opticons included. Enemy and neutral
-## fixtures do not shield a tile. The side is Commander.shares_side_with.
+## Tiles under a fixture this commander's side owns — its own and its allies', the Opticons
+## included: an ally's building blocks dominion generation exactly as one's own does. Enemy and
+## neutral fixtures do not shield a tile. The side is Commander.shares_side_with.
 func _allied_fixture_cells(a_map: Map) -> Dictionary:
 	var out: Dictionary = {}
 	for fixture: Variant in a_map.structure_cell_map:
@@ -334,11 +336,13 @@ func claim_key() -> Variant:
 	var map: Map = commander.map if commander != null else null
 	if map == null:
 		return []
+	# The side's blueprints, an ally's included: they shield tiles too (planned_footprint_cells).
 	var planned: Array = []
-	for node: Node in commander.get_children():
-		var piece := node as Actor
-		if piece != null and piece.is_planned:
-			planned.append([piece.get_instance_id(), piece.global_position])
+	for side: Commander in commander.side_commanders():
+		for node: Node in side.get_children():
+			var piece := node as Actor
+			if piece != null and piece.is_planned:
+				planned.append([piece.get_instance_id(), piece.global_position])
 	return [
 		sources().map(func(c: Actor) -> int: return c.get_instance_id()),
 		pending_sources().map(func(c: Actor) -> int: return c.get_instance_id()),
