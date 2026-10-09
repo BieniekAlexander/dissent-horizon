@@ -123,6 +123,30 @@ func _site_at(a_where: Vector3) -> Entity:
 
 
 #region Where a Lab goes
+
+
+## The survey's candidate sites are the bot's lattice cells within its radius of the base —
+## the one quantisation every spatial read shares (lattice-and-topology.md §One lattice) —
+## and the base-hung stride grid only when the fields are switched off.
+func test_the_survey_quantises_on_the_lattice_when_the_fields_exist() -> void:
+	var bot: FakeBot = _bot()
+	var economy: StubEconomy = _economy(bot)
+	var fields: FixtureFields = FixtureFields.over_open(Rect2(-60.0, -60.0, 120.0, 120.0))
+	bot._fields = fields
+	var anchor := Vector2(2.0, -3.0)
+	var radius: float = BotEconomy.DOMINION_SURVEY_RADIUS_CELLS * Map.CELL_SIZE
+	var points: Array[Vector2] = economy._survey_points(anchor)
+	assert_gt(points.size(), 0)
+	for point: Vector2 in points:
+		var cell: Vector2i = fields.lattice.index_at(point)
+		assert_eq(point, fields.lattice.centre_of(cell), "a candidate is a lattice cell's centre")
+		assert_true(point.distance_to(anchor) <= radius, "within the survey radius")
+	bot._fields = null
+	var stride: Array[Vector2] = economy._survey_points(anchor)
+	assert_true(stride.has(anchor), "the stride grid hangs on the anchor itself")
+	for point: Vector2 in stride:
+		var offset: Vector2 = (point - anchor) / BotEconomy.DOMINION_SURVEY_STRIDE_CELLS
+		assert_eq(offset, offset.round(), "and steps by the stride")
 func test_an_overlay_source_goes_on_the_nearest_free_site() -> void:
 	var bot := _bot()
 	bot.route = autofree(TechnocraticDominion.new())

@@ -7,7 +7,7 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**PLANNED — approved 2026-10-08, awaiting the instruction to build.** How the bot represents
+**Built 2026-10-08 (the build order at the end is the record).** How the bot represents
 SPACE: one coarse lattice over the map carrying the L2 channels, and DISTANCE FIELDS over
 passable ground that make "an approach", "reachable, but not in time" and "a risky path"
 reads rather than searches. Scoped 2026-10-08 against every system it touches (`/scope`); each
@@ -259,16 +259,21 @@ cost's standing rule, and this is its first entry.
 ticks per wall second with the fields only sampled, 132 with the job and every consumer on,
 and 140 once a believed type's mobility was cached per snapshot (the clock had walked every
 piece in the tree for every believed unit on every demand-map call). Single matches whose
-trajectories differ, so the residual is a bound, not a cost. What still sweeps OUTSIDE the
-job's budget, each a TODO to move behind it if it shows in `BotScheduler.report`: the point
-fields the guard's arrival term and the clock read (one per destination cell and class per
-snapshot, `BotFields._point_fields`), and `reach_coverage` for a defence placement.
+trajectories differ, so the residual is a bound, not a cost. **The point fields the guard's
+arrival term and the clock read did sweep outside the budget** — measured 2026-10-09 (MEDIUM,
+240 s): 177 on-the-spot sweeps, 5 ms mean and 8.5 ms worst, one every 1.4 s, each a tick's
+spike — and now sit behind it: a destination asked about during one snapshot is swept inside
+the next rebuild's budget (`BotFields._wanted_points`), and only a never-asked destination
+costs its sweep on the spot, once. `reach_coverage` for a defence placement still sweeps on
+request; the same match placed no defence and ran none, so it stays a TODO to move behind the
+budget if it ever shows in `BotScheduler.report`.
 
-> **TODO — precomputing the static half at map generation.** Passability per class and the
-> static part of a field could be derived when a map is generated and stored with it (Alex,
-> 2026-10-08: "if it's worth it"). Not built while the live sweep fits the budget: believed
-> structures change the mask during a match anyway, so only the terrain part could be stored,
-> and the saving is a measurement away from being known.
+> **REJECTED (Alex, 2026-10-09) — precomputing the static half at map generation.** Passability
+> per class and the static part of a field could have been derived when a map is generated and
+> stored with it. The measurement that decided it: a full-lattice sweep is 5 ms (8.5 ms worst)
+> and now runs inside the job's budget, the per-class terrain mask is already memoized until
+> the grid's cells change, and believed structures change the mask during a match anyway, so
+> only the terrain part could be stored — a saving too small to carry a stored artifact.
 
 ## Debug
 
@@ -300,7 +305,7 @@ digests say so — so the pinned batch is not a one-variable contrast with the f
 versions have the same shape). Whether that edge is the ground's or a residue of the bot's own
 start-position bias ([bot-architecture](../bot-architecture.md) §Where a building goes) needs
 the symmetric control copy of [selfplay-results-2026-09-06](../selfplay-results-2026-09-06.md),
-which is not in the tree today — the generator's PLANNED symmetric mode replaces it ([map-generation](../../terrain-and-navigation/map-generation.md) §Symmetric maps). **And a seed is a draw per slot, not per match:** a brain is
+which is not in the tree today — the generator's symmetric mode replaces it (built 2026-10-09) ([map-generation](../../terrain-and-navigation/map-generation.md) §Symmetric maps). **And a seed is a draw per slot, not per match:** a brain is
 seeded from the match seed and its commander id, so the four matches of one seed hand slot 1
 the SAME personality whichever condition or point it holds — three seeds were three draws, and
 in two of them slot 1's draw beat the side even from the weaker point. Forty-eight matches
@@ -327,9 +332,29 @@ for the condition tally, which is what an A/B reads, but never for a per-slot re
    gates destinations. `BotScout`'s grid now has one point per lattice
    cell and indexes through it; its timestamps are the `sight_age` channel
    (`BotScout.sight_age_at`) until a second reader wants them on `BotFields`. Cover:
-   `tests/test_Lattice.gd`, `tests/test_BotFields.gd`. The dominion survey and the build-spot
-   search still quantise on their own ([migration](migration.md) step 3's remainder) — TODO,
-   with step 3 here.
+   `tests/test_Lattice.gd`, `tests/test_BotFields.gd`. The dominion survey's candidate sites
+   are the lattice's cells within its radius since 2026-10-09 (`BotEconomy._survey_points`;
+   the base-hung stride grid remains for the switch-off path). The build-spot search still
+   enumerates FOOTPRINT ORIGINS at terrain resolution, and that is [migration](migration.md)
+   step 3's last remainder, closed 2026-10-09 (Alex) by a TWO-LEVEL search: the bot reads
+   the map state on the lattice to pick a LOCATION, then reads the ground around it for the
+   exact footprint. Level one (`BotEconomy._rank_regions`) scores each lattice cell of the
+   search annulus with the terms the origins are scored with — distance from the anchor, the
+   bearing along the forward axis, the corridor clearance at its centre, the coverage channel —
+   packed and sorted like them, so the chosen cell is mirror-exact for the same reason; level
+   two runs the origin ranking over that cell grown by half a cell each way (ten terrain cells
+   a side: a footprint straddling the cell's edge is still a candidate, a whole neighbour is
+   not — a full ring let the origins wander a cell toward the base, out of the block level one
+   chose), and the navigation checks fall through the ranked origins as before. A region whose
+   origins all fail falls back to the next-best cell (`_advance_region`). Level one carries no
+   clearance term: read at a block's centre it damned the chokepoints a turret must stand in,
+   whose centres are walls; impassable blocks are skipped and level two prices clearance per
+   origin. `sims/bot/fields/turret_covers_the_band` now reads a fixed place on the approach
+   rather than the raiders, who walked to the turret and made the old check read when it went
+   down rather than where ([decision-sims](../decision-sims.md), the `near:` place form).
+   Placement keeps its terrain resolution and the candidate set shrinks from the annulus to
+   one block. Without the fields there is no lattice and the search is the one-level search
+   it was. Cover: `tests/test_BotPlacementEquivariance.gd` §The two-level search.
 3. Built 2026-10-08 — the fields on `BotFields`, every one a lazily built function of beliefs
    dropped by `refresh()`: `enemy_field` (every believed enemy position, penalised by the
    bot's own armed presence), `home_field` (own structures), `approach_band`,

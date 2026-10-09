@@ -146,6 +146,22 @@ func centroid(a_reference: String, a_piece: String = "") -> Variant:
 	return total / float(alive.size())
 
 
+## The place a check's `near` names: a group's centroid, or — for a `{ from, distance,
+## bearing }` placement — that offset from the `from` group's centroid, read live. Null when
+## the group has no living member, as centroid() is.
+func place_of(a_near: Variant) -> Variant:
+	if a_near is SimSpec.Placement:
+		var placement: SimSpec.Placement = a_near
+		var origin: Variant = centroid(placement.from_ref)
+		if origin == null:
+			return null
+		if placement.bearing == "":
+			return origin
+		var direction: Vector2 = SimSpec.ANCHOR_DIRECTIONS[placement.bearing]
+		return (origin as Vector3) + VU.from_xz(direction * placement.distance_units)
+	return centroid(str(a_near))
+
+
 ## The instance ids of every piece ever placed in `a_reference`, dead ones included: how a
 ## shot that landed on a piece since destroyed is still known to have hit the group.
 func member_ids(a_reference: String) -> Array:

@@ -7,8 +7,10 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**TODO — an unapproved proposal.** The layer above every decision the bot currently makes. What exists
-is [bot-architecture](bot-architecture.md); the other gaps are in
+**PLANNED — approved 2026-10-09 (Alex: "Build the posture layer"), scoped as `gdd/tasks.md`
+T-104, whose questions decide the mapping, the hysteresis, the enemy-income estimate, the
+clock's opening prior and the parity fold.** The layer above every decision the bot currently
+makes. What exists is [bot-architecture](bot-architecture.md); the other gaps are in
 [bot-roadmap](bot-roadmap.md).
 
 ## The problem

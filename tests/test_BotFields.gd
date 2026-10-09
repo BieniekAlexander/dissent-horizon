@@ -306,6 +306,25 @@ func test_arrival_between_two_points_reads_a_field_at_the_destination() -> void:
 	assert_eq(fields.arrival_seconds_between(from, to, {}), INF, "what cannot move never arrives")
 
 
+func test_a_destination_asked_about_last_snapshot_is_swept_inside_the_next_rebuild() -> void:
+	var fields: FixtureFields = _fixture()
+	var walker: Dictionary = {"speed": 2.0, "nav_class": NavAgentClass.Size.SMALL, "is_air": false}
+	var from: Vector2 = fields.lattice.centre_of(Vector2i(1, 1))
+	var to: Vector2 = fields.lattice.centre_of(Vector2i(1, 7))
+	var key: String = BotFields.point_field_key(Vector2i(1, 7), NavAgentClass.Size.SMALL)
+	var before: float = fields.arrival_seconds_between(from, to, walker)  # swept on the spot
+	fields.refresh()
+	while fields.is_pending():
+		fields.advance(40)
+	assert_true(fields._point_fields.has(key), "the next rebuild swept it within its budget")
+	assert_almost_eq(fields.arrival_seconds_between(from, to, walker), before, 0.001)
+	# That read asked again, so the next snapshot keeps it; the one after, unasked, lets it go.
+	fields.rebuild_now()
+	assert_true(fields._point_fields.has(key), "asked about last snapshot: kept warm")
+	fields.rebuild_now()
+	assert_false(fields._point_fields.has(key), "a destination nobody asks about is not kept warm")
+
+
 func test_reach_coverage_is_the_share_of_the_band_a_gun_at_each_cell_covers() -> void:
 	var lattice: Lattice = Lattice.covering(Rect2(0.0, 0.0, 35.0, 35.0), 5.0)
 	var band := PackedByteArray()

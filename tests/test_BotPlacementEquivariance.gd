@@ -91,6 +91,11 @@ class FakeBot:
 	) -> Variant:
 		return null
 
+	## The fields are what a test sets and nothing else: the real accessor would build a
+	## BotFields over the test map, and the two-level search would then shape every case here.
+	func fields() -> BotFields:
+		return _fields
+
 
 ## Footprint dimensions come off a build preview in the real thing, which would drag the
 ## whole Tool registry into this test; every building here is the 2x2 the game's are, unless
@@ -466,3 +471,79 @@ func test_a_defence_is_pulled_onto_the_approach_band_not_merely_forward() -> voi
 	var by_coverage: Vector2 = _xz(economy._find_build_spot(DEFENCE))
 	assert_gt(by_bearing.x, absf(by_bearing.y), "bearing alone: east, toward the believed threat")
 	assert_gt(by_coverage.y, absf(by_coverage.x), "with coverage: north, onto the band")
+
+
+# ─── THE TWO-LEVEL SEARCH ────────────────────────────────────────────────────
+## With the fields, the search picks a lattice cell first and scores origins only in that
+## cell's block; without them it is the one-level search above. (lattice-and-topology.md
+## §Build order, step 2.)
+
+
+func _fields_over_map() -> FixtureFields:
+	# 35 units at pitch 5: seven cells a side, centred on the origin like the map.
+	return FixtureFields.over_open(Rect2(-17.5, -17.5, 35.0, 35.0))
+
+
+func test_with_fields_every_scored_origin_lies_in_the_chosen_region() -> void:
+	var bot: FakeBot = _bot_at(Vector2.ZERO, Vector2(12.0, 0.0))
+	bot._fields = _fields_over_map()
+	var economy := StubEconomy.new(bot, null)
+	var search: Dictionary = economy._new_spot_search(PRODUCTION)
+	economy._continue_ranking(search["ranking"], BotJob.UNLIMITED_WORK_UNITS)
+	var part: Dictionary = search["ranking"]["parts"][0]  # a square footprint: one orientation
+	assert_gt((part["regions"] as PackedInt64Array).size(), 1, "the annulus holds several cells")
+	var region: Rect2 = part["region_rect"]
+	assert_eq(region.size, Vector2(10.0, 10.0), "a cell grown by half a cell each way")
+	var width: int = _map.terrain_grid.grid_width()
+	for packed: int in part["out"]:
+		var centroid: Vector2 = _xz(
+			_map.footprint_centroid(BotEconomy.ranked_origin(packed, width), economy.dims)
+		)
+		assert_true(region.has_point(centroid), "origin %s is inside the region" % centroid)
+	bot._fields = null
+	var flat: Dictionary = economy._new_spot_search(PRODUCTION)
+	economy._continue_ranking(flat["ranking"], BotJob.UNLIMITED_WORK_UNITS)
+	var flat_part: Dictionary = flat["ranking"]["parts"][0]
+	assert_true((flat_part["regions"] as PackedInt64Array).is_empty(), "no lattice, no level one")
+	assert_gt(
+		(flat["ranking"]["out"] as PackedInt64Array).size(),
+		(part["out"] as PackedInt64Array).size(),
+		"the one-level search scores the whole annulus"
+	)
+
+
+func test_a_region_with_nothing_placeable_falls_back_to_the_next() -> void:
+	var bot: FakeBot = _bot_at(Vector2.ZERO, Vector2(12.0, 0.0))
+	bot._fields = _fields_over_map()
+	var economy := StubEconomy.new(bot, null)
+	var search: Dictionary = economy._new_spot_search(PRODUCTION)
+	economy._continue_ranking(search["ranking"], BotJob.UNLIMITED_WORK_UNITS)
+	var first: Rect2 = search["ranking"]["parts"][0]["region_rect"]
+	# Wall the whole first region, so nothing in it can stand.
+	for z: int in range(int(first.position.y), int(first.end.y)):
+		for x: int in range(int(first.position.x), int(first.end.x)):
+			var cell: Vector2i = _map.world_to_grid(Vector2(x + 0.5, z + 0.5))
+			if _map.grid_coordinates_in_bounds(cell):
+				_map.terrain_grid.set_blocked(cell, true)
+	economy._spot_search = {}
+	var spot: Variant = economy._find_build_spot(PRODUCTION)
+	while spot is StringName and spot == BotEconomy.SEARCH_PENDING:
+		spot = economy._find_build_spot(PRODUCTION)
+	assert_not_null(spot, "the search moved on to another region")
+	assert_false(first.has_point(_xz(spot)), "and placed outside the walled one")
+
+
+func test_two_mirrored_bots_with_fields_choose_mirrored_spots() -> void:
+	_block_symmetrically([Vector2i(11, 6), Vector2i(12, 6), Vector2i(20, 14), Vector2i(20, 15)])
+	var base := Vector2(-6.5, 9.5)
+	var threat := Vector2(4.5, -8.5)
+	var north_bot: FakeBot = _bot_at(base, threat)
+	north_bot._fields = _fields_over_map()
+	var south_bot: FakeBot = _bot_at(-base, -threat)
+	south_bot._fields = _fields_over_map()
+	for type: StringName in [PRODUCTION, SUPPORT]:
+		var north: Variant = _spot(north_bot, type)
+		var south: Variant = _spot(south_bot, type)
+		assert_not_null(north, "%s: the north bot found somewhere" % type)
+		assert_not_null(south, "%s: the south bot found somewhere" % type)
+		assert_almost_eq(_xz(south), -_xz(north), Vector2(EPS, EPS), "%s: mirrored" % type)

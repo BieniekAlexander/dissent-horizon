@@ -123,10 +123,17 @@ var _mobility_cache: Dictionary = {}
 ## reach → the band coverage of a weapon of that reach at every cell, for reach_coverage;
 ## kept until the next swap.
 var _coverage_cache: Dictionary = {}
-## "cell:size" → a field sourced at one cell, for arrival_seconds_between; swept on first
-## request and kept until the next swap. TODO: a sweep per (point, class) per refresh while
-## the base is under threat — measure once the guard reads it under load.
+## "cell:size" → a field sourced at one cell, for arrival_seconds_between; kept until the next
+## swap. A destination asked for during one snapshot is swept INSIDE the next rebuild's budget
+## (_wanted_points), so a guard or clock that keeps asking about the same structure pays its
+## sweep behind the job; only a destination nobody asked about last snapshot is swept on the
+## spot, once. Measured before this (2026-10-09, MEDIUM, 240 s): 177 on-the-spot sweeps of
+## 5 ms each, one every 1.4 s, every one a tick's spike outside any budget.
 var _point_fields: Dictionary = {}
+## The point-field keys asked for since the last gather, each {"cell", "size"}: the warm set
+## the next rebuild plans. Cleared by the gather that plans it, so a destination that stops
+## being asked about stops being swept.
+var _wanted_points: Dictionary = {}
 
 
 #region Construction
@@ -320,6 +327,16 @@ func _gather() -> int:
 		)
 		arrival[key] = {"speed": by_key[key]["speed"], "field": field}
 		queue.append(field)
+	# The warm set: last snapshot's destinations, swept within the budget like any field.
+	var points: Dictionary = {}
+	for key: String in _wanted_points:
+		var wanted: Dictionary = _wanted_points[key]
+		var field: NavField = _planned(
+			passable_mask(wanted["size"]), [wanted["cell"]], PackedInt32Array()
+		)
+		points[key] = field
+		queue.append(field)
+	_wanted_points = {}
 	(
 		_build
 		. merge(
@@ -330,6 +347,7 @@ func _gather() -> int:
 				"enemy": enemy,
 				"home": home,
 				"arrival": arrival,
+				"points": points,
 				"queue": queue,
 			},
 			true
@@ -357,7 +375,7 @@ func _swap_in() -> void:
 		_home_fields[NavAgentClass.Size.SMALL] = _build["home"]
 	_enemy_arrival_fields = _build["arrival"]
 	_bands = {}
-	_point_fields = {}
+	_point_fields = _build["points"]
 	_coverage_cache = {}
 	_ready = true
 
@@ -512,7 +530,8 @@ func arrival_seconds_between(a_from_xz: Vector2, a_to_xz: Vector2, a_mobility: D
 		return a_from_xz.distance_to(a_to_xz) / speed
 	var size: NavAgentClass.Size = a_mobility.get("nav_class", NavAgentClass.Size.SMALL)
 	var to_cell: Vector2i = lattice.index_at(a_to_xz)
-	var key: String = "%d,%d:%d" % [to_cell.x, to_cell.y, int(size)]
+	var key: String = point_field_key(to_cell, size)
+	_wanted_points[key] = {"cell": to_cell, "size": size}
 	if not _point_fields.has(key):
 		_point_fields[key] = sweep(lattice, passable_mask(size), [to_cell], PackedInt32Array())
 	return arrival_seconds(_point_fields[key], lattice.index_at(a_from_xz), lattice.pitch, speed)
@@ -628,6 +647,11 @@ func _presence_stamps() -> Array:
 #region The pure rules under the fields
 ## A settled field over `passable` from `source_cells`, with `penalty` on entering each cell
 ## (empty for none).
+## The cache key of the point field sourced at `cell` for `size` (arrival_seconds_between).
+static func point_field_key(cell: Vector2i, size: NavAgentClass.Size) -> String:
+	return "%d,%d:%d" % [cell.x, cell.y, int(size)]
+
+
 static func sweep(
 	lattice: Lattice, passable: PackedByteArray, source_cells: Array, penalty: PackedInt32Array
 ) -> NavField:

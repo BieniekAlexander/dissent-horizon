@@ -1046,22 +1046,43 @@ func _new_dominion_search(a_type: StringName, a_key: Array) -> Dictionary:
 		return {"key": a_key}
 	_work += DOMINION_SURVEY_SETUP_WORK_UNITS
 	var anchor: Vector2 = VU.in_xz(_bot.base_centroid())
-	var points: Array[Vector2] = []
-	var reach: int = DOMINION_SURVEY_RADIUS_CELLS / DOMINION_SURVEY_STRIDE_CELLS
-	for j: int in range(-reach, reach + 1):
-		for i: int in range(-reach, reach + 1):
-			var offset := Vector2(i, j) * DOMINION_SURVEY_STRIDE_CELLS * Map.CELL_SIZE
-			if offset.length() <= DOMINION_SURVEY_RADIUS_CELLS * Map.CELL_SIZE:
-				points.append(anchor + offset)
 	return {
 		"key": a_key,
 		"survey": survey,
-		"points": points,
+		"points": _survey_points(anchor),
 		"ranked": [],
 		"anchor": anchor,
 		"forward": _forward_direction(anchor),
 		"full": route.full_site_gain(preview)
 	}
+
+
+## The candidate sites within DOMINION_SURVEY_RADIUS_CELLS of `a_anchor`: the cells of the
+## bot's one lattice (lattice-and-topology.md §One lattice), so the survey quantises the map
+## the way every other spatial read does, and its candidates are the same cells a later
+## channel read would index. Without the fields (the difficulty switch off) a stride grid
+## hung on the anchor, the survey's own quantisation before the lattice existed.
+func _survey_points(a_anchor: Vector2) -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	var radius: float = DOMINION_SURVEY_RADIUS_CELLS * Map.CELL_SIZE
+	var fields: BotFields = _bot.fields()
+	if fields != null:
+		var lattice: Lattice = fields.lattice
+		var low: Vector2i = lattice.index_at(a_anchor - Vector2(radius, radius))
+		var high: Vector2i = lattice.index_at(a_anchor + Vector2(radius, radius))
+		for z: int in range(maxi(0, low.y), mini(lattice.depth - 1, high.y) + 1):
+			for x: int in range(maxi(0, low.x), mini(lattice.width - 1, high.x) + 1):
+				var centre: Vector2 = lattice.centre_of(Vector2i(x, z))
+				if centre.distance_to(a_anchor) <= radius:
+					points.append(centre)
+		return points
+	var reach: int = DOMINION_SURVEY_RADIUS_CELLS / DOMINION_SURVEY_STRIDE_CELLS
+	for j: int in range(-reach, reach + 1):
+		for i: int in range(-reach, reach + 1):
+			var offset := Vector2(i, j) * DOMINION_SURVEY_STRIDE_CELLS * Map.CELL_SIZE
+			if offset.length() <= radius:
+				points.append(a_anchor + offset)
+	return points
 
 
 ## Cheapest buildable infrastructure provider (tech-available), regardless of affordability so
@@ -1588,6 +1609,10 @@ func _find_build_spot(a_type: StringName) -> Variant:
 			_spot_search = {}
 			_spot_turns = {spot: facing_turns(is_turned, search["forward"])}
 			return spot
+	# Nothing in this region could be placed: the next-best block of the annulus, next call.
+	if _advance_region(search["ranking"]):
+		search["cursor"] = 0
+		return SEARCH_PENDING
 	_spot_search = {}
 	return null
 
@@ -1879,6 +1904,11 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 		"coverage", PackedFloat32Array()
 	)
 	var lattice: Lattice = a_ranking.get("coverage_lattice", null)
+	# LEVEL ONE, once per ranking: the lattice cells of the annulus ranked by the same terms,
+	# and the best one's block is the only ground level two scores (see _rank_regions).
+	if not a_ranking.has("regions"):
+		_rank_regions(a_ranking)
+	var region: Variant = a_ranking["region_rect"]
 	var budget_end: int = _work + a_allowance
 	var dz: int = a_ranking["row"]
 	var first: int = dz
@@ -1898,6 +1928,8 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 			var offset: Vector2 = row + basis_x * float(dx)
 			var radial_sq: float = offset.length_squared()
 			if radial_sq < min_sq or radial_sq > max_sq:
+				continue
+			if region != null and not (region as Rect2).has_point(anchor + offset):
 				continue
 			var origin_x: int = seed_origin.x + dx
 			if origin_x < 0 or origin_x + dims.x > width:
@@ -1940,6 +1972,98 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 
 ## Continue every ranking in a composite one (both orientations of a footprint) in turn; once
 ## all are done, merge their candidates into one best-first list.
+## LEVEL ONE OF THE TWO-LEVEL SEARCH (lattice-and-topology.md §Build order, step 2; Alex,
+## 2026-10-09): the bot reads the map on its lattice to pick a LOCATION, then reads the ground
+## around it for the exact footprint. Every lattice cell whose centre lies in the search
+## annulus is scored with the terms the origins are — distance from the anchor, the bearing
+## along the forward axis, the coverage channel — packed and sorted like them, so the chosen
+## cell is mirror-exact for the same reason the origins are. NOT the corridor clearance: that
+## is a property of one footprint's spot, and read at a block's centre it damned exactly the
+## blocks a turret must stand in, the chokepoints, whose centres are walls (the turret sim
+## caught it). A block the lattice holds impassable is skipped instead; level two prices the
+## clearance of each origin as before. `regions` is that order; `region_rect` is the current
+## cell grown by half a cell, the only ground the origin loop scores. Without
+## the fields (the difficulty switch off) there is no lattice and no filter: the search is the
+## one-level search it was.
+func _rank_regions(a_ranking: Dictionary) -> void:
+	a_ranking["regions"] = PackedInt64Array()
+	a_ranking["region_index"] = 0
+	a_ranking["region_rect"] = null
+	var fields: BotFields = _bot.fields()
+	if fields == null:
+		return
+	var lattice: Lattice = fields.lattice
+	var anchor: Vector2 = a_ranking["anchor"]
+	var forward: Vector2 = a_ranking["forward"]
+	var right: Vector2 = a_ranking["right"]
+	var bearing: float = a_ranking["bearing"]
+	var coverage: PackedFloat32Array = a_ranking.get("coverage", PackedFloat32Array())
+	var passable: PackedByteArray = fields.passable_mask(NavAgentClass.Size.SMALL)
+	# Half a pitch of slack either side, so a block straddling the annulus' edge still counts.
+	var slack: float = lattice.pitch * 0.5
+	var min_radius: float = maxf(0.0, float(SEARCH_MIN_RING) - slack)
+	var max_radius: float = float(SEARCH_MAX_RING) + slack
+	var low: Vector2i = lattice.index_at(anchor - Vector2(max_radius, max_radius))
+	var high: Vector2i = lattice.index_at(anchor + Vector2(max_radius, max_radius))
+	var out := PackedInt64Array()
+	for z: int in range(maxi(0, low.y), mini(lattice.depth - 1, high.y) + 1):
+		for x: int in range(maxi(0, low.x), mini(lattice.width - 1, high.x) + 1):
+			var cell := Vector2i(x, z)
+			if passable[lattice.index_of(cell)] == 0:
+				continue
+			var offset: Vector2 = lattice.centre_of(cell) - anchor
+			var radial: float = offset.length()
+			if radial < min_radius or radial > max_radius:
+				continue
+			var along: float = offset.dot(forward)
+			var cost: float = COMPACTNESS_WEIGHT * radial - bearing * along
+			if not coverage.is_empty():
+				cost -= place_coverage_weight * coverage[lattice.index_of(cell)]
+			out.append(_pack(cost, along, offset.dot(right), lattice.index_of(cell)))
+	out.sort()
+	a_ranking["regions"] = out
+	a_ranking["region_rect"] = _region_rect(lattice, out, 0)
+
+
+## The ground level two scores for the region at `a_index` of `a_regions`: that lattice cell
+## grown by half a cell each way, so a footprint straddling its edge is still a candidate,
+## but not a whole neighbour — a full ring let the origin ranking wander a cell toward the
+## base and out of the block level one chose (the turret sim caught it). Null past the last
+## region or with none.
+static func _region_rect(lattice: Lattice, regions: PackedInt64Array, index: int) -> Variant:
+	if index < 0 or index >= regions.size():
+		return null
+	var cell: Vector2i = lattice.cell_of(regions[index] & RANK_INDEX_MASK)
+	return lattice.rect_of(cell).grow(lattice.pitch * 0.5)
+
+
+## Move a ranking (or each of its parts) on to its next region, its origins unscored again,
+## for a search whose region held nothing placeable. False when no region is left — the
+## search has then tried every block of the annulus and may give up.
+func _advance_region(a_ranking: Dictionary) -> bool:
+	if a_ranking.has("parts"):
+		var moved: bool = false
+		for part: Dictionary in a_ranking["parts"]:
+			moved = _advance_region(part) or moved
+		if moved:
+			a_ranking["out"] = PackedInt64Array()
+			a_ranking["done"] = false
+		return moved
+	var fields: BotFields = _bot.fields()
+	var regions: PackedInt64Array = a_ranking.get("regions", PackedInt64Array())
+	if fields == null or regions.is_empty():
+		return false
+	var next: int = int(a_ranking["region_index"]) + 1
+	if next >= regions.size():
+		return false
+	a_ranking["region_index"] = next
+	a_ranking["region_rect"] = _region_rect(fields.lattice, regions, next)
+	a_ranking["row"] = -SEARCH_MAX_RING - 1
+	a_ranking["out"] = PackedInt64Array()
+	a_ranking["done"] = false
+	return true
+
+
 func _continue_rankings(a_ranking: Dictionary, a_allowance: int) -> bool:
 	var budget_end: int = _work + a_allowance
 	for part: Dictionary in a_ranking["parts"]:

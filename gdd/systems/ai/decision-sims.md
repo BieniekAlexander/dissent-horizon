@@ -85,8 +85,14 @@ One family, read from the bot's own records; each takes `slot:` and the usual te
 | check | arguments | true when |
 |---|---|---|
 | `posture` | `is: ATTACK / MASS / DEFEND` | `BotMilitary.current_posture()` |
-| `objective` | `near: <group>`, `within: N` | the military's attack objective lies within N of that group's centroid |
-| `placed` | `piece:`, `near: <group>`, `within: N` | a build order for that piece was issued to stand within N of the group — where a turret went (2026-10-08) |
+| `objective` | `near: <group or place>`, `within: N` | the military's attack objective lies within N of that group's centroid, or of a place |
+| `placed` | `piece:`, `near: <group or place>`, `within: N` | a build order for that piece was issued to stand within N of the group or place — where a turret went (2026-10-08) |
+
+A `near:` is a group reference, or a PLACE beside one in the form `at:` takes — `{ from: A.base,
+distance: 7, bearing: north }`, read live off the `from` group's centroid (2026-10-09). A place
+is for a check against a point nothing stands on: a mark on an approach. A group that moves
+is the wrong mark — the raiders of `turret_covers_the_band` walked to the turret and made the
+check read when it went down rather than where.
 | `ordered` | `kind: build / train / attack / move_at / …`, `piece:`, `of:` (optional), `at_least: N` | `BotUsageLog.actions` records that many ISSUED orders of that kind for that piece — and `of:` narrows to orders whose target is in that group |
 | `refused` | same, plus `cause:` | the actuator refused it, with that precondition cause |
 | `chosen` | `domain: train / production_structure / defence_structure / …`, `piece:` | `BotUsageLog.choices` records it as chosen in that domain |

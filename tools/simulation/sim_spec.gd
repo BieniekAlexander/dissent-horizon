@@ -120,6 +120,17 @@ class Placement:
 	func is_relative() -> bool:
 		return from_ref != ""
 
+	## How a check's detail prints it: the anchor, the group, or "A.base+7north".
+	func _to_string() -> String:
+		if anchor != "":
+			return anchor
+		if bearing == "":
+			return from_ref
+		return "%s+%s%s" % [from_ref, _trim(distance_units), bearing]
+
+	static func _trim(a_value: float) -> String:
+		return str(int(a_value)) if is_equal_approx(a_value, roundf(a_value)) else str(a_value)
+
 
 ## One `{ piece, count }` entry of a group's `of:` list.
 class Composition:
@@ -948,7 +959,15 @@ func _validate_bot_check(a_check: Check) -> void:
 				)
 			)
 	if a_check.arguments.has("near"):
-		_require_group(str(a_check.arguments["near"]), "%s near" % where)
+		# A group, or a PLACE beside one — `{ from, distance, bearing }`, the form `at:` takes —
+		# for a check against a fixed point no group stands on (a mark on an approach).
+		if a_check.arguments["near"] is Dictionary:
+			var place: Placement = _read_placement(a_check.arguments["near"], "%s near" % where)
+			if place != null:
+				_require_group(place.from_ref, "%s near.from" % where)
+				a_check.arguments["near"] = place
+		else:
+			_require_group(str(a_check.arguments["near"]), "%s near" % where)
 	if a_check.name == "posture" and not POSTURES.has(str(a_check.arguments.get("is", ""))):
 		errors.append("%s `is` must be one of %s" % [where, POSTURES])
 	if a_check.name == "claimed" and str(a_check.arguments.get("holder", "")) == "":
