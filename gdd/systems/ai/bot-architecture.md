@@ -126,6 +126,12 @@ currency below, is still the model for the other managers.
 - **`BotTargeting`** — a weighted-signal scorer with a switch margin (commitment) and think-
   cadence latency (reaction time). Four signals registered: threat, matchup effectiveness,
   finishability, proximity.
+- **`BotEscort`** — the decision side of a relation's escort: claims a transport as an errand
+  beside the squad with the longest way to go, keeps it in an escort squad under an
+  `EscortPolicy` that reads the run (collect, wait, carry, unload) off the world on each idle,
+  and gives it back when there is nothing to carry — outside the squad cap, since an escort is
+  attached to the squad it serves
+  ([squads-and-relations](squads-and-relations.md) §Relations).
 - **`BotSanction`** — unlocks greedily whatever its `SanctionGrid` gates allow and it can
   afford, then deploys by policy: defend the base, else strike the army, else hold. It
   decides WHICH sanction, WHICH caster and WHERE; whether the cast is permitted at all is
@@ -343,6 +349,12 @@ is not obviously finite. **Standing behaviour is the queue-free alternative**: a
 a `Defend` post or a `Patrol` route is one order that keeps a unit busy indefinitely, and
 costs one decision rather than a plan. The bot issues none of the three today, which is why
 its only answer to "this unit is idle" is to sweep it into the attack.
+
+A MULTI-STEP action is therefore not a queue either: the transport run (`EscortPolicy`) is
+read off the world each time the carrier is idle and given one replacement order — load,
+carry, unload are facts about who is aboard and where, not steps of a plan the bot holds
+([squads-and-relations](squads-and-relations.md) §A multi-piece action is a sequence read
+off the world).
 
 ## What the bot models about the enemy
 
@@ -585,6 +597,26 @@ deliberate:
   ([squads-and-relations](squads-and-relations.md)); until then a specialised unit techs on
   its own gun or not at all. Tests: `tests/test_BotTechRung.gd`.
 
+**Why no tech building was ever bought (found 2026-10-10, fixed the same night).** Over ten
+random-map HARD mirrors and a ten-minute no-attack game, `cl_tech1` and `cl_tech2` were
+considered thousands of times and chosen never, by the shipped and the Colonial-dense model
+alike. A probe of `_best_tech` showed the Constable clearing the margin (0.00124 against the
+Sloop's 0.00091, a ratio of 1.36) with the bot holding 825 energy — and the savings goal was
+the Sloop. `BotProduction._propose_savings` priced its proposal with `unit_composition_value`,
+the demand map's scale (values near 1–7), while the economy priced its tech proposal on the
+learned model's marginal per energy (near 0.001): production's unit won the goal in every think
+of every match, the bank never held a tech structure's price, and the margin test never
+mattered. Both proposals are on `Bot.purchase_values_per_energy` now
+(`tests/test_BotSavingsScale.gd`). The 2026-10-09 "one valuation for every purchase" missed this
+one reader.
+Probed after the fix in a five-minute no-attack game: the goal is the war factory from 3.4
+minutes and the bank climbs from 975 to 1,875 in seventy seconds, where before it hovered near
+500 for the whole game; `cl_tech2` becomes a candidate only once a war factory stands (the
+Constable is trained at the barracks but requires tech2, which requires the factory), so the
+first tech purchase lands around minute seven (seed 37 of the overnight validation batch built
+one at 6.7 minutes). The sequence is the ladder's, not a defect; how early the factory comes is
+the production-structure rung's and the savings' pace.
+
 ## Valuing a unit, and saving for it
 
 **A unit is valued at the fight one energy of it buys** (Alex, 2026-10-07):
@@ -629,13 +661,63 @@ so no ability is known by name:
   to call a solution in on the nearest believed enemy structure its walk can reach, and holds
   it there as an ERRAND. The gun answers on its own (automatic fire is its default), so the
   Bombard order itself is never issued. One spotter out per loaded gun.
+- **`command_bombard` is the gun's own shot** (`BotActuator.bombard`, 2026-10-10): a loaded
+  Bombard fires at the visible enemy, standing on ground its side spots, whose blast catches
+  the most value — each piece under it weighed at its cost — and never with one of ours under
+  it. Automatic fire answers only a HELD beacon, so without this a Sleeper's planted beacon, a
+  Beacon Drop's, and the ground a Reverence or a Watch Tower covers were spotted for nobody.
+  The point fired on is the anchoring enemy's own, so it is spotted by construction; whether
+  the shot spends a beacon is `BombardTargeting`'s, exactly as for the player.
 - A passive ability has nothing to cast; one whose command this module does not know is left
   alone, and the piece-usage audit reports it `NO_ACTUATION`.
 
-Cover: `tests/test_BotAbilities.gd`; decision specs `sims/bot/ability/strike_a_clump`,
-`sims/bot/siege/spot_for_the_gun`. TODO: a Bombard is still `NEVER_CONSIDERED` by the
+Cover: `tests/test_BotAbilities.gd`, `tests/test_BotBombardShot.gd`; decision specs
+`sims/bot/ability/strike_a_clump`, `sims/bot/siege/spot_for_the_gun`. TODO: a Bombard is still `NEVER_CONSIDERED` by the
 economy — nothing buys the gun, so in play the loop closes only on a map that starts with one.
 A siege rung wants the relation model (a gun is worth what its spotters can reach).
+
+## The siege rung, and the pieces no fight prices
+
+Built 2026-10-10 (Alex's decision: DEMAND-DRIVEN, over an authored price per effect kind and
+over leaving them unbought until the combat model can see them). A piece that is useful only beside another has no value in any fight the combat
+model sees and no gun for the demand map: the Bombard is unarmed, a transport fights nothing,
+the Reverence only spots. Until this day none was ever bought — the piece-usage audit's
+`NEVER_CONSIDERED` structures and the Caravel and Reverence the airfield never trained. They are
+wanted now the way builders and carriers are (`BotProduction._utility_demand_for`): while the
+work they do exists and nothing owned does it. No energy price is authored for any of them.
+
+- **A siege gun** (`BotEconomy._siege_rung`, after the defence and tech rungs): wanted while
+  the bot believes an enemy structure stands AND owns a MOBILE spotter — a unit granted
+  `command_spot` or carrying a `BeaconRange` — that could carry a solution to it
+  (`Bot.wants_siege_gun`); a tower's range covers home and reaches nothing. Which structure is a
+  gun is read off the previews (`Bot.siege_gun_types`: a `command_bombard` ability on the pool),
+  never by name — off the pool's DECLARED groups (`Abilities.declared_abilities`), because a
+  preview never enters the tree and its live granted list is built in `_ready`; the first build
+  read the live list and found no gun all night. A gun still locked buys the tech structure it requires first, as the tech rung
+  does for a unit, and `SIEGE_GUNS_WANTED` is one: the shot is map-wide, so a second gun is a
+  second charge, not more reach (TODO: a parameter when the search wants it). The wanted
+  purchase is proposed to the savings goal at the value of the best unit the bot can train
+  today, so the bank is held for it, and as DEMANDED: `BotSavings` ranks a demanded proposal
+  over a valued one of equal value, then the dearer (Alex, 2026-10-10 — without it the gun's
+  tech tied the producers on value and lost every tie on cost, and no gun was bought in ten
+  overnight games). `REJECTED`: exempting the siege rung from the savings claim, as income and
+  infrastructure are — it would buy the gun the moment it was affordable, outside the one goal
+  and one reserve every other spend answers to.
+- **A transport**: `Bot.unit_type_is_transport` (an open, releasable, mobile garrison that is
+  not a cage — the Stock Truck is the capture errand's) is a utility type, wanted one deeper
+  while `Bot.lift_wanted`: `BotEscort` sets it each think when a squad's walk would be cut by
+  `EscortPolicy.MIN_SAVING_SECONDS` at a reference transport's pace and the bot owns no
+  transport.
+- **A mobile spotter** (`Bot.unit_type_is_mobile_spotter`, unarmed): wanted one deeper while
+  a finished gun stands and no owned unit can carry spotting to a target.
+
+Measured once the three faults above were out (the savings scale, the tie-break, the preview's
+pool): a ten-minute no-attack HARD mirror bought two `cl_tech1` and trained five Sleepers, and a
+nineteen-minute fought mirror on symmetric seed 23 bought two `cl_tech1`, three Sleepers and
+**one Bombard**, with a Spot order issued — the first gun a bot has ever bought, where ten
+games the same night without them bought none. Cover: `tests/test_BotSiegeRung.gd`,
+`tests/test_BotUtilityDemand.gd` (the two demand rules), `tests/test_BotEscort.gd` (the lift
+signal).
 
 ## The research rung
 
@@ -675,6 +757,13 @@ bases since 2026-10-09 (§The score, last paragraph).
 The deployment drops are ranked by the same score (`BotDeployment`), anchored on the army
 before the command centre exists — see
 [starting-formations](../scenario-scripting/starting-formations.md) §Presentation and targeting.
+**The best command-centre spot seen so far is judged against the relaxing threshold EVERY
+think, whether or not the current ranking found a landable spot.** The anchor is the mean of
+every unit, and a builder off scouting drags it into fogged ground where nothing lands; until
+2026-10-10 the drop was only attempted when the current ranking found a spot, so a held
+landable spot sat unused while the threshold relaxed past it, and one bot of a mirror never
+dropped at all (Alex's report: one builder scouts, two stand, no command centre — see §The
+start-position bias). A held spot that no longer lands is forgotten.
 
 ### What was wrong, and how much it cost
 
@@ -872,6 +961,13 @@ One corner reliably has an extractor committed by 60 s and the other reliably do
 per-second dump shows why: on the losing side a builder walks the length of the map on a
 scouting errand while its partner stands still on a build that never completes, and the economy
 freezes for ~90 s until the stall timeout releases it.
+
+The same shape was reported again on 2026-10-10 as "the player 2 bot never drops its command
+centre", and this time the cause was in `BotDeployment` itself: the drop was gated on the
+CURRENT ranking finding a landable spot, while the ranking's anchor — the mean of every unit,
+scout included — had wandered into fog. Fixed by judging the best spot seen so far every think
+(§Where a building goes). The A/B that found it: the same 150-second HARD mirror, run at HEAD in
+a detached worktree and in the working tree.
 
 ### The start-position bias: found 2026-10-09
 

@@ -28,3 +28,10 @@ func same_as(a_other: SquadPolicy) -> bool:
 ## A one-word name for the harness and the decision simulations.
 func kind() -> StringName:
 	return &"none"
+
+
+## Where this policy sends the squad, as a world position, or null for a policy that keeps it
+## nowhere in particular. What an escort reads to know where the consumers are going
+## (EscortPolicy); a policy with a post or an objective returns it.
+func destination() -> Variant:
+	return null

@@ -321,6 +321,23 @@ func spot(a_spotter: Actor, a_world_pos: Vector3) -> bool:
 	return true
 
 
+## Order `a_gun` to drop a shell on `a_world_pos` — the Bombard order the player gives a loaded
+## battery, which fires only on ground its side is spotting (BombardTargeting). The bot's own
+## half of the siege loop where no held beacon calls the shot: a Sleeper's planted beacon, a
+## Beacon Drop's, or ground a Reverence or a Watch Tower covers. Asked of the command's own
+## precondition, so an unspotted point is refused and counted (TARGET_NOT_SPOTTED) rather than
+## ordered. Recorded under the Bombard ability's id. Returns whether the order was issued.
+func bombard(a_gun: Actor, a_world_pos: Vector3) -> bool:
+	if _map == null or a_gun == null:
+		return false
+	var msg := CommandMessage.new(_map, null, null, a_world_pos, Bombard.ABILITY_ID)
+	if not _admits(Bombard, a_gun, msg, "bombard", Bombard.ABILITY_ID):
+		return false
+	usage.record_cast_position(Bombard.ABILITY_ID, a_world_pos)
+	a_gun.update_commands(Bombard.new(msg))
+	return true
+
+
 ## Queue one unit of `type` at a production structure. Returns false only when no tool
 ## produces `type`. The purchase goes onto the commander's global production queue,
 ## which deducts the cost and hands the job to `structure` as soon as it's affordable —

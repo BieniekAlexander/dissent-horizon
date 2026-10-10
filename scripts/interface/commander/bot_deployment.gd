@@ -71,23 +71,30 @@ func tick(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 	_search = {}
 	var found: Array = _first_landable(deployment, drop, ranking["out"])
 	spent += int(found[1])
-	if found[0] == null:
-		return spent
 	if drop == Deployment.Drop.EXTRACTOR:
-		deployment.drop(drop, found[0])
+		if found[0] != null:
+			deployment.drop(drop, found[0])
 		return spent
-	var cost: float = BotEconomy.ranked_cost(found[2])
+	if found[0] != null:
+		var cost: float = BotEconomy.ranked_cost(found[2])
+		if _best_xz == null or cost < _best_cost:
+			_best_xz = found[0]
+			_best_cost = cost
+	# The best spot seen so far is judged EVERY think, whether or not this ranking found one.
+	# The ranking is centred on the army, and a builder off scouting drags that centre into
+	# fogged ground where nothing is landable; gating the drop on the current ranking left a
+	# landable best spot unused for the rest of the match while the threshold relaxed past it
+	# (commander 2 never dropped, 2026-10-10). A held spot that no longer lands is forgotten.
+	if _best_xz != null and deployment.verdict(drop, _best_xz) != Deployment.Verdict.OK:
+		_best_xz = null
+		_best_cost = INF
 	if (
-		_best_xz == null
-		or deployment.verdict(drop, _best_xz) != Deployment.Verdict.OK
-		or cost < _best_cost
-	):
-		_best_xz = found[0]
-		_best_cost = cost
-	if (
-		_best_cost
-		<= acceptable_cost(
-			_bot.seconds_elapsed(), _economy.spot_cost_bounds(deployment.is_production(drop))
+		_best_xz != null
+		and (
+			_best_cost
+			<= acceptable_cost(
+				_bot.seconds_elapsed(), _economy.spot_cost_bounds(deployment.is_production(drop))
+			)
 		)
 	):
 		deployment.drop(drop, _best_xz)

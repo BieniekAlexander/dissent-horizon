@@ -64,6 +64,23 @@ prefix of other files, to find which one corrupts memory. Crash reports in
 `handle_crash` backtrace is the better lead. Whether it can happen in a game, not just in GUT,
 is unknown.
 
+**Recurred 2026-10-10, 02:39.** The editor (relaunched 02:39:13) saved `skirmish.tscn` and
+`skirmish_map_terrain.tres` at 02:39:45 — again 230×230, play size 116×112, two shelters gone —
+and from then on every run lost a shard: six of six, the single-process fallback included, at a
+different test each time, with one identical deep backtrace; the `.ips` of 02:50 ends in
+`_os_unfair_lock_recursive_abort`, a Godot mutex re-entered on its own thread. Two full runs
+earlier the same night (before the save, same working tree) were green at 4279. Narrowed the
+same way as before: with the EIGHT files that name the skirmish scene moved aside
+(`test_DebugPlayerSwap`, `test_Objectives`, `test_ReplayFile`, `test_ReplayLibrary`,
+`test_ReplayRoundTrip`, `test_ReplaySaveForm`, `test_ScenarioEventHost`,
+`test_WaterPlacement`) the suite is green at 4193, and each of the eight passes alone. The
+single-process run died inside `test_DebugPlayerSwap` at `Scenario.play_as`; a sharded run died
+right after the three Replay files had booted the scene. So the trigger is still "a long run
+that boots THIS skirmish map", and the 230×230 save is the common factor between the two
+sightings; whether it is the size, the regenerated terrain, or a scene saved mid-edit is still
+unknown. The map-side A/B (HEAD's scene over the working one) was not run, because the editor was
+open on the scene at the time.
+
 ## TODO: GUT shards crash at random tests, at HEAD too
 
 **Seen:** 2026-10-08, in about half of `gut_shards.py` runs. One shard dies at a different test

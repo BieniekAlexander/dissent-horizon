@@ -213,6 +213,64 @@ the Baladian builder's first unit fell from 0.098 to 0.030. A first-unit margina
 of a five-cell table fitted on a few hundred fights; the sims, not the cell, are the gate
 (Alex, T-100). `counter_the_tanks{,_learned}` and the three `posture/` sims pass on it.
 
+**A Colonial-dense corpus (2026-10-10, overnight; candidate at
+`tools/combat_model/out/cl_dense_2026-10-10/`).** Alex asked for more training iterations on the
+Colonial mirror, with the aim that bots buy past two infantry and one or two vehicles — more
+technology, more unit kinds. The §Still open TODO says why one corpus could not: with each
+side drawn from one faction, a Colonial pair of types meets in a few hundred of 6,000 fights.
+`regenerate.sh` gained `--prefixes`, `--seed-base` and `--no-train`, and 12,000 fights were
+generated with `--prefixes cl_` (every fight a Colonial mirror, 4 shards × 3,000, seeds from
+100,001, 80 minutes), then the model was trained on those plus the shipped model's 6,000
+mixed fights, so every other faction's armed unit stays known. 18,000 fights, 18 types,
+held out by fight:
+
+| Model | R² | mean abs. error | winner right |
+|---|---|---|---|
+| shipped (6,000 mixed) | 0.674 | 0.333 | 85.8% |
+| candidate (6,000 mixed + 12,000 Colonial) | **0.728** | **0.298** | **88.7%** |
+
+What moved, in the Colonial own-side first-unit marginal per 100 energy (the cell the bot buys
+at): the Recruit 0.118 → 0.063, the Badger 0.055 → 0.034, the Sleeper 0.037 → 0.025, the
+Sloop 0.086 → 0.071, the Matilda 0.059 → 0.050, the Clipper 0.062 → 0.045 — and the Constable
+0.120 → 0.112, now **1.8× the Recruit** where the shipped model had them level. The strongest
+own-side pair is Constable × Sloop (1.83). The cheap-infantry edge the 2026-10-09 evening
+corpus gave back is gone again, and this time on twelve thousand mirrors rather than a redraw:
+the single-corpus caution above stands, but the Colonial cells are now fitted on thousands of
+fights each. Consequence for the ladder: the tech rung's 1.3 margin is cleared by the Constable
+against a Recruit army, so a bot that owns a war factory should now buy `cl_tech2`; whether it
+does in play is the validation below. Both production sims (`counter_the_tanks{,_learned}`)
+pass on the candidate.
+
+**Validated and SHIPPED the same night.** A match config may now name a `combat_model` per slot
+(`run_match.gd`), so the candidate played the shipped model: four symmetric generated maps
+(`map_symmetric: true`, seeds 11/23/37/51), each with the candidate on either slot, both bots
+HARD with personality and temperature pinned, plus two ten-minute no-attack games. Run twice —
+before and after the savings-scale fix that the batch itself exposed
+([bot-architecture](bot-architecture.md) §The tech rung):
+
+| | wins | per candidate slot | per shipped slot |
+|---|---|---|---|
+| before the fix | 4–4 | Recruit 50.5, Badger 8.9, Sloop 5.9, Clipper 1.4, Matilda 1.1 | Recruit 28.1, Badger 16.5, Sloop 2.8, Clipper 1.8 |
+| after the fix | **6–2** | Recruit 39.4, Badger 6.9, Sloop 5.0, Clipper 3.5, Matilda 2.0, Drake 1.1; factory 1.2, airfield 0.8, towers 0.8 | Recruit 23.1, Badger 11.0, Sloop 2.0, Clipper 2.9, Matilda 1.0; factory 1.2, airfield 0.6, towers 7.1 |
+
+Eight games cannot show a ten-point edge (the harness's 200-match caveat stands), but the
+candidate was not worse in either run and fielded the mix its tables say it should: twice the
+Sloops, the Drake and Matilda at all, half the towers. **On technology it moved the gate, not
+the purchase**: with both proposals on one scale the bank climbs to 4,000 and factories and
+airfields are bought, and `cl_tech2` was built once in ten games (seed 37, at 6.7 minutes) where
+the earlier batches built it never — because in a forty-unit army the model's in-context
+marginal for a first Constable (0.0003 per energy) is compressed by `CombatModel`'s cap-16
+count scaling and no longer clears `tech_value_margin` 1.3 × the Sloop's. TODO (T-098): the
+margin, or the scaling, is now what decides whether a bot techs; the §Still open pair-coverage
+TODO is closed for the Colonial mirror by this corpus and stands for the other factions.
+
+**A 30,000-fight model** (the same plus a second 12,000 Colonial corpus, seeds from 200,001;
+`tools/combat_model/out/cl_dense30k_2026-10-10/`) fits better still on its own held-out set
+(R² 0.744, MAE 0.287) with winner agreement 88.1% against the 18,000 model's 88.7% — the two
+held-out sets differ, so the pair is not a controlled comparison — and prices the Recruit's
+first unit at 0.029. Not shipped: it has not played a match. The 18,000-fight model is what
+`resources/bots/combat_model.json` holds.
+
 **Each side is drawn from one faction** (Alex, 2026-10-07: a mixed side is reachable only by
 capture, too rare to model yet); the two sides may differ, and a faction appears in proportion
 to its armed units.

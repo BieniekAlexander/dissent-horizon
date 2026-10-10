@@ -33,38 +33,14 @@ The standing goal: difficulty tiers from PASSIVE to IMPOSSIBLE, decisions derive
 > [!check] Status — 2026-10-06
 > Built since 2026-09-04: difficulty as data (`BotDifficulty`), energy-equivalent arbitration starting with scouting, `BotMomentum` and army retreat, clustering as a perception sense, fog-limited attack objectives, the no-base defeat rule, demand-driven utility units, navmesh-safe placement and training, and the work tracked below as T-002 – T-004. Answered decisions are recorded in the AI notes, not here.
 
-### T-002 · Squads and relations #effort/high #needs-input #shelved
+### T-002 · Squads and relations #effort/high #scoped #shelved
 Approved 2026-10-03. Built: waves in series, staged reinforcements, rally points, placement bearing by role. Left: the squad registry with `Stage`/`Assault`/`Hold`/`Patrol` shared with `ScenarioTactic` and capped per difficulty; `Relation` (provider, consumer, reach, effect, value) read off the pieces; multi-actor opportunities and `Escort` for transport and the Sapper; relation affinity and approach coverage in placement; per-job Bot enable for missions.
 → [ai/squads-and-relations](systems/ai/squads-and-relations.md)
 
-> [!check] Status — 2026-10-08
-> Built: per-job enable for missions — `PlayerSlot.disabled_bot_jobs` names `BotBrain` jobs (`BotBrain.JOB_NAMES`) to leave unscheduled; an unknown name fails the boot (`tests/test_BotJobSwitches.gd`). The squad registry and guard were already built 2026-10-07, so of "Left" the registry is done.
-> Tests: 3953 passing (one shard crashes intermittently, pre-existing — unresolved-crashes.md).
-> **Not done:** step 3 (`Relation`, `Bot.relations()`, opportunities, `Escort`) — parked on the value question below; bot `Patrol` — parked on the second question.
-
-> [!question] Q — 2026-10-08
-> What is a relation worth, in the energy-equivalent currency every bot comparison uses?
-> **Why it matters:** build step 3 (`Relation`, `Bot.relations()`, multi-actor opportunities, `Escort`) prices every consumer by the relation's `value`: an opportunity is "the relation's value against the journey" and placement affinity is "priced by the relation's value". The note gives the unit (energy-equivalent, per second or per event) but no rule for any row of its table, and several rows (a Warlord's dominion per follower, a Compound's cooldown reduction) depend on how energy prices against dominion, which T-001 lists as open.
-> **Options:**
-> 1. Derive each effect kind once: ENABLES = the value of the action it enables (a Bombard shot's expected damage × cost); SCALES = the output rate gained, priced at a fixed energy-per-dominion constant until T-001 settles it; MOVES = the consumer's cost × the travel time saved; PROTECTS = the consumer's cost × the damage reduction.
-> 2. A doc key per relation (`value:` on the provider's spec), authored by hand until a derivation exists.
-> 3. Build the read model (`Relation`, `Bot.relations()`) and one consumer that needs no price — `Escort` for transport and the Sapper, issued whenever a consumer is in a squad without its provider — and leave pricing for when opportunities and placement need it.
->
-> **Leaning:** 3 — it builds what the note fully specifies, and the pricing question gets answered against a working read model rather than in the abstract.
->
-> **Answer:** 3
-
-> [!question] Q — 2026-10-08
-> When and where does the bot patrol?
-> **Why it matters:** the note lists `Patrol(route)` as "the Bot's map control" but says nothing about which units patrol, along what route, or what decides it. A patrol squad takes units out of the wave and the reserve, so it competes with them.
-> **Options:**
-> 1. A patrol squad between the bot's own outlying extractors, drawn from the reserve while no wave is out, sized like the guard (`guard_strength_ratio`).
-> 2. A scout-like circuit through the map's contested middle by one cheap fast unit, under `BotScout` rather than `BotMilitary`.
-> 3. No bot patrol for now; `Patrol` stays a mission-only policy.
->
-> **Leaning:** 1 — it guards what raids actually hit (outlying economy) and reuses the guard's sizing rule.
->
-> **Answer:** 3. Patrol and Defend can be out of scope for bots. these commands are alternate means of handling unit aggro provided as a convenience to the player, and its underlying behaviors are already usable by the bot.
+> [!check] Status — 2026-10-10
+> Built step 3 and step 4's demand half: `Relation` + `Bot.relations()`, `EscortPolicy`/`BotEscort`, the gun's own shot, the siege rung, transport and mobile-spotter demand; the Colonial-dense combat model shipped ([ai/macro-learning](systems/ai/macro-learning.md) §1); `sims/bot/escort/lift_the_slow_squad` passes. Five questions resolved, each recorded where its rule lives: relation value → option 3, the read model with no price ([ai/squads-and-relations](systems/ai/squads-and-relations.md) §What a relation is worth); bot `Patrol` → option 3, `REJECTED` (same note, §Squads); purchase of synergy pieces → option 1, demand-driven ([ai/bot-architecture](systems/ai/bot-architecture.md) §The siege rung); the escort against `squad_cap` → does not count (squads-and-relations §Relations); a demanded savings proposal against a valued one → option 1, demanded wins the tie (bot-architecture §The siege rung). Three faults fixed on the way — production's savings proposal on the wrong scale, the savings tie going to the dearer producer, a build preview's ability pool reading empty; with them out a fought 19-minute mirror bought two `cl_tech1`, Sleepers and a Bombard, and issued a Spot.
+> Tests: 4209 passing with the eight skirmish-loading files aside (the known shard crash on the 02:39 skirmish save, [authoring/unresolved-crashes](systems/authoring/unresolved-crashes.md); each of the eight passes alone); none failing.
+> **Not done:** relation pricing for opportunities and placement; multi-actor opportunities; `RADIUS` escort (needs a Repair verb); placement affinity; the debug overlay and `run_match.gd` do not show the escort squad; a passenger still walking to a released carrier is not turned round (`TODO` in `bot_escort.gd`); a Bombard's own shot was not observed in the one game that owned one (the shot fires from a held beacon, which the ledger does not record); `tech_value_margin` 1.3 gates `cl_tech2` — data under T-098.
 
 ### T-003 · A population of bot personalities #effort/medium #needs-input #shelved
 Built: the per-bot seeded stream, the personality draw, temperature sampling, the quality-diversity search (`tools/selfplay/train.py`), and scenarios naming a roster member. Left: a tier as a distribution over the roster instead of one point plus jitter, and categorical preference weights on the vector so composition is searchable.
@@ -112,6 +88,9 @@ Lingering effects over ~3 s (frost fields, the Blizzard's gathering) should publ
 
 ### T-098 · Unit value is a stand-in: revisit strength per energy #effort/medium #unscoped
 Decided 2026-10-07 as a first cut, with a revisit deferred: the bot values a unit at √(DPS × matchup × HP ÷ the target's multiplier against it) ÷ cost — Lanchester's square law — instead of the bare matchup multiplier, which made the 100-energy Recruit always win. Deliberately missing: range, speed, splash, and which layers the target's weapons can reach (a build preview cannot say). `Bot.unit_strength_per_energy_vs`.
+
+> [!check] Status — 2026-10-10
+> Data for the margin, from the overnight run (not a change — the tier default stays 1.3): with the Colonial-dense model shipped and the savings-scale bug fixed (bot-architecture.md §The tech rung), four ten-minute no-attack HARD mirrors, two at `tech_value_margin` 1.0 and two at 1.3. At 1.3: `cl_tech2` chosen 0 of 4,819 considerations across both games, none built. At 1.0: one game built two tech2 and trained four Constables (chosen 20 of 71), the other built none (0 of 877). The in-context marginal of a first Constable in a forty-unit army reads about 0.0003 per energy against the Sloop's 0.0009 — `CombatModel`'s cap-16 count scaling compresses a type the bot owns none of — so at 1.3 the margin is the gate on technology now, and 1.0 opens it about half the time. Alex asked (2026-10-10, in chat) for bots to buy more technology: the two levers are this margin and the scaling.
 
 ### T-099 · A cautious bot that still commits in the end #effort/low #unscoped
 `assumed_enemy_parity` above 1 / `MIN_ATTACK_RATIO` (≈1.18) meant a bot that could never attack; the search range was capped at 1.15 on 2026-10-07 as the fix for now. Deferred: making the cautious end of the range playable instead — e.g. the stalemate clock relaxing parity too, so a timid bot still commits eventually. `bot_difficulty.gd` SEARCH_RANGES; `BotMilitary._committing_to_attack`.

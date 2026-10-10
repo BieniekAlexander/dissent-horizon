@@ -7,8 +7,8 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**Approved 2026-10-03.** Steps 1 and 2 of §Build order are built (2026-10-03 and
-2026-10-07); everything marked `PLANNED` is agreed and waits for the build. This note supersedes
+**Approved 2026-10-03.** Steps 1–3 of §Build order are built (2026-10-03, 2026-10-07 and
+2026-10-10); everything marked `PLANNED` is agreed and waits for the build. This note supersedes
 [bot-roadmap](bot-roadmap.md) §The gaps in the decision surface items 1 and 2 and §Tactics
 and the Bot, and [tactics](../scenario-scripting/tactics.md)' "merging or splitting is out of
 scope".
@@ -95,8 +95,8 @@ Policies are the shared vocabulary; the first three are built:
 | `StagePolicy(point)` | gather and wait to be handed on; the release rule is the decision side's (`reinforce_fraction`) | the reinforcement reserve; a mission's "wait for the wave" |
 | `AssaultPolicy(point, believed target)` | attack-move on the objective; an arrived member razes the believed structure while the belief stands | the wave; a mission's "attack this region / kind of target" |
 | `HoldPolicy(point)` | stand at a post; deliberate idleness | the army at home; the guard; a mission's garrison |
-| `Patrol(route)` | `PLANNED` — the standing order the bot cannot give today | a mission's patrol; the Bot's map control |
-| `Escort(provider role, consumer role, reach)` | `PLANNED` — keep a provider within reach of a consumer — see §Relations | transport, spotting, retinue, the Sapper's carrier |
+| `Patrol(route)` | `REJECTED` for the Bot (Alex, 2026-10-10): Patrol and Defend are conveniences the player has over aggro the bot's units already run on their own; a mission's patrol is its `TacticRule` | — |
+| `EscortPolicy(relation, consumer squad)` | keep a provider serving the members of another squad — see §Relations. Built 2026-10-10 for `CONTAINED` (the transport run); `RADIUS` and `POINT` are `TODO` | transport; in time a healer kept beside the wave |
 
 **Hold leaves an arrived member idle on purpose, and does not use `Defend` posts yet.** A
 `Defend` order is itself the standing order — it never goes idle — so a held unit would be
@@ -150,7 +150,11 @@ is then which side owns `BotProduction`, not a second bot. Cover:
 
 ## Relations
 
-`PLANNED`. **A relation is one piece granting something to another within a reach.** Every
+**Built 2026-10-10: the read model (`Relation`, `Bot.relations()`, `providers_of`,
+`consumers_of`) and its first consumer, `EscortPolicy` for transport, under `BotEscort`.**
+Everything else in this section is as approved and marked `PLANNED` where it waits.
+
+**A relation is one piece granting something to another within a reach.** Every
 inter-piece dependency the game has or plans is one of these, and the Bot reads them off
 the pieces rather than knowing any by name — the same rule as `AnarchicalDominion` asking
 what a piece GRANTS rather than naming the Warlord:
@@ -166,14 +170,27 @@ what a piece GRANTS rather than naming the Warlord:
 | a bunker `Garrison` | admitted armed units | `CONTAINED` | PROTECTS and extends reach |
 
 ```
-Relation
-  provider   predicate over pieces: a passive ability id, a component, a doc key
-  consumer   predicate over pieces
-  reach      RADIUS(r) | POINT | ADJACENT | CONTAINED | ANY
-  effect     ENABLES | SCALES | PROTECTS | MOVES
-  value      energy-equivalent, per second or per event — the currency every bot
-             comparison already uses (bot-roadmap §The currency)
+Relation (scripts/interface/commander/relation.gd)
+  is_provider(piece)            a component, an ability's command — never an id
+  serves(provider, consumer)    pairwise: admission is usually asked of the pair
+  reach                         RADIUS (radius_of(provider)) | POINT | ADJACENT | CONTAINED | ANY
+  effect                        ENABLES | SCALES | PROTECTS | MOVES
 ```
+
+`Relation.all()` is the catalogue of KINDS the code can read today — `spotting_range`
+(`BeaconRange` → a gun), `spotting_call` (a `command_spot` ability → a gun), `transport` (a
+mobile open garrison → what its masks admit) and `cover` (a bunker → the armed it admits) — and
+the pieces instantiate them: `Bot.relations()` lists the kinds one of the bot's pieces takes
+part in, `providers_of` and `consumers_of` the live pairs. The Warlord's retinue, the
+Compound's adjacency and a stealth field are `PLANNED` rows: each needs its mechanic to have a
+component the predicate can read. The Sapper rides a Collective as any passenger does; the
+relation that is its own — the charge and its carrier — belongs to Plant, which the bot does
+not actuate yet ([combat/planted-explosives](../combat/planted-explosives.md)).
+
+**`value` is not a field yet.** The approved shape named one — energy-equivalent, per second
+or per event — and Alex chose (2026-10-08) to build the read model and a consumer that needs no
+price first, so the pricing rule is settled against working code rather than in the abstract.
+→ §What a relation is worth.
 
 **Where a relation comes from.** From the piece: `BeaconRange`, `Spotter`, `Garrison` masks,
 a passive ability's region shape, the Compound's adjacency rule all exist in code already,
@@ -183,20 +200,89 @@ a relation in code, it is a doc key on the piece rather than a bot constant.
 
 **Three consumers of a relation, and that is the generalisation asked for:**
 
-1. **Squads** — `Escort` is one policy for every reach kind: the truck keeps the Servant
-   inside (`CONTAINED`), the spotter keeps a beacon where the battery wants to fire
-   (`POINT`), the Warlord keeps its infantry in reach (`RADIUS`). A squad whose members
-   include a consumer wants a provider, and `Stage` waits for the role to be filled.
-2. **Opportunities** — `BotOpportunity` carries ONE actor and uses it as the conflict key,
-   which is why no two-unit plan exists today. It gains `actors`, and a relation-shaped
-   opportunity — put the Servant in the truck and drive to the far site; rig the carrier
-   and drive it into the strongest cluster — is priced by the relation's value against the
-   journey, exactly as a capture is priced today.
+1. **Squads** — `EscortPolicy` is one policy for every reach kind, and the first is built:
+   the transport keeps the slow half of the wave inside it (`CONTAINED`, below). `RADIUS` —
+   the Warlord keeping its infantry in reach, a healer beside the wave — is a follow order
+   re-issued on idle and is `TODO` until a RADIUS relation the bot can actuate exists (there
+   is no Repair verb in `BotActuator`). `POINT` — the spotter holding a beacon where the gun
+   wants to fire — is `BotAbilities`' siege loop and stays there. "A squad whose members
+   include a consumer wants a provider, and `Stage` waits for the role to be filled" is
+   `PLANNED`; today the escort is attached by `BotEscort` and the wave never waits for it.
+2. **Opportunities** — `PLANNED`. `BotOpportunity` carries ONE actor and uses it as the
+   conflict key, which is why no two-unit plan exists today. It gains `actors`, and a
+   relation-shaped opportunity — put the Servant in the truck and drive to the far site; rig
+   the carrier and drive it into the strongest cluster — is priced by the relation's value
+   against the journey, exactly as a capture is priced today. The half of the siege loop
+   that needs no price is built instead as the gun's own shot
+   ([bot-architecture](bot-architecture.md) §Local abilities): a loaded Bombard fires at the
+   most valuable spotted enemy, so a Sleeper's, a Reverence's, a Watch Tower's or a Beacon
+   Drop's spotting is used, where automatic fire answers only a held Recruit beacon.
 3. **Placement** — below.
 
 A fourth follows for free and is a `TODO`: an enemy provider is worth more than its own
 cost (kill the spotter, not the gun), which is one more term in `BotTargeting`'s threat
-signal once relations are readable.
+signal now that relations are readable.
+
+### A multi-piece action is a sequence read off the world, not a plan
+
+Built 2026-10-10 as the transport run (`EscortPolicy`), and the rule for every multi-piece
+action after it. Alex's question (2026-10-10) was how to model and actuate an action that
+takes several units — load, fly, unload; spot, then fire — succinctly, given that the bot
+already "grabs an applicable unit" for scouting. The answer has two halves, and both exist:
+
+- **The grab is a claim.** `BotClaims` already says who holds a unit and at what priority;
+  the escort claims its carrier as an ERRAND, as the spotter and the capture errand do, and
+  the army leaves it alone until it is released.
+- **The sequence is NOT a queue and NOT a state machine.** The bot never queues commands
+  ([bot-architecture](bot-architecture.md) §The bot never queues commands), and a plan
+  object held across ticks is a second copy of the world that drifts from it the moment a
+  passenger dies, boards, or is re-tasked. Instead the run is READ OFF THE WORLD each time the
+  provider is idle — which `Squad.tick` re-issues every think — and ONE replacement order is
+  given: carrying and at the destination → Evacuate; carrying, nobody else walking in → Move
+  to the destination; passengers walking in → hold still; empty and a lift worth taking →
+  Move to the passengers, or Occupy each one into the carrier once beside them. Every state
+  of the run is a fact about pieces (who is aboard, who holds an `Occupy` at this host, where
+  everyone stands) that the next read sees for itself. The one piece of state the world
+  cannot carry is WHEN loading began, kept so a passenger that never arrives cannot hold the
+  carrier for the match (`LOAD_TIMEOUT_SECONDS`).
+
+The same shape covers the siege loop — `Spot` is the one order a Recruit holds, and the gun
+fires on the beacon on its own or by the bot's own shot — and will cover a healer: a provider
+kept within reach is a follow re-issued on idle, nothing more.
+
+**Who decides where the passengers go.** The consumer squad's own policy: `SquadPolicy.
+destination()` is where a post or an objective sends the squad, and the escort reads it at
+issue. The escort decides nothing about the war; it decides only how its provider gets the
+consumers there, which is the action side the squad model shares with missions.
+
+**When a lift is worth taking** needs no price in energy: it is seconds. A passenger is lifted
+when the ride saves it at least `MIN_SAVING_SECONDS` over walking — walk time, less the
+carrier's flight to it, a boarding allowance and the flight on — most time saved first, as
+many as fit. Straight-line distances throughout, so the saving is conservative where the
+ground winds. A fast walker, or one nearly there, walks.
+
+**The escort does not count against the squad cap** (Alex, 2026-10-10). An escort is
+ATTACHED to the squad it serves: the transport carrying the wave is the wave's body, and
+counting the carrier as one squad and the units inside it as another double-counts the squad.
+So the cap keeps its meaning — how many bodies the bot steers — and `BotEscort` takes no cap
+parameter; the escort squad is on the registry for the harness, not for the count. It
+supersedes the first build of the same day, which counted the escort and so made the
+transport an uncapped-tier behaviour whenever a wave was out.
+
+### What a relation is worth
+
+**Decided 2026-10-10 (Alex): demand-driven, the way builders and carriers are.** A
+synergy piece — a transport, a Bombard, a Reverence — is priced by no fight (unarmed pieces are
+outside the combat model by design, [macro-learning](macro-learning.md)) and gets no
+energy-per-second constant either: **value is bounded by actuation, so a synergy piece is wanted
+while the work it does exists and nothing owned does it.** A transport while a squad has a lift
+worth taking and none to take it; a Bombard while the bot believes an enemy structure stands
+and owns a mobile spotter to carry a solution to it; a Reverence while a gun stands unspotted.
+Built the same day — the rules and where each lives are
+[bot-architecture](bot-architecture.md) §The siege rung. `Relation.value` stays unbuilt: the
+alternative, a price per effect kind (MOVES = the consumer's cost × the travel time saved,
+ENABLES = the enabled action's value), is what multi-actor opportunities and placement
+affinity will need when they are built, and can be added then.
 
 ## Where the army stands
 
@@ -285,8 +371,11 @@ role is wrong. Not built until a piece needs it; derivation first, as everywhere
 1. Built 2026-10-03 — waves in series, staged reinforcements, rally points, role bearing.
 2. Built 2026-10-07 — the squad registry with `Stage`/`Assault`/`Hold`, the military
    rewritten over it, `ScenarioTactic` reading the same object, the squad cap as a
-   difficulty parameter, and the guard.
-3. `PLANNED` — `Relation`, `Bot.relations()`, multi-actor opportunities; `Escort` for
-   transport and the Sapper.
-4. `PLANNED` — `Patrol`, relation affinity and approach coverage in placement. The per-job
-   enable for missions is built (2026-10-08).
+   difficulty parameter, and the guard. The per-job enable for missions, 2026-10-08.
+3. Built 2026-10-10 — `Relation` and `Bot.relations()`; `EscortPolicy` for transport under
+   `BotEscort`; the gun's own shot in `BotAbilities`. Cover: `tests/test_Relation.gd`,
+   `tests/test_EscortPolicy.gd`, `tests/test_BotEscort.gd`, `tests/test_BotBombardShot.gd`.
+4. Built 2026-10-10 — the synergy pieces wanted on demand (§What a relation is worth; the
+   siege rung, transport and spotter demand). `PLANNED` — relation pricing for opportunities
+   and placement; multi-actor opportunities; `RADIUS` escort once a healer can be actuated;
+   relation affinity and approach coverage in placement. Bot `Patrol` is `REJECTED` (§Squads).

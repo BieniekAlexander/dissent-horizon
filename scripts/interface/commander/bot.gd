@@ -720,6 +720,25 @@ func bases() -> Array:
 ## here, so two bases with a gap between them do not pull it onto the ground between
 ## (lattice-and-topology.md §Safety, sites and placement, item 4).
 func home_centroid() -> Vector3:
+	# Memoised for one tick: every "nearest to the base" read in the bot asks this — the
+	# military's station, the scout's home, the threat clock per believed enemy, the income
+	# rung — and each answer re-clusters the bot's structures (bases). 39,000 calls for 8.5 s
+	# in four minutes of a built-up game (2026-10-10). Structures placed within a tick move the
+	# answer by a cell at most, and the next tick recomputes.
+	var now: int = _memo_tick()
+	if now >= 0 and now == _home_centroid_tick:
+		return _home_centroid_memo
+	var fresh: Vector3 = _compute_home_centroid()
+	_home_centroid_tick = now
+	_home_centroid_memo = fresh
+	return fresh
+
+
+var _home_centroid_tick: int = -1
+var _home_centroid_memo: Vector3 = Vector3.ZERO
+
+
+func _compute_home_centroid() -> Vector3:
 	var all: Array = bases()
 	if all.is_empty():
 		return base_centroid()
@@ -816,6 +835,107 @@ func get_hosts_holding_my_units() -> Array:
 				)
 			)
 	)
+
+
+# ─── RELATIONS: one piece granting something to another within a reach ─────────
+#
+# Read off the pieces, never by name (Relation.all is the catalogue of kinds the code can
+# read). gdd/systems/ai/squads-and-relations.md §Relations.
+
+
+## Every relation kind one of this bot's pieces PROVIDES. Providers only, deliberately: asking
+## which kinds its pieces consume is a pieces-squared scan (every provider against every
+## consumer), and the first build asked it every combat period — measured 2026-10-10 at up
+## to 2 ms a tick on a 90-piece late game, more than every other bot job together. A consumer
+## with no provider is the purchase valuation's question (squads-and-relations.md §What a
+## relation is worth), asked of the previews, not of the field each think.
+func relations() -> Array[Relation]:
+	var pieces: Array = get_units() + get_structures()
+	var out: Array[Relation] = []
+	for relation: Relation in Relation.all():
+		if pieces.any(func(piece: Actor) -> bool: return relation.is_provider(piece)):
+			out.append(relation)
+	return out
+
+
+## The owned pieces that provide `a_relation` right now.
+func providers_of(a_relation: Relation) -> Array:
+	return (get_units() + get_structures()).filter(
+		func(piece: Actor) -> bool: return a_relation.is_provider(piece)
+	)
+
+
+## The owned pieces `a_provider` serves under `a_relation` right now.
+func consumers_of(a_relation: Relation, a_provider: Actor) -> Array:
+	return (get_units() + get_structures()).filter(
+		func(piece: Actor) -> bool: return a_relation.serves(a_provider, piece)
+	)
+
+
+# ─── SYNERGY PIECES: wanted while the work they are for exists (Alex, 2026-10-10) ────────
+#
+# A piece useful only beside another — a siege gun, a transport, a spotter aircraft — is priced
+# by no fight. It is wanted the way builders and carriers are (BotProduction._utility_demand_for):
+# while the bot has the work it does, and no piece to do it. squads-and-relations.md §What a
+# relation is worth.
+
+
+## Buildable structure types that fire a Bombard — a `command_bombard` ability on the preview's
+## pool — locked behind tech or not. Read off the previews, never by name.
+func siege_gun_types() -> Array:
+	var caps: Dictionary = _builder_buildable_types()
+	var out: Array = []
+	for tool: Tool in Tool.tools_in_context(ControlBinding.ControlContext.BUILD):
+		var type: StringName = tool.type
+		if not caps.has(type) or not may_consider_structure(type):
+			continue
+		var preview: Actor = _preview_for_type(type) as Actor
+		if preview != null and Relation.grants_command(preview, "command_bombard"):
+			out.append(type)
+	return out
+
+
+## WHETHER A SIEGE GUN IS WANTED: the bot believes an enemy structure stands somewhere, and it
+## owns a MOBILE spotter that can carry a solution to it — a unit granted a `command_spot`
+## ability, or a unit carrying a BeaconRange. A tower's range covers home and reaches nothing;
+## a gun with nothing to spot for it is the structure the piece-usage audit found never bought
+## and never useful (bot-architecture.md §Local abilities).
+func wants_siege_gun() -> bool:
+	if blackboard == null or blackboard.believed_structures().is_empty():
+		return false
+	return get_units().any(is_mobile_spotter)
+
+
+## A unit that can put spotted ground where a gun wants it: it calls a solution in
+## (`command_spot`) or carries spotting with it (BeaconRange).
+static func is_mobile_spotter(a_unit: Actor) -> bool:
+	return (
+		Relation.grants_command(a_unit, "command_spot")
+		or a_unit.get_node_or_null("BeaconRange") != null
+	)
+
+
+## Whether a unit of `a_type` is a TRANSPORT: an open, releasable garrison on a mobile piece,
+## and not a cage — a carrier that takes prisoners by contact (the Stock Truck) is the capture
+## errand's and carries no soldier. Read off the preview.
+func unit_type_is_transport(a_type) -> bool:
+	var preview: Actor = _preview_for_type(a_type) as Actor
+	if preview == null:
+		return false
+	var hold: Garrison = preview.get_node_or_null("Garrison") as Garrison
+	return hold != null and not hold.captures and Relation.transport().is_provider(preview)
+
+
+## Whether a unit of `a_type` spots for siege guns on the move — the Reverence's BeaconRange,
+## or a Spot ability on a unit that fights for nothing else. Read off the preview.
+func unit_type_is_mobile_spotter(a_type) -> bool:
+	var preview: Actor = _preview_for_type(a_type) as Actor
+	return preview != null and is_mobile_spotter(preview)
+
+
+## Set each think by BotEscort: a squad has a lift worth taking and the bot owns no transport
+## to take it. Production reads it as the transport's demand.
+var lift_wanted: bool = false
 
 
 ## Whether ground can WALK from `a_from` to within `a_tolerance` of `a_to` on the map's
@@ -1258,7 +1378,12 @@ func unit_is_utility(a_type) -> bool:
 	var preview := _preview_for_type(a_type)
 	if preview == null:
 		return false
-	return preview.has_node("Builds") or preview.has_node("Interactor")
+	return (
+		preview.has_node("Builds")
+		or preview.has_node("Interactor")
+		or unit_type_is_transport(a_type)
+		or (unit_type_is_mobile_spotter(a_type) and not unit_can_attack(a_type))
+	)
 
 
 # ─── WHAT A UTILITY TYPE IS FOR ─────────────────────────────────────────────
@@ -1706,16 +1831,47 @@ func phantom_force_clocked(a_answer_seconds: float) -> Dictionary:
 ## reads as uncovered (coverage 0), and unit_composition_value skips it.
 ## TODO: effectiveness should be type-level (ontology.md §Type-level), which removes the rep
 ## and this borrowing with it.
+## The demand map and the clocked composition, MEMOISED for one tick: the economy's rungs and
+## the production pass ask for each six to eight times a think, and every answer costs a
+## field read per believed enemy plus an effectiveness evaluation per (enemy type × own unit)
+## — measured 2026-10-10 as most of the economy job's 4 ms a tick late in a match. Nothing
+## they read changes within a tick that the bot has not changed itself.
+var _demand_map_tick: int = -1
+var _demand_map_memo: Dictionary = {}
+var _clocked_composition_tick: int = -1
+var _clocked_composition_memo: Dictionary = {}
+
+
+## The scenario's tick, or -1 off a scenario (every call then recomputes, as a test expects).
+func _memo_tick() -> int:
+	return scenario.tick if scenario != null else -1
+
+
 func enemy_demand_map() -> Dictionary:
+	var now: int = _memo_tick()
+	if now >= 0 and now == _demand_map_tick:
+		return _demand_map_memo
+	var fresh: Dictionary = _compute_enemy_demand_map()
+	_demand_map_tick = now
+	_demand_map_memo = fresh
+	return fresh
+
+
+func _compute_enemy_demand_map() -> Dictionary:
 	if blackboard == null:
 		return {}
 	var importance: Dictionary = {}  # type -> summed importance
 	var reps: Dictionary = {}  # type -> a live Actor of that type, or null
 	var answer: float = fastest_answer_seconds()
+	# Home is read once: it clusters the bot's structures, and the loop below used to ask for
+	# it once per believed enemy.
+	var home: Vector2 = VU.in_xz(home_centroid())
 	for entry: CommanderBlackboard.Entry in blackboard.believed():
 		# A unit weighs by the THREAT CLOCK: in full when it can reach the base before the
 		# bot could field an answer, falling off with the time to spare (clock_weight).
-		var imp: float = structure_demand_weight if entry.is_structure else _clocked(entry, answer)
+		var imp: float = (
+			structure_demand_weight if entry.is_structure else _clocked(entry, answer, home)
+		)
 		importance[entry.type] = importance.get(entry.type, 0.0) + imp
 		if reps.get(entry.type) == null and is_instance_valid(entry.entity):
 			reps[entry.type] = entry.entity
@@ -1761,28 +1917,40 @@ func enemy_demand_map() -> Dictionary:
 ## than counted as one — the composition the learned valuation prices against, so a believed
 ## army across the map presses less than one at the gate. Fog-limited like every belief.
 func believed_enemy_composition_clocked() -> Dictionary:
+	var now: int = _memo_tick()
+	if now >= 0 and now == _clocked_composition_tick:
+		return _clocked_composition_memo
+	var fresh: Dictionary = _compute_believed_enemy_composition_clocked()
+	_clocked_composition_tick = now
+	_clocked_composition_memo = fresh
+	return fresh
+
+
+func _compute_believed_enemy_composition_clocked() -> Dictionary:
 	var weights: Dictionary = {}
 	if blackboard == null:
 		return weights
 	var answer: float = fastest_answer_seconds()
+	var home: Vector2 = VU.in_xz(home_centroid())
 	for entry: CommanderBlackboard.Entry in blackboard.believed_units():
-		weights[entry.type] = float(weights.get(entry.type, 0.0)) + _clocked(entry, answer)
+		weights[entry.type] = float(weights.get(entry.type, 0.0)) + _clocked(entry, answer, home)
 	var phantom: Dictionary = phantom_force_clocked(answer)
 	for etype: StringName in phantom:
 		weights[etype] = float(weights.get(etype, 0.0)) + phantom[etype]
 	return weights
 
 
-## One believed unit's weight on the clock: its arrival time at the base along its type's
-## field against the bot's fastest answer. 1 with no fields to read (a bot with no map).
-func _clocked(a_entry: CommanderBlackboard.Entry, a_answer_seconds: float) -> float:
+## One believed unit's weight on the clock: its arrival time at `a_home_xz` (the base) along
+## its type's field against the bot's fastest answer. 1 with no fields to read (a bot with no
+## map).
+func _clocked(
+	a_entry: CommanderBlackboard.Entry, a_answer_seconds: float, a_home_xz: Vector2
+) -> float:
 	var fields: BotFields = self.fields()
 	if fields == null:
 		return 1.0
 	var arrival: float = fields.arrival_seconds_between(
-		VU.in_xz(a_entry.last_known_location),
-		VU.in_xz(home_centroid()),
-		fields.mobility_of_type(a_entry.type)
+		VU.in_xz(a_entry.last_known_location), a_home_xz, fields.mobility_of_type(a_entry.type)
 	)
 	return clock_weight(arrival, a_answer_seconds, arrival_margin_falloff_seconds)
 

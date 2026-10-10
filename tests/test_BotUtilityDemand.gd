@@ -25,6 +25,8 @@ const BUILDER: StringName = &"test_builder"
 const CARRIER: StringName = &"test_carrier"
 const CRUSHER: StringName = &"test_crusher"
 const SOLDIER: StringName = &"test_soldier"
+const TRANSPORT: StringName = &"test_transport"
+const SPOTTER: StringName = &"test_spotter"
 
 
 class FakeBot:
@@ -61,6 +63,20 @@ class FakeBot:
 
 	func unit_type_has_combat_utility(a_type) -> bool:
 		return bool(combat_capable.get(a_type, false))
+
+	## The synergy types (2026-10-10): which types carry, which spot, and whether a gun stands.
+	var transports: Dictionary = {}
+	var spotters: Dictionary = {}
+	var gun_structures: Array = []
+
+	func unit_type_is_transport(a_type) -> bool:
+		return bool(transports.get(a_type, false))
+
+	func unit_type_is_mobile_spotter(a_type) -> bool:
+		return bool(spotters.get(a_type, false))
+
+	func get_structures() -> Array:
+		return gun_structures
 
 	func get_units_of_type(a_type: StringName) -> Array:
 		var out: Array = []
@@ -419,3 +435,31 @@ func test_capturable_prey_is_grouped_into_one_errand_per_knot() -> void:
 func test_no_prey_anywhere_is_no_capture_errand() -> void:
 	var bot := add_child_autofree(PreyBot.new()) as PreyBot
 	assert_eq(bot.capturable_clusters().size(), 0)
+
+
+# ─── SYNERGY PIECES ARE WANTED WHILE THEIR WORK EXISTS (Alex, 2026-10-10) ────────────
+
+
+func test_a_transport_is_wanted_while_a_lift_is_wanted_and_the_bot_owns_none() -> void:
+	_bot.utility[TRANSPORT] = true
+	_bot.transports = {TRANSPORT: true}
+	_bot.technology_mapping[TRANSPORT] = TechnologySpec.new(500, 0, 0, 30)
+	var production := _production()
+	_bot.lift_wanted = false
+	assert_eq(production._utility_demand_for(TRANSPORT), 1, "the spare alone")
+	_bot.lift_wanted = true
+	assert_eq(production._utility_demand_for(TRANSPORT), 2, "one lift, one transport")
+
+
+func test_a_mobile_spotter_is_wanted_while_a_gun_stands_unspotted() -> void:
+	_bot.utility[SPOTTER] = true
+	_bot.spotters = {SPOTTER: true}
+	_bot.technology_mapping[SPOTTER] = TechnologySpec.new(700, 0, 0, 30)
+	FakePieces.install_ability(&"fake_gun", {"command": "command_bombard"})
+	var gun: Actor = FakePieces.structure({"abilities": [{"grants": [&"fake_gun"]}]})
+	add_child_autofree(gun)
+	var production := _production()
+	assert_eq(production._utility_demand_for(SPOTTER), 1, "no gun: the spare alone")
+	_bot.gun_structures = [gun]
+	assert_eq(production._utility_demand_for(SPOTTER), 2, "a gun with nothing to spot for it")
+	FakePieces.restore_abilities()

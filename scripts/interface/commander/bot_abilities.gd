@@ -12,6 +12,10 @@ extends RefCounted
 ##   • `command_spot` — the Colonial SIEGE LOOP: while a loaded Bombard waits for ground, a
 ##     spotter is sent to call a solution in on the nearest believed enemy structure and holds
 ##     it there; the gun answers on its own (automatic fire). One spotter out per loaded gun.
+##   • `command_bombard` — THE GUN'S OWN SHOT: a loaded gun fires at the most valuable visible
+##     enemy standing on ground its side already spots, none of ours under the blast. Automatic
+##     fire answers only a HELD beacon, so without this a Sleeper's planted beacon, a Beacon
+##     Drop's, and the ground a Reverence or a Watch Tower covers were spotted for nobody.
 ##
 ## A passive ability has nothing to cast. An ability whose command this module does not know
 ## is left alone, and is what the piece-usage audit reports as NO_ACTUATION.
@@ -68,6 +72,9 @@ func tick() -> int:
 					if guns_wanting_ground > 0 and _spot(unit):
 						guns_wanting_ground -= 1
 						break
+	for gun: Actor in _loaded_guns():
+		considered += 1
+		_fire(gun)
 	return considered * UNIT_WORK_UNITS
 
 
@@ -141,17 +148,57 @@ func _release_finished_spotters() -> void:
 ## How many owned, finished guns hold a Bombard charge right now — read off the pieces, so a
 ## second battery is a second solution wanted.
 func _loaded_gun_count() -> int:
-	var count: int = 0
-	for structure: Actor in _bot.get_structures():
-		var pool: Abilities = structure.get_node_or_null("Abilities") as Abilities
-		if pool == null or not structure.is_built:
-			continue
-		if pool.granted_abilities().any(
-			func(id: StringName) -> bool:
-				return AbilityCatalog.command_of(id) == "command_bombard" and pool.is_ready(id)
-		):
-			count += 1
-	return count
+	return _loaded_guns().size()
+
+
+## The owned, finished guns holding a Bombard charge and not already ordered to fire.
+func _loaded_guns() -> Array:
+	return _bot.get_structures().filter(_is_loaded_gun)
+
+
+func _is_loaded_gun(a_structure: Actor) -> bool:
+	var pool: Abilities = a_structure.get_node_or_null("Abilities") as Abilities
+	if pool == null or not a_structure.is_built:
+		return false
+	var charged: bool = pool.granted_abilities().any(
+		func(id: StringName) -> bool:
+			return AbilityCatalog.command_of(id) == "command_bombard" and pool.is_ready(id)
+	)
+	var ordered: bool = a_structure.get_command_chain().any(
+		func(command: MoveCommand) -> bool: return command is Bombard
+	)
+	return charged and not ordered
+
+
+## THE GUN'S OWN SHOT: fire `a_gun` at the visible enemy, standing on spotted ground, whose
+## blast catches the most VALUE — each enemy under it weighed at its cost, the currency every
+## bot comparison uses — and never with one of ours under it. Spotted ground is asked of
+## BombardTargeting, the one place the game answers it, so a shot inside the gun's own bubble,
+## a tower's or a Reverence's costs nothing and a shot on a planted beacon spends it, exactly as
+## the player's would. The point fired on is the anchoring enemy's own, so it is spotted by
+## construction (the blast's centroid might not be). Returns whether a shot was ordered.
+func _fire(a_gun: Actor) -> bool:
+	if a_gun.commander == null:
+		return false
+	var spotted: Array = _bot.visible_enemies().filter(
+		func(enemy: Actor) -> bool:
+			return BombardTargeting.is_spotted(a_gun.commander, enemy.global_position)
+	)
+	if spotted.is_empty():
+		return false
+	var blast: float = AbilityCatalog.blast_radius_of(Bombard.ABILITY_ID)
+	var cluster: Dictionary = _bot.best_covered_point(
+		spotted,
+		blast,
+		func(enemy: Actor) -> float: return maxf(1.0, float(_bot.unit_cost(enemy.id)))
+	)
+	var anchor: Variant = cluster["anchor"]
+	if anchor == null:
+		return false
+	var point: Vector3 = (anchor as Actor).global_position
+	if _any_own_unit_within(point, blast):
+		return false
+	return _act.bombard(a_gun, point)
 
 
 func _spotters_out() -> int:

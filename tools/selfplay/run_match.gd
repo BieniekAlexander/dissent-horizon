@@ -241,11 +241,20 @@ func _inject_configs() -> String:
 		var overrides: Dictionary = (
 			((slot_configs[i] as Dictionary).get("config", {}) as Dictionary).duplicate()
 		)
-		if overrides.is_empty():
-			continue
 		var brain: BotBrain = _brain_for_slot(i)
 		if brain == null:
 			return "slot %d has no BotBrain to configure" % i
+		# `combat_model`: a path to a trainer export this slot values purchases by, instead of
+		# the shipped resources/bots/combat_model.json — so a candidate model can be played
+		# against the shipped one in the same match (macro-learning.md §1).
+		var model_path: String = str((slot_configs[i] as Dictionary).get("combat_model", ""))
+		if model_path != "":
+			var model: CombatModel = CombatModel.from_file(model_path)
+			if model == null:
+				return "slot %d: no combat model at %s" % [i, model_path]
+			brain.bot.combat_model = model
+		if overrides.is_empty():
+			continue
 		var config: BotDifficulty = BotDifficulty.for_tier(brain.difficulty)
 		if overrides.has(RETIRED_THINK_INTERVAL_KEY):
 			# One think interval for everything, as the archived studies meant it.
@@ -477,11 +486,14 @@ func _sample(a_tick: int) -> Dictionary:
 	for i: int in _scenario.player_slots.size():
 		var slot: Dictionary = _slot_sample(_scenario.player_slots[i].commander)
 		slot["brain"] = _brain_sample(_brain_for_slot(i))
+		slot["jobs"] = _job_totals(_brain_for_slot(i))
 		_note_instances(i, _scenario.player_slots[i].commander)
 		slots.append(slot)
 	return {
 		"tick": a_tick,
 		"simulated_seconds": TimeUtils.seconds_from_ticks(a_tick),
+		# Wall time so far, so two samples give the wall cost per tick of the window between.
+		"wall_seconds": _wall_seconds(),
 		"digest": SimulationDigest.of(_scenario),
 		"slots": slots,
 	}
@@ -581,6 +593,21 @@ func _utility_unit_count(a_commander: Commander, a_units: Array) -> int:
 ## Reads the managers directly (`_military`, `get_scout()`) because there is no public
 ## posture accessor beyond `current_posture()`, and because a HARNESS reading a bot's private
 ## state is the right side of the actuator rule: it observes, it never issues.
+## THE PROFILE: what each of the brain's jobs has cost since the match began — microseconds,
+## work units and runs, summed by the scheduler — so a sample series says which job's share
+## grows as the match does. Empty when the brain has no scheduler yet.
+func _job_totals(a_brain: BotBrain) -> Dictionary:
+	if a_brain == null:
+		return {}
+	var scheduler: BotScheduler = get_tree().get_first_node_in_group(BotScheduler.GROUP)
+	if scheduler == null:
+		return {}
+	var out: Dictionary = {}
+	for job: BotJob in scheduler.jobs_of(a_brain):
+		out[String(job.name)] = {"usec": job.total_usec, "units": job.total_units, "runs": job.runs}
+	return out
+
+
 func _brain_sample(a_brain: BotBrain) -> Dictionary:
 	if a_brain == null or a_brain.bot == null:
 		return {}

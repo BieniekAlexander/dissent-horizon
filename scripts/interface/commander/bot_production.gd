@@ -121,13 +121,25 @@ func tick() -> int:
 ## Production's savings proposal: the most valuable unit any idle producer wants, affordable
 ## or not, on the scale every proposal shares (Bot.unit_composition_value). See BotSavings.
 func _propose_savings(a_wanted: Array, a_demand: Dictionary) -> void:
+	var types: Array = []
+	for pick: Array in a_wanted:
+		if pick[1] != &"" and not types.has(pick[1]):
+			types.append(pick[1])
+	if types.is_empty():
+		_bot.savings.propose(&"production", &"", 0.0, 0)
+		return
+	# ON THE ONE PURCHASE SCALE (Bot.purchase_values_per_energy), the same the economy prices its
+	# proposals on. Until 2026-10-10 this read unit_composition_value — the demand map's scale,
+	# values near 1–7 — while the economy's proposal was the learned model's marginal per energy,
+	# near 0.001, so production's unit won the savings goal in every think of every match, no
+	# dear purchase was ever banked for, and the tech rung's margin test — which the Constable
+	# cleared — never mattered: the bank never held 1,200. Found by a probe of _best_tech in a
+	# ten-minute game (bot-architecture.md §The tech rung).
+	var valued: Dictionary = _bot.purchase_values_per_energy(types, a_demand)["values"]
 	var best_type: StringName = &""
 	var best_value: float = 0.0
-	for pick: Array in a_wanted:
-		var type: StringName = pick[1]
-		if type == &"":
-			continue
-		var value: float = _bot.unit_composition_value(type, a_demand)
+	for type: StringName in types:
+		var value: float = float(valued[type])
 		if value > best_value:
 			best_value = value
 			best_type = type
@@ -237,9 +249,26 @@ func _utility_demand_for(a_type: StringName) -> int:
 		demand += _capture_errand_count()
 	if _bot.unit_type_has_combat_utility(a_type):
 		demand += 1
+	# SYNERGY PIECES (Alex, 2026-10-10 — bot-architecture.md §The siege rung): a transport while a
+	# squad has a lift worth taking and the bot owns none to take it (BotEscort sets the flag);
+	# a mobile spotter while the bot owns a siege gun and nothing that can carry a solution to
+	# a target. Each is one errand, so each is one unit — the same rule as a carrier per capture.
+	if _bot.unit_type_is_transport(a_type) and _bot.lift_wanted:
+		demand += 1
+	if _bot.unit_type_is_mobile_spotter(a_type) and _spotter_wanted():
+		demand += 1
 	if _owned_utility_unit_count() < scout_unit_budget:
 		demand += 1
 	return mini(demand, maxi(0, utility_unit_cap))
+
+
+## Whether a mobile spotter is wanted: the bot owns a finished siege gun and no unit that can
+## carry spotting to a target.
+func _spotter_wanted() -> bool:
+	var owns_gun: bool = _bot.get_structures().any(
+		func(s: Actor) -> bool: return s.is_built and Relation.grants_command(s, "command_bombard")
+	)
+	return owns_gun and not _bot.get_units().any(Bot.is_mobile_spotter)
 
 
 ## Live capture errands: capturable clusters, but zero while the bot owns nowhere to deposit
