@@ -267,6 +267,11 @@ const SEARCH_PENDING: StringName = &"search_pending"
 ## _issue_build to read. A side table rather than a second return value because a dozen callers
 ## and their test doubles pass the spot on as a plain Vector3. Only the latest answer is kept.
 var _spot_turns: Dictionary = {}
+## EVERY STRUCTURE IS LAID UNROTATED (Alex, 2026-10-09): the bot knows a footprint can be turned
+## — the order carries the count, so a rule can set it later — but ranks one orientation and lays
+## it at the doc's. The rule that ranked both orientations and faced the structure up the threat
+## axis was withdrawn as a game signal not expected to pay yet: footprint-rotation.md §Deferred.
+const DEFAULT_QUARTER_TURNS: int = 0
 
 ## A build-spot search that ran out of allowance: the type it is for, its ranked candidates, how
 ## far through them it got, and what they were ranked against. A resumable sweep's cursor (see
@@ -1616,13 +1621,11 @@ func _find_build_spot(a_type: StringName) -> Variant:
 		var packed: int = candidates[cursor]
 		cursor += 1
 		_work += PLACEMENT_CHECK_WORK_UNITS
-		var is_turned: bool = (packed & RANK_TURNED_BIT) != 0
-		var oriented: Vector2i = Fixture.oriented_dimensions(dims, 1 if is_turned else 0)
 		var origin: Vector2i = ranked_origin(packed, width)
-		var spot: Vector3 = _bot.map.footprint_centroid(origin, oriented)
-		if _placement_ok(spot, oriented, search["region"]):
+		var spot: Vector3 = _bot.map.footprint_centroid(origin, dims)
+		if _placement_ok(spot, dims, search["region"]):
 			_spot_search = {}
-			_spot_turns = {spot: facing_turns(is_turned, search["forward"])}
+			_spot_turns = {spot: DEFAULT_QUARTER_TURNS}
 			return spot
 	# Nothing in this region could be placed: the next-best block of the annulus, next call.
 	if _advance_region(search["ranking"]):
@@ -1632,23 +1635,8 @@ func _find_build_spot(a_type: StringName) -> Variant:
 	return null
 
 
-## The quarter turn a structure is laid at, given whether its footprint is TURNED (dimensions
-## swapped, an odd count) and the bot's forward axis: of the two counts that claim those cells,
-## the one whose facing points more toward the threat. Chosen in the bot's frame, so it moves
-## with any isometry of the bot's situation; in an exact tie (forward square to both facings)
-## the lower count wins. A count's facing turns +Z by that many quarter turns about +Y.
-static func facing_turns(is_turned: bool, forward: Vector2) -> int:
-	var first: int = 1 if is_turned else 0
-	var facing: Vector2 = Vector2(sin(first * PI / 2.0), cos(first * PI / 2.0))
-	return first + 2 if facing.dot(forward) < 0.0 else first
-
-
 ## A fresh build-spot search for `a_type`: its candidate ranking (not yet run) and what it
-## needs to check the candidates.
-##
-## A NON-SQUARE footprint is ranked at both orientations, as one list: the turned candidates are
-## scored exactly as the others, and between two that tie the one whose long axis lies ACROSS
-## the bot's forward axis comes first (footprint-rotation.md §Slices, slice 4).
+## needs to check the candidates. One orientation — the doc's — see DEFAULT_QUARTER_TURNS.
 func _new_spot_search(a_type: StringName) -> Dictionary:
 	var dims: Vector2i = _dims_for_type(a_type)
 	var anchor: Vector2 = (
@@ -1658,16 +1646,7 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 	)
 	var forward: Vector2 = _forward_direction(anchor)
 	var bearing: float = _bearing_for(a_type)
-	var rankings: Array[Dictionary] = [
-		_start_ranking(anchor, forward, bearing, dims, _orientation_bits(dims, false, forward))
-	]
-	if dims.x != dims.y:
-		var turned: Vector2i = Fixture.oriented_dimensions(dims, 1)
-		rankings.append(
-			_start_ranking(
-				anchor, forward, bearing, turned, _orientation_bits(turned, true, forward)
-			)
-		)
+	var rankings: Array[Dictionary] = [_start_ranking(anchor, forward, bearing, dims)]
 	# A STATIC DEFENCE is scored on how much of the approach band its gun would cover from
 	# each spot (lattice-and-topology.md §Distance fields: reach_coverage) — the term that
 	# rejected the turrets whose ranges covered cliffs. Nothing believed yet: no band, no term.
@@ -1687,21 +1666,6 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 		"cursor": 0,
 		"ranking": {"parts": rankings, "out": PackedInt64Array(), "done": false},
 	}
-
-
-## The bits a candidate of `a_dims` carries above its cell index: RANK_TURNED_BIT for a turned
-## footprint, and RANK_ALONG_BIT when its long axis lies more ALONG the forward axis than across
-## it, which ranks it after an otherwise equal candidate whose long axis lies across. A square
-## footprint has no long axis and carries neither.
-static func _orientation_bits(a_dims: Vector2i, a_is_turned: bool, a_forward: Vector2) -> int:
-	var bits: int = RANK_TURNED_BIT if a_is_turned else 0
-	if a_dims.x == a_dims.y:
-		return bits
-	var long_axis: Vector2 = Vector2(1.0, 0.0) if a_dims.x > a_dims.y else Vector2(0.0, 1.0)
-	var across: Vector2 = Vector2(long_axis.y, long_axis.x)
-	if absf(long_axis.dot(a_forward)) > absf(across.dot(a_forward)):
-		bits |= RANK_ALONG_BIT
-	return bits
 
 
 ## The region the demand read last asked a turret for (XZ), or null before it has asked:
@@ -1855,7 +1819,7 @@ func _scored_candidates(
 ## The state of one ranking: what every candidate is scored against, fixed when it starts, the
 ## row of origins it has reached, and the candidates found so far. See _scored_candidates.
 func _start_ranking(
-	a_anchor: Vector2, a_forward: Vector2, a_bearing: float, a_dims: Vector2i, a_bits: int = 0
+	a_anchor: Vector2, a_forward: Vector2, a_bearing: float, a_dims: Vector2i
 ) -> Dictionary:
 	var map: Map = _bot.map
 	assert(
@@ -1888,7 +1852,6 @@ func _start_ranking(
 		"basis_z":
 		VU.in_xz(map.footprint_centroid(seed_origin + Vector2i(0, 1), a_dims)) - world_seed,
 		"row": -SEARCH_MAX_RING - 1,
-		"bits": a_bits,
 		"out": PackedInt64Array(),
 		"done": false,
 	}
@@ -1971,11 +1934,7 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 				var cell: Vector2i = lattice.index_at(anchor + offset)
 				if lattice.is_in_bounds(cell):
 					cost -= place_coverage_weight * coverage[lattice.index_of(cell)]
-			out.append(
-				_pack(
-					cost, along, offset.dot(right), origin_z * width + origin_x, a_ranking["bits"]
-				)
-			)
+			out.append(_pack(cost, along, offset.dot(right), origin_z * width + origin_x))
 	out.sort()
 	_work += out.size() * CANDIDATE_WORK_UNITS
 	a_ranking["out"] = out
@@ -1983,8 +1942,9 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 	return true
 
 
-## Continue every ranking in a composite one (both orientations of a footprint) in turn; once
-## all are done, merge their candidates into one best-first list.
+## Continue every part of a composite ranking in turn — one part today, since the orientation
+## parts were withdrawn (DEFAULT_QUARTER_TURNS) — and once all are done merge their candidates
+## into one best-first list.
 ## LEVEL ONE OF THE TWO-LEVEL SEARCH (lattice-and-topology.md §Build order, step 2; Alex,
 ## 2026-10-09): the bot reads the map on its lattice to pick a LOCATION, then reads the ground
 ## around it for the exact footprint. Every lattice cell whose centre lies in the search
@@ -2104,27 +2064,18 @@ func _continue_rankings(a_ranking: Dictionary, a_allowance: int) -> bool:
 ## corresponding ranks in both bots' lists. The cell index rides in the low 20 bits purely so
 ## the winner can be turned back into a position.
 ##
-## Below the lateral field: RANK_ALONG_BIT and RANK_TURNED_BIT (see _orientation_bits), then the
-## cell index in the low RANK_INDEX_BITS.
-static func _pack(
-	a_cost: float, a_along: float, a_lateral: float, a_cell_index: int, a_bits: int = 0
-) -> int:
+## Below the lateral field: the cell index in the low RANK_INDEX_BITS.
+static func _pack(a_cost: float, a_along: float, a_lateral: float, a_cell_index: int) -> int:
 	var cost: int = clampi(roundi(a_cost * 100.0) + 8192, 0, 16383)
 	var along: int = clampi(roundi(-a_along * 100.0) + 2048, 0, 4095)
 	var lateral: int = clampi(roundi(a_lateral * 100.0) + 2048, 0, 4095)
-	return (
-		(cost << 44) | (along << 32) | (lateral << 20) | a_bits | (a_cell_index & RANK_INDEX_MASK)
-	)
+	return (cost << 44) | (along << 32) | (lateral << 20) | (a_cell_index & RANK_INDEX_MASK)
 
 
 ## How many low bits of a ranked candidate hold its cell index: 262,144 cells, against the
 ## largest map's 230 × 230 = 52,900 (asserted when a ranking starts).
 const RANK_INDEX_BITS: int = 18
 const RANK_INDEX_MASK: int = (1 << RANK_INDEX_BITS) - 1
-## A candidate whose footprint is turned a quarter (dimensions swapped).
-const RANK_TURNED_BIT: int = 1 << RANK_INDEX_BITS
-## A candidate whose long axis lies along the forward axis: ranked after an equal one across it.
-const RANK_ALONG_BIT: int = 1 << (RANK_INDEX_BITS + 1)
 
 
 ## THE REGION OF THE MAP THE BOT LIVES ON, as a TerrainGrid component id.

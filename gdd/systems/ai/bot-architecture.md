@@ -736,6 +736,12 @@ is both the right question (the tightest point is what pinches) and the only mir
 one. It is capped at four cells, because without a cap it stops meaning "keep your lanes open"
 and starts meaning "go stand in the middle of the map".
 
+> **PLANNED (2026-10-09)** — two terms join this score, and the anchor stops being the one base
+> centroid: a `safety` term read off the fields, and a blast-spacing penalty over the bot's own
+> structures; the anchor becomes a per-order choice among the bot's clusters. Decided with Alex;
+> [lattice-and-topology](world-model/lattice-and-topology.md) §Safety, sites and placement
+> (`gdd/tasks.md` T-101).
+
 ### Two details that are the whole of why it actually mirrors
 
 **No random tie-break, and this is not an oversight.** A draw from the seeded `SU.rng` would be
@@ -933,10 +939,11 @@ claimed whole or not at all. The engine abandons a duplicate on arrival regardle
 [water-bodies](../terrain-and-navigation/water-bodies.md) §One extractor per body); this is what
 stops the bot spending a builder walking to a job that will be thrown away.
 
-> **TODO — a pond is priced with a ruler.** Distance is the whole comparison, matching what the
-> site search already did, but a pond pays `POND_RATE_MULTIPLIER` times faster and is FINITE, so
-> "which is worth more" is a genuine value-over-time question. It wants the same currency the
-> ability and Servant-garrison questions want; see §What has to be modelled.
+> **PLANNED — a pond is priced with a ruler today.** Distance is the whole comparison, but a
+> pond pays `POND_RATE_MULTIPLIER` times faster and is FINITE. Decided 2026-10-09: yield = rate ×
+> expected lifetime, the lifetime read off the `safety` field and capped by the reservoir, one
+> comparison over sites and ponds — [lattice-and-topology](world-model/lattice-and-topology.md)
+> §Safety, sites and placement (`gdd/tasks.md` T-101).
 
 ### Income is found by scouting
 

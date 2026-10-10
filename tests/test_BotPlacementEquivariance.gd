@@ -381,64 +381,19 @@ func test_a_search_split_into_slices_picks_the_same_spot() -> void:
 	assert_almost_eq(_xz(sliced), _xz(whole), Vector2(EPS, EPS))
 
 
-# ─── A NON-SQUARE FOOTPRINT IS PLACED AT EITHER ORIENTATION ─────────────────
-# footprint-rotation.md §Slices, slice 4.
+# ─── EVERY STRUCTURE IS LAID UNROTATED ──────────────────────────────────────
+# footprint-rotation.md §Deferred: the bot knows the count the order carries and sets it to the
+# default (BotEconomy.DEFAULT_QUARTER_TURNS); the rule that chose an orientation was withdrawn.
 
 
-## The facing of a laid structure points up the threat axis, within the orientation chosen.
-func test_a_structure_faces_up_the_threat_axis() -> void:
-	assert_eq(BotEconomy.facing_turns(false, Vector2(0.0, 1.0)), 0)
-	assert_eq(BotEconomy.facing_turns(false, Vector2(0.0, -1.0)), 2)
-	assert_eq(BotEconomy.facing_turns(true, Vector2(1.0, 0.0)), 1)
-	assert_eq(BotEconomy.facing_turns(true, Vector2(-1.0, 0.0)), 3)
-
-
-## Between two otherwise equal candidates, the one lying ACROSS the threat axis comes first.
-func test_a_footprint_lying_along_the_threat_axis_is_ranked_after_one_across_it() -> void:
-	var east := Vector2(1.0, 0.0)
-	assert_ne(
-		BotEconomy._orientation_bits(Vector2i(4, 2), false, east) & BotEconomy.RANK_ALONG_BIT, 0
-	)
-	assert_eq(
-		BotEconomy._orientation_bits(Vector2i(2, 4), true, east) & BotEconomy.RANK_ALONG_BIT, 0
-	)
-	assert_eq(
-		BotEconomy._orientation_bits(Vector2i(3, 3), false, east), 0, "a square has no long axis"
-	)
-
-
-## The orientation is part of the choice, so it turns with the situation like the position does.
-func test_a_quarter_turn_of_the_situation_turns_a_long_footprint() -> void:
-	var dims := Vector2i(2, 4)
-	var east_economy := StubEconomy.new(_bot_at(Vector2.ZERO, Vector2(11.0, 0.0)), null)
-	east_economy.dims = dims
-	var east: Vector2 = _xz(east_economy._find_build_spot(PRODUCTION))
-	var east_turns: int = _turns_of(east_economy)
-	var north_economy := StubEconomy.new(_bot_at(Vector2.ZERO, Vector2(0.0, 11.0)), null)
-	north_economy.dims = dims
-	var north: Vector2 = _xz(north_economy._find_build_spot(PRODUCTION))
-	assert_almost_eq(north, Vector2(-east.y, east.x), Vector2(EPS, EPS), "the spot turns")
-	assert_ne(_turns_of(north_economy) % 2, east_turns % 2, "and so does which way it lies")
-
-
-## Both orientations of a long footprint are ranked, in one list.
-func test_both_orientations_of_a_long_footprint_are_ranked() -> void:
+func test_a_long_footprint_is_ranked_once_and_laid_unrotated() -> void:
 	var economy := StubEconomy.new(_bot_at(Vector2.ZERO, Vector2(0.0, 12.0)), null)
 	economy.dims = Vector2i(2, 4)
+	var spot: Variant = economy._find_build_spot(PRODUCTION)
+	assert_true(spot is Vector3, "a long footprint finds a spot")
+	assert_eq(_turns_of(economy), BotEconomy.DEFAULT_QUARTER_TURNS)
 	var search: Dictionary = economy._new_spot_search(PRODUCTION)
-	economy._continue_ranking(search["ranking"], BotJob.UNLIMITED_WORK_UNITS)
-	var turned: int = 0
-	var authored: int = 0
-	for packed: int in search["ranking"]["out"]:
-		if packed & BotEconomy.RANK_TURNED_BIT != 0:
-			turned += 1
-		else:
-			authored += 1
-	assert_gt(turned, 0, "the turned footprint is a candidate")
-	assert_gt(authored, 0, "and so is the authored one")
-	var square := StubEconomy.new(_bot_at(Vector2.ZERO, Vector2(0.0, 12.0)), null)
-	var square_search: Dictionary = square._new_spot_search(PRODUCTION)
-	assert_eq(square_search["ranking"]["parts"].size(), 1, "a square footprint is ranked once")
+	assert_eq(search["ranking"]["parts"].size(), 1, "one orientation is ranked")
 
 
 func _turns_of(a_economy: BotEconomy) -> int:

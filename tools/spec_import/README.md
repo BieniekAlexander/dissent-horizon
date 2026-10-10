@@ -851,6 +851,13 @@ A rule yields one of five verdicts per piece:
 | `STALE` | declared but not violated (or not applicable) | hard error |
 | `INCOMPLETE` | an `ASSET` rule's slot is unfilled, undeclared | listed in the run summary with its `AssetState` (`PLACEHOLDER`/`MISSING`); never an error |
 
+The summary also reports the **combat model's staleness**: the armed units (a doc with
+`movement:`, a `weapons:` list and an energy cost) the shipped `resources/bots/combat_model.json`
+was never fitted on, and the types it knows that are no longer armed units. An unknown unit
+drops every producer that can train it onto the demand map, so a balance pass that adds or arms
+a piece should end with `tools/combat_model/regenerate.sh` (gdd/systems/ai/macro-learning.md §1).
+Reported, never an error: the bot plays on meanwhile.
+
 `ASSET` rules (`has_mesh_visual`, `has_voice_lines`, `has_death_sound`) are the one
 severity where an undeclared violation is not a failure: a missing asset crashes
 nothing, so it is reported rather than refused. A waiver makes the slot `EXEMPT`.

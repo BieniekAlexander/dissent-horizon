@@ -205,6 +205,96 @@ what" are two reads, and both are arrivals against a clock.
   conveniences over unit aggro offered to the player, and the behaviour underneath them is
   already the bot's.
 
+## Safety, sites and placement
+
+> **PLANNED — decided with Alex 2026-10-09, every question answered; nothing built.** Logged as
+> `gdd/tasks.md` T-101. Builds on §Defending assets across space and
+> on the placement score of [bot-architecture](../bot-architecture.md) §Where a building goes.
+
+The bot today anchors every non-extractor building on one base centroid, picks an extractor
+site by distance, and keeps its base tight because compactness is the ruler of the placement
+score. Alex's long-term expectation is different on all three counts: structures gather around
+the resource sites the bot finds, because production and defence at one base leave the
+expansions exposed; a tight base is more vulnerable to area damage, which every faction will
+have; and "where is it safe to build" is a reading of the fields, not a shape of the base.
+
+**1. A `safety` channel.** Per lattice cell, the expected LIFETIME of a structure standing
+there, as the gap between two arrivals:
+
+- *Enemy arrival*, per believed source, is `arrival_seconds_at` as built — but weighted by
+  the source's lethality AGAINST STRUCTURES, read the way `Bot.time_to_kill` reads it (damage
+  type against structure armour). An enemy arriving does not mean the extractor dies: a
+  lead-armed raider is barely a threat to a building and contributes almost nothing; artillery
+  and a demolition charge contribute everything (Alex, Q1).
+- *Own response* is the bot's time to answer at that cell: `arrival_seconds_between` from the
+  army's station and from each production cluster for the units it fields, together with the
+  static reach already covering the cell (`reach_coverage`). A cell the bot cannot reach in
+  time is exposed however near home it is.
+- With nothing believed, the opening prior (`prior_arrival_seconds`) stands in for the enemy
+  side, as it does for every field read.
+
+Safety is LOCAL by construction: two well-defended clusters with an undefended gap between them
+read as two safe regions and one exposed one, because the gap is covered by neither cluster's
+reach nor its response (Alex, Q5). No surface-area term is wanted anywhere — the field is the
+expression of "defensible", and compactness buys defence only through the coverage and response
+it actually produces (Alex, Q6; REJECTED: a perimeter or radial surface-area term).
+
+**2. Site valuation replaces nearest-first.** Candidates are every unclaimed extraction site and
+every workable pond the bot has explored, in ONE comparison. A site's yield is its rate — the
+site's own, or the pond rate — times its expected lifetime, where lifetime is the safety read
+capped, for a pond, by the reservoir divided by the rate. That one horizon prices a finite
+pond against an inexhaustible site with no planning-horizon parameter: the bot counts only the
+income it expects to live to collect (Alex, Q2; this answers T-006). Against the yield stand
+the extractor's price and the builder's walk, read along the builder's class field. The defence
+the site will then demand is NOT charged at selection (Alex, Q3): the lifetime already
+discounts an exposed site, and the defence rung follows the structure out as it does today.
+Revisit only if the production sims show extractors taken and lost.
+
+**3. Every structure chooses a site**, in the same change as the extractors (Alex, Q4): the
+anchor of the placement search becomes a per-order choice among the bot's clusters rather than
+the one centroid. What values a cluster depends on what the structure does (Alex, 2026-10-09):
+
+- *A producer goes closer to the action*, to shorten the walk of what it trains: the cluster
+  from which its units' arrival time at the approach post (`approach_post`, read along the
+  units' class field) is shortest, ties to safety. This is the cluster-level form of the
+  production-forward bearing the score already carries.
+- *A structure that produces nothing goes away from the action*: the cluster with the longest
+  such arrival, ties to safety — the cluster-level form of the shelter bearing.
+- *The site has to be buildable before it is held.* `Stagger` suppresses `Build` while the
+  builder is hit ([the-command-tick](../../commands/the-command-tick.md) §Stagger), so a build
+  under fire never completes, and a builder that dies there costs the order and the unit. A
+  candidate site is discounted, and refused outright at the margin, when a believed source that
+  can kill the builder (`Bot.time_to_kill` with the builder as target) arrives inside the BUILD
+  WINDOW — the builder's walk plus the structure's creation time at the builders it brings
+  (`Actor` build-rate rule). This is a second lethality read beside the structure's: a lead
+  raider is nothing to the building and everything to the Servant assembling it.
+
+The threat to the structure itself stays discounted by damage type as §1 says: ground that only
+lead weapons can reach is safe ground for a building (Alex reaffirmed this in the answer).
+
+**4. Clusters replace the base centroid.** Own structures stamped on the lattice and grown by
+the blast-spacing radius, taken as connected components, are the bot's BASES. Every read that
+measures from "the base" — the threat axis, the scout's home, the retreat point, the defence
+anchor — measures from the cluster it serves; where one home is needed, the command centre's
+cluster is it (Alex, Q5: a convolution over own presence, not one centroid).
+
+**5. Two new placement terms.** A `place_safety_weight × safety` term at both levels of the
+search, so the bot builds where the field says it can hold and avoids ground it cannot; and a
+blast-spacing penalty, one count per own structure within `BLAST_SPACING_CELLS` of the
+candidate footprint, steep inside the radius and zero beyond it, so the bot packs as tight as
+one blast allows and no tighter. The radius is ONE value for every faction, derived from the
+largest `blast` bucket in the shape library rather than typed (Alex, Q7: effect sizes will be
+similar across factions, so there is nothing to model per faction). Its weight,
+`place_spacing_weight`, is a searched difficulty field divided by the `risk` dial like the
+other fields the dial reaches. The radial compactness term stays at 1 as the ruler of the
+score, read now as TRAVEL cost — the builder's and reinforcements' walk, which the safety
+field does not price — and the annulus bounds stay (Alex, 2026-10-09, T-101).
+
+**6. Cover.** The lifetime rule and the cluster rule as pure statics on `BotFields`, mirror-exact
+like the rest (`tests/test_BotFields.gd`, `tests/test_BotPlacementEquivariance.gd`); a `safety`
+layer in the overlay's Fields category; decision sims under `sims/bot/fields/`: the bot takes
+the safe site over the richer exposed one, and lays no three structures within one blast.
+
 ## Difficulty
 
 Built 2026-10-08. `field_refresh_seconds` is a PERIOD — the cadence of the fields job, set

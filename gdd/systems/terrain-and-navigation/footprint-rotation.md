@@ -102,10 +102,9 @@ that shows the footprint at that count.** The controller holds one `placement_qu
 
 All five slices are built (`tests/test_FootprintRotation.gd`, `tests/test_PlacementRotation.gd`,
 `tests/test_BotPlacementEquivariance.gd`). The editor `terrain_snap` plugin reads a node's yaw as a
-quarter turn, as `Entity._auto_initialize` does. The bot ranks a non-square footprint at both
-orientations in one list; between two candidates that tie, the one whose long axis lies across its
-forward axis comes first, and within the orientation chosen it faces up the threat axis
-(`BotEconomy.facing_turns`). An order carries `quarter_turns`, so a replay lays it the same way.
+quarter turn, as `Entity._auto_initialize` does. The bot lays every structure at the doc's
+orientation (`BotEconomy.DEFAULT_QUARTER_TURNS`, 0) and its order carries the count, so a replay
+lays it the same way and a rule can set it later; choosing a rotation is deferred (§Deferred).
 
 Each slice ends green and is useful alone. All tests build their own fixtures (a synthetic Map, a
 synthetic structure) — none reads an authored scene, per CLAUDE.md §A unit test does not assert facts
@@ -129,10 +128,8 @@ about authored content.
    quarter turn; a yaw more than a few degrees off a quarter turn is a `push_warning` and is
    snapped, since the grid cannot hold anything else) — which is what makes rotation authorable in
    the editor before any player-facing control exists.
-4. **The bot.** `BotEconomy._find_build_spot` considers both orientations of a non-square footprint
-   and scores them like any other candidate; **mirror equivariance** (`tests/test_BotPlacementEquivariance`)
-   extends to rotation: an isometry of the bot's situation carries its count with it (a quarter
-   turn adds one, a point reflection two, a mirror maps `t` to `−t`).
+4. **The bot.** `BotEconomy._find_build_spot` lays every structure at the default count and its
+   order carries it. The orientation rule this slice first built is withdrawn — see §Deferred.
 5. **The control, and replay.** The controller is wired to the seam, and the count rides in the
    order stream's message.
 
@@ -154,6 +151,16 @@ about authored content.
   a rotated structure exists on an authored map.
 
 ## Deferred
+
+**TODO — the bot choosing a rotation.** Built 2026-10-08 and withdrawn 2026-10-09 (Alex: from a
+modelling standpoint no benefit is expected yet from game signals deciding rotation; the bot is to
+know the count exists and lay the default). What it did, so it is not re-derived: a non-square
+footprint was ranked at both orientations in one list, scored like any other candidate, a tie going
+to the one whose long axis lay across the bot's forward axis; within the orientation chosen the
+structure faced up the threat axis (the count of the two that claim those cells whose facing had the
+larger dot with the forward axis, the lower count in an exact tie); and the choice was equivariant —
+an isometry of the bot's situation carried the count with it. Nothing measured said it helped. The
+seam is in place for a rule that does: `BotEconomy._spot_turns` is what the order reads.
 
 **TODO — two-form pieces (deploy).** A deployed piece takes its footprint where the unit stands, and a
 unit has an arbitrary `rotation.y`. Two-form pieces are not built out yet, so `Deployment` keeps

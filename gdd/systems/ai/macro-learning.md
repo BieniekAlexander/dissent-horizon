@@ -91,8 +91,15 @@ end-to-end RL is REJECTED for now** unless a fast abstract simulator is built fi
 the fight generator, the trainer and the pinned requirements; `CombatModel` reads the export;
 `BotDifficulty.should_use_learned_production` switches `BotProduction`'s unit choice onto it
 (on in every tier since 2026-10-07, Alex; a run may set it false). The decision-sim pair is `sims/bot/production/counter_the_tanks{,_learned}`.
-Regenerate the model with `generate_fights.tscn` (three shards of 2,000 took 55 minutes at the
-90 s window; about 70 minutes at 240 s with an airfield, 2026-10-09) and `train.py` (20 seconds).
+Regenerate the model with **`tools/combat_model/regenerate.sh`** (2026-10-09): it makes a
+detached worktree of HEAD with the working tree's uncommitted pieces applied, imports it, runs
+the fight shards there (so a GUT run on the working tree cannot zero a match's vision shapes),
+trains, prints `compare_models.py`'s side-by-side against the shipped model, and leaves the
+candidate under `tools/combat_model/out/<stamp>/` for you to copy over
+`resources/bots/combat_model.json` once the production sims pass. About 70 minutes for 3 × 2,000
+at the 240 s window. **The spec importer reports which armed units the shipped model does not
+know**, so a balance pass that adds or arms a piece ends with a regeneration — an unknown unit
+drops every producer that can train it onto the demand map.
 
 **First fit (2026-10-07): 6,000 fights, 17 armed units (Colonial, Anarchical, Technocratic),
 held out by fight:**
@@ -181,8 +188,8 @@ Constable scored 7.4 against the Recruit's 3.1 and the tech rung bought its buil
 model rates it near the Sloop per energy, under the 1.3 margin, so the tech rung now waits on it as
 the unit choice always did. Whether that margin is right is the search's question.
 
-**Retrained with a 240 s window and an airfield per flying side (2026-10-09, the shipped
-model; corpus `tools/combat_model/out/airfield_2026-10-09/`).** The 90 s window cut off what an
+**Retrained with a 240 s window and an airfield per flying side (2026-10-09; corpus
+`tools/combat_model/out/airfield_2026-10-09/`).** The 90 s window cut off what an
 untouchable aircraft does — it kept all its value and killed too slowly for the margin to
 show — and with no airfield a charged clip fired once. 6,000 fights, 4,037 with an airfield,
 398 running the whole window; held-out R² 0.685 (was 0.655), winner right 85.5% (was 82.9%).
@@ -192,6 +199,19 @@ level with the Clipper's 0.063 — the cheap-infantry edge the first corpus gave
 margin where the bot buys. The Drake's table past three bodies is extrapolation (three cost
 more than the budget ceiling) and reads low; TODO: a budget range that reaches four Drakes, or
 a per-type cap. `counter_the_tanks{,_learned}` pass on it.
+
+**Regenerated after the Sleeper rework (2026-10-09 evening, the shipped model; corpus
+`tools/combat_model/out/2026-10-09_1939/`, by `regenerate.sh` against the working tree, so the
+Sleeper's uncommitted 450 price is in it).** The importer's staleness report named the Sleeper
+as armed but unknown to the model; the regenerated model knows it. 6,000 fights, pool of 18;
+held-out R² 0.674 (was 0.685), winner right 85.8% (was 85.5%), MAE unchanged — within the
+noise of one corpus against another. The Sleeper's own-side table reads 0.17 at one body to
+0.54 at four. What moved elsewhere is a caution about reading two corpora as one: the Recruit's
+FIRST unit is back to 0.118 per 100 energy (was 0.069), above the Sloop's 0.086, so the
+"cheap-infantry edge is gone" reading of the morning's corpus did not survive a redraw, and
+the Baladian builder's first unit fell from 0.098 to 0.030. A first-unit marginal is one cell
+of a five-cell table fitted on a few hundred fights; the sims, not the cell, are the gate
+(Alex, T-100). `counter_the_tanks{,_learned}` and the three `posture/` sims pass on it.
 
 **Each side is drawn from one faction** (Alex, 2026-10-07: a mixed side is reachable only by
 capture, too rare to model yet); the two sides may differ, and a faction appears in proportion
