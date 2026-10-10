@@ -25,6 +25,7 @@ The interface half of [UX](../README.md): what the player sees and touches.
 | [debug-tuning.md](debug-tuning.md) | editing a piece's doc values live in debug mode, the library menu, and saving to the docs |
 | [generated-visual-defaults.md](generated-visual-defaults.md) | placeholder meshes, derived selection shapes and HP bars; the clearing protocol |
 | [actor-cards.md](actor-cards.md) | the unit card: picture, HP and garrison columns, charge dials, its colour vocabulary; the multi-selection's fanned rows |
+| [menus.md](menus.md) | the title screen's pages, the skirmish lobby, and the recipe a lobby match and its replay are built from |
 | [piece-icons.md](piece-icons.md) | the picture a unit or structure is drawn as on the HUD; the stock-photo placeholders |
 
 **Belongs here:** panels and buttons, input actions and key bindings, cursor behaviour,

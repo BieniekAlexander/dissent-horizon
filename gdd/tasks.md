@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-102**
+> Next id: **T-104**
 
 # Tasks
 
@@ -305,6 +305,57 @@ With interpolated rendering; 20 Hz would cut every per-tick cost by a third. Not
 → [combat/scan-and-vision-cost](systems/combat/scan-and-vision-cost.md) §Beyond both
 
 ## UX
+
+### T-103 · Menus: the skirmish lobby's open decisions #effort/medium #needs-input
+Built 2026-10-10 (branch `claude/menus`): title pages (Campaign, Arcade WIP, Skirmish, Replays, Options with unsaved volume, Quit) and a skirmish lobby (2–8 players, faction or Random, teams, a You box on slot 1) that generates a map off the main thread from the player count and alliances and starts a HEGEMONY match; replays of lobby matches rebuild from the recorded recipe. Left: the decisions below, tuning the map size per start count, a settings system, generating a replay's map off the main thread.
+→ [ux/ui/menus](systems/ux/ui/menus.md)
+
+> [!question] Q — 2026-10-10
+> Which factions does the skirmish lobby offer?
+> **Why it matters:** `SkirmishSetup.FACTIONS` lists the choices and what Random draws from; Libertarian and Technocratic have command centres and starting units but stub sanction grids, and no shipped scenario has a bot playing them.
+> **Options:**
+> 1. Anarchists and Haustoria only, until the others are finished (built).
+> 2. All four, Random included.
+> 3. All four in the list, Random drawing only from the finished two.
+>
+> **Leaning:** 1 — a Random pick should never land on a faction that cannot play a full match.
+>
+> **Answer:**
+
+> [!question] Q — 2026-10-10
+> Should each bot slot have a difficulty?
+> **Why it matters:** every slot copies the template's PlayerSlot, so every bot is HARD; a per-row difficulty is one more OptionButton and one more recipe field.
+> **Options:**
+> 1. One difficulty for every bot, from the template (built).
+> 2. A difficulty per bot row.
+> 3. One lobby-wide difficulty control.
+>
+> **Leaning:** 2 — the RTS convention, and a recipe field replays already carry per slot.
+>
+> **Answer:**
+
+> [!question] Q — 2026-10-10
+> How should uneven teams be generated?
+> **Why it matters:** the generator gives every alliance the same number of starts, so a 2v1 today gives the lone player a two-start alliance's territory with one start left empty.
+> **Options:**
+> 1. Size every alliance to the largest team and remove the spare starts (built).
+> 2. Refuse uneven teams in the lobby.
+> 3. Teach the generator a start count per alliance.
+>
+> **Leaning:** 3 — the only option that is balanced, and the generator already balances per alliance; 1 stands until then.
+>
+> **Answer:**
+
+> [!question] Q — 2026-10-10
+> Does the campaign page list the tutorial too?
+> **Why it matters:** it lists the three prologue missions from the old title screen; `scenes/scenarios/tutorial.tscn` is also a scripted mission but was never on the menu, and still uses a legacy height map.
+> **Options:**
+> 1. The three prologue missions only (built).
+> 2. Add the tutorial before them.
+>
+> **Leaning:** 1 — add it once it is checked to still play.
+>
+> **Answer:**
 
 ### T-095 · What the Drop and reinforcement sanctions draw while aiming #effort/low #unscoped
 A sanction now draws an area only when the ability itself states one (an authored `effect_radius`, or an event deriving its own, like the Gunship's reach and the Mortar's blast). Drop and the Anarchist reinforcement sanctions (Ambush, Informant, Dignify) state none, so they draw nothing; what they should show — the spread their pieces land in, a marker, nothing — is deferred (Alex, 2026-10-06). Scavenge lost its unsourced circle too and was not discussed.

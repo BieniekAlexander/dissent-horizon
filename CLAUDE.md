@@ -642,6 +642,11 @@ Mission scripting: triggers, conditions, objectives, dialogs, pause, highlights 
 - [`gdd/systems/scenario-scripting/tactics.md`](gdd/systems/scenario-scripting/tactics.md)
 - [`gdd/systems/scenario-scripting/starting-formations.md`](gdd/systems/scenario-scripting/starting-formations.md)
 
+## Menus
+
+The title screen's pages and the skirmish lobby: a recipe, a generated map, a HEGEMONY match.
+→ **[`gdd/systems/ux/ui/menus.md`](gdd/systems/ux/ui/menus.md)**
+
 ## The cursor
 
 Its five images, which one shows when, and why the OS keeps replacing it with its own.
