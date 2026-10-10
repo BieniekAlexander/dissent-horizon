@@ -80,6 +80,6 @@ func _hold(a_k: Actor) -> void:
 	a_k.is_holding_fire = true
 	if a_k.current_command() is Attack or a_k.current_command() is AttackMove:
 		a_k.update_commands(null)
-	var home: Vector3 = _bot.base_centroid()
+	var home: Vector3 = _bot.home_centroid()
 	if home != Vector3.ZERO:
 		_act.move([a_k], home)

@@ -246,6 +246,19 @@ var arrival_margin_falloff_seconds: float = 30.0
 ## score). 0 places a turret by bearing alone.
 var place_coverage_weight: float = 8.0
 
+## What SAFE GROUND is worth to a building, in cells of sprawl a cell's full safety — the
+## structure's expected lifetime there over the held horizon (BotFields.safety) — is worth
+## against the compactness ruler. The fields, not a shape of the base, say where it is safe to
+## build (lattice-and-topology.md §Safety, sites and placement). Divided by the `risk` dial.
+var place_safety_weight: float = 6.0
+
+## What ONE BLAST'S SPACING between the bot's own structures is worth: the cost, in cells, of
+## standing right on top of one own structure, falling linearly to nothing one blast away
+## (BotEconomy.blast_spacing_cells) — tight bases die to area damage. Against the compactness
+## ruler the term's slope is this over the blast radius (ten cells today), so below ten it is a
+## preference and above ten it pushes a building clear. Divided by the `risk` dial.
+var place_spacing_weight: float = 5.0
+
 # ── THE POSTURE LAYER ───────────────────────────────────────────────────────────────
 # Four dials above every decision (BotPosture; gdd/systems/ai/objective-selection.md), each
 # the bias below plus gain × the one or two signals it reads, clamped to [0, 1]; 0.5 leaves
@@ -365,6 +378,9 @@ const SEARCH_RANGES: Dictionary = {
 	"posture_dead_band": [0.0, 0.5],
 	"posture_hold_seconds": [0.0, 60.0],
 	"assumed_enemy_income_parity": [0.0, 1.5],
+	# Placement safety and blast spacing, appended 2026-10-09 (T-101).
+	"place_safety_weight": [0.0, 20.0],
+	"place_spacing_weight": [0.0, 25.0],
 }
 
 # ── PER-UNIT TARGETING ──────────────────────────────────────────────────────────────

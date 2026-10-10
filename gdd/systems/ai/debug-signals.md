@@ -72,7 +72,8 @@ the ready snapshot (`BotFields`); the overlay never triggers a sweep.
 | Enemy arrival time per cell | L2 | stored (a lookup per cell) | a tile red (now) → blue (the quiet horizon); quiet ground undrawn |
 | The presence penalty | L2 | stored | a yellow outline per penalised cell |
 | The post the army stands at | L3 | cheap | a white square and stick |
-| Lattice size, rebuild state, explored and passable fractions, sources, band size, arrival at base | L2/L3 | cheap | readout |
+| The bot's bases (`Bot.bases`, 2026-10-09) | L3 | cheap | a green square on each centroid |
+| Lattice size, rebuild state, explored and passable fractions, sources, band size, arrival at base, base count, the stored safety at home | L2/L3 | cheap | readout (the safety line names the type the last placement computed a channel for, or says none is stored) |
 
 ### Posture
 

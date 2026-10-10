@@ -1036,7 +1036,7 @@ func _enemy_prior(a_pt_xz: Vector2, a_home_xz: Vector2) -> float:
 ## it, because a scout that has nothing to anchor on still has to go somewhere — Vector3.ZERO
 ## (the map centre) is a usable answer here and would be a bad rally point there.
 func _home_position() -> Vector3:
-	var base: Vector3 = _bot.base_centroid()
+	var base: Vector3 = _bot.home_centroid()
 	return base if base != Vector3.ZERO else _bot.army_centroid()
 
 

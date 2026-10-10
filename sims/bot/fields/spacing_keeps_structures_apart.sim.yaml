@@ -1,0 +1,49 @@
+description: |
+  A BUILDING IS KEPT OUT OF ONE BLAST OF THE BOT'S OWN. The bot earns its way to a barracks
+  beside its citadel; the plain search lays it against the citadel's wall, six to seven cells
+  from the centre of that eight-by-eight footprint. At the top of the spacing weight's range
+  the penalty for standing inside one blast of the citadel outruns the compactness ruler, and
+  the one barracks it may place (cap 1) is ordered a blast away — never within eight cells of
+  the citadel's centre. The prerequisite and the extractor stand thirty cells south as a base
+  of their own, so the citadel is the anchor and the only neighbour. Axis: POSITIONING. With
+  the weight at 0 it lands within seven and the negation reads red.
+  Rule: gdd/systems/ai/world-model/lattice-and-topology.md §Safety, sites and placement, item 5.
+setting: { kind: flat, size: 120 }
+given:
+  A:
+    settings:
+      difficulty: HARD
+      vision: full
+      energy: 250
+      config:
+        scout_unit_budget: 0
+        may_attack: false
+        economy_reserve: 0
+        production_structure_cap: 1
+        place_frontage_bias: 0.0
+        place_shelter_bias: 0.0
+        place_safety_weight: 0.0
+        place_spacing_weight: 25.0
+      consider: { structures: [ cl_barracks ] }
+    with:
+      base:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: west
+      outpost:  # the barracks' prerequisite (technology.json: requires cl_infrastructure)
+        of: [ { piece: cl_infrastructure, count: 1 } ]
+        at: { from: A.base, distance: 30, bearing: south }
+      income:  # what pays for the barracks, beside the prerequisite in the same far base
+        of: [ { piece: nt_extractor, count: 1 } ]
+        at: { from: A.outpost, distance: 7, bearing: west }
+      builders:
+        of: [ { piece: cl_bioLight_builder, count: 2 } ]
+        at: { from: A.base, distance: 6, bearing: south }
+  B:
+    with:
+      structure:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: east
+run: { for: 40s, seed: 1 }
+expect:
+  - { slot: A, check: ordered, kind: build, piece: cl_barracks, by: 30s }
+  - not: [ { slot: A, check: placed, piece: cl_barracks, near: A.base, within: 8, by: 30s } ]

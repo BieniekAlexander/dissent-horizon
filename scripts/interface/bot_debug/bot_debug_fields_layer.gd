@@ -8,8 +8,10 @@ extends BotDebugLayer
 ## Per lattice cell: a magenta quad on the approach band; otherwise a quad shaded red (the
 ## enemy could be here within seconds) to blue (near the quiet horizon), and nothing at all on
 ## quiet ground, so the picture stays readable; a yellow outline where the presence penalty
-## stands. The post: a white square with a stick. Everything drawn is a STORED read off the
-## ready snapshot — the overlay never triggers a sweep.
+## stands. The post: a white square with a stick. Each of the bot's BASES (Bot.bases): a green
+## square on its centroid. Everything drawn is a STORED read off the ready snapshot — the
+## overlay never triggers a sweep, and the safety channel it reports is the one the last
+## placement computed (BotFields.stored_safety), or none.
 
 ## A little under half the pitch, so neighbouring cells read as distinct tiles.
 const CELL_HALF: float = BotFields.PITCH * 0.45
@@ -18,8 +20,10 @@ const COLOR_SOON: Color = Color(1.0, 0.25, 0.2, 0.3)
 const COLOR_LATE: Color = Color(0.3, 0.8, 1.0, 0.18)
 const COLOR_PRESENCE: Color = Color(1.0, 0.85, 0.2, 0.6)
 const COLOR_POST: Color = Color(1.0, 1.0, 1.0)
+const COLOR_BASE: Color = Color(0.4, 1.0, 0.4)
 const POST_HALF: float = 1.2
 const POST_STICK: float = 5.0
+const BASE_HALF: float = 1.6
 
 
 func draw(a_bot: Bot, a_pen: BotDebugPen) -> void:
@@ -42,7 +46,9 @@ func draw(a_bot: Bot, a_pen: BotDebugPen) -> void:
 			a_pen.square(position, CELL_HALF, COLOR_PRESENCE)
 	if a_bot.get_structures().is_empty():
 		return
-	var home: Vector2 = VU.in_xz(a_bot.base_centroid())
+	for base: Dictionary in a_bot.bases():
+		a_pen.square(_on_ground(a_bot, base["centroid"]), BASE_HALF, COLOR_BASE)
+	var home: Vector2 = VU.in_xz(a_bot.home_centroid())
 	var post: Variant = fields.approach_post(
 		home, a_bot.threat_direction(home), BotMilitary.STAGING_OFFSET
 	)
@@ -60,7 +66,7 @@ func readout(a_bot: Bot) -> PackedStringArray:
 	var band: int = _count(fields.approach_band(NavAgentClass.Size.SMALL))
 	var explored: int = _count(fields.explored_mask())
 	var passable: int = _count(fields.passable_mask(NavAgentClass.Size.SMALL))
-	var home: Vector2 = VU.in_xz(a_bot.base_centroid())
+	var home: Vector2 = VU.in_xz(a_bot.home_centroid())
 	var arrival: float = fields.arrival_seconds_at(home)
 	return PackedStringArray(
 		[
@@ -95,8 +101,22 @@ func readout(a_bot: Bot) -> PackedStringArray:
 					)
 				)
 			),
+			"bases: %d — %s" % [a_bot.bases().size(), _safety_line(a_bot, fields, home)],
 		]
 	)
+
+
+## The last placement's safety at home, from the channel stored for its type, or that none is.
+static func _safety_line(bot: Bot, fields: BotFields, home: Vector2) -> String:
+	for type: StringName in bot.buildable_structure_types():
+		var channel: PackedFloat32Array = fields.stored_safety(String(type))
+		if channel.is_empty():
+			continue
+		var cell: Vector2i = fields.lattice.index_at(home)
+		if not fields.lattice.is_in_bounds(cell):
+			break
+		return "safety at home for %s: %.2f" % [type, channel[fields.lattice.index_of(cell)]]
+	return "no safety channel stored"
 
 
 ## Red for an enemy that could be here now, through to blue at the quiet horizon.

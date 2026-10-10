@@ -355,3 +355,180 @@ func test_reach_coverage_is_the_share_of_the_band_a_gun_at_each_cell_covers() ->
 	)
 	assert_almost_eq(coverage[lattice.index_of(Vector2i(0, 0))], 0.0, 0.001, "a cliff-side corner")
 	assert_eq(BotFields.reach_coverage_of(lattice, PackedByteArray(), 7.5), PackedFloat32Array())
+
+
+# ─── SAFETY: THE KILL CLOCK, THE ANSWER, THE LIFETIME ───────────────────────
+# lattice-and-topology.md §Safety, sites and placement, item 1.
+
+
+func test_the_kill_clock_integrates_arrivals_in_order() -> void:
+	# 100 hp: a 5 dps gun at 10 s and a 20 dps gun at 20 s. By 20 s, 50 is dealt; the 50 left
+	# falls at 25 dps in 2 s. Order of the list does not matter.
+	assert_almost_eq(
+		BotFields.kill_clock(
+			100.0, [{"seconds": 20.0, "dps": 20.0}, {"seconds": 10.0, "dps": 5.0}]
+		),
+		22.0,
+		0.001
+	)
+	assert_almost_eq(
+		BotFields.kill_clock(
+			100.0, [{"seconds": 10.0, "dps": 50.0}, {"seconds": 30.0, "dps": 50.0}]
+		),
+		12.0,
+		0.001,
+		"the first gun alone finishes it before the second arrives"
+	)
+	assert_eq(BotFields.kill_clock(100.0, []), INF, "no one coming: never")
+	assert_eq(
+		BotFields.kill_clock(100.0, [{"seconds": 10.0, "dps": 0.0}]),
+		INF,
+		"what cannot hurt it never kills it"
+	)
+	assert_eq(BotFields.kill_clock(100.0, [{"seconds": INF, "dps": 50.0}]), INF)
+
+
+func test_the_lifetime_is_held_when_the_answer_in_time_is_worth_the_threat() -> void:
+	assert_eq(BotFields.lifetime_of(40.0, 600.0, 600.0, 300.0), 300.0, "matched in time: held")
+	assert_eq(BotFields.lifetime_of(40.0, 100.0, 600.0, 300.0), 40.0, "a cheap guard does not hold")
+	assert_eq(BotFields.lifetime_of(40.0, 0.0, 600.0, 300.0), 40.0, "no answer: the time it has")
+	assert_eq(BotFields.lifetime_of(INF, 0.0, 0.0, 300.0), 300.0, "nothing can kill it: held")
+	assert_eq(BotFields.lifetime_of(500.0, 0.0, 600.0, 300.0), 300.0, "never past the horizon")
+	assert_almost_eq(BotFields.safety_of(0.0), 0.0, 0.001)
+	assert_almost_eq(BotFields.safety_of(BotFields.QUIET_HORIZON_SECONDS), 1.0 - exp(-1.0), 0.001)
+	assert_gt(BotFields.safety_of(300.0), 0.99, "held reads as safe")
+
+
+func test_a_type_that_cannot_hurt_a_building_is_no_threat_to_it_and_a_gun_is() -> void:
+	var fields: FixtureFields = _fixture()  # a 2.5-speed walker at the west edge, 16 s from home
+	var home: Vector2 = fields.lattice.centre_of(Vector2i(8, 4))
+	assert_eq(fields.kill_seconds_at(home, 100.0, {}), INF, "no lethality known: never")
+	assert_eq(fields.kill_seconds_at(home, 100.0, {&"fake_walker": 0.0}), INF, "lead on a wall")
+	assert_almost_eq(
+		fields.kill_seconds_at(home, 100.0, {&"fake_walker": 10.0}),
+		16.0 + 10.0,
+		0.001,
+		"a 10 dps gun: the walk, then ten seconds on 100 hp"
+	)
+
+
+func test_with_nothing_believed_the_kill_clock_is_the_opening_prior() -> void:
+	var fields: FixtureFields = FixtureFields.over_open(Rect2(0.0, 0.0, 45.0, 45.0))
+	fields.home = [Vector2i(8, 4)]
+	assert_eq(fields.kill_seconds_at(Vector2(20.0, 20.0), 100.0, {&"x": 10.0}), INF, "no prior")
+	fields.prior_arrival_seconds = 90.0
+	assert_eq(fields.kill_seconds_at(Vector2(20.0, 20.0), 100.0, {&"x": 10.0}), 90.0)
+
+
+func test_the_answer_is_the_nearest_responder_s_walk_plus_delay_and_nothing_under_a_turret(
+) -> void:
+	var fields: FixtureFields = _fixture()
+	assert_eq(fields.response_seconds_at(fields.lattice.centre_of(Vector2i(4, 4))), INF, "no one")
+	fields.add_responder(Vector2i(8, 8), 2.5)  # an armed unit in the south-east corner
+	fields.add_responder(Vector2i(8, 0), 2.5, 10.0)  # a producer, ten seconds to make a unit
+	fields.rebuild_now()
+	var mid: Vector2 = fields.lattice.centre_of(Vector2i(4, 4))
+	assert_almost_eq(
+		fields.response_seconds_at(mid), 4.0 * 1.4 * 5.0 / 2.5, 0.001, "four diagonals at 2.5"
+	)
+	var corner: Vector2 = fields.lattice.centre_of(Vector2i(8, 0))
+	assert_almost_eq(
+		fields.response_seconds_at(corner),
+		10.0,
+		0.001,
+		"the producer is there once it has made one, before the unit's sixteen-second walk"
+	)
+	fields.add_defence(Vector2i(0, 4), 7.0)
+	fields.rebuild_now()
+	assert_eq(
+		fields.response_seconds_at(fields.lattice.centre_of(Vector2i(1, 4))),
+		0.0,
+		"under a turret's reach the answer is already there"
+	)
+
+
+func test_safety_is_the_lifetime_s_curve_per_cell_and_is_kept() -> void:
+	var fields: FixtureFields = _fixture()  # the walker is worth 100
+	fields.add_responder(Vector2i(8, 4), 2.5)  # worth 100: a match
+	fields.rebuild_now()
+	var channel: PackedFloat32Array = fields.safety("fake_type", 100.0, {&"fake_walker": 10.0})
+	assert_eq(channel.size(), fields.lattice.cell_count())
+	# At home the walker needs 26 s and a matching answer is there at once: held.
+	assert_almost_eq(
+		channel[fields.lattice.index_of(Vector2i(8, 4))],
+		BotFields.safety_of(BotFields.HELD_LIFETIME_SECONDS),
+		0.001
+	)
+	# One cell from the walker: it falls in 2 + 10 s; the answer needs 7 cells, 14 s — too late.
+	assert_almost_eq(
+		channel[fields.lattice.index_of(Vector2i(1, 4))], BotFields.safety_of(12.0), 0.001
+	)
+	var again: PackedFloat32Array = fields.safety("fake_type", 1.0, {})
+	assert_eq(again, channel, "kept by key until the next swap: the inputs are not re-read")
+	assert_eq(fields.stored_safety("fake_type"), channel)
+	assert_eq(fields.stored_safety("other"), PackedFloat32Array(), "a read that never computes")
+	fields.rebuild_now()
+	assert_ne(fields.safety("fake_type", 1.0, {}), channel, "a swap drops it")
+
+
+func test_a_cheap_answer_in_time_does_not_hold_a_site_against_a_dear_threat() -> void:
+	var fields: FixtureFields = _fixture()
+	fields.sources[0]["value"] = 600.0  # the walker is an army
+	fields.add_responder(Vector2i(8, 4), 2.5, 0.0, 100.0)  # one cheap guard at home
+	fields.rebuild_now()
+	var home: Vector2 = fields.lattice.centre_of(Vector2i(8, 4))
+	var threat: Dictionary = fields.threat_at(home, 100.0, {&"fake_walker": 10.0})
+	assert_almost_eq(threat["seconds"], 26.0, 0.001)
+	assert_almost_eq(threat["value"], 600.0, 0.001, "what arrives by then")
+	assert_almost_eq(fields.answer_value_by(home, 26.0), 100.0, 0.001)
+	assert_almost_eq(fields.lifetime_seconds_at(home, 100.0, {&"fake_walker": 10.0}), 26.0, 0.001)
+	fields.add_defence(Vector2i(8, 4), 7.0, 500.0)  # a turret worth 500 covers home
+	fields.rebuild_now()
+	assert_almost_eq(fields.answer_value_by(home, 26.0), 600.0, 0.001, "the turret counts at once")
+	assert_eq(
+		fields.lifetime_seconds_at(home, 100.0, {&"fake_walker": 10.0}),
+		BotFields.HELD_LIFETIME_SECONDS,
+		"matched: held"
+	)
+
+
+# ─── CLUSTERS: THE BOT'S BASES ───────────────────────────────────────────────
+# lattice-and-topology.md §Safety, sites and placement, item 4.
+
+
+func test_clusters_join_cells_whose_grown_squares_touch_and_split_the_rest() -> void:
+	var lattice: Lattice = Lattice.covering(Rect2(0.0, 0.0, 100.0, 100.0), 5.0)
+	var cells: Array = [
+		Vector2i(2, 2), Vector2i(4, 2), Vector2i(10, 10), Vector2i(17, 2), Vector2i(3, 3)
+	]
+	var groups: Array = BotFields.clusters_of(lattice, cells, 1)
+	assert_eq(groups.size(), 3)
+	assert_eq(groups[0], PackedInt32Array([0, 1, 4]), "two apart, grown by one each, touch")
+	assert_eq(groups[1], PackedInt32Array([2]))
+	assert_eq(groups[2], PackedInt32Array([3]))
+	assert_eq(
+		BotFields.clusters_of(lattice, cells, 0).size(), 5, "ungrown, only a shared cell joins"
+	)
+	assert_eq(BotFields.clusters_of(lattice, cells, 8).size(), 1, "grown far enough, one base")
+	assert_eq(
+		BotFields.clusters_of(lattice, [Vector2i(50, 50), Vector2i(1, 1)], 1).size(),
+		2,
+		"a member off the lattice is its own component"
+	)
+
+
+func test_the_fields_clusters_are_bases_with_centroids_over_their_members() -> void:
+	var fields: FixtureFields = FixtureFields.over_open(Rect2(0.0, 0.0, 100.0, 100.0))
+	fields.home = [Vector2i(1, 1), Vector2i(2, 1), Vector2i(12, 12)]
+	var bases: Array = fields.clusters(5.0)  # one cell of growth at pitch 5
+	assert_eq(bases.size(), 2)
+	assert_eq(
+		bases[0]["members"],
+		[fields.lattice.centre_of(Vector2i(1, 1)), fields.lattice.centre_of(Vector2i(2, 1))]
+	)
+	assert_almost_eq(bases[0]["centroid"], Vector2(10.0, 7.5), Vector2(0.001, 0.001))
+	assert_almost_eq(
+		bases[1]["centroid"], fields.lattice.centre_of(Vector2i(12, 12)), Vector2(0.001, 0.001)
+	)
+	fields.home = []
+	assert_eq(fields.clusters(5.0), [], "nothing owned: no base")

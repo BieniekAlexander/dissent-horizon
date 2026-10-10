@@ -4,11 +4,12 @@ extends RefCounted
 ## BotEconomy — grows income and production capacity.
 ##
 ## Each think pass, with a free builder available:
-##   1. While the bot owns fewer income structures than it currently WANTS, claim a free
-##      ExtractionSite — see effective_income_target(), the one rung that reads the game.
+##   1. While the bot owns fewer income structures than it currently WANTS, work the most
+##      VALUABLE free site or pond (_income_build_spot: rate × expected lifetime, less what the
+##      walk defers and the extractor costs) — see effective_income_target().
 ##   2. When income is outpacing spending AND the purchase leaves the reserve banked, build
 ##      a production structure (more unit throughput — see _has_resource_surplus), else
-##   3. Grow income by building an extractor on a free ExtractionSite.
+##   3. Grow income by working the next most valuable site or pond.
 ## One builder serializes the work, which naturally rate-limits construction.
 ##
 ## Step 3 is a FALL-THROUGH, not only the else of step 2: a surplus with nothing to spend it
@@ -140,6 +141,19 @@ var place_corridor_weight: float = 0.8
 ## than merely forward. A PARAMETER (BotDifficulty.place_coverage_weight); 0 is bearing alone.
 var place_coverage_weight: float = 8.0
 
+## What SAFE GROUND is worth to a building, in cells of sprawl a cell's full safety is worth
+## against the compactness ruler — the structure's expected lifetime there over the held horizon
+## (Bot.safety_channel_for → BotFields.safety). The fields say where it is safe to build, not a
+## shape of the base (lattice-and-topology.md §Safety, sites and placement). A PARAMETER
+## (BotDifficulty.place_safety_weight), divided by the `risk` dial.
+var place_safety_weight: float = 6.0
+
+## What ONE BLAST'S SPACING between the bot's own structures is worth: the cost, in cells, of
+## standing right on top of one own structure, falling to nothing blast_spacing_cells away
+## (spacing_penalty) — a tight base dies to area damage, a base spread past one blast does not.
+## A PARAMETER (BotDifficulty.place_spacing_weight), divided by the `risk` dial.
+var place_spacing_weight: float = 5.0
+
 ## HOW LONG ONE CONSTRUCTION JOB MAY HOLD A SLOT before the bot writes it off.
 ##
 ## `tick()` returns at the very top while `build_concurrency` jobs are in flight, so a Build
@@ -262,6 +276,47 @@ var _allowance: int = BotJob.UNLIMITED_WORK_UNITS
 ## What _find_build_spot returns when it ran out of allowance part-way through its candidates:
 ## the rung that asked stops, and the search resumes on the next tick.
 const SEARCH_PENDING: StringName = &"search_pending"
+
+## HOW FAR APART THE BOT KEEPS ITS OWN STRUCTURES, in cells: one blast. Derived from the
+## largest area-of-effect bucket in the shape library (`resources/generated/shapes/aoe_*`,
+## gdd/shapes/shapes.md §Area of effect) rather than typed, and ONE value for every faction
+## (Alex, 2026-10-09: every faction will field area damage of a similar size, so there is
+## nothing to model per faction — lattice-and-topology.md §Safety, sites and placement). Read
+## once: the library is content, fixed for a run.
+## TODO: the largest bucket is the Blizzard's (`aoe_huge`, a sanction), twice the largest weapon
+## blast; if that proves too wide a spacing, read the largest WEAPON blast instead — which needs
+## the library to say which buckets are weapons.
+const BLAST_SHAPE_DIRECTORY: String = "res://resources/generated/shapes"
+const BLAST_SHAPE_PREFIX: String = "aoe_"
+static var _blast_spacing_cells: float = -1.0
+
+
+static func blast_spacing_cells() -> float:
+	if _blast_spacing_cells < 0.0:
+		_blast_spacing_cells = (
+			largest_blast_radius(BLAST_SHAPE_DIRECTORY, BLAST_SHAPE_PREFIX) / Map.CELL_SIZE
+		)
+	return _blast_spacing_cells
+
+
+## The largest radius among the shape resources under `directory` whose file name starts with
+## `prefix` — a cylinder's or a sphere's. 0 when there are none (no library: no spacing).
+static func largest_blast_radius(directory: String, prefix: String) -> float:
+	var best: float = 0.0
+	var dir: DirAccess = DirAccess.open(directory)
+	if dir == null:
+		return best
+	for file: String in dir.get_files():
+		var name: String = file.trim_suffix(".remap")
+		if not name.begins_with(prefix) or not (name.ends_with(".tres") or name.ends_with(".res")):
+			continue
+		var shape: Shape3D = load(directory.path_join(name)) as Shape3D
+		if shape is CylinderShape3D:
+			best = maxf(best, (shape as CylinderShape3D).radius)
+		elif shape is SphereShape3D:
+			best = maxf(best, (shape as SphereShape3D).radius)
+	return best
+
 
 ## The quarter turn each spot _find_build_spot returned is to be built at, keyed by the spot, for
 ## _issue_build to read. A side table rather than a second return value because a dozen callers
@@ -409,7 +464,7 @@ func _decide() -> void:
 	if _owned_income_structure_count() < effective_income_target():
 		var etype: Variant = _income_structure_to_build()
 		if etype != null:
-			var espot: Variant = _income_build_spot()
+			var espot: Variant = _income_build_spot(builder)
 			# Only a build that was actually ISSUED ends the think. A rung that could not act must
 			# not block the ones below it — the same lesson the surplus branch's fall-through
 			# records, and the reason this one is a fall-through too.
@@ -453,7 +508,7 @@ func _decide() -> void:
 	# in surplus, or because the surplus had nowhere better to go.
 	var mtype: Variant = _income_structure_to_build()
 	if mtype != null:
-		var spot: Variant = _income_build_spot()
+		var spot: Variant = _income_build_spot(builder)
 		if spot != null:
 			_issue_build(builder, mtype, spot)
 
@@ -1381,31 +1436,114 @@ func _pick_builder() -> Actor:
 ## — half the energy economy (gdd/setting/resources.md §Lithium ponds) that a human opponent
 ## could take uncontested.
 ##
-## Distance is the whole comparison, deliberately matching what the site search already did.
-## A pond pays `WaterBody.POND_RATE_MULTIPLIER` times faster and is FINITE, so "which is
-## worth more" is a real question — and a value-over-time one, like every other open pricing
-## question in this module.
+## WHICH SITE IS WORKED NEXT IS THE MOST VALUABLE ONE, NOT THE NEAREST (Alex, 2026-10-09;
+## lattice-and-topology.md §Safety, sites and placement, item 2 — the answer to T-006). Every
+## unclaimed explored site and every workable pond stands in ONE comparison, each worth what
+## the extractor is expected to EARN there (site_value): its rate — a pond's is
+## `WaterBody.POND_RATE_MULTIPLIER` times a site's — for the time it is expected to live
+## (Bot.lifetime_of_type_at: the safety read, which prices every believed enemy by its
+## lethality against the structure and holds a site the bot can answer at), a pond's capped by
+## its reservoir; less the income the builder's walk and the build itself defer; less the
+## extractor's price. One horizon prices a finite pond against an inexhaustible site with no
+## planning parameter: the bot counts only the income it expects to live to collect.
 ##
-## TODO — price a pond against a site rather than measuring both with a ruler. It needs the
-## same currency the ability and Servant-garrison questions need; see bot-roadmap.md §What has
-## to be modelled.
-func _income_build_spot() -> Variant:
-	var site: Entity = _nearest_unclaimed_site()
-	var site_spot: Variant = site.global_position if site != null else null
-	var pond_spot: Variant = _nearest_workable_pond_spot()
-	if site_spot == null:
-		return pond_spot
-	if pond_spot == null:
-		return site_spot
-	var base: Vector3 = _bot.base_centroid()
-	return (
-		pond_spot
-		if (
-			base.distance_squared_to(pond_spot as Vector3)
-			< base.distance_squared_to(site_spot as Vector3)
+## A SITE THE BUILDER COULD NOT FINISH IS REFUSED: Stagger suppresses Build while the builder
+## is hit (the-command-tick.md §Stagger), so a build under fire never completes, and a builder
+## that dies there costs the order and the unit. A believed enemy that can kill the builder
+## (Bot.kill_seconds_of_at) arriving inside the BUILD WINDOW — the walk plus the structure's
+## creation time — takes the site out of the comparison. The defence the site will demand is
+## not charged here (Alex, Q3): the lifetime already discounts an exposed site, and the defence
+## rung follows the structure out.
+##
+## Ties — every site equal, as with nothing believed — go to the nearest, which is the rule
+## this replaced. Null when the bot knows no site it could take.
+func _income_build_spot(a_builder: Actor = null) -> Variant:
+	var etype: StringName = _extractor_type()
+	var rate: float = _bot.income_rate_of_type(etype)
+	var price: float = float(_energy_cost(etype))
+	var home: Vector3 = _bot.home_centroid()
+	var best: Variant = null
+	var best_value: float = -INF
+	var best_distance: float = INF
+	for candidate: Dictionary in _site_candidates():
+		var spot: Vector3 = candidate["spot"]
+		var xz: Vector2 = VU.in_xz(spot)
+		var window: float = _build_window_seconds(a_builder, spot, etype)
+		if window == INF or _bot.kill_seconds_of_at(a_builder, xz) < window:
+			continue
+		var value: float = site_value(
+			rate * float(candidate["rate_multiplier"]),
+			_bot.lifetime_of_type_at(etype, xz),
+			float(candidate["reservoir"]),
+			window,
+			price
 		)
-		else site_spot
+		var distance: float = home.distance_squared_to(spot)
+		if value > best_value or (value == best_value and distance < best_distance):
+			best = spot
+			best_value = value
+			best_distance = distance
+	return best
+
+
+## WHAT WORKING A SITE IS WORTH, in energy: the rate for the time the extractor earns — its
+## lifetime less the window spent walking there and building it — capped by the reservoir (INF
+## for an inexhaustible site), less the extractor's price. Negative is a site not worth its
+## extractor inside the horizon; it is still taken when nothing better is known, since an
+## extractor that earns is better than energy that sits.
+static func site_value(
+	rate_per_second: float,
+	lifetime_seconds: float,
+	reservoir_energy: float,
+	window_seconds: float,
+	price: float
+) -> float:
+	var earning_seconds: float = maxf(0.0, lifetime_seconds - window_seconds)
+	return minf(rate_per_second * earning_seconds, reservoir_energy) - price
+
+
+## SECONDS FROM THE ORDER TO A FINISHED STRUCTURE of `a_type` at `a_spot`: `a_builder`'s walk
+## there (along the fields for its class, else as the crow flies; nothing to walk for a null
+## builder) plus the structure's creation time. INF for a spot the builder cannot reach.
+func _build_window_seconds(a_builder: Actor, a_spot: Vector3, a_type: StringName) -> float:
+	var build: float = float(_bot.unit_build_time_ticks(a_type)) / TimeUtils.ticks_per_second()
+	if a_builder == null:
+		return build
+	var mobility: Dictionary = _bot.mobility_of(a_builder)
+	var speed: float = float(mobility.get("speed", 0.0))
+	if speed <= 0.0:
+		return INF
+	var from: Vector2 = VU.in_xz(a_builder.global_position)
+	var to: Vector2 = VU.in_xz(a_spot)
+	var fields: BotFields = _bot.fields()
+	var walk: float = (
+		fields.arrival_seconds_between(from, to, mobility)
+		if fields != null
+		else from.distance_to(to) / speed
 	)
+	return walk + build
+
+
+## EVERY SITE THE BOT COULD WORK, each {"spot": Vector3, "rate_multiplier", "reservoir"}: the
+## unclaimed explored extraction sites at 1× with no limit, and the workable ponds at the pond
+## multiple with what is left in them. Overridable by a test.
+func _site_candidates() -> Array:
+	var out: Array = []
+	for site: Entity in _unclaimed_sites():
+		out.append({"spot": site.global_position, "rate_multiplier": 1.0, "reservoir": INF})
+	for pond: Dictionary in _workable_pond_spots():
+		var body: WaterBody = pond["body"]
+		(
+			out
+			. append(
+				{
+					"spot": pond["spot"],
+					"rate_multiplier": float(WaterBody.POND_RATE_MULTIPLIER),
+					"reservoir": float(body.energy),
+				}
+			)
+		)
+	return out
 
 
 ## A buildable cell in the nearest workable lithium pond, or null when there is none.
@@ -1417,12 +1555,23 @@ func _income_build_spot() -> Variant:
 ## TODO — the charge is still read live, so the bot knows a pond was drained out of its sight.
 ## A remembered charge would need a per-body memory the blackboard does not keep.
 func _nearest_workable_pond_spot() -> Variant:
-	if _bot.map == null:
-		return null
-	var dims: Vector2i = _dims_for_type(_extractor_type())
 	var best: Variant = null
 	var best_d: float = INF
-	var base: Vector3 = _bot.base_centroid()
+	var base: Vector3 = _bot.home_centroid()
+	for pond: Dictionary in _workable_pond_spots():
+		var d: float = base.distance_squared_to(pond["spot"] as Vector3)
+		if d < best_d:
+			best_d = d
+			best = pond["spot"]
+	return best
+
+
+## Every workable pond with a buildable cell in it, as {"spot": Vector3, "body": WaterBody}.
+func _workable_pond_spots() -> Array:
+	var out: Array = []
+	if _bot.map == null:
+		return out
+	var dims: Vector2i = _dims_for_type(_extractor_type())
 	var under_way: Array = _ponds_under_way()
 	for body: WaterBody in _bot.map.water_bodies:
 		if not is_instance_valid(body) or body.energy <= 0 or _believes_pond_claimed(body):
@@ -1432,13 +1581,9 @@ func _nearest_workable_pond_spot() -> Variant:
 		if under_way.has(body):
 			continue
 		var spot: Variant = _pond_spot_in(body, dims)
-		if spot == null:
-			continue
-		var d: float = base.distance_squared_to(spot as Vector3)
-		if d < best_d:
-			best_d = d
-			best = spot
-	return best
+		if spot != null:
+			out.append({"spot": spot, "body": body})
+	return out
 
 
 ## Every lithium pond an in-flight build order is already aimed into.
@@ -1495,9 +1640,23 @@ func _extractor_type() -> StringName:
 
 ## Closest explored extraction site the bot does not believe is worked, or null if there is none.
 func _nearest_unclaimed_site() -> Entity:
-	var base: Vector3 = _bot.base_centroid()
+	var base: Vector3 = _bot.home_centroid()
 	var best: Entity = null
 	var best_d: float = INF
+	for dep: Entity in _unclaimed_sites():
+		var d: float = base.distance_squared_to(dep.global_position)
+		if d < best_d:
+			best_d = d
+			best = dep
+	return best
+
+
+## Every extraction site the bot has explored and believes free, that no builder is on the way
+## to, that it has not written off and that no enemy stands over.
+func _unclaimed_sites() -> Array:
+	var out: Array = []
+	if not _bot.is_inside_tree():
+		return out
 	for n: Node in _bot.get_tree().get_nodes_in_group("extraction_site"):
 		var dep: Entity = n as Entity
 		var site: ExtractionSite = ExtractionSite.of(dep)
@@ -1511,11 +1670,8 @@ func _nearest_unclaimed_site() -> Entity:
 			continue  # a builder is already on its way to it
 		if _is_contested_spot(dep.global_position):
 			continue  # an enemy stands over it; see CONTESTED_SPOT_SECONDS
-		var d: float = base.distance_squared_to(dep.global_position)
-		if d < best_d:
-			best_d = d
-			best = dep
-	return best
+		out.append(dep)
+	return out
 
 
 ## Whether the bot believes the site at `a_position` is already worked. What it can know is
@@ -1639,25 +1795,33 @@ func _find_build_spot(a_type: StringName) -> Variant:
 ## needs to check the candidates. One orientation — the doc's — see DEFAULT_QUARTER_TURNS.
 func _new_spot_search(a_type: StringName) -> Dictionary:
 	var dims: Vector2i = _dims_for_type(a_type)
-	var anchor: Vector2 = (
-		_defence_anchor()
-		if a_type in _bot.buildable_defence_structure_types()
-		else VU.in_xz(_bot.base_centroid())
-	)
+	var anchor: Vector2 = _anchor_for(a_type)
 	var forward: Vector2 = _forward_direction(anchor)
 	var bearing: float = _bearing_for(a_type)
 	var rankings: Array[Dictionary] = [_start_ranking(anchor, forward, bearing, dims)]
+	var fields: BotFields = _bot.fields()
+	# Every building is scored on the SAFETY of the ground (lattice-and-topology.md §Safety,
+	# sites and placement: its expected lifetime there, under the believed enemy and the bot's
+	# own answer) and on its spacing from the bot's own structures. Nothing believed: the
+	# channel is flat and the term decides nothing.
+	var safety: PackedFloat32Array = _bot.safety_channel_for(a_type)
+	var neighbours: Array = _neighbour_positions()
+	for part: Dictionary in rankings:
+		if fields != null:
+			part["lattice"] = fields.lattice
+		if not safety.is_empty():
+			part["safety"] = safety
+		part["neighbours"] = neighbours
+		part["spacing"] = blast_spacing_cells()
 	# A STATIC DEFENCE is scored on how much of the approach band its gun would cover from
 	# each spot (lattice-and-topology.md §Distance fields: reach_coverage) — the term that
 	# rejected the turrets whose ranges covered cliffs. Nothing believed yet: no band, no term.
 	if a_type in _bot.buildable_defence_structure_types():
-		var fields: BotFields = _bot.fields()
 		var reach: float = _bot.ground_reach_of_type(a_type)
 		if fields != null and reach > 0.0:
 			var coverage: PackedFloat32Array = fields.reach_coverage(reach)
 			for part: Dictionary in rankings:
 				part["coverage"] = coverage
-				part["coverage_lattice"] = fields.lattice
 	return {
 		"type": a_type,
 		"dims": dims,
@@ -1666,6 +1830,86 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 		"cursor": 0,
 		"ranking": {"parts": rankings, "out": PackedInt64Array(), "done": false},
 	}
+
+
+## WHERE A BUILD IS ANCHORED (lattice-and-topology.md §Safety, sites and placement, item 3): a
+## static defence on the region that asked for it (_defence_anchor); anything else on one of
+## the bot's BASES (Bot.bases) — a producer on the one nearest the action, so what it trains
+## walks least, and a structure that produces nothing on the one farthest from it. The action is
+## where the threat axis points (Bot.threat_point), else the map's middle; the walk is read along
+## the fields at unit speed (a distance in the walker's terms, the same order for every speed),
+## else as the crow flies. Ties go to the safer cluster, then to the one further along the axis
+## in the bot's frame, so two mirrored bots choose corresponding bases. Home with one base.
+func _anchor_for(a_type: StringName) -> Vector2:
+	if a_type in _bot.buildable_defence_structure_types():
+		return _defence_anchor()
+	var home: Vector2 = VU.in_xz(_bot.home_centroid())
+	var clusters: Array = _bot.bases()
+	if clusters.size() <= 1:
+		return home
+	var forward: Vector2 = _forward_direction(home)
+	var action: Variant = _bot.threat_point()
+	var action_xz: Vector2 = (
+		action
+		if action is Vector2
+		else (_bot.map.world_bounds().get_center() if _bot.map != null else home + forward)
+	)
+	var toward_action: bool = _wants_frontage(a_type)
+	var safety: PackedFloat32Array = _bot.safety_channel_for(a_type)
+	var fields: BotFields = _bot.fields()
+	var best: Variant = null
+	var best_key: Array = []
+	for cluster: Dictionary in clusters:
+		var centroid: Vector2 = cluster["centroid"]
+		var walk: float = (
+			fields.arrival_seconds_between(centroid, action_xz, UNIT_WALK)
+			if fields != null
+			else centroid.distance_to(action_xz)
+		)
+		var safe: float = 0.0
+		if fields != null and not safety.is_empty():
+			var cell: Vector2i = fields.lattice.index_at(centroid)
+			if fields.lattice.is_in_bounds(cell):
+				safe = safety[fields.lattice.index_of(cell)]
+		var along: float = (centroid - home).dot(forward)
+		# Lower is better on every key: the walk (negated for a sheltered structure), then the
+		# danger, then the axis position.
+		var key: Array = [
+			walk if toward_action else -walk, -safe, -along if toward_action else along
+		]
+		if best == null or key < best_key:
+			best = centroid
+			best_key = key
+	return best
+
+
+## A walker's mobility at unit speed on the most permissive ground: what the cluster choice
+## measures a walk with, so the answer is a distance in the walker's terms rather than a time.
+const UNIT_WALK: Dictionary = {"speed": 1.0, "nav_class": NavAgentClass.Size.SMALL, "is_air": false}
+
+
+## HOW MUCH A SPOT CROWDS THE BOT'S OWN STRUCTURES: one for each of `neighbours` standing on
+## the spot, falling linearly to nothing at `radius` away and zero beyond it, summed. Steep
+## inside the blast and flat past it, so the bot packs as tight as one blast allows and no
+## tighter — a plain repulsion would fight compactness everywhere and sprawl the base.
+static func spacing_penalty(xz: Vector2, neighbours: Array, radius: float) -> float:
+	if radius <= 0.0:
+		return 0.0
+	var total: float = 0.0
+	for neighbour: Vector2 in neighbours:
+		total += maxf(0.0, 1.0 - xz.distance_to(neighbour) / radius)
+	return total
+
+
+## The XZ of every own structure, standing or under way, and of every spot a builder has been
+## sent to: what the spacing penalty keeps a new building clear of.
+func _neighbour_positions() -> Array:
+	var out: Array = []
+	for structure: Actor in _bot.get_structures():
+		out.append(VU.in_xz(structure.global_position))
+	for spot: Vector3 in _claimed_spots():
+		out.append(VU.in_xz(spot))
+	return out
 
 
 ## The region the demand read last asked a turret for (XZ), or null before it has asked:
@@ -1683,7 +1927,7 @@ var _demanded_anchor: Variant = null
 func _defence_anchor() -> Vector2:
 	if _demanded_anchor is Vector2:
 		return _demanded_anchor
-	var origin: Vector2 = VU.in_xz(_bot.base_centroid())
+	var origin: Vector2 = VU.in_xz(_bot.home_centroid())
 	var toward: Vector2 = _bot.threat_direction(origin)
 	var guarded: Actor = null
 	if _bot.win_condition() == Scenario.WinCondition.HEGEMONY:
@@ -1776,8 +2020,13 @@ func spot_cost_bounds(a_is_production: bool) -> Vector2:
 			SEARCH_MAX_RING * (COMPACTNESS_WEIGHT - bearing)
 		)
 		- place_corridor_weight * CORRIDOR_CAP_CELLS
+		- place_safety_weight
 	)
-	var worst: float = SEARCH_MAX_RING * (COMPACTNESS_WEIGHT + bearing) - place_corridor_weight
+	var worst: float = (
+		SEARCH_MAX_RING * (COMPACTNESS_WEIGHT + bearing)
+		- place_corridor_weight
+		+ place_spacing_weight
+	)
 	return Vector2(ideal, worst)
 
 
@@ -1804,10 +2053,14 @@ static func ranked_origin(a_packed: int, a_grid_width: int) -> Vector2i:
 ##
 ## THE COST, all in cells and all bot-relative:
 ##
-##   + COMPACTNESS_WEIGHT × distance from the base   — the ruler; sprawl is what everything
-##                                                     else is priced against
+##   + COMPACTNESS_WEIGHT × distance from the anchor — the ruler, read as TRAVEL: the builder's
+##                                                     and the reinforcements' walk, which
+##                                                     nothing below prices
 ##   − bearing × distance along the forward axis     — production forward, the rest behind
 ##   − place_corridor_weight × open ground around it — don't pinch your own lanes
+##   − place_coverage_weight × band coverage         — a turret where the enemy will walk
+##   − place_safety_weight × safety                  — where this building is expected to live
+##   + place_spacing_weight × spacing penalty        — not inside one blast of your own
 func _scored_candidates(
 	a_anchor: Vector2, a_forward: Vector2, a_bearing: float, a_dims: Vector2i
 ) -> PackedInt64Array:
@@ -1879,7 +2132,10 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 	var out: PackedInt64Array = a_ranking["out"]
 	var anchor: Vector2 = a_ranking["anchor"]
 	var coverage: PackedFloat32Array = a_ranking.get("coverage", PackedFloat32Array())
-	var lattice: Lattice = a_ranking.get("coverage_lattice", null)
+	var safety: PackedFloat32Array = a_ranking.get("safety", PackedFloat32Array())
+	var lattice: Lattice = a_ranking.get("lattice", null)
+	var neighbours: Array = a_ranking.get("neighbours", [])
+	var spacing: float = float(a_ranking.get("spacing", 0.0))
 	# LEVEL ONE, once per ranking: the lattice cells of the annulus ranked by the same terms,
 	# and the best one's block is the only ground level two scores (see _rank_regions).
 	if not a_ranking.has("regions"):
@@ -1929,11 +2185,16 @@ func _continue_ranking(a_ranking: Dictionary, a_allowance: int) -> bool:
 				COMPACTNESS_WEIGHT * sqrt(radial_sq)
 				- bearing * along
 				- place_corridor_weight * float(clearance)
+				+ place_spacing_weight * spacing_penalty(anchor + offset, neighbours, spacing)
 			)
-			if not coverage.is_empty():
+			if lattice != null:
 				var cell: Vector2i = lattice.index_at(anchor + offset)
 				if lattice.is_in_bounds(cell):
-					cost -= place_coverage_weight * coverage[lattice.index_of(cell)]
+					var index: int = lattice.index_of(cell)
+					if not coverage.is_empty():
+						cost -= place_coverage_weight * coverage[index]
+					if not safety.is_empty():
+						cost -= place_safety_weight * safety[index]
 			out.append(_pack(cost, along, offset.dot(right), origin_z * width + origin_x))
 	out.sort()
 	_work += out.size() * CANDIDATE_WORK_UNITS
@@ -1971,6 +2232,9 @@ func _rank_regions(a_ranking: Dictionary) -> void:
 	var right: Vector2 = a_ranking["right"]
 	var bearing: float = a_ranking["bearing"]
 	var coverage: PackedFloat32Array = a_ranking.get("coverage", PackedFloat32Array())
+	var safety: PackedFloat32Array = a_ranking.get("safety", PackedFloat32Array())
+	var neighbours: Array = a_ranking.get("neighbours", [])
+	var spacing: float = float(a_ranking.get("spacing", 0.0))
 	var passable: PackedByteArray = fields.passable_mask(NavAgentClass.Size.SMALL)
 	# Half a pitch of slack either side, so a block straddling the annulus' edge still counts.
 	var slack: float = lattice.pitch * 0.5
@@ -1989,9 +2253,16 @@ func _rank_regions(a_ranking: Dictionary) -> void:
 			if radial < min_radius or radial > max_radius:
 				continue
 			var along: float = offset.dot(forward)
-			var cost: float = COMPACTNESS_WEIGHT * radial - bearing * along
+			var centre: Vector2 = lattice.centre_of(cell)
+			var cost: float = (
+				COMPACTNESS_WEIGHT * radial
+				- bearing * along
+				+ place_spacing_weight * spacing_penalty(centre, neighbours, spacing)
+			)
 			if not coverage.is_empty():
 				cost -= place_coverage_weight * coverage[lattice.index_of(cell)]
+			if not safety.is_empty():
+				cost -= place_safety_weight * safety[lattice.index_of(cell)]
 			out.append(_pack(cost, along, offset.dot(right), lattice.index_of(cell)))
 	out.sort()
 	a_ranking["regions"] = out

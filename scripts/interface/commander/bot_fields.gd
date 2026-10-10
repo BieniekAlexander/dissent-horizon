@@ -73,6 +73,14 @@ const BAND_SLACK_COST: int = 2 * NavField.STEP_ORTHOGONAL
 ## constant to retune in testing; the threat clock's own falloff is a difficulty parameter.
 const QUIET_HORIZON_SECONDS: float = 60.0
 
+## Seconds a HELD site's income is counted for — the horizon every site yield is measured
+## against (lattice-and-topology.md §Safety, sites and placement). A constant, not a
+## parameter, for the reason compactness is the placement score's ruler: yields are only ever
+## compared against one another for one build, so one horizon has to be the unit. Five
+## minutes: past any believed arrival (QUIET_HORIZON_SECONDS is one) and short enough that a
+## pond running dry inside it is what separates it from an inexhaustible site.
+const HELD_LIFETIME_SECONDS: float = 300.0
+
 ## Work units (BotScheduler: ~1 µs each) one settled lattice cell costs. Calibrated
 ## 2026-10-08: 8.5 ms for a 1,936-cell sweep, 4.4 µs a cell.
 const WORK_UNITS_PER_SETTLED_CELL: int = 4
@@ -134,6 +142,15 @@ var _point_fields: Dictionary = {}
 ## the next rebuild plans. Cleared by the gather that plans it, so a destination that stops
 ## being asked about stops being swept.
 var _wanted_points: Dictionary = {}
+## THE BOT'S OWN ANSWER (response_seconds_at): "class:speed:delay" → {"speed", "delay", "field"},
+## one field per kind of responder, sourced where its armed units and producers stand; the
+## flying responders apart (straight line); and the own static defences' reach discs, under
+## which the answer is already there. All part of the snapshot.
+var _own_arrival: Dictionary = {}
+var _own_air: Array = []
+var _defences: Array = []
+## Structure type key → the safety channel for that type (safety), kept until the next swap.
+var _safety_cache: Dictionary = {}
 
 
 #region Construction
@@ -327,6 +344,42 @@ func _gather() -> int:
 		)
 		arrival[key] = {"speed": by_key[key]["speed"], "field": field}
 		queue.append(field)
+	# The bot's own responders, grouped like the enemy's: one field per (class, speed, delay).
+	var own: Dictionary = {}
+	var own_air: Array = []
+	for source: Dictionary in _own_sources():
+		if source.get("speed", 0.0) <= 0.0:
+			continue
+		if source.get("is_air", false):
+			own_air.append(source)
+			continue
+		var key: String = _own_key(source)
+		if not own.has(key):
+			own[key] = {
+				"size": source["nav_class"],
+				"speed": source["speed"],
+				"delay": float(source.get("delay", 0.0)),
+				"cells": [],
+				"value": 0.0,
+			}
+		own[key]["cells"].append(source["cell"])
+		own[key]["value"] += float(source.get("value", 0.0))
+	var own_arrival: Dictionary = {}
+	for key: String in own:
+		var field: NavField = _planned(
+			passable_mask(own[key]["size"]), own[key]["cells"], PackedInt32Array()
+		)
+		own_arrival[key] = {
+			"speed": own[key]["speed"],
+			"delay": own[key]["delay"],
+			"value": own[key]["value"],
+			"field": field,
+		}
+		queue.append(field)
+	var defences: Array = []
+	for stamp: Dictionary in stamps:
+		if stamp.get("is_structure", false) and float(stamp["reach"]) > 0.0:
+			defences.append({"xz": stamp["xz"], "reach": stamp["reach"], "value": stamp["value"]})
 	# The warm set: last snapshot's destinations, swept within the budget like any field.
 	var points: Dictionary = {}
 	for key: String in _wanted_points:
@@ -347,6 +400,9 @@ func _gather() -> int:
 				"enemy": enemy,
 				"home": home,
 				"arrival": arrival,
+				"own_arrival": own_arrival,
+				"own_air": own_air,
+				"defences": defences,
 				"points": points,
 				"queue": queue,
 			},
@@ -374,9 +430,13 @@ func _swap_in() -> void:
 	if _build["home"] != null:
 		_home_fields[NavAgentClass.Size.SMALL] = _build["home"]
 	_enemy_arrival_fields = _build["arrival"]
+	_own_arrival = _build["own_arrival"]
+	_own_air = _build["own_air"]
+	_defences = _build["defences"]
 	_bands = {}
 	_point_fields = _build["points"]
 	_coverage_cache = {}
+	_safety_cache = {}
 	_ready = true
 
 
@@ -566,6 +626,168 @@ func presence_penalty() -> PackedInt32Array:
 	return _penalty
 
 
+## SECONDS UNTIL THE BOT'S OWN ANSWER IS AT `a_xz`: the nearest responder's walk (or flight)
+## plus its delay — zero under one of its own static defences' reach — and INF with nothing
+## that could answer at all. The own half of the safety read (lattice-and-topology.md §Safety,
+## sites and placement).
+func response_seconds_at(a_xz: Vector2) -> float:
+	_ensure_ready()
+	for defence: Dictionary in _defences:
+		if (defence["xz"] as Vector2).distance_to(a_xz) <= float(defence["reach"]):
+			return 0.0
+	var cell: Vector2i = lattice.index_at(a_xz)
+	var best: float = INF
+	for key: String in _own_arrival:
+		var entry: Dictionary = _own_arrival[key]
+		best = minf(
+			best,
+			(
+				float(entry["delay"])
+				+ arrival_seconds(entry["field"], cell, lattice.pitch, entry["speed"])
+			)
+		)
+	for source: Dictionary in _own_air:
+		best = minf(
+			best, float(source.get("delay", 0.0)) + source["xz"].distance_to(a_xz) / source["speed"]
+		)
+	return best
+
+
+## THE VALUE OF THE BOT'S OWN ANSWER AT `a_xz` WITHIN `a_seconds`: the energy of every own
+## responder whose walk plus delay gets it there by then, and of every own static defence whose
+## reach covers the spot — what stands against the threat before the structure falls.
+func answer_value_by(a_xz: Vector2, a_seconds: float) -> float:
+	_ensure_ready()
+	var value: float = 0.0
+	for defence: Dictionary in _defences:
+		if (defence["xz"] as Vector2).distance_to(a_xz) <= float(defence["reach"]):
+			value += float(defence["value"])
+	var cell: Vector2i = lattice.index_at(a_xz)
+	for key: String in _own_arrival:
+		var entry: Dictionary = _own_arrival[key]
+		var at: float = (
+			float(entry["delay"])
+			+ arrival_seconds(entry["field"], cell, lattice.pitch, entry["speed"])
+		)
+		if at <= a_seconds:
+			value += float(entry["value"])
+	for source: Dictionary in _own_air:
+		var at: float = (
+			float(source.get("delay", 0.0)) + source["xz"].distance_to(a_xz) / source["speed"]
+		)
+		if at <= a_seconds:
+			value += float(source.get("value", 0.0))
+	return value
+
+
+## THE THREAT TO A STRUCTURE OF `a_hp` STANDING AT `a_xz`: {"seconds": when it falls to the
+## believed enemy, every believed unit arriving along its field and shooting from then on at
+## `a_dps_by_type[type]` — nothing, and so no threat at all, for a type that cannot hurt it
+## (kill_clock); "value": the energy of the lethal units that arrive by then}. The opening
+## prior and no value with nothing believed; INF seconds when nothing believed can hurt it.
+func threat_at(a_xz: Vector2, a_hp: float, a_dps_by_type: Dictionary) -> Dictionary:
+	_ensure_ready()
+	if _enemy_sources().is_empty():
+		return {"seconds": prior_arrival_seconds, "value": 0.0}
+	var cell: Vector2i = lattice.index_at(a_xz)
+	var arrivals: Array = []
+	var by_key: Dictionary = {}
+	for source: Dictionary in _enemy_sources():
+		var dps: float = float(a_dps_by_type.get(source.get("type", &""), 0.0))
+		if dps <= 0.0 or source.get("speed", 0.0) <= 0.0:
+			continue
+		var value: float = float(source.get("value", 0.0))
+		if source.get("is_air", false):
+			var seconds: float = source["xz"].distance_to(a_xz) / source["speed"]
+			arrivals.append({"seconds": seconds, "dps": dps, "value": value})
+			continue
+		var key: String = _arrival_key(source)
+		if not by_key.has(key):
+			by_key[key] = {"dps": 0.0, "value": 0.0}
+		by_key[key]["dps"] += dps
+		by_key[key]["value"] += value
+	for key: String in by_key:
+		var entry: Dictionary = _enemy_arrival_fields[key]
+		(
+			arrivals
+			. append(
+				{
+					"seconds": arrival_seconds(entry["field"], cell, lattice.pitch, entry["speed"]),
+					"dps": by_key[key]["dps"],
+					"value": by_key[key]["value"],
+				}
+			)
+		)
+	var falls: float = kill_clock(a_hp, arrivals)
+	var value: float = 0.0
+	for arrival: Dictionary in arrivals:
+		if float(arrival["seconds"]) <= falls:
+			value += float(arrival["value"])
+	return {"seconds": falls, "value": value}
+
+
+## When a structure of `a_hp` at `a_xz` falls — threat_at's seconds alone.
+func kill_seconds_at(a_xz: Vector2, a_hp: float, a_dps_by_type: Dictionary) -> float:
+	return threat_at(a_xz, a_hp, a_dps_by_type)["seconds"]
+
+
+## THE EXPECTED LIFETIME of a structure of `a_hp` at `a_xz`, in seconds: HELD_LIFETIME_SECONDS
+## when what the bot can bring there before it falls is worth at least what comes for it, else
+## the time it has (lifetime_of).
+func lifetime_seconds_at(a_xz: Vector2, a_hp: float, a_dps_by_type: Dictionary) -> float:
+	var threat: Dictionary = threat_at(a_xz, a_hp, a_dps_by_type)
+	return lifetime_of(
+		threat["seconds"],
+		answer_value_by(a_xz, threat["seconds"]),
+		threat["value"],
+		HELD_LIFETIME_SECONDS
+	)
+
+
+## THE SAFETY CHANNEL for one structure type, 0–1 per cell: safety_of its expected lifetime at
+## the cell's centre. Keyed by `a_key` (the type) and kept until the next swap, since it costs a
+## kill clock per cell — a placement asks for it once per decision, and the overlay reads what is
+## stored (stored_safety).
+func safety(a_key: String, a_hp: float, a_dps_by_type: Dictionary) -> PackedFloat32Array:
+	_ensure_ready()
+	if not _safety_cache.has(a_key):
+		var out := PackedFloat32Array()
+		out.resize(lattice.cell_count())
+		for index: int in lattice.cell_count():
+			var xz: Vector2 = lattice.centre_of(lattice.cell_of(index))
+			out[index] = safety_of(lifetime_seconds_at(xz, a_hp, a_dps_by_type))
+		_safety_cache[a_key] = out
+	return _safety_cache[a_key]
+
+
+## The safety channel computed for `a_key` this snapshot, or empty: a read that never computes.
+func stored_safety(a_key: String) -> PackedFloat32Array:
+	return _safety_cache.get(a_key, PackedFloat32Array())
+
+
+## THE BOT'S BASES: its own structures' positions, stamped on the lattice and grown by
+## `a_radius` world units, taken as connected components (clusters_of) — one base per
+## component, each {"centroid": the mean XZ of its members, "members": their XZ}. Two
+## well-defended clusters with an undefended gap between them are two bases
+## (lattice-and-topology.md §Safety, sites and placement, item 4). Empty with nothing owned.
+func clusters(a_radius: float) -> Array:
+	var positions: Array = _home_positions()
+	if positions.is_empty():
+		return []
+	var cells: Array = []
+	for xz: Vector2 in positions:
+		cells.append(lattice.index_at(xz))
+	var out: Array = []
+	for group: PackedInt32Array in clusters_of(lattice, cells, ceili(a_radius / lattice.pitch)):
+		var members: Array = []
+		var sum := Vector2.ZERO
+		for member: int in group:
+			members.append(positions[member])
+			sum += positions[member]
+		out.append({"centroid": sum / float(members.size()), "members": members})
+	return out
+
+
 ## The per-(class, speed) enemy fields the arrival time reads, built from the mobile sources.
 func _ground_arrival_keys() -> Array:
 	return _enemy_arrival_fields.keys()
@@ -603,24 +825,91 @@ func _gather_sources() -> Array:
 		return sources
 	for entry: CommanderBlackboard.Entry in bot.blackboard.believed():
 		var xz: Vector2 = VU.in_xz(entry.last_known_location)
-		var source: Dictionary = {"cell": lattice.index_at(xz), "xz": xz}
+		var source: Dictionary = {
+			"cell": lattice.index_at(xz),
+			"xz": xz,
+			"type": entry.type,
+			"is_structure": entry.is_structure,
+			"value": float(bot.unit_cost(entry.type)),
+		}
 		if not entry.is_structure:
 			source.merge(mobility_of_type(entry.type))
 		sources.append(source)
 	return sources
 
 
+## THE BOT'S OWN RESPONDERS as sources, in the enemy sources' shape plus a "delay": every armed
+## unit at its own mobility, and every built producer at the mobility of the fastest armed
+## unit it can train, delayed by that unit's build time — a reinforcement has to be made before
+## it can walk. What response_seconds_at is swept from. Overridable by a fixture.
+func _own_sources() -> Array:
+	var bot: Bot = _commander as Bot
+	if bot == null:
+		return []
+	var out: Array = []
+	for unit: Actor in bot.get_units():
+		if not bot.unit_is_armed(unit):
+			continue
+		var mobility: Dictionary = bot.mobility_of(unit)
+		if mobility.is_empty():
+			continue
+		var xz: Vector2 = VU.in_xz(unit.global_position)
+		var source: Dictionary = {
+			"cell": lattice.index_at(xz),
+			"xz": xz,
+			"delay": 0.0,
+			"value": float(bot.unit_cost(unit.id)),
+		}
+		source.merge(mobility)
+		out.append(source)
+	for structure: Actor in bot.get_structures():
+		if structure.production == null or not structure.is_built:
+			continue
+		var answer: Dictionary = bot.fastest_answer_of(structure.production)
+		if answer.is_empty():
+			continue
+		var mobility: Dictionary = mobility_of_type(answer["type"])
+		if mobility.is_empty():
+			continue
+		var xz: Vector2 = VU.in_xz(structure.global_position)
+		var source: Dictionary = {
+			"cell": lattice.index_at(xz),
+			"xz": xz,
+			"delay": answer["seconds"],
+			"value": float(bot.unit_cost(answer["type"])),
+		}
+		source.merge(mobility)
+		out.append(source)
+	return out
+
+
+static func _own_key(source: Dictionary) -> String:
+	return (
+		"%d:%.2f:%.1f"
+		% [int(source["nav_class"]), source["speed"], float(source.get("delay", 0.0))]
+	)
+
+
 func _home_cells() -> Array:
+	var cells: Array = []
+	for xz: Vector2 in _home_positions():
+		cells.append(lattice.index_at(xz))
+	return cells
+
+
+## Where the bot's home stands: its structures' XZ, or its units' while it has no structure
+## (the army is the base before the command centre lands). Overridable by a fixture.
+func _home_positions() -> Array:
 	var bot: Bot = _commander as Bot
 	if bot == null:
 		return []
 	var anchors: Array = bot.get_structures()
 	if anchors.is_empty():
 		anchors = bot.get_units()
-	var cells: Array = []
+	var positions: Array = []
 	for piece: Actor in anchors:
-		cells.append(lattice.index_at(VU.in_xz(piece.global_position)))
-	return cells
+		positions.append(VU.in_xz(piece.global_position))
+	return positions
 
 
 ## The bot's armed pieces as {"xz", "reach", "value"}: where each stands, how far its longest
@@ -643,6 +932,7 @@ func _presence_stamps() -> Array:
 					"xz": VU.in_xz(piece.global_position),
 					"reach": reach,
 					"value": float(bot.unit_cost(piece.id)),
+					"is_structure": piece.structure_is_active(),
 				}
 			)
 		)
@@ -669,6 +959,104 @@ static func sweep(
 		field.add_source(cell)
 	field.run()
 	return field
+
+
+## WHEN A STRUCTURE OF `hp` FALLS, in seconds, to attackers who each arrive at their
+## `"seconds"` and deal their `"dps"` from then on: the damage is integrated arrival by
+## arrival, so a slow heavy gun and a quick weak one add up as they would. INF when no one
+## who can hurt it ever arrives.
+static func kill_clock(hp: float, arrivals: Array) -> float:
+	var sorted: Array = arrivals.duplicate()
+	sorted.sort_custom(
+		func(a: Dictionary, b: Dictionary) -> bool: return a["seconds"] < b["seconds"]
+	)
+	var remaining: float = hp
+	var dps: float = 0.0
+	var now: float = 0.0
+	for arrival: Dictionary in sorted:
+		var at: float = arrival["seconds"]
+		if at == INF or float(arrival["dps"]) <= 0.0:
+			continue
+		if dps > 0.0:
+			var dealt: float = dps * (at - now)
+			if dealt >= remaining:
+				return now + remaining / dps
+			remaining -= dealt
+		now = at
+		dps += float(arrival["dps"])
+	return now + remaining / dps if dps > 0.0 else INF
+
+
+## THE EXPECTED LIFETIME: `held_seconds` when nothing can kill the structure or what the bot
+## brings before it falls (`answer_value`) is worth at least what comes for it
+## (`threat_value`); else the time it has, never counted past the held horizon. Value against
+## value is the demand read's own comparison, so a cheap guard arriving in time does not hold a
+## site against an army.
+static func lifetime_of(
+	kill_seconds: float, answer_value: float, threat_value: float, held_seconds: float
+) -> float:
+	if kill_seconds == INF or answer_value >= threat_value:
+		return held_seconds
+	return minf(kill_seconds, held_seconds)
+
+
+## A LIFETIME AS SAFETY, 0–1: 1 − e^(−lifetime / QUIET_HORIZON_SECONDS), so the seconds that
+## separate two exposed spots register where a share of the held horizon would not — a spot the
+## enemy reaches inside the quiet horizon is in play, one it reaches long after is safe.
+static func safety_of(lifetime_seconds: float) -> float:
+	return 1.0 - exp(-lifetime_seconds / QUIET_HORIZON_SECONDS)
+
+
+## CONNECTED COMPONENTS of `cells` once each is grown by `grow` cells each way on `lattice`:
+## one PackedInt32Array of member indices (into `cells`) per component, components in order of
+## their first member and members in input order, so the grouping is a pure function of the
+## geometry. A member whose cell is off the lattice is its own component.
+static func clusters_of(lattice: Lattice, cells: Array, grow: int) -> Array:
+	var label := PackedInt32Array()
+	label.resize(lattice.cell_count())
+	label.fill(0)
+	# Stamp every member's grown square with a provisional label, merging squares that touch.
+	var parent: Array = []
+	for member: int in cells.size():
+		parent.append(member)
+	for member: int in cells.size():
+		var cell: Vector2i = cells[member]
+		for z: int in range(cell.y - grow, cell.y + grow + 1):
+			for x: int in range(cell.x - grow, cell.x + grow + 1):
+				var at := Vector2i(x, z)
+				if not lattice.is_in_bounds(at):
+					continue
+				var index: int = lattice.index_of(at)
+				var other: int = label[index] - 1
+				if other >= 0 and other != member:
+					_union(parent, member, other)
+				label[index] = member + 1
+	var groups: Dictionary = {}
+	var order: Array = []
+	for member: int in cells.size():
+		var root: int = _root(parent, member)
+		if not groups.has(root):
+			groups[root] = PackedInt32Array()
+			order.append(root)
+		groups[root].append(member)
+	var out: Array = []
+	for root: int in order:
+		out.append(groups[root])
+	return out
+
+
+static func _root(parent: Array, member: int) -> int:
+	var at: int = member
+	while parent[at] != at:
+		at = parent[at]
+	return at
+
+
+static func _union(parent: Array, a: int, b: int) -> void:
+	var ra: int = _root(parent, a)
+	var rb: int = _root(parent, b)
+	if ra != rb:
+		parent[maxi(ra, rb)] = mini(ra, rb)
 
 
 ## THE APPROACH BAND: the cells whose enemy distance plus home distance lies within `slack`
