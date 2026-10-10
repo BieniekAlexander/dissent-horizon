@@ -82,6 +82,9 @@ func step() -> void:
 		var spent: int = maxi(1, int(job.work.call(_balance)))
 		job.last_usec = Time.get_ticks_usec() - started
 		job.last_units = spent
+		job.total_usec += job.last_usec
+		job.total_units += spent
+		job.runs += 1
 		job.last_run_tick = _tick
 		_balance -= spent
 		# A sweep that stopped part-way stays due at its old tick, so it resumes first.
@@ -124,6 +127,9 @@ func report() -> Array[Dictionary]:
 					"name": job.name,
 					"units": job.last_units,
 					"usec": job.last_usec,
+					"total_units": job.total_units,
+					"total_usec": job.total_usec,
+					"runs": job.runs,
 					"due_in": job.due_tick - _tick,
 					"ran_this_tick": job.last_run_tick == _tick,
 				}

@@ -44,3 +44,7 @@ func same_as(a_other: SquadPolicy) -> bool:
 		a_other.get_script() == get_script()
 		and (a_other as PostPolicy).point.distance_to(point) <= epsilon
 	)
+
+
+func destination() -> Variant:
+	return point

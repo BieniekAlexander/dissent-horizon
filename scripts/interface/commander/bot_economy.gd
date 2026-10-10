@@ -478,6 +478,9 @@ func _decide() -> void:
 	var tech_is_goal: bool = goal != &"" and _bot.buildable_structure_types().has(goal)
 	if _defence_rung(builder) or ((surplus or tech_is_goal) and _tech_rung(builder)):
 		return
+	# SIEGE: a gun while the bot has spotting to use it with — demand, not a valuation.
+	if _siege_rung(builder):
+		return
 
 	# A surplus first extends a dominion route that pays per SITE (more Opticons), while a site
 	# is left that still pays enough — see _extend_dominion. Then production capacity.
@@ -553,6 +556,62 @@ func _tech_rung(a_builder: Actor) -> bool:
 	return tspot is Vector3 and _issue_build(a_builder, ttype, tspot)
 
 
+## THE SIEGE RUNG (Alex, 2026-10-10 — bot-architecture.md §The siege rung): a siege gun is priced by
+## no fight — it is unarmed and its shot needs a spotter — so it is bought the way builders and
+## carriers are, on DEMAND: while the bot believes an enemy structure stands and owns a mobile
+## spotter to carry a solution to it (Bot.wants_siege_gun), and owns fewer guns than
+## SIEGE_GUNS_WANTED. A gun still locked behind a tech structure buys that structure first,
+## the way the tech rung buys one for a unit. True when it issued a build or is still searching
+## for a spot, false to let the ladder fall through, as every rung.
+func _siege_rung(a_builder: Actor) -> bool:
+	var buy: StringName = _siege_structure_to_build()
+	if buy == &"" or not can_afford_above_reserve(buy):
+		return false
+	var spot: Variant = _find_build_spot(buy)
+	if spot is StringName:
+		return true
+	return spot is Vector3 and _issue_build(a_builder, buy, spot)
+
+
+## How many siege guns a bot keeps. One: the shot is map-wide, so a second gun is a second
+## charge rather than more reach. TODO: a difficulty parameter once the search has a reason to
+## move it.
+const SIEGE_GUNS_WANTED: int = 1
+
+
+## The structure the siege rung would build now: the wanted gun when the bot has the tech for
+## it, else the tech structure that unlocks it — the first required structure not owned or
+## under way that the bot can build today. &"" when no gun is wanted, every wanted gun stands
+## or is under way, or nothing buildable leads to one.
+func _siege_structure_to_build() -> StringName:
+	if not _bot.wants_siege_gun():
+		return &""
+	var under_way: Array[StringName] = _types_under_way()
+	for gun: StringName in _bot.siege_gun_types():
+		var owned: int = _bot.get_structures_of_type(gun).size() + under_way.count(gun)
+		if owned >= SIEGE_GUNS_WANTED:
+			continue
+		if _bot.has_tech_for(gun):
+			return gun
+		var unlock: StringName = _unlocking_structure_for(gun, under_way)
+		if unlock != &"":
+			return unlock
+	return &""
+
+
+## The first structure `a_type` requires (TechnologySpec.required_structures) that the bot
+## neither owns nor is building and can build today, or &"".
+func _unlocking_structure_for(a_type: StringName, a_under_way: Array[StringName]) -> StringName:
+	var spec: TechnologySpec = _bot.technology_mapping.get(a_type)
+	if spec == null:
+		return &""
+	for required: StringName in spec.required_structures:
+		if _bot.get_structures_of_type(required).is_empty() and not a_under_way.has(required):
+			if _bot.has_tech_for(required) and _bot.buildable_structure_types().has(required):
+				return required
+	return &""
+
+
 ## THE ECONOMY'S SAVINGS PROPOSAL: the better of the tech structure it wants and a production
 ## structure it owns none of, each valued at the best unit it would unlock — whether or not it
 ## is affordable, since saving is for what is not. A second barracks is never proposed: more of
@@ -579,6 +638,19 @@ func _propose_savings() -> void:
 			best = {"type": t, "value": value}
 	var type: StringName = best.get("type", &"")
 	_bot.savings.propose(&"economy", type, best.get("value", 0.0), _energy_cost(type))
+	# A wanted siege purchase has no value on the shared scale, so it is proposed at the value
+	# of the best unit the bot can train today, DEMANDED: it outranks a valued purchase of that
+	# value (BotSavings.propose) — without that it tied the producers and lost every tie to the
+	# dearer one, and no gun was bought in ten overnight games (Alex, 2026-10-10).
+	var siege: StringName = _siege_structure_to_build()
+	var trainable_best: float = 0.0
+	if siege != &"":
+		var armed: Array = _owned_producible_types().filter(_bot.unit_can_attack)
+		var valued: Dictionary = _bot.purchase_values_per_energy(armed, demand)["values"]
+		for t: StringName in armed:
+			if _bot.has_tech_for(t):
+				trainable_best = maxf(trainable_best, float(valued[t]))
+	_bot.savings.propose(&"siege", siege, trainable_best, _energy_cost(siege), true)
 
 
 ## Which production structure to build now: an affordable buildable production type,

@@ -271,6 +271,19 @@ func granted_abilities() -> Array[StringName]:
 	return out
 
 
+## Every ability id the AUTHORED pools grant, read off `groups` rather than the live state —
+## the same set as granted_abilities() once _ready has run, and the only answer a BUILD PREVIEW
+## can give, since a preview never enters the tree and so never rebuilds its live pools. What
+## a type-level read (Bot.siege_gun_types, Relation.grants_command on a preview) asks.
+func declared_abilities() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for pool: Dictionary in groups:
+		for id: Variant in pool.get("grants", []):
+			if not out.has(StringName(id)):
+				out.append(StringName(id))
+	return out
+
+
 ## Whether this piece can use ANY of its abilities right now, before charges are consulted.
 ##
 ## THE ONE THING THAT CAN SWITCH A WHOLE POOL OFF: a structure whose commander is

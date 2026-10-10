@@ -33,6 +33,11 @@ var due_tick: int = 0
 ## What the last run cost, for reporting (BotScheduler.report).
 var last_units: int = 0
 var last_usec: int = 0
+## What every run so far has cost, summed, and how many runs there were — the profile of a
+## match (the self-play harness samples them per slot). Never read by a decision.
+var total_units: int = 0
+var total_usec: int = 0
+var runs: int = 0
 ## The scheduler tick the job last ran on; -1 before its first run.
 var last_run_tick: int = -1
 

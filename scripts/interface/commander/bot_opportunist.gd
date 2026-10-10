@@ -41,8 +41,9 @@ var claims: BotClaims = BotClaims.new()
 
 ## Work units per opportunity gathered and ranked, and the fixed cost of the gatherers' own scans
 ## (BotScheduler counts work in units of roughly a microsecond on the calibration machine).
-const OPPORTUNITY_WORK_UNITS: int = 3
-const GATHER_WORK_UNITS: int = 12
+## Measured 2026-10-10 at 4.8 µs a unit over ten random maps at the old weights (3 and 12).
+const OPPORTUNITY_WORK_UNITS: int = 15
+const GATHER_WORK_UNITS: int = 60
 
 
 ## True when `unit` is currently carrying out a committed opportunity action (right now,

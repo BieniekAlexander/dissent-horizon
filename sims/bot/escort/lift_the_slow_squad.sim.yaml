@@ -1,0 +1,28 @@
+description: |
+  A Colonial transport parked by the barracks, and four Recruits ninety units out with
+  nothing to do but walk home: in MASS the army holds in front of its structures, so the
+  Recruits' destination is the station point and the walk is long at infantry pace. The
+  escort decides a lift saves them time (EscortPolicy.lift_saving_seconds), claims the
+  caravel, flies it out to them, and calls them aboard (squads-and-relations.md §A multi-piece
+  action is a sequence read off the world). Decision check: four garrison orders — the
+  Recruits ordered INTO the caravel — within the first half minute; outcome check: the
+  caravel is ordered to unload at the station point before the minute is out. Control: one
+  carrier, one squad, no enemy; the axis is the LIFT being taken at all.
+setting: { kind: flat, size: 120 }
+given:
+  A:
+    settings: { difficulty: HARD, vision: full }
+    with:
+      barracks:
+        of: [ { piece: cl_barracks, count: 1 } ]
+        at: west
+      caravel:
+        of: [ { piece: cl_aircraftStrong_transport, count: 1 } ]
+        at: { from: A.barracks, distance: 6, bearing: east }
+      squad:
+        of: [ { piece: cl_bioLight_antiLight, count: 4 } ]
+        at: { from: A.barracks, distance: 90, bearing: east }
+run: { for: 60s, seed: 1 }
+expect:
+  - { slot: A, check: ordered, kind: garrison, at_least: 4, by: 30s }
+  - { slot: A, check: ordered, kind: evacuate, at_least: 1, by: 60s }

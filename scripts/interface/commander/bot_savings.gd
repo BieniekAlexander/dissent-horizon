@@ -23,16 +23,26 @@ var held: bool = true
 
 
 ## Replace `a_source`'s proposal: `a_type` (&"" withdraws it), worth `a_value`, costing
-## `a_cost` energy.
-func propose(a_source: StringName, a_type: StringName, a_value: float, a_cost: int) -> void:
+## `a_cost` energy. `a_demanded` marks a purchase wanted for the WORK it does rather than for a
+## value it scored — a siege gun while the bot has spotting to use it with — which outranks a
+## valued purchase of equal value (Alex, 2026-10-10: a demand is "I need this to use what I
+## own", a value is "this would be nice"). A demand has no value on the purchase scale by
+## construction, so it is proposed at the best trainable unit's and would otherwise lose every
+## tie to the dearer producer.
+func propose(
+	a_source: StringName, a_type: StringName, a_value: float, a_cost: int, a_demanded: bool = false
+) -> void:
 	if a_type == &"" or a_value <= 0.0:
 		_proposals.erase(a_source)
 		return
-	_proposals[a_source] = {"type": a_type, "value": a_value, "cost": a_cost}
+	_proposals[a_source] = {
+		"type": a_type, "value": a_value, "cost": a_cost, "demanded": a_demanded
+	}
 
 
 ## The goal's type, or &"" while nothing is being saved for. The highest value wins; a tie goes
-## to the dearer purchase (it is the one saving exists for), then to the type's name.
+## to a DEMANDED purchase over a valued one, then to the dearer purchase (it is the one saving
+## exists for), then to the type's name.
 func goal() -> StringName:
 	var best: Dictionary = _best()
 	return best["type"] if not best.is_empty() else &""
@@ -70,6 +80,8 @@ func _best() -> Dictionary:
 static func _outranks(a: Dictionary, b: Dictionary) -> bool:
 	if a["value"] != b["value"]:
 		return a["value"] > b["value"]
+	if bool(a.get("demanded", false)) != bool(b.get("demanded", false)):
+		return bool(a.get("demanded", false))
 	if a["cost"] != b["cost"]:
 		return a["cost"] > b["cost"]
 	return String(a["type"]) < String(b["type"])

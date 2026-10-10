@@ -182,6 +182,119 @@ now dominates.
 **REJECTED (2026-09-25, for now) — a performance gate in the simulation harness** that fails
 a run over a think-time budget.
 
+## Re-measured 2026-10-10: ten random maps, a forced long game, and the per-job profile
+
+Alex reported a game that crawled at its end. Three instruments, all headless, `--fixed-fps 30`,
+HARD Colonial mirrors:
+
+1. **Ten `run_match` games on ten random generated maps** (seeds from `random.seed(20261010)`),
+   20-minute cap, 30 s samples, with the new per-job profile: `BotScheduler` now sums every
+   job's microseconds, work units and runs (`BotJob.total_usec` and friends), and a sample
+   carries them per slot (`jobs`) beside `wall_seconds`, so two samples give the wall cost per
+   tick of the window between and each job's share of it. Nine ended by elimination inside
+   seven minutes at 60–94 ticks per wall second; one (seed 43174) ran eighteen minutes at an
+   average of 23, that is 43 ms a tick.
+2. **One forced long game** on the skirmish map, both slots `may_attack: false`, so bases and
+   armies grow unopposed for ten minutes (54 structures and 113 units at the end).
+3. **The per-tick probe** (`tools/_perf_probe_tmp.tscn`, fifteen simulated minutes on the
+   skirmish map, bots playing normally) for the script / fog / brain split.
+
+**What a tick costs now, by simulated minute** (ten random maps, p50 of 30 s windows):
+
+| minute | 0 | 2 | 4 | 6 | 8 | 10 | 12 | 14 | 16 | 18 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ms per tick | 4.8 | 12.1 | 19.1 | 22.9 | ~70 | ~70 | ~69 | ~40 | ~43 | ~60 |
+| bot jobs, both bots, ms per tick | 0.7 | 2.4 | 4.3 | 6.0 | 6.9 | 4.1 | 6.6 | 5.7 | 6.8 | 4.8 |
+
+Past minute seven the columns are seed 43174 alone. **Two different late games, two different
+costs:**
+
+- **A fought late game** (seed 43174, 50–90 pieces, armies in contact): 70–85 ms a tick from
+  minute eight, of which the bot jobs are 5–8 ms. The other sixty-plus milliseconds are the
+  entity layer — units in contact, pathing and avoidance — not a bot decision. The per-tick
+  probe on the skirmish map, where the armies stayed at 60–75 units and 48 structures, showed
+  none of it: 10–12 ms a tick throughout, script 7–9, brain 2–5, fog 0.4. TODO: the probe
+  cannot boot a generated map (`run_match._apply_generated_map` is what does), so the fought
+  late game on a large generated map is measured only as a total. The backlog's first item
+  (chasers re-planning out of straight-line reach) is the standing suspect.
+- **A built-up late game** (the forced long game): once a base passes about fifty structures
+  the ECONOMY job alone costs 60–130 ms a tick and the bot jobs are three quarters of a frame
+  of 80–155 ms. This is bot work, it is one job, and it is the shape Alex described: a long
+  game, a big base, a bot that thinks slower every minute. §The economy job's late-game cost,
+  below.
+
+**The work-unit calibration is wrong for most jobs**, which is why the scheduler's 2000-unit
+budget (≈2 ms) did not bound the bot at 5–8 ms a tick. Microseconds per claimed work unit over
+the ten maps (1.0 is honest):
+
+| job | µs per unit | ms per tick at minute 12 | note |
+|---|---|---|---|
+| `escort` | 199 | 1.0–2.0 | the first build of `Bot.relations()` scanned every pair of pieces each combat period; fixed the same day (providers only) |
+| `posture` | 113 | 0.15 | 2 ms a run for 20 units claimed |
+| `research` | 23 | 0.00 | negligible total |
+| `economy` | 18 | 1–4 (fought), 60–130 (built up) | its own counters do not see the rungs below |
+| `opportunist` | 9 | 0.02 | |
+| `production` | 8.6 | 0.5–1.4 | |
+| `military` | 7.1 | 1–2 | |
+| `fields` | 1.6 | 0.6–0.9 | calibrated |
+| `scout`, `scout_sight`, `targeting`, `sanction`, `abilities`, `deployment`, `momentum`, `preservation` | 0.4–1.9 | < 0.3 each | calibrated |
+
+The rule from §The plan still holds and was broken twice: a manager's cost must be
+proportional to what it looks at. The escort read every piece against every piece; the economy
+reads the map.
+
+### The economy job's late-game cost
+
+Found 2026-10-10 with checkpoint timers on the economy ladder and wrappers on the `Bot` reads
+it makes, in the forced long game (both bots `may_attack: false`, so the base grows to fifty
+structures by minute six). Cumulative wall time of the heaviest sections, both bots, at
+simulated minutes two, four and six:
+
+| section | calls / ms at 2 min | at 4 min | at 6 min |
+|---|---|---|---|
+| `Bot.home_centroid` | 16,037 / 2,132 | 39,283 / 8,503 | 91,958 / 28,315 |
+| `Bot.enemy_demand_map` | — | 5,273 / 4,964 | 6,768 / 17,432 |
+| `Bot.purchase_values_per_energy` | 3,174 / 1,680 | 5,199 / 5,571 | 6,586 / 14,837 |
+| `Bot.believed_enemy_composition_clocked` | — | 3,321 / 3,668 | 4,501 / 11,991 |
+| `BotEconomy._propose_savings` | 953 / 1,942 | 1,518 / 7,664 | 1,978 / 23,177 |
+| `Bot.relations` (escort, first build) | — | — | 1,354 / 3,705 |
+
+So between minutes four and six the economy spent twenty seconds of a two-minute window in
+`home_centroid()` alone — a quarter of a tick, every tick. Three things compounded:
+
+1. **`home_centroid()` re-clusters the bot's structures on every call** (`bases()`), and the
+   threat clock asked for it ONCE PER BELIEVED ENEMY: `_clocked` read the home position inside
+   the loops of `enemy_demand_map` and `believed_enemy_composition_clocked`. Fifty structures,
+   sixty believed enemies, and the clustering ran sixty times per demand map.
+2. **The demand map and the clocked composition were recomputed on every ask**, and the
+   economy asks six to eight times a think: `_propose_savings` (which runs `_best_tech` and
+   `producer_values`), `_production_structure_to_build`, `_tech_candidates_scored`, the defence
+   rung, and production's own pass. Each recomputation also pays an effectiveness evaluation
+   per (believed type × own unit), which is the term that grows with the army.
+3. **The escort's relation read scanned every pair of pieces** each combat period (§above).
+
+**The fix (same day):** `home_centroid()`, `enemy_demand_map()` and
+`believed_enemy_composition_clocked()` are MEMOISED FOR ONE TICK on `Bot` (keyed by the
+scenario's tick; a bot off a scenario recomputes, as a test expects), `_clocked` takes the home
+position as an argument so the loops read it once, and `Bot.relations()` reads providers only.
+Memoisation is justified here by §1.1's rule: the recomputation is a clustering plus an
+army-sized evaluation, and nothing the three read changes within a tick except by the bot's own
+hand, one cell at most.
+
+**After the fix, the same forced long game, eight simulated minutes** (59 units and a
+fifty-structure base by minute six): tick p50 4.0 → 16.4 ms across the game, the bot jobs
+14–18% of it throughout, and the economy job 0.2–0.9 ms a tick where it had been 60–130.
+Per-job microseconds per claimed unit: economy 8.4 (was 18–80), escort 4.4 (was 199),
+production 1.4, military 1.6, fields 1.6, posture 83, opportunist 4.8, research 20.
+
+**Recalibrated the same day**, so the budget means what it says: `BotBrain.POSTURE_WORK_UNITS`
+20 → 1700 (1.6–2.1 ms a run measured), `BotEscort` 8/4 → 35/18 per squad and piece,
+`BotOpportunist` 3/12 → 15/60 per opportunity and gather. TODO: the economy's own counters
+still claim an eighth of what the job costs; they count ranked spots and sweeps and not the
+valuations each rung asks for. A per-rung fixed cost measured as above is the honest repair,
+and the think-scheduling note's debug-build tripwire (§Backlog) is what would have caught all of
+this a week earlier.
+
 ## Backlog: optimizations not built
 
 Every candidate turned up by the 2026-09-25/27 performance work and not built, in rough order

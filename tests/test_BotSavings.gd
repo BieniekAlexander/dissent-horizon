@@ -56,3 +56,11 @@ func test_every_proposal_is_readable_and_a_copy() -> void:
 	assert_eq(proposals[&"economy"]["type"], &"factory")
 	proposals[&"economy"]["cost"] = 1
 	assert_eq(_savings.proposals()[&"economy"]["cost"], 1200)
+
+
+func test_a_demanded_proposal_outranks_a_valued_one_only_at_equal_value() -> void:
+	_savings.propose(&"economy", &"factory", 0.6, 1200)
+	_savings.propose(&"siege", &"gun_tech", 0.6, 800, true)
+	assert_eq(_savings.goal(), &"gun_tech", "equal value: the demand, not the dearer")
+	_savings.propose(&"economy", &"factory", 0.7, 1200)
+	assert_eq(_savings.goal(), &"factory", "a higher value still wins outright")

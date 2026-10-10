@@ -28,7 +28,7 @@ The CPU commander: what it perceives, how it decides, and how it acts.
 | [think-scheduling.md](think-scheduling.md) | how a bot's thinking is paced: jobs on their own periods, one shared work-unit budget, resumable sweeps, and the claims registry that replaced run order |
 | [bot-randomness.md](bot-randomness.md) | the bot's own seeded stream, a personality drawn per match, scored decisions sampled at a temperature, zero is the old bot; why strength is a search over the vector and not a learner, and the PLANNED population |
 | [piece-usage-audit.md](piece-usage-audit.md) | which of a faction's pieces the bot fields and, for each it does not, which of four causes — not worth it, cannot actuate, cannot signal, game bug — with the ledger and the report that decide it |
-| [squads-and-relations.md](squads-and-relations.md) | APPROVED 2026-10-03, steps 1–2 built: why the army trickled, the squad as the unit of orders shared with mission tactics, relations (one piece granting to another within a reach) as the model for every inter-piece dependency, and placement by role |
+| [squads-and-relations.md](squads-and-relations.md) | APPROVED 2026-10-03, steps 1–3 built: why the army trickled, the squad as the unit of orders shared with mission tactics, relations (one piece granting to another within a reach) as the model for every inter-piece dependency, and placement by role |
 
 **Belongs here:** the Bot's perception API, the decision modules and their cadence, the
 actuator, difficulty tiers, and anything about how the CPU chooses what to do.

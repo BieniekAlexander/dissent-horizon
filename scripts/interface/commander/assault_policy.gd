@@ -84,3 +84,7 @@ func same_as(a_other: SquadPolicy) -> bool:
 
 func kind() -> StringName:
 	return &"assault"
+
+
+func destination() -> Variant:
+	return point

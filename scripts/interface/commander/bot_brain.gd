@@ -53,6 +53,8 @@ const JOB_PRIORITY_MOMENTUM: int = 90
 const JOB_PRIORITY_POSTURE: int = 85
 const JOB_PRIORITY_TARGETING: int = 80
 const JOB_PRIORITY_MILITARY: int = 70
+## After the military, so the squads it serves hold this think's destinations.
+const JOB_PRIORITY_ESCORT: int = 65
 const JOB_PRIORITY_KAMIKAZE: int = 60
 const JOB_PRIORITY_PRESERVATION: int = 60
 const JOB_PRIORITY_SANCTION: int = 50
@@ -94,11 +96,16 @@ var _first_contact_seconds: float = INF
 var _first_contact_known: bool = false
 ## Work units the posture tick reports: a handful of senses read and a few believed
 ## structures apportioned.
-const POSTURE_WORK_UNITS: int = 20
+## Measured 2026-10-10 at 1.6–2.1 ms a run over ten random maps and a forced long game (the
+## base-threat scan and the income estimate's grid reads); it was 20, which hid it from the
+## budget. bot-performance.md §Re-measured 2026-10-10.
+const POSTURE_WORK_UNITS: int = 1700
 var _economy: BotEconomy
 var _deployment: BotDeployment
 var _military: BotMilitary
 var _abilities: BotAbilities
+## Puts a transport beside the squad with the longest way to go.
+var _escort: BotEscort
 var _research: BotResearch
 var _production: BotProduction
 var _targeting: BotTargeting
@@ -139,6 +146,7 @@ const JOB_NAMES: Array[StringName] = [
 	&"posture",
 	&"targeting",
 	&"military",
+	&"escort",
 	&"sanction",
 	&"abilities",
 	&"kamikaze",
@@ -274,6 +282,7 @@ func _build_jobs() -> void:
 		BotJob.new(&"posture", self, strategy, JOB_PRIORITY_POSTURE, _unit_work(_tick_posture)),
 		BotJob.new(&"targeting", self, combat, JOB_PRIORITY_TARGETING, _unit_work(_targeting.tick)),
 		BotJob.new(&"military", self, combat, JOB_PRIORITY_MILITARY, _unit_work(_military.tick)),
+		BotJob.new(&"escort", self, combat, JOB_PRIORITY_ESCORT, _unit_work(_escort.tick)),
 		BotJob.new(&"sanction", self, combat, JOB_PRIORITY_SANCTION, _unit_work(_sanction.tick)),
 		BotJob.new(&"abilities", self, combat, JOB_PRIORITY_ABILITIES, _unit_work(_abilities.tick)),
 		BotJob.new(
@@ -504,10 +513,11 @@ func _ensure_managers() -> bool:
 	_income = BotIncome.new(bot, _scout)
 	_opportunist = BotOpportunist.new(bot, _actuator)
 	_abilities = BotAbilities.new(bot, _actuator)
+	_escort = BotEscort.new(bot, _actuator)
 	_research = BotResearch.new(bot, _actuator)
 	# One registry, shared: a claim means nothing unless every manager reads the same one.
 	for manager: Object in [
-		_economy, _military, _targeting, _kamikaze, _scout, _opportunist, _abilities
+		_economy, _military, _targeting, _kamikaze, _scout, _opportunist, _abilities, _escort
 	]:
 		manager.set("claims", claims)
 	# One stream, shared by the modules that sample (null stays null: they then argmax).

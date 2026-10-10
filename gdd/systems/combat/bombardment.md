@@ -97,7 +97,10 @@ the ground.
 - **A stunned or unpowered gun is passed over**, and so is one still being built.
 - **Only a held beacon calls a shot.** A Beacon Drop's or a Sleeper's planted beacon has no
   spotter holding it and waits for an order. TODO: whether it should call its own shot too — it would need a holder
-  that ticks (the beacon itself), and nothing has asked for it.
+  that ticks (the beacon itself), and nothing has asked for it. The BOT gives that order
+  itself: a loaded gun fires at the most valuable spotted enemy
+  ([ai/bot-architecture](../ai/bot-architecture.md) §Local abilities), so for a bot the
+  question is moot and only the player's stands.
 
 ### Beacons
 

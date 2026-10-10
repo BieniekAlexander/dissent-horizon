@@ -37,6 +37,7 @@ const ISSUED: Array = [
 	"Evacuate",
 	"Ability",
 	"Spot",
+	"Bombard",
 ]
 
 ## The bot causes these WITHOUT constructing the command, each for a stated reason. This
@@ -58,12 +59,6 @@ const COVERED_OTHERWISE: Dictionary = {
 	(
 		"capturing IS driving over the prey, so the bot issues a move AT it (BotActuator"
 		+ ".move_at) — see BotOpportunist's ContactOpportunity"
-	),
-	"Bombard":
-	(
-		"a gun on automatic fires on its own at a beacon a spotter holds, and the bot never"
-		+ " switches its guns to manual — its half of the siege loop is the Spot order"
-		+ " (BotAbilities)"
 	),
 }
 
@@ -109,7 +104,11 @@ const MISSING: Dictionary = {
 	"Undeploy": "and so never has one to pack up",
 	"Plant": "the Sapper's charge is never planted",
 	"Detonate": "and so never set off",
-	"Embark": "the bot never loads a transport",
+	"Embark":
+	(
+		"the bot loads a transport from the passengers' side — an Occupy to each"
+		+ " (EscortPolicy) — and never needs the host-side order"
+	),
 	"Flush": "the bot never storms an enemy-held garrison with a Flusher (the Sleeper)",
 	"TaskShelter":
 	(
@@ -224,7 +223,7 @@ func test_the_gap_list_does_not_grow_silently() -> void:
 	# whether the bot should use either is open (gdd/systems/commands/deploying.md,
 	# gdd/systems/combat/planted-explosives.md).
 	# Lowered 16 -> 13 on 2026-10-07: Ability and Spot are issued (BotAbilities), and Bombard
-	# fires on its own at a held beacon.
+	# fires on its own at a held beacon. Bombard moved to ISSUED 2026-10-10: the gun's own shot.
 	assert_lte(
 		MISSING.size(),
 		13,

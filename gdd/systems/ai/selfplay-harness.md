@@ -97,6 +97,10 @@ Defaults`.
         "combat_period_seconds": 0.333,  // a retired "think_interval_ticks" still sets all three
         "attack_value_ratio": 1.15
       },
+      "combat_model": "/abs/path/combat_model.json",  // optional (2026-10-10): this slot values
+                                     // purchases by that trainer export instead of the shipped
+                                     // resources/bots/combat_model.json — a candidate against the
+                                     // shipped model in one match (macro-learning.md §1)
       "disabled_jobs": ["fields"]    // BotBrain jobs this slot leaves unscheduled (2026-10-08):
                                      // an A/B of a job against its absence; an unknown name
                                      // fails the boot, as PlayerSlot.disabled_bot_jobs does

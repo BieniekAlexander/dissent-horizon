@@ -2,7 +2,15 @@
 # Regenerate the bot's combat model from scratch and leave the result beside the shipped one.
 #
 #   tools/combat_model/regenerate.sh [--count 2000] [--shards 3] [--out DIR] [--committed-only]
-#                                    [--root DIR]
+#                                    [--root DIR] [--prefixes cl_,an_,tc_] [--seed-base 0]
+#                                    [--no-train]
+#
+# --prefixes narrows the piece pool the fights draw from (the generator's own `prefixes`
+# argument): `--prefixes cl_` is a Colonial-only corpus, every fight a Colonial mirror, which is
+# how a matchup's pairs are made dense without a stratified sampler. --seed-base offsets every
+# shard's seeds, so a second corpus beside an earlier one repeats none of its fights; train on
+# both by handing train.py both directories' fights. --no-train stops after the fights, for a
+# corpus that is trained together with others.
 #
 # --root names the checkout whose HEAD and working tree the fights are built from (default: the
 # one this script lives in), for running one checkout's generator against another's pieces.
@@ -30,6 +38,9 @@ SHARDS=3
 INCLUDE_UNCOMMITTED=1
 STAMP=$(date +%Y-%m-%d_%H%M)
 OUT=""
+PREFIXES="cl_,an_,tc_"
+SEED_BASE=0
+TRAIN=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --count) COUNT="$2"; shift 2 ;;
@@ -37,6 +48,9 @@ while [ $# -gt 0 ]; do
     --out) OUT="$2"; shift 2 ;;
     --committed-only) INCLUDE_UNCOMMITTED=0; shift ;;
     --root) ROOT=$(cd "$2" && pwd); shift 2 ;;
+    --prefixes) PREFIXES="$2"; shift 2 ;;
+    --seed-base) SEED_BASE="$2"; shift 2 ;;
+    --no-train) TRAIN=0; shift ;;
     *) echo "regenerate: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -62,6 +76,7 @@ git -C "$ROOT" worktree add --detach "$WT" HEAD >/dev/null
 {
   echo "head: $(git -C "$ROOT" rev-parse --short HEAD)"
   echo "count per shard: $COUNT, shards: $SHARDS"
+  echo "prefixes: $PREFIXES, seed base: $SEED_BASE"
 } > "$OUT/source.txt"
 if [ "$INCLUDE_UNCOMMITTED" = 1 ]; then
   CHANGED=$(git -C "$ROOT" status --short -- gdd scenes resources scripts tools | grep -v "gdd/tasks.md" || true)
@@ -84,11 +99,16 @@ echo "regenerate: importing $WT"
 echo "regenerate: $SHARDS shards of $COUNT fights → $OUT"
 for k in $(seq 0 $((SHARDS - 1))); do
   (cd "$WT" && godot --headless --path . --fixed-fps 30 tools/combat_model/generate_fights.tscn -- \
-    "out=$OUT/fights_$k.jsonl" "count=$COUNT" "seed=$((k * COUNT + 1))" > "$OUT/gen_$k.log" 2>&1) &
+    "out=$OUT/fights_$k.jsonl" "count=$COUNT" "seed=$((SEED_BASE + k * COUNT + 1))" \
+    "prefixes=$PREFIXES" > "$OUT/gen_$k.log" 2>&1) &
 done
 wait
 TOTAL=$(cat "$OUT"/fights_*.jsonl | wc -l | tr -d ' ')
 echo "regenerate: $TOTAL fights"
+if [ "$TRAIN" = 0 ]; then
+  echo "regenerate: --no-train, corpus left at $OUT"
+  exit 0
+fi
 
 "$PYTHON" "$ROOT/tools/combat_model/train.py" "$OUT"/fights_*.jsonl --out "$OUT/combat_model.json" | tee "$OUT/train.log"
 python3 "$SCRIPT_ROOT/tools/combat_model/compare_models.py" "$ROOT/resources/bots/combat_model.json" "$OUT/combat_model.json" \

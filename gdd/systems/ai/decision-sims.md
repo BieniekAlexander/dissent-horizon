@@ -255,6 +255,20 @@ journal (§Identity in a check). Control: one truck, two prey; axis **value** (l
 Needs: nothing — built 2026-10-07 (`deposit_value`); its pair places the prey 40 units apart
 and expects the deposit first.
 
+### escort/ — lift the slow squad
+
+`sims/bot/escort/lift_the_slow_squad` — PASSING (2026-10-10). A HARD Colonial with a barracks,
+a caravel parked beside it and four Recruits ninety units out; in MASS the army holds in front
+of its structures, so the Recruits walk home and a lift saves them most of a minute
+(`EscortPolicy.lift_saving_seconds`). `ordered: {kind: garrison, at_least: 4}` by 30 s — the
+Recruits ordered INTO the caravel — and `ordered: {kind: evacuate, at_least: 1}` by 60 s, the
+unload at the station point (met at 27 s and 40 s). Control: one carrier, one squad, no enemy;
+axis **the lift being taken at all**. It found two bugs on its first run, both the kind a unit
+test with a fake cannot: a landed aircraft's `can_move()` is false, so the transport relation
+stopped reading the caravel as a provider the moment it touched down; and a squad riding in
+the hold has no fielded members, so the escort decided nobody was going anywhere mid-flight
+([squads-and-relations](squads-and-relations.md) §Relations).
+
 ### commitment/ — even armies and no income
 
 `sims/bot/commitment/` — PASSING, all three, over six seeds (2026-10-07). Two HARD bots, full

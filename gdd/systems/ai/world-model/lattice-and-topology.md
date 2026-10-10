@@ -201,7 +201,7 @@ what" are two reads, and both are arrivals against a clock.
   matchup.
 - **A defended post is a `HoldPolicy` at a point the model picks** (decided 2026-10-08):
   the band's narrowest cell inside the bot's own influence, or the threatened structure.
-  `Defend` and `Patrol` are out of scope for bots (Alex, 2026-10-08, T-002): they are
+  `Defend` and `Patrol` are out of scope for bots (Alex, 2026-10-08; [squads-and-relations](../squads-and-relations.md) §Squads): they are
   conveniences over unit aggro offered to the player, and the behaviour underneath them is
   already the bot's.
 
