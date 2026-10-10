@@ -126,8 +126,11 @@ func build_map(a_map: GeneratedMap, a_terrain_path: String) -> Map:
 			var entity: Node3D = (_scenes[piece.id] as PackedScene).instantiate(PLACED)
 			counts[piece.id] = counts.get(piece.id, 0) + 1
 			entity.name = "%s%d" % [String(piece.id), counts[piece.id]]
-			var center: Vector2 = Vector2(placement.origin) + Vector2(piece.footprint) * 0.5
+			var rect: Rect2i = MapFeature.placement_rect(placement)
+			var center: Vector2 = Vector2(rect.position) + Vector2(rect.size) * 0.5
 			entity.position = _world(center, grid_half, _height_under(terrain, center))
+			# Entity._auto_initialize reads the yaw back as the footprint's quarter turns.
+			entity.rotation.y = Fixture.yaw_of(placement.get("quarter_turns", 0))
 			_add(map, entity, map)
 
 	for water: Dictionary in a_map.chasm_waters:

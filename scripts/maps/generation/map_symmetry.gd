@@ -191,10 +191,15 @@ func _feature_image(a_feature: MapFeature) -> MapFeature:
 	image.realised_share = _swapped(a_feature.realised_share)
 	image.plan = a_feature.plan
 	for placement: Dictionary in a_feature.placements:
-		var piece: MapPiece = placement.piece
-		var origin: Vector2i = placement.origin
+		var rect: Rect2i = MapFeature.placement_rect(placement)
+		var turns: int = placement.get("quarter_turns", 0)
+		# The image is the original turned a half turn about the centre, the piece with it.
 		image.placements.append(
-			{"piece": piece, "origin": Vector2i(_cells, _cells) - origin - piece.footprint}
+			{
+				"piece": placement.piece,
+				"origin": Vector2i(_cells, _cells) - rect.position - rect.size,
+				"quarter_turns": posmod(turns + 2, 4),
+			}
 		)
 	for cell: Vector2i in a_feature.pond_cells:
 		image.pond_cells.append(cell_image(cell))

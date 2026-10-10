@@ -11,7 +11,7 @@ extends GutTest
 ## are untuned content, and what is under test is the mechanism.
 
 ## Seeds each property is checked across. Two, because each is a full generation.
-const _SEEDS: Array[int] = [11, 23]
+const _SEEDS: Array[int] = [10, 23]
 
 
 func _params() -> MapGenerationParams:
@@ -207,6 +207,76 @@ func test_there_is_never_a_shelter_short_of_one_per_start() -> void:
 	assert_eq(map.features_of(MapFeature.Kind.SHELTER).size(), map.starts.size())
 
 
+func test_every_shelter_stands_in_one_cluster_or_clear_of_them_all() -> void:
+	for generation_seed: int in _SEEDS:
+		_assert_shelter_rules(_generate(generation_seed), _params(), generation_seed)
+
+
+## Shelters are expected to grow (Alex, 2026-10-09); nothing may assume today's footprint.
+func test_a_larger_shelter_still_stands_in_one_cluster_or_apart() -> void:
+	var params: MapGenerationParams = _params()
+	params.shelter_piece = MapPiece.of(&"big_shelter", Vector2i(7, 7))
+	params.last_pass = MapGenerationParams.Pass.RESOURCES
+	for generation_seed: int in _SEEDS:
+		var map: GeneratedMap = MapGenerator.generate(params, generation_seed)
+		_assert_shelter_rules(map, params, generation_seed)
+		for shelter: MapFeature in map.features_of(MapFeature.Kind.SHELTER):
+			assert_eq(shelter.footprints()[0].size, Vector2i(7, 7))
+
+
+func _assert_shelter_rules(
+	map: GeneratedMap, params: MapGenerationParams, generation_seed: int
+) -> void:
+	var least: int = params.start_count() - 1
+	assert_true(map.is_valid(), "seed %d: %s" % [generation_seed, map.errors])
+	var clusters: Array[MapFeature] = map.features_of(MapFeature.Kind.BUILDING_CLUSTER)
+	var within: int = 0
+	var apart: int = 0
+	var shelters_per_cluster: Array[int] = []
+	shelters_per_cluster.resize(clusters.size())
+	for shelter: MapFeature in map.features_of(MapFeature.Kind.SHELTER):
+		var gaps: Array[int] = []
+		for cluster: MapFeature in clusters:
+			gaps.append(_nearest_gap(shelter, cluster))
+		var near: Array[int] = []
+		for c: int in gaps.size():
+			if gaps[c] < params.shelter_cluster_clearance_cells:
+				near.append(c)
+		if near.is_empty():
+			apart += 1
+			continue
+		assert_eq(near.size(), 1, "seed %d: a shelter near two clusters" % generation_seed)
+		assert_between(
+			gaps[near[0]],
+			params.cluster_open_gap_cells_min,
+			params.cluster_open_gap_cells_max,
+			"seed %d: a shelter between in and apart" % generation_seed
+		)
+		within += 1
+		shelters_per_cluster[near[0]] += 1
+	assert_gte(within, least, "seed %d" % generation_seed)
+	assert_gte(apart, least, "seed %d" % generation_seed)
+	assert_lte(shelters_per_cluster.max(), 1, "seed %d" % generation_seed)
+
+
+func test_too_few_clusters_for_the_shelter_rule_refuses_the_map() -> void:
+	var params: MapGenerationParams = _params()
+	params.last_pass = MapGenerationParams.Pass.RESOURCES
+	params.building_pool = []
+	var map: GeneratedMap = MapGenerator.generate(params, _SEEDS[0])
+	assert_false(map.is_valid())
+	assert_string_contains(str(map.errors), "building clusters")
+
+
+## Least Chebyshev gap between the structures of two features.
+func _nearest_gap(a_feature: MapFeature, a_other: MapFeature) -> int:
+	var nearest: int = 1 << 30
+	for a: Rect2i in a_feature.footprints():
+		for b: Rect2i in a_other.footprints():
+			nearest = mini(nearest, BuildingClusterLayout.chebyshev_gap(a, b))
+	return nearest
+
+
 func test_every_start_has_a_shelter_in_its_band() -> void:
 	var params := _params()
 	for generation_seed: int in _SEEDS:
@@ -311,8 +381,9 @@ func test_a_mixed_pool_of_non_square_pieces_generates_a_valid_map() -> void:
 			for placement: Dictionary in cluster.placements:
 				var piece: MapPiece = placement.piece
 				drawn[piece.id] = true
-				# The whole footprint, in its authored orientation, is in play and unshared.
-				for cell: Vector2i in PlacementGrid.rect_cells(placement.origin, piece.footprint):
+				# The whole footprint, as turned, is in play and unshared.
+				var rect: Rect2i = MapFeature.placement_rect(placement)
+				for cell: Vector2i in PlacementGrid.rect_cells(rect.position, rect.size):
 					assert_true(
 						map.terrain.is_cell_in_play(cell),
 						"seed %d: %s %s out of play" % [generation_seed, piece.id, cell]
@@ -456,14 +527,6 @@ func test_footprint_l1_distance() -> void:
 	assert_eq(FeaturePlacer.footprint_l1_distance(a, Rect2i(Vector2i(2, 0), Vector2i(2, 2))), 1)
 	assert_eq(FeaturePlacer.footprint_l1_distance(a, Rect2i(Vector2i(2, 2), Vector2i(2, 2))), 2)
 	assert_eq(FeaturePlacer.footprint_l1_distance(a, Rect2i(Vector2i(5, 4), Vector2i(1, 1))), 7)
-
-
-func test_no_buildings_without_a_pool() -> void:
-	var params: MapGenerationParams = _params()
-	params.building_pool = []
-	var map: GeneratedMap = MapGenerator.generate(params, _SEEDS[0])
-	assert_true(map.is_valid(), str(map.errors))
-	assert_eq(map.features_of(MapFeature.Kind.BUILDING_CLUSTER).size(), 0)
 
 
 func test_an_impossible_map_fails_loudly() -> void:

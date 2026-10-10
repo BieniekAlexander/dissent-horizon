@@ -89,6 +89,7 @@ const PROPERTY_GROUPS: Array = [
 			"shelters_per_player_extra",
 			"shelter_start_band_min_cells",
 			"shelter_start_band_max_cells",
+			"shelter_cluster_clearance_cells",
 		],
 	},
 	{
@@ -100,7 +101,12 @@ const PROPERTY_GROUPS: Array = [
 			"cluster_capacity_band_weights",
 			"cluster_capacity_overshoot",
 			"cluster_large_building_bias",
-			"cluster_packing_density",
+			"grouping_size_weights",
+			"grouping_gap_cells_min",
+			"grouping_gap_cells_max",
+			"cluster_open_gap_cells_min",
+			"cluster_open_gap_cells_max",
+			"cluster_span_slack_cells",
 			"building_cluster_separation_cells",
 			"building_pool",
 		],
@@ -234,11 +240,17 @@ const DESCRIPTIONS: Dictionary = {
 	"pond_richness_cells_min": "Smallest pond of each richness category, in cells.",
 	"pond_richness_cells_max":
 	"Largest pond of each richness category, in cells. Caps how large a rich pond grows.",
-	"shelters_base": "Shelters on every map whatever the player count, on top of the per-player ones.",
+	"shelters_base":
+	"Shelters on every map whatever the player count, on top of the per-player ones.",
 	"shelters_per_player_min": "Fewest shelters per player.",
 	"shelters_per_player_extra": "Random extra shelters per player, on top of the minimum.",
 	"shelter_start_band_min_cells":
 	"Nearest a start's own shelter may stand to it, in cells (centre to centre).",
+	"shelter_cluster_clearance_cells":
+	(
+		"Least gap between a building cluster and a shelter it is not built around. "
+		+ "Every shelter is either in one cluster or this far from all of them."
+	),
 	"shelter_start_band_max_cells":
 	"Farthest a start's own shelter may stand from it, in cells (centre to centre).",
 	"building_capacity_per_player":
@@ -257,8 +269,21 @@ const DESCRIPTIONS: Dictionary = {
 		"How much a large cluster favours large buildings. 0 draws every cluster from "
 		+ "the pool's own weights."
 	),
-	"cluster_packing_density":
-	"How tightly a cluster's buildings are packed. Lower spreads them out.",
+	"grouping_size_weights":
+	(
+		"How often a cluster's buildings stand in groupings of one, two, three… "
+		+ "Its length is the largest grouping."
+	),
+	"grouping_gap_cells_min": "Narrowest gap between buildings of one grouping.",
+	"grouping_gap_cells_max": "Widest gap between buildings of one grouping.",
+	"cluster_open_gap_cells_min": "Narrowest gap between two groupings of one cluster.",
+	"cluster_open_gap_cells_max":
+	"Widest gap between a grouping and the nearest other grouping of its cluster.",
+	"cluster_span_slack_cells":
+	(
+		"How far a new grouping may stretch a cluster along its longer side. Groupings are "
+		+ "added along the shorter side until the cluster is square."
+	),
 	"building_cluster_separation_cells": "Least gap between buildings of two different clusters.",
 	"building_pool": "The neutral buildings a cluster draws from.",
 	"site_triple_fraction_min": "Least share of extraction sites standing in groups of three.",
@@ -447,6 +472,11 @@ var shelters_per_player_extra: float = 1.0
 ## a topology or obstruction reason, none for the band. TODO: still untuned.
 var shelter_start_band_min_cells: float = 25.0
 var shelter_start_band_max_cells: float = 35.0
+## Chebyshev gap, in cells, kept between a shelter and the buildings of every cluster not built
+## around it (map-generation.md §Shelters and clusters): a shelter is in one cluster or clearly
+## apart from all of them. Twice cluster_open_gap_cells_max, so an apart shelter never reads as a
+## cluster's next grouping. TODO: not tuned.
+var shelter_cluster_clearance_cells: int = 10
 #endregion
 
 #region Buildings
@@ -465,9 +495,23 @@ var cluster_capacity_overshoot: int = 2
 ## A building's draw weight is scaled by capacity^(bias × t), t the cluster's capacity across the
 ## bands in [0, 1]: a small cluster draws from the pool as weighted, a large one leans large.
 var cluster_large_building_bias: float = 0.5
-## Fraction of a cluster's disc its buildings fill, gap included. The scatter radius is
-## derived from it, so a cluster of eight spreads wider than a cluster of three.
-var cluster_packing_density: float = 0.35
+## A cluster is groupings of buildings (Alex, 2026-10-09; map-generation.md §Building layout).
+## Index i weighs a grouping of i + 1 buildings, so the array's length is the largest grouping:
+## three, because more than three buildings a tight gap apart walls a cluster off.
+var grouping_size_weights: PackedFloat32Array = PackedFloat32Array([0.3, 0.4, 0.3])
+## Chebyshev gap, in cells, between flush neighbours of one grouping: passable only by the
+## narrowest size class. Never below footprint_gap_cells, never adjacent. 1 (Alex, 2026-10-09;
+## was 1-2 the same day).
+var grouping_gap_cells_min: int = 1
+var grouping_gap_cells_max: int = 1
+## Chebyshev gap, in cells, between groupings of one cluster: at least the minimum from every
+## other grouping, so no tight gap joins two of them, and at most the maximum from one, so the
+## cluster reads as one place. 3-5 (Alex, 2026-10-09; was 5-8 the same day).
+var cluster_open_gap_cells_min: int = 3
+var cluster_open_gap_cells_max: int = 5
+## How far a new grouping may stretch the cluster's longer axis: groupings are added across the
+## shorter one until the two are equal, staying roughly within the longer one's span.
+var cluster_span_slack_cells: int = 2
 ## Least L1 distance, in cells, between the nearest buildings of two different clusters —
 ## what keeps neighbouring clusters from reading as one.
 var building_cluster_separation_cells: int = 20
@@ -599,7 +643,6 @@ var collocation_weight: float = 0.2
 var collocation_rules: Array[CollocationRule] = [
 	CollocationRule.of(MapFeature.Kind.POND, MapFeature.Kind.POND, -0.8, 30.0),
 	CollocationRule.of(MapFeature.Kind.SHELTER, MapFeature.Kind.SHELTER, -0.8, 25.0),
-	CollocationRule.of(MapFeature.Kind.BUILDING_CLUSTER, MapFeature.Kind.SHELTER, 1.0, 14.0),
 	CollocationRule.of(
 		MapFeature.Kind.BUILDING_CLUSTER, MapFeature.Kind.BUILDING_CLUSTER, -0.6, 18.0
 	),
@@ -673,6 +716,32 @@ func warnings() -> PackedStringArray:
 					% BUILDING_CAPACITY_FAILURE
 				)
 				+ "placement will fail for lack of space."
+			)
+		)
+	if grouping_gap_cells_max >= cluster_open_gap_cells_min:
+		found.append(
+			(
+				(
+					"A grouping gap of up to %d reaches the open gap of %d between groupings, so "
+					% [grouping_gap_cells_max, cluster_open_gap_cells_min]
+				)
+				+ "groupings will not read apart."
+			)
+		)
+	var most_shelters: int = maxi(
+		start_count(),
+		roundi(
+			shelters_base + start_count() * (shelters_per_player_min + shelters_per_player_extra)
+		)
+	)
+	if most_shelters < 2 * (start_count() - 1):
+		found.append(
+			(
+				(
+					"At most %d shelters, but %d players need %d: %d in building clusters and "
+					% [most_shelters, start_count(), 2 * (start_count() - 1), start_count() - 1]
+				)
+				+ "as many apart. Generation will fail."
 			)
 		)
 	found.append_array(_cliff_warnings())

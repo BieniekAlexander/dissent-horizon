@@ -42,13 +42,14 @@ static func from_generated(generated: GeneratedMap) -> MapDecorationInput:
 			continue
 		for placement: Dictionary in feature.placements:
 			var piece: MapPiece = placement.piece
+			var rect: Rect2i = MapFeature.placement_rect(placement)
 			(
 				input
 				. fixtures
 				. append(
 					{
 						"kind": kind_of_piece(piece.id),
-						"cells": footprint(placement.origin, piece.footprint),
+						"cells": footprint(rect.position, rect.size),
 					}
 				)
 			)
@@ -74,7 +75,11 @@ static func from_map(map: Map) -> MapDecorationInput:
 			var structure := node.get_node_or_null("Fixture") as Fixture
 			if structure == null:
 				continue
-			var dims: Vector2i = structure.footprint_dimensions()
+			# Read from the yaw, not Fixture.quarter_turns: a piece out of the tree, or not yet
+			# registered, has not taken its turn from the yaw yet (Entity._auto_initialize).
+			var dims: Vector2i = Fixture.oriented_dimensions(
+				structure.dimensions, Fixture.quarter_turns_of_yaw((node as Node3D).rotation.y)
+			)
 			var xz: Vector2 = _map_local_xz(node as Node3D, map) + grid_half
 			var origin := Vector2i(roundi(xz.x - dims.x * 0.5), roundi(xz.y - dims.y * 0.5))
 			(

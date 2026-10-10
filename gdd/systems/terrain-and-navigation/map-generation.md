@@ -251,7 +251,7 @@ take the one whose `w(p)` is nearest the target. That is Mitchell's best-candida
 is bounded by `candidates × features`, so it cannot spin. A realised favor that misses its target is
 carried forward into the next feature's recentring rather than rejected.
 
-**Buildings go down as clusters** — a cluster centre plus a scatter — never as an even spread; a
+**Buildings go down as clusters** — groupings of buildings grown from a seed cell (§Building layout) — never as an even spread; a
 lone neutral building is a rounding error, a block of them is a landmark. A cluster is placed as one
 feature against one target, and its buildings are drawn from `building_pool` (§Buildings).
 
@@ -349,17 +349,81 @@ feature, and nothing constrains which sizes a map gets.
 Centre spacing alone could not promise that: two large clusters whose centres are far apart can
 still sprawl into each other.
 
-A cluster's scatter radius is derived
-from its members' footprints (gap included) at `cluster_packing_density`, so a cluster of eight
-spreads wider than a cluster of three.
+#### Building layout
+
+Decided 2026-10-09 (Alex). **A cluster is a set of groupings**: one to three buildings standing a
+TIGHT gap (1 cell) apart, like a row of houses, with groupings an OPEN gap (3–5 cells) from each
+other. Every gap is the Chebyshev gap between footprints — clear cells along the axis they are
+furthest apart on — because that is what a square-eroded navmesh lets through: a tight gap passes
+only the narrowest size class, an open one the wider ones.
+
+- **No more than three buildings are tightly packed.** More than that walls the cluster off.
+  Grouping sizes are drawn by `grouping_size_weights`, whose length is the largest grouping.
+- **A grouping looks built, not scattered.** Each member after the first stands a tight gap off
+  a side of a member already placed, with one pair of their side edges in line (flush). Within
+  one grouping, members not joined directly may stand at any gap — a row of three shacks puts 4
+  cells between its ends, behind the middle one — but never touch.
+- **Between groupings, no gap is narrower than 3**, so no tight gap joins two groupings, and each
+  grouping stands within 5 of a grouping already placed, so the cluster grows from its first
+  grouping as one connected place.
+- **A cluster fills out toward square.** A new grouping is placed across the SHORTER axis of the
+  cluster's bounds so far, staying within the longer axis's span (give or take
+  `cluster_span_slack_cells`, or the grouping's own excess when it is longer than the span); once
+  the axes are equal, any side. Without this, groupings trail off in a line.
+- **A grouping's long walls run parallel.** Each grouping draws an axis, and every non-square
+  building in it is turned a quarter (Fixture.quarter_turns, written as the piece's yaw) so its
+  long side lies along it; square ones are never turned. Groupings of one cluster may differ.
+- **Never adjacent**, edge or corner.
+
+A cluster is grown from a random seed cell; its feature centre is the mean of its buildings'
+centres. `tools/map_generation/cluster_review.sh` renders a review set and checks these rules.
+
+Superseded: a random scatter in a disc sized by `cluster_packing_density`, each building only kept
+`footprint_gap_cells` from the others — it produced staggered neighbours, arbitrary packing and
+gaps of every width.
+
+#### Shelters and clusters
+
+Decided 2026-10-09 (Alex). **A shelter is either in one building cluster or clear of all of them**,
+and for `n` players at least `n − 1` stand each way, with no cluster holding more than one.
+
+- **In a cluster, a shelter is one of its groupings.** The cluster is grown around it — its first
+  grouping stands the open gap (§Building layout) from the shelter, and every grouping keeps that
+  gap from it — but the shelter is not one of the cluster's buildings: it adds nothing to the
+  garrison capacity a cluster is sized by, nor to the building budget.
+- **Apart, a shelter keeps `shelter_cluster_clearance_cells`** (Chebyshev gap) from every building
+  of every cluster, so it never reads as some cluster's next grouping.
+- **How many host.** Shelters are placed before buildings, so once they stand the generator draws
+  how many will host, uniformly between `n − 1` and all but `n − 1` of them (capped by the cluster
+  count), picks those shelters and that many clusters at random, and every cluster built around a
+  shelter is placed against it. The rest are apart.
+- **Impossible parameters refuse the map.** Fewer than `2(n − 1)` shelters or `n − 1` clusters
+  is an error, as is a finished map where any shelter is half-in a cluster, two shelters share one,
+  or either count falls short — checked from the geometry, after pass 4 and the mirror.
+  `MapGenerationParams.warnings()` flags a shelter count that can never reach `2(n − 1)`. A map
+  with no building pool can no longer be valid.
+- **Pass 4 never moves a hosting shelter**, since its cluster would not follow; it may re-grow
+  the cluster around it.
+- **Hosted clusters are placed before free ones.** One pinned to its shelter, placed after free
+  clusters, often found one already within `building_cluster_separation_cells` and had nowhere to
+  go: on the topology tests' crowded map that alone took valid seeds from 25 of 25 to 17.
+- **The shelter's footprint is read from its scene**, like every piece's, and every rule here is a
+  gap between footprint edges, so a larger shelter (planned) needs no change here;
+  `test_a_larger_shelter_still_stands_in_one_cluster_or_apart` holds that.
+
+This replaced a collocation affinity pulling clusters toward shelters (1.0 within 14 cells), which
+made nearness likely rather than decided and could not keep a shelter apart.
+
+TODO: hosting still costs a little room on crowded maps: the topology tests' 80–90-cell map with 20
+single-building clusters is valid on 23 of 25 seeds against 25 before. Not tuned.
 
 #### Collocation
 
 **Pairwise affinity.** Each ordered pair (kind being placed, kind already placed) carries an
 `affinity` in `[−1, 1]` and a `radius`. A candidate's score is its favor error minus
 `collocation_weight × Σ affinity` over already-placed features within that pair's radius — so a
-positive affinity pulls a candidate toward those features and a negative one pushes it away. A
-shelter beside a building cluster and a shelter alone are then one table entry apart.
+positive affinity pulls a candidate toward those features and a negative one pushes it away. Whether
+a shelter stands in a cluster is not collocation but a rule (§Shelters and clusters).
 
 Because placement runs energy → shelters → buildings, an affinity can only name a kind placed
 EARLIER — which is exactly how buildings depend on energy and shelters. Collocation is weighted by
@@ -1130,12 +1194,16 @@ no longer join its levels either. Regenerate or rescale before reuse. Also undec
 | `building_cluster_separation_cells` | 20 (was 10; Alex, 2026-10-01) | L1 between the nearest buildings of two clusters; below this they read as one |
 | `site_triple_fraction` / `site_pair_fraction` | 0.2 … 0.4 each, drawn per map | share of sites in threes and in twos; the rest stand alone |
 | `site_cluster_separation_cells` | 50 | L1 between the nearest sites of two site clusters |
+| `shelter_cluster_clearance_cells` | 10; TODO untuned | the gap a shelter no cluster is built around keeps from every cluster (§Shelters and clusters) |
 | `collocation_affinity` | per ordered kind pair: `[−1, 1]` + radius | only kinds placed earlier can be named |
 | `collocation_weight` | | how much affinity may cost in favor error |
 | `cluster_capacity_band_edges` / `_weights` | 3–10–15–20–25 / 0.55, 0.36, 0.07, 0.02 | garrison capacity per cluster; small clusters common, a large one a rarity rather than a fixture |
 | `cluster_capacity_overshoot` | 2 | how far a cluster's last building may carry it past its drawn capacity |
 | `cluster_large_building_bias` | 0.5 | at the top band a 10-capacity building is drawn about 1.8× as often, relative to a 3, as the pool weights it |
-| `cluster_packing_density` | 0.3 … 0.5 | denser packings fail to fit often enough to reject whole seeds |
+| `grouping_size_weights` | 0.3, 0.4, 0.3 | groupings of one, two, three buildings; the length is the cap (Alex: three). TODO: the weights are not tuned |
+| `grouping_gap_cells_min` / `_max` | 1 / 1 | the tight gap inside a grouping (Alex, 2026-10-09; briefly 1–2) |
+| `cluster_open_gap_cells_min` / `_max` | 3 / 5 | the open gap between groupings (Alex, 2026-10-09; briefly 5–8) |
+| `cluster_span_slack_cells` | 2 | how far a grouping may stretch a cluster's longer axis. TODO: not tuned |
 | `last_pass` | a named pass: extent, starts, resources, topology, terrain, elevation, visuals | stop after that pass to inspect it. A `Pass` enum, numbered as this doc numbers them, so the dock offers the names and a report reads the same as §The pipeline |
 | `ground_height` | 8.0 | high enough that a chasm sunk `chasm_depth` stays above 0 |
 | `cut_fraction` | 0.15 … 0.45 of graph edges; 0.45 | 0 is a featureless field; above ~0.5 the map is an SC2 partition, which this game explicitly is not. At the top because only uncarved cuts grow into regions (§Obstacle regions) |
