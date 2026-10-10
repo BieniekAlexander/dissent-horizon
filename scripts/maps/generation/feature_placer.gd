@@ -26,8 +26,6 @@ const POND_LEVEL_FRACTION: float = 0.2
 const POND_GROWTH_NOISE_CELLS: float = 2.5
 ## Rim cells kept clear around a pond: the ring whose corners the pan lowers.
 const POND_RIM_CELLS: int = 1
-## Draws per cluster member before the cluster candidate is abandoned.
-const CLUSTER_MEMBER_DRAWS: int = 48
 ## Draws per extra site of a site cluster before the candidate is abandoned.
 const SITE_ADJACENCY_DRAWS: int = 12
 
@@ -49,6 +47,9 @@ var _cluster_rects: Dictionary = {}
 var _rules: Dictionary = {}
 ## Where candidates are drawn: the whole grid, or pass 4's neighbourhood of a moved feature.
 var _window := Rect2i()
+## The shelter a cluster plan is built around: (plan: FeaturePlan) -> MapFeature, null for a
+## free-standing cluster. The generator resolves FeaturePlan.host_index against its own list.
+var _host_of: Callable = func(_plan: FeaturePlan) -> MapFeature: return null
 ## How a candidate's access share is measured: straight-line by default (pass 3), walking
 ## distance when pass 4 re-places a feature. (point: Vector2) -> PackedFloat32Array.
 var _share_of: Callable
@@ -81,6 +82,11 @@ func restrict(a_center: Vector2, a_radius: float, a_share_of: Callable) -> void:
 	)
 	_window = Rect2i(low, (high - low).max(Vector2i.ONE))
 	_share_of = a_share_of
+
+
+## Resolve the shelter a cluster plan is built around; see _host_of.
+func resolve_hosts_with(a_host_of: Callable) -> void:
+	_host_of = a_host_of
 
 
 ## Take features already on the map as placed, without re-placing them: they reserve their
@@ -157,6 +163,12 @@ func _propose_structure(a_plan: FeaturePlan) -> MapFeature:
 		return null
 	var center: Vector2 = Vector2(origin) + Vector2(dims) * 0.5
 	if not _is_spaced(center) or not _in_band(a_plan, center):
+		return null
+	if (
+		a_plan.kind == MapFeature.Kind.SHELTER
+		and not a_plan.hosts_cluster
+		and not _clears_clusters(Rect2i(origin, dims))
+	):
 		return null
 	var feature := MapFeature.new()
 	feature.kind = a_plan.kind
@@ -243,30 +255,35 @@ func _propose_pond(a_plan: FeaturePlan) -> MapFeature:
 	return feature
 
 
-## A cluster candidate is a centre plus a packing of its pieces within the scatter radius,
-## each clear of the others by the footprint gap. One member that cannot fit sinks the
-## candidate.
+## A cluster candidate is its buildings grown from a random seed cell (BuildingClusterLayout),
+## or around its host shelter when it has one; the feature's centre is the buildings' mean, since
+## that is where the cluster reads as standing. Every other shelter stays clear of it.
 func _propose_cluster(a_plan: FeaturePlan) -> MapFeature:
-	var center := Vector2(
-		_rng.randf_range(_window.position.x, _window.end.x),
-		_rng.randf_range(_window.position.y, _window.end.y)
+	var host: MapFeature = _host_of.call(a_plan)
+	var fixed: Array[Rect2i] = []
+	if host != null:
+		fixed = host.footprints()
+	var seed_cell := Vector2i(
+		_rng.randi_range(_window.position.x, _window.end.x - 1),
+		_rng.randi_range(_window.position.y, _window.end.y - 1)
 	)
-	if not _grid.is_free(Vector2i(center)) or not _is_spaced(center):
+	if host == null and not _grid.is_free(seed_cell):
 		return null
-	var radius: float = _cluster_radius(a_plan)
-	var taken: Dictionary = {}
-	var placements: Array[Dictionary] = []
-	for piece: MapPiece in a_plan.cluster_pieces:
-		var origin: Vector2i = _fit_cluster_member(piece, center, radius, taken)
-		if origin == Vector2i(-1, -1):
-			return null
-		placements.append({piece = piece, origin = origin})
-		for cell: Vector2i in PlacementGrid.rect_cells(
-			origin - Vector2i.ONE * _params.footprint_gap_cells,
-			piece.footprint + Vector2i.ONE * 2 * _params.footprint_gap_cells
-		):
-			taken[cell] = true
-	if not _is_separated(MapFeature.Kind.BUILDING_CLUSTER, placements):
+	var placements: Array[Dictionary] = BuildingClusterLayout.lay_out(
+		_rng, a_plan.cluster_pieces, seed_cell, _grid.is_rect_free, _params, fixed
+	)
+	if placements.is_empty():
+		return null
+	var center := Vector2.ZERO
+	for placement: Dictionary in placements:
+		var rect: Rect2i = MapFeature.placement_rect(placement)
+		center += Vector2(rect.position) + Vector2(rect.size) * 0.5
+	center /= float(placements.size())
+	if (
+		not _is_spaced(center, host)
+		or not _is_separated(MapFeature.Kind.BUILDING_CLUSTER, placements)
+		or not _clears_shelters(placements, host)
+	):
 		return null
 	var feature := MapFeature.new()
 	feature.kind = MapFeature.Kind.BUILDING_CLUSTER
@@ -274,6 +291,38 @@ func _propose_cluster(a_plan: FeaturePlan) -> MapFeature:
 	feature.center = center
 	feature.placements = placements
 	return feature
+
+
+## Whether every building of a candidate cluster keeps shelter_cluster_clearance_cells from every
+## placed shelter but `a_host`: a shelter is either one cluster's or none's.
+func _clears_shelters(a_placements: Array[Dictionary], a_host: MapFeature) -> bool:
+	for feature: MapFeature in _placed:
+		if feature.kind != MapFeature.Kind.SHELTER or feature == a_host:
+			continue
+		for shelter: Rect2i in feature.footprints():
+			for placement: Dictionary in a_placements:
+				var rect: Rect2i = MapFeature.placement_rect(placement)
+				if (
+					BuildingClusterLayout.chebyshev_gap(rect, shelter)
+					< _params.shelter_cluster_clearance_cells
+				):
+					return false
+	return true
+
+
+## Whether a shelter footprint keeps shelter_cluster_clearance_cells from every placed building
+## cluster — what a shelter no cluster is built around must do when pass 4 moves it.
+func _clears_clusters(a_rect: Rect2i) -> bool:
+	for feature: MapFeature in _placed:
+		if feature.kind != MapFeature.Kind.BUILDING_CLUSTER:
+			continue
+		for building: Rect2i in feature.footprints():
+			if (
+				BuildingClusterLayout.chebyshev_gap(a_rect, building)
+				< _params.shelter_cluster_clearance_cells
+			):
+				return false
+	return true
 
 
 ## Sites edge to edge: the first at random, each next one against a random member already in
@@ -338,7 +387,7 @@ func _separation_cells(a_kind: MapFeature.Kind) -> int:
 func _is_separated(a_kind: MapFeature.Kind, a_placements: Array[Dictionary]) -> bool:
 	var separation: int = _separation_cells(a_kind)
 	for placement: Dictionary in a_placements:
-		var rect := Rect2i(placement.origin, (placement.piece as MapPiece).footprint)
+		var rect: Rect2i = MapFeature.placement_rect(placement)
 		for other: Rect2i in _cluster_rects.get(a_kind, []):
 			if footprint_l1_distance(rect, other) < separation:
 				return false
@@ -351,34 +400,6 @@ static func footprint_l1_distance(a: Rect2i, b: Rect2i) -> int:
 	var gap_x: int = maxi(0, maxi(b.position.x - a.end.x + 1, a.position.x - b.end.x + 1))
 	var gap_z: int = maxi(0, maxi(b.position.y - a.end.y + 1, a.position.y - b.end.y + 1))
 	return gap_x + gap_z
-
-
-## The disc a cluster's members scatter in: its footprints, each grown by the gap, filling
-## `cluster_packing_density` of it.
-func _cluster_radius(a_plan: FeaturePlan) -> float:
-	var area: float = 0.0
-	for piece: MapPiece in a_plan.cluster_pieces:
-		var padded: Vector2i = piece.footprint + Vector2i.ONE * _params.footprint_gap_cells
-		area += padded.x * padded.y
-	return sqrt(area / (PI * _params.cluster_packing_density))
-
-
-func _fit_cluster_member(
-	a_piece: MapPiece, a_center: Vector2, a_radius: float, a_taken: Dictionary
-) -> Vector2i:
-	for _i: int in CLUSTER_MEMBER_DRAWS:
-		var offset := Vector2.from_angle(_rng.randf() * TAU) * a_radius * sqrt(_rng.randf())
-		var origin := Vector2i((a_center + offset - Vector2(a_piece.footprint) * 0.5).round())
-		if not _grid.is_rect_free(origin, a_piece.footprint):
-			continue
-		var clear: bool = true
-		for cell: Vector2i in PlacementGrid.rect_cells(origin, a_piece.footprint):
-			if a_taken.has(cell):
-				clear = false
-				break
-		if clear:
-			return origin
-	return Vector2i(-1, -1)
 
 
 #endregion
@@ -454,8 +475,12 @@ static func _holds_block(region: Dictionary, dims: Vector2i) -> bool:
 
 
 #region Scoring and commit
-func _is_spaced(a_center: Vector2) -> bool:
+## Whether `a_center` keeps feature_spacing_cells from every placed feature but `a_exempt` — the
+## shelter a cluster is built around, which it stands beside by design.
+func _is_spaced(a_center: Vector2, a_exempt: MapFeature = null) -> bool:
 	for feature: MapFeature in _placed:
+		if feature == a_exempt:
+			continue
 		if feature.center.distance_to(a_center) < _params.feature_spacing_cells:
 			return false
 	return true
@@ -482,6 +507,6 @@ func _commit(a_feature: MapFeature) -> void:
 			_cluster_rects[a_feature.kind] = []
 		for placement: Dictionary in a_feature.placements:
 			_cluster_rects[a_feature.kind].append(
-				Rect2i(placement.origin, (placement.piece as MapPiece).footprint)
+				MapFeature.placement_rect(placement)
 			)
 #endregion

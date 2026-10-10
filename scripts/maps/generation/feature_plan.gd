@@ -14,7 +14,13 @@ var piece: MapPiece = null
 ## distance band (MapGenerationParams.shelter_start_band_*) every candidate must lie in. -1 for a
 ## feature free to stand anywhere. Kept on the plan, so pass 4's re-placement honours it too.
 var band_start: int = -1
-## A cluster: its members — sites placed edge to edge, or buildings packed around a centre.
+## A shelter chosen to have a building cluster built around it (map-generation.md §Shelters
+## and clusters). Decided after shelters are placed, before buildings are.
+var hosts_cluster: bool = false
+## A building cluster built around a shelter: that shelter's index in the generator's feature
+## list, which pass 4 keeps stable while it replaces features. -1 for a free-standing cluster.
+var host_index: int = -1
+## A cluster: its members — sites placed edge to edge, or buildings grown in groupings.
 var cluster_pieces: Array[MapPiece] = []
 ## Pond: the cell count to grow and the richness it is priced at.
 var pond_cells: int = 0

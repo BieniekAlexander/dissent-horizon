@@ -109,6 +109,7 @@ func _validate() -> bool:
 	if _result.passes_run >= MapGenerationParams.Pass.RESOURCES:
 		_validate_balance()
 		_validate_shelter_bands()
+		_validate_shelter_clusters()
 	if _result.passes_run >= MapGenerationParams.Pass.TERRAIN:
 		_validate_obstruction()
 		_validate_ponds()
@@ -140,6 +141,63 @@ func _validate_shelter_bands() -> void:
 					]
 				)
 			)
+
+
+## Every shelter is in exactly one building cluster or clear of all of them, no cluster holds
+## two, and at least n - 1 of each kind stand, n the player count (map-generation.md §Shelters
+## and clusters). Read from the geometry, so it holds whatever pass 4 or the mirror moved.
+func _validate_shelter_clusters() -> void:
+	var clusters: Array[MapFeature] = _result.features_of(MapFeature.Kind.BUILDING_CLUSTER)
+	var held_by_cluster: Array[int] = []
+	held_by_cluster.resize(clusters.size())
+	var within: int = 0
+	var apart: int = 0
+	for shelter: MapFeature in _result.features_of(MapFeature.Kind.SHELTER):
+		var holders: Array[int] = []
+		var near: int = 0
+		for c: int in clusters.size():
+			var gap: int = _nearest_gap(shelter, clusters[c])
+			if gap <= _params.cluster_open_gap_cells_max:
+				holders.append(c)
+			if gap < _params.shelter_cluster_clearance_cells:
+				near += 1
+		if near == 0:
+			apart += 1
+		elif holders.size() == 1 and near == 1:
+			within += 1
+			held_by_cluster[holders[0]] += 1
+		else:
+			_result.errors.append(
+				(
+					"the shelter at %s is neither in one building cluster nor clear of them"
+					% shelter.center
+				)
+			)
+	for c: int in clusters.size():
+		if held_by_cluster[c] > 1:
+			_result.errors.append(
+				(
+					"the building cluster at %s holds %d shelters"
+					% [clusters[c].center, held_by_cluster[c]]
+				)
+			)
+	var least: int = _params.start_count() - 1
+	if within < least or apart < least:
+		_result.errors.append(
+			(
+				"%d shelters stand in building clusters and %d apart; %d players need %d of each"
+				% [within, apart, _params.start_count(), least]
+			)
+		)
+
+
+## Least Chebyshev gap between any structure of `a` and any of `b`.
+static func _nearest_gap(a: MapFeature, b: MapFeature) -> int:
+	var nearest: int = 1 << 30
+	for x: Rect2i in a.footprints():
+		for y: Rect2i in b.footprints():
+			nearest = mini(nearest, BuildingClusterLayout.chebyshev_gap(x, y))
+	return nearest
 
 
 ## Every pond can be walked into: a pond nobody can reach is a resource nobody can take, and its
@@ -181,14 +239,72 @@ func _place_resources() -> bool:
 		)
 		return false
 	var placer := FeaturePlacer.new(_params, _rng, _grid, _result.starts)
+	placer.resolve_hosts_with(_host_of)
 	var pond_plans: Array[FeaturePlan] = _pond_plans()
-	var currencies: Array = [
-		pond_plans, _site_plans(pond_plans), _shelter_plans(), _building_plans()
-	]
+	var currencies: Array = [pond_plans, _site_plans(pond_plans), _shelter_plans()]
 	for plans: Array[FeaturePlan] in currencies:
 		if not _place_currency(placer, plans):
 			return false
+	var building_plans: Array[FeaturePlan] = _building_plans()
+	if not _assign_hosts(building_plans):
+		return false
+	return _place_currency(placer, building_plans)
+
+
+## The shelter a cluster plan is built around, or null.
+func _host_of(a_plan: FeaturePlan) -> MapFeature:
+	return _result.features[a_plan.host_index] if a_plan.host_index >= 0 else null
+
+
+## Choose which placed shelters get a building cluster built around them, and which clusters
+## (map-generation.md §Shelters and clusters): between n - 1 and all but n - 1 of the shelters,
+## n the player count, so at least n - 1 stand in clusters and n - 1 apart. False, with an error,
+## when there are too few shelters or clusters for that.
+func _assign_hosts(a_cluster_plans: Array[FeaturePlan]) -> bool:
+	var shelters: Array[int] = []
+	for i: int in _result.features.size():
+		if _result.features[i].kind == MapFeature.Kind.SHELTER:
+			shelters.append(i)
+	var least: int = _params.start_count() - 1
+	if shelters.size() < 2 * least or a_cluster_plans.size() < least:
+		_result.errors.append(
+			(
+				"%d players need %d shelters and %d building clusters, but there are %d and %d"
+				% [_params.start_count(), 2 * least, least, shelters.size(), a_cluster_plans.size()]
+			)
+		)
+		return false
+	var hosted: int = _rng.randi_range(least, mini(shelters.size() - least, a_cluster_plans.size()))
+	var shelter_order: Array[int] = _shuffled(shelters.size())
+	var cluster_order: Array[int] = _shuffled(a_cluster_plans.size())
+	for k: int in hosted:
+		var shelter: int = shelters[shelter_order[k]]
+		_result.features[shelter].plan.hosts_cluster = true
+		a_cluster_plans[cluster_order[k]].host_index = shelter
+	# Hosted clusters go first: each is pinned to its shelter, so one placed after free clusters
+	# finds them already within building_cluster_separation_cells of it and has nowhere to go.
+	var hosted_first: Array[FeaturePlan] = []
+	hosted_first.assign(
+		(
+			a_cluster_plans.filter(func(plan: FeaturePlan) -> bool: return plan.host_index >= 0)
+			+ a_cluster_plans.filter(func(plan: FeaturePlan) -> bool: return plan.host_index < 0)
+		)
+	)
+	a_cluster_plans.assign(hosted_first)
 	return true
+
+
+## 0 .. count - 1 in an order drawn from the generator's own stream (Array.shuffle would draw
+## from the global one, and a seed would no longer name a map).
+func _shuffled(a_count: int) -> Array[int]:
+	var order: Array[int] = []
+	order.assign(range(a_count))
+	for i: int in range(a_count - 1, 0, -1):
+		var j: int = _rng.randi_range(0, i)
+		var held: int = order[i]
+		order[i] = order[j]
+		order[j] = held
+	return order
 
 
 #region Pass 1 — extent
@@ -769,12 +885,16 @@ func _replace_feature(
 	a_index: int, a_blocked: Array[Vector2i], a_neighbour_margin: int, a_share_of: Callable
 ) -> MapFeature:
 	var feature: MapFeature = _result.features[a_index]
+	# A cluster is built around this shelter and would not follow it.
+	if feature.plan.hosts_cluster:
+		return null
 	var grid := PlacementGrid.for_terrain(_result.terrain)
 	for start: MapStart in _result.starts:
 		grid.reserve(PlacementGrid.rect_cells(_clearance_origin(start), _clearance_dims()), 0)
 	# A barrier's border cells are steep, and one more cell keeps the footprint gap.
 	grid.reserve(a_blocked, 1 + _params.footprint_gap_cells)
 	var placer := FeaturePlacer.new(_params, _rng, grid, _result.starts)
+	placer.resolve_hosts_with(_host_of)
 	var others: Array[MapFeature] = []
 	for i: int in _result.features.size():
 		if i != a_index:

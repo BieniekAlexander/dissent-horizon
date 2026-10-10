@@ -34,7 +34,9 @@ var target_share: PackedFloat32Array = PackedFloat32Array()
 var realised_share: PackedFloat32Array = PackedFloat32Array()
 
 ## The structures this feature places: one for a shelter, one or more for a cluster, none for
-## a pond. Each is {piece: MapPiece, origin: Vector2i} — origin the min-x/min-z cell.
+## a pond. Each is {piece: MapPiece, origin: Vector2i, quarter_turns: int} — origin the min-x/min-z
+## cell of the TURNED footprint (placement_rect), quarter_turns as Fixture.quarter_turns and 0
+## when absent.
 var placements: Array[Dictionary] = []
 
 ## The plan this feature was placed from, so pass 4 can place it again elsewhere.
@@ -72,13 +74,27 @@ func target_favor() -> float:
 	return target_share[0] - target_share[1] if target_share.size() == 2 else 0.0
 
 
+## The cells one placement claims: its piece's footprint, turned by its quarter turns.
+static func placement_rect(placement: Dictionary) -> Rect2i:
+	return Rect2i(
+		placement.origin,
+		Fixture.oriented_dimensions(
+			(placement.piece as MapPiece).footprint, placement.get("quarter_turns", 0)
+		)
+	)
+
+
 ## Every cell a structure of this feature stands on.
 func structure_cells() -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
-	for placement: Dictionary in placements:
-		var piece: MapPiece = placement.piece
-		var origin: Vector2i = placement.origin
-		for dx: int in piece.footprint.x:
-			for dz: int in piece.footprint.y:
-				cells.append(origin + Vector2i(dx, dz))
+	for rect: Rect2i in footprints():
+		cells.append_array(PlacementGrid.rect_cells(rect.position, rect.size))
 	return cells
+
+
+## Every structure's footprint, in cells.
+func footprints() -> Array[Rect2i]:
+	var rects: Array[Rect2i] = []
+	for placement: Dictionary in placements:
+		rects.append(placement_rect(placement))
+	return rects
