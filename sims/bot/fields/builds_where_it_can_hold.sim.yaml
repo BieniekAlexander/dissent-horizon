@@ -1,0 +1,57 @@
+description: |
+  A BUILDING GOES WHERE THE SAFETY FIELD SAYS IT CAN HOLD. Two enemy rocket batteries stand
+  north of the citadel and nothing of the bot's own can answer them, so a barracks north of
+  the citadel falls sooner than one south of it: the field reads the batteries' walk to each
+  cell and the barracks' time to die under their rockets (EXPLOSIVE against MEDIUM armour).
+  The bot starts short of a barracks and earns its way to one from a far-off extractor, so the
+  one order it may place (cap 1) comes after the batteries are believed; with the bearings at 0
+  the ring around the citadel is otherwise flat, and the safety weight alone tilts the pick to
+  the south side — onto a mark six cells south, within six. The extractor and the barracks'
+  prerequisite stand thirty cells south as a base of their own, so the citadel is the anchor and
+  the only neighbour. Axis: POSITIONING. With the weight at 0 the ring is broken along the
+  threat axis instead (east, toward the believed enemy citadel) and the check reads red, so this
+  asks whether the term places, not whether the default weight is tuned to.
+  Rule: gdd/systems/ai/world-model/lattice-and-topology.md §Safety, sites and placement.
+setting: { kind: flat, size: 120 }
+given:
+  A:
+    settings:
+      difficulty: HARD
+      vision: full
+      energy: 250
+      config:
+        scout_unit_budget: 0
+        may_attack: false
+        economy_reserve: 0
+        production_structure_cap: 1
+        place_frontage_bias: 0.0
+        place_shelter_bias: 0.0
+        place_spacing_weight: 0.0
+        place_safety_weight: 20.0
+      consider: { structures: [ cl_barracks ] }
+    with:
+      base:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: west
+      outpost:  # the barracks' prerequisite (technology.json: requires cl_infrastructure)
+        of: [ { piece: cl_infrastructure, count: 1 } ]
+        at: { from: A.base, distance: 30, bearing: south }
+      income:  # what pays for the barracks, beside the prerequisite in the same far base
+        of: [ { piece: nt_extractor, count: 1 } ]
+        at: { from: A.outpost, distance: 7, bearing: west }
+      builders:
+        of: [ { piece: cl_bioLight_builder, count: 2 } ]
+        at: { from: A.base, distance: 6, bearing: south }
+  B:
+    with:
+      structure:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: east
+      batteries:
+        of: [ { piece: an_mechMedium_artillery, count: 2 } ]
+        at: { from: A.base, distance: 14, bearing: north }
+        formation: cluster
+run: { for: 40s, seed: 1 }
+expect:
+  - { slot: A, check: ordered, kind: build, piece: cl_barracks, by: 30s }
+  - { slot: A, check: placed, piece: cl_barracks, near: { from: A.base, distance: 6, bearing: south }, within: 6, by: 30s }

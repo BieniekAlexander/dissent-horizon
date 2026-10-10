@@ -41,7 +41,7 @@ func draw(a_bot: Bot, a_pen: BotDebugPen) -> void:
 		a_pen.ring(enemy.global_position, THREAT_RING_RADIUS, color)
 		a_pen.line(enemy.global_position, (t["structure"] as Actor).global_position, color)
 	if not a_bot.get_structures().is_empty():
-		var centroid: Vector3 = a_bot.base_centroid()
+		var centroid: Vector3 = a_bot.home_centroid()
 		a_pen.square(centroid, CENTROID_HALF, COLOR_CENTROID)
 		var toward: Vector2 = a_bot.threat_direction(VU.in_xz(centroid))
 		a_pen.line(centroid, centroid + VU.from_xz(toward) * DIRECTION_LENGTH, COLOR_DIRECTION)

@@ -646,18 +646,9 @@ const DIRECTION_EPSILON: float = 1.0e-6
 ## The last fallback is the one line that names a world axis; it is reached only with the
 ## anchor exactly on the map centre and nothing believed.
 func threat_direction(a_from_xz: Vector2) -> Vector2:
-	var believed: Variant = nearest_believed_enemy_structure_position()
-	if believed == null:
-		# A believed unit that cannot attack is no axis to face: the opening's reveal drones
-		# over every shelter (Scenario._reveal_shelters_at_start) are enemy-owned and
-		# remembered for minutes, and facing the nearest of them turned the whole base away
-		# from the map. The same rule as base_threats: what cannot hurt is not a threat.
-		believed = nearest_believed_enemy_unit_position(
-			base_centroid(),
-			func(a_entry: CommanderBlackboard.Entry) -> bool: return unit_can_attack(a_entry.type)
-		)
-	if believed != null:
-		var to_threat: Vector2 = VU.in_xz(believed) - a_from_xz
+	var point: Variant = threat_point()
+	if point != null:
+		var to_threat: Vector2 = (point as Vector2) - a_from_xz
 		if to_threat.length_squared() > DIRECTION_EPSILON:
 			return to_threat.normalized()
 	if map != null:
@@ -665,6 +656,23 @@ func threat_direction(a_from_xz: Vector2) -> Vector2:
 		if to_centre.length_squared() > DIRECTION_EPSILON:
 			return to_centre.normalized()
 	return Vector2(0.0, 1.0)
+
+
+## WHERE THE ACTION IS, as an XZ, or null with nothing believed: the point the threat axis
+## points at — the nearest enemy structure seen, else the nearest remembered enemy unit that
+## can attack. The cluster choice measures each base's walk to it (BotEconomy._anchor_for).
+func threat_point() -> Variant:
+	var believed: Variant = nearest_believed_enemy_structure_position()
+	if believed == null:
+		# A believed unit that cannot attack is no axis to face: the opening's reveal drones
+		# over every shelter (Scenario._reveal_shelters_at_start) are enemy-owned and
+		# remembered for minutes, and facing the nearest of them turned the whole base away
+		# from the map. The same rule as base_threats: what cannot hurt is not a threat.
+		believed = nearest_believed_enemy_unit_position(
+			home_centroid(),
+			func(a_entry: CommanderBlackboard.Entry) -> bool: return unit_can_attack(a_entry.type)
+		)
+	return VU.in_xz(believed) if believed != null else null
 
 
 ## The owned command centres — under HEGEMONY, the whole game, and so what a static defence
@@ -679,7 +687,7 @@ func owned_command_centres() -> Array:
 ## the enemy reaches first coming that way, and so the one the army stands in front of. Null
 ## when the bot owns no structure.
 func frontmost_structure(a_direction: Vector2) -> Actor:
-	var origin: Vector2 = VU.in_xz(base_centroid())
+	var origin: Vector2 = VU.in_xz(home_centroid())
 	var best: Actor = null
 	var best_along: float = -INF
 	for s: Actor in _owned_structures():
@@ -688,6 +696,49 @@ func frontmost_structure(a_direction: Vector2) -> Actor:
 			best_along = along
 			best = s
 	return best
+
+
+## THE BOT'S BASES (BotFields.clusters): its structures grown by the blast spacing and taken
+## as connected components, each {"centroid": XZ, "members": [XZ]}. One base holding every
+## structure without the fields, or with nothing but units standing.
+func bases() -> Array:
+	var f: BotFields = fields()
+	if f != null:
+		return f.clusters(BotEconomy.blast_spacing_cells())
+	var members: Array = []
+	for piece: Actor in _owned_structures():
+		members.append(VU.in_xz(piece.global_position))
+	if members.is_empty():
+		return []
+	return [{"centroid": VU.in_xz(base_centroid()), "members": members}]
+
+
+## WHERE HOME IS when one point has to stand for the bot: the centroid of the cluster its
+## command centre stands in (under HEGEMONY the command centre is the game), else of the
+## largest cluster, else the base centroid. Every read that used to measure from "the base" —
+## the threat axis, the scout's home, the retreat point, the defence anchor — measures from
+## here, so two bases with a gap between them do not pull it onto the ground between
+## (lattice-and-topology.md §Safety, sites and placement, item 4).
+func home_centroid() -> Vector3:
+	var all: Array = bases()
+	if all.is_empty():
+		return base_centroid()
+	var centres: Array = owned_command_centres()
+	var home: Dictionary = {}
+	for cluster: Dictionary in all:
+		if home.is_empty() or (cluster["members"] as Array).size() > (home["members"] as Array).size():
+			home = cluster
+		for centre: Actor in centres:
+			if (cluster["members"] as Array).has(VU.in_xz(centre.global_position)):
+				return _at_ground(cluster["centroid"])
+	return _at_ground(home["centroid"])
+
+
+## `a_xz` at the terrain's height — the base centroid is a Vector3 and its readers compare
+## against piece positions, so a cluster's centroid is lifted onto the ground the same way.
+func _at_ground(a_xz: Vector2) -> Vector3:
+	var y: float = map.terrain_height_at(a_xz) if map != null else 0.0
+	return Vector3(a_xz.x, y, a_xz.y)
 
 
 ## Average world position of all owned structures — a rough "home base"
@@ -826,7 +877,7 @@ func nearest_enemy_structure_to_base() -> Actor:
 	var enemies := get_enemy_structures()
 	if enemies.is_empty():
 		return null
-	var base := base_centroid()
+	var base := home_centroid()
 	return (
 		AU
 		. sort_on_key(func(s: Actor): return base.distance_squared_to(s.global_position), enemies)
@@ -861,7 +912,7 @@ func nearest_enemy_structure_to_base() -> Actor:
 ## rejects is not an objective. See `_nearest_belief_position`.
 func nearest_believed_enemy_structure_position(a_accept: Variant = null) -> Variant:
 	return _nearest_belief_position(
-		blackboard.believed_structures() if blackboard != null else [], base_centroid(), a_accept
+		blackboard.believed_structures() if blackboard != null else [], home_centroid(), a_accept
 	)
 
 
@@ -870,7 +921,7 @@ func nearest_believed_enemy_structure_position(a_accept: Variant = null) -> Vari
 ## was, such as the army ordering an Attack on the building it has reached.
 func nearest_believed_enemy_structure_entry(a_accept: Variant = null) -> CommanderBlackboard.Entry:
 	return _nearest_belief_entry(
-		blackboard.believed_structures() if blackboard != null else [], base_centroid(), a_accept
+		blackboard.believed_structures() if blackboard != null else [], home_centroid(), a_accept
 	)
 
 
@@ -1730,7 +1781,7 @@ func _clocked(a_entry: CommanderBlackboard.Entry, a_answer_seconds: float) -> fl
 		return 1.0
 	var arrival: float = fields.arrival_seconds_between(
 		VU.in_xz(a_entry.last_known_location),
-		VU.in_xz(base_centroid()),
+		VU.in_xz(home_centroid()),
 		fields.mobility_of_type(a_entry.type)
 	)
 	return clock_weight(arrival, a_answer_seconds, arrival_margin_falloff_seconds)
@@ -1752,17 +1803,32 @@ static func clock_weight(arrival_seconds: float, answer_seconds: float, falloff:
 ## armed units its built producers can train today. INF with no producer — every threat is
 ## then pressing, since nothing can be made in time.
 func fastest_answer_seconds() -> float:
-	var best: int = -1
+	var best: float = INF
 	for s: Actor in _owned_structures():
-		if s.production == null or not s.production.trains_units() or not s.is_built:
+		if not s.is_built or s.production == null:
 			continue
-		for t: StringName in considered_producible_types(s.production):
-			if not unit_can_attack(t) or not has_tech_for(t):
-				continue
-			var ticks: int = unit_build_time_ticks(t)
-			if ticks > 0 and (best < 0 or ticks < best):
-				best = ticks
-	return float(best) / TimeUtils.ticks_per_second() if best > 0 else INF
+		var answer: Dictionary = fastest_answer_of(s.production)
+		if not answer.is_empty():
+			best = minf(best, answer["seconds"])
+	return best
+
+
+## THE FASTEST ARMED UNIT `a_production` can train today, as {"type", "seconds" to build it},
+## or empty when it trains nothing armed the bot has the tech for. The producer's part of the
+## bot's answer to a threat (fastest_answer_seconds; BotFields.response_seconds_at).
+func fastest_answer_of(a_production: Production) -> Dictionary:
+	if a_production == null or not a_production.trains_units():
+		return {}
+	var best: Dictionary = {}
+	for t: StringName in considered_producible_types(a_production):
+		if not unit_can_attack(t) or not has_tech_for(t):
+			continue
+		var ticks: int = unit_build_time_ticks(t)
+		if ticks > 0 and (best.is_empty() or ticks < int(best["ticks"])):
+			best = {"type": t, "ticks": ticks}
+	if best.is_empty():
+		return {}
+	return {"type": best["type"], "seconds": float(best["ticks"]) / TimeUtils.ticks_per_second()}
 
 
 ## How valuable building one more [unit_type] is against the current demand map: its
@@ -1939,6 +2005,92 @@ func dps_against(a_attacker: Actor, a_target: Actor) -> float:
 	if a_attacker == null or a_attacker.weapon_inventory == null:
 		return 0.0
 	return _dps_against(a_attacker.weapon_inventory, a_target) * matchup(a_attacker, a_target)
+
+
+## THE DPS A TYPE WOULD DEAL `a_target`, read off a live carrier of the type or its preview and
+## off the target's own Defense — so both halves may be out-of-tree previews, which the
+## per-piece dps_against cannot price (a preview exposes no targetable layers). Its best gun
+## that can shoot a ground target, at the damage table's multiplier for the target's armour and
+## frame, or the authored matchup override. 0 for a type that cannot hurt the target: a
+## lead-armed raider is barely a threat to a building (lattice-and-topology.md §Safety, sites
+## and placement). What the safety field prices every believed enemy by.
+func dps_of_type_against(a_type: StringName, a_target: Node) -> float:
+	var carrier: Node = _any_instance_of_type(a_type)
+	if carrier == null:
+		carrier = _preview_for_type(a_type)
+	if carrier == null or a_target == null:
+		return 0.0
+	var loadout: Loadout = carrier.get_node_or_null("Loadout") as Loadout
+	if loadout == null:
+		return 0.0
+	var target_id: StringName = (a_target as Entity).id if a_target is Entity else &""
+	var override: Variant = DamageTable.matchup_override(a_type, target_id)
+	var best: float = 0.0
+	for weapon: Weapon in loadout.get_weapons():
+		if (weapon.target_mask & CollisionLayers.Mask.TARGETABLE_GROUND) == 0:
+			continue
+		var base: float = weapon.per_shot_damage()
+		if base <= 0.0:
+			continue
+		var multiplier: float = (
+			float(override)
+			if override != null
+			else DamageTable.calculate_damage(base, weapon.per_shot_damage_type(), a_target) / base
+		)
+		best = maxf(best, weapon.approximate_dps() * multiplier)
+	return best
+
+
+## dps_of_type_against for every believed enemy UNIT type: type → DPS against `a_target`.
+func dps_by_type_against(a_target: Node) -> Dictionary:
+	var out: Dictionary = {}
+	if blackboard == null:
+		return out
+	for entry: CommanderBlackboard.Entry in blackboard.believed_units():
+		if not out.has(entry.type):
+			out[entry.type] = dps_of_type_against(entry.type, a_target)
+	return out
+
+
+## The HP a structure of `a_type` stands with, read off its preview's Defense (a preview's
+## @onready never resolves, so the node is asked for directly). 0 for a type with no Defense.
+func hp_of_type(a_type: StringName) -> float:
+	var preview: Node = _preview_for_type(a_type)
+	if preview == null:
+		return 0.0
+	var defense: Defense = preview.get_node_or_null("Defense") as Defense
+	return defense.hp_max if defense != null else 0.0
+
+
+## THE SAFETY CHANNEL for building a structure of `a_type` (BotFields.safety): 0–1 per lattice
+## cell, its expected lifetime there over the held horizon. Empty without the fields.
+func safety_channel_for(a_type: StringName) -> PackedFloat32Array:
+	var f: BotFields = fields()
+	var preview: Node = _preview_for_type(a_type)
+	if f == null or preview == null:
+		return PackedFloat32Array()
+	return f.safety(String(a_type), hp_of_type(a_type), dps_by_type_against(preview))
+
+
+## THE EXPECTED LIFETIME of a structure of `a_type` standing at `a_xz`, in seconds
+## (BotFields.lifetime_seconds_at); the held horizon without the fields, when nothing can be
+## said against a site.
+func lifetime_of_type_at(a_type: StringName, a_xz: Vector2) -> float:
+	var f: BotFields = fields()
+	var preview: Node = _preview_for_type(a_type)
+	if f == null or preview == null:
+		return BotFields.HELD_LIFETIME_SECONDS
+	return f.lifetime_seconds_at(a_xz, hp_of_type(a_type), dps_by_type_against(preview))
+
+
+## SECONDS UNTIL `a_piece`, standing at `a_xz`, FALLS to the believed enemy (BotFields.
+## kill_seconds_at) — what a builder has before the job it walks to is interrupted. INF without
+## the fields.
+func kill_seconds_of_at(a_piece: Actor, a_xz: Vector2) -> float:
+	var f: BotFields = fields()
+	if f == null or a_piece == null or a_piece.defense == null:
+		return INF
+	return f.kill_seconds_at(a_xz, a_piece.defense.hp, dps_by_type_against(a_piece))
 
 
 ## Energy cost of a type, from the tech tree.

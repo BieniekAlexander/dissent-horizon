@@ -281,14 +281,24 @@ func _classify_ability(
 	# is normally read in, and the thing a player wants to know about a global ability is
 	# whether it can be used AT ALL right now.
 	var readiest: Abilities = _readiest_pool(ability_id, a_selection)
+	# A caster whose piece still waits on the upgrade that unlocks the ability: the remedy is
+	# research, as for an unbought sanction. Asked of the SELECTION before the commander-wide
+	# fallback, or a selection of locked Sleepers would borrow a Recruit's pool and draw lit.
+	if readiest == null and _has_locked_caster(ability_id, a_selection):
+		blocker = Blocker.LOCKED
+		return
+	var casters: Array = []
+	if readiest == null and a_commander != null:
+		casters = a_commander.casters_of_ability(ability_id)
+		readiest = _readiest_pool(ability_id, casters)
 	if readiest == null:
-		if a_commander != null:
-			readiest = _readiest_pool(ability_id, a_commander.casters_of_ability(ability_id))
-		if readiest == null:
-			# Unlocked, and nothing to cast it with. A different remedy from LOCKED — a PIECE
-			# rather than dominion — so a different blocker and a different colour.
-			blocker = Blocker.NO_CASTER
+		if _has_locked_caster(ability_id, casters):
+			blocker = Blocker.LOCKED
 			return
+		# Unlocked, and nothing to cast it with. A different remedy from LOCKED — a PIECE
+		# rather than dominion — so a different blocker and a different colour.
+		blocker = Blocker.NO_CASTER
+		return
 	# UNPOWERED BEFORE CHARGES: a dark building can hold a full pool and still cast nothing,
 	# and telling the player to wait for a charge they already have is the wrong instruction.
 	if not readiest.is_operational():
@@ -309,8 +319,8 @@ func _classify_ability(
 
 
 ## The pool with the most charges left among `a_casters`, or null when none of them grants
-## the ability. "Most charges" rather than "the first": a button speaks for whichever caster
-## could act, matching selection_precondition's rule that a command is available as soon as
+## the ability unlocked. "Most charges" rather than "the first": a button speaks for whichever
+## caster could act, matching selection_precondition's rule that a command is available as soon as
 ## anybody can act on it.
 static func _readiest_pool(ability_id: StringName, casters: Array) -> Abilities:
 	var readiest: Abilities = null
@@ -320,9 +330,29 @@ static func _readiest_pool(ability_id: StringName, casters: Array) -> Abilities:
 		var pool := (node as Node).get_node_or_null("Abilities") as Abilities
 		if pool == null or not pool.grants(ability_id):
 			continue
+		# A caster still waiting on the upgrade that unlocks this ability for its piece speaks
+		# for nothing here; _has_locked_caster tells that apart from having no caster at all.
+		if node is Entity and not UpgradeCatalog.is_ability_unlocked(node as Entity, ability_id):
+			continue
 		if readiest == null or pool.charges_of(ability_id) > readiest.charges_of(ability_id):
 			readiest = pool
 	return readiest
+
+
+## Whether any of `casters` is granted `ability_id` but may not use it until an upgrade that
+## unlocks it for its piece is researched.
+static func _has_locked_caster(ability_id: StringName, casters: Array) -> bool:
+	return casters.any(
+		func(node: Variant) -> bool:
+			if not (node is Entity) or not is_instance_valid(node):
+				return false
+			var pool := (node as Entity).get_node_or_null("Abilities") as Abilities
+			return (
+				pool != null
+				and pool.grants(ability_id)
+				and not UpgradeCatalog.is_ability_unlocked(node as Entity, ability_id)
+			)
+	)
 
 
 ## Whether the commander may use this ability at all. A dominion-unlocked one must have been

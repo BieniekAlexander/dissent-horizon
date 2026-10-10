@@ -61,7 +61,7 @@ func economy_lead() -> float:
 ## The estimate's inputs, each read live: the prior, the bands (centre, coverage, observed
 ## rate), what is believed outside every band, and the stale fraction the no-shelter rule uses.
 func terms() -> Dictionary:
-	var shelters: Array = candidate_shelters(_shelter_points(), VU.in_xz(_bot.base_centroid()))
+	var shelters: Array = candidate_shelters(_shelter_points(), VU.in_xz(_bot.home_centroid()))
 	var apportioned: Dictionary = apportion(shelters, _observations(), band_radius)
 	var bands: Array = []
 	for band: Dictionary in apportioned["bands"]:

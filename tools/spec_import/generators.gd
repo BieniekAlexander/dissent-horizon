@@ -807,6 +807,8 @@ static func _modifier_phrase(registry: RefCounted, entry: Dictionary) -> String:
 			"%s's %s recharges %s faster"
 			% [who, ability_title, _percent_more(entry["cooldown_rate_factor"])]
 		)
+	if entry.has("unlocks"):
+		return "%s can use %s" % [who, ability_title]
 	return who
 
 
@@ -815,9 +817,9 @@ static func _percent_more(factor: Variant) -> String:
 	return "%s%%" % _number((float(factor) - 1.0) * 100.0)
 
 
-## `{id: {"title", "modifies": [{"piece", "ability", "range"}]}}` for every upgrade doc — what
-## UpgradeCatalog reads. A `modifies.range` names a library shape in the doc and arrives here as
-## that shape's radius, so the runtime reads a number.
+## `{id: {"title", "faction", "modifies": [{"piece", "ability", "range"}]}}` for every upgrade
+## doc — what UpgradeCatalog reads. A `modifies.range` names a library shape in the doc and
+## arrives here as that shape's radius, so the runtime reads a number.
 static func upgrades_json(registry: RefCounted) -> String:
 	var ids: Array = registry.upgrades.keys()
 	ids.sort()
@@ -837,8 +839,16 @@ static func upgrades_json(registry: RefCounted) -> String:
 			for key: String in ["hp_factor", "rearm_rate_factor", "cooldown_rate_factor"]:
 				if (entry as Dictionary).has(key):
 					m[key] = float(entry[key])
+			if (entry as Dictionary).has("unlocks"):
+				m["unlocks"] = true
 			modifies.append(m)
-		table[id] = {"title": piece_title(spec), "modifies": modifies}
+		var ui: Dictionary = spec["ui"] if spec.get("ui") is Dictionary else {}
+		var factions: Array = ui.get("factions", [])
+		table[id] = {
+			"title": piece_title(spec),
+			"faction": str(factions[0]) if not factions.is_empty() else "",
+			"modifies": modifies,
+		}
 	return _json_header("upgrade definitions") + JSON.stringify(table, "\t") + "\n"
 
 

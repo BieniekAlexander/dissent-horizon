@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3 uid="uid://cftmhq2dpw1sf"]
+[gd_scene load_steps=34 format=3 uid="uid://cftmhq2dpw1sf"]
 
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_small.tres" id="1_spec"]
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_u77lh"]
@@ -27,6 +27,10 @@
 [ext_resource type="Script" uid="uid://b1w7wgm3ynbog" path="res://scripts/entities/components/beacon_planter.gd" id="3_spec"]
 [ext_resource type="Script" uid="uid://cben1rmf76xst" path="res://scripts/entities/components/abilities.gd" id="4_spec"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="5_spec"]
+[ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="6_spec"]
+[ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="7_spec"]
+[ext_resource type="PackedScene" uid="uid://gqagptdu353t" path="res://scenes/entities/projectiles/cl/sleeper_shell.tscn" id="8_spec"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/ground_range_medium.tres" id="9_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_xlse6"]
 height = 1.5
@@ -144,6 +148,23 @@ script = ExtResource("3_spec")
 [node name="Abilities" type="Node" parent="."]
 script = ExtResource("4_spec")
 groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 450, "grants": [&"spot"] }])
+
+[node name="Loadout" type="Node3D" parent="."]
+script = ExtResource("6_spec")
+
+[node name="Shotgun" type="Node3D" parent="Loadout"]
+script = ExtResource("7_spec")
+split_time_ticks = 9
+reload_time_ticks = 90
+clip_size = 2
+projectile_scene = ExtResource("8_spec")
+melee_damage = 0.0
+target_mask = 2
+
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/Shotgun" groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("9_spec")
+disabled = true
 
 [editable path="Selectable"]
 [editable path="HPBar"]

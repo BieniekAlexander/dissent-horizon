@@ -412,6 +412,9 @@ static func _load_technology() -> Dictionary:
 #region Upgrades
 ## Emitted once when an upgrade finishes researching and becomes owned.
 signal upgrade_researched(a_id: StringName)
+## Emitted whenever the owned set changes, gained or revoked: what a piece re-applies its
+## stored upgrade effects on.
+signal upgrades_changed
 
 ## The upgrades this commander has finished researching, as a set (id -> true). Commander-wide
 ## and permanent: losing the structure that researched one does not take it back
@@ -434,6 +437,17 @@ func complete_upgrade(a_id: StringName) -> void:
 		return
 	_owned_upgrades[a_id] = true
 	upgrade_researched.emit(a_id)
+	upgrades_changed.emit()
+	resources_changed.emit()
+
+
+## Take `a_id` away again. DEBUG ONLY: in play an upgrade is never lost, not even with the
+## structure that researched it (gdd/systems/macroeconomics/upgrades.md). The debug menu's
+## upgrade card is the caller. Idempotent.
+func revoke_upgrade(a_id: StringName) -> void:
+	if not _owned_upgrades.erase(a_id):
+		return
+	upgrades_changed.emit()
 	resources_changed.emit()
 
 

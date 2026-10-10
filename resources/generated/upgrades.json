@@ -1,5 +1,6 @@
 {
 	"advanced_targetting": {
+		"faction": "colonial",
 		"modifies": [
 			{
 				"ability": "spot",
@@ -9,7 +10,19 @@
 		],
 		"title": "Advanced Targetting"
 	},
+	"cell_activation": {
+		"faction": "colonial",
+		"modifies": [
+			{
+				"ability": "spot",
+				"piece": "cl_bioLight_stealth",
+				"unlocks": true
+			}
+		],
+		"title": "Cell Activation"
+	},
 	"field_conditioning": {
+		"faction": "colonial",
 		"modifies": [
 			{
 				"frame": "BIO",
@@ -19,6 +32,7 @@
 		"title": "Field Conditioning"
 	},
 	"gun_drill": {
+		"faction": "colonial",
 		"modifies": [
 			{
 				"ability": "bombard",
@@ -29,6 +43,7 @@
 		"title": "Gun Drill"
 	},
 	"rapid_rearmament": {
+		"faction": "colonial",
 		"modifies": [
 			{
 				"piece": "cl_aircraftMedium_antiMech",
@@ -38,6 +53,7 @@
 		"title": "Rapid Rearmament"
 	},
 	"reinforced_hulls": {
+		"faction": "colonial",
 		"modifies": [
 			{
 				"hp_factor": 1.25,

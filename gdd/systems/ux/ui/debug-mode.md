@@ -45,12 +45,20 @@ up, folded or not. It is not a command-grid card and does not interact with `car
 A second menu, top-left, tunes the shared libraries and saves edited docs; it and the
 editable readouts are [debug-tuning](debug-tuning.md).
 
-It carries five things, independent of each other: the **player** setting (§Playing as
+It carries six things, independent of each other: the **player** setting (§Playing as
 another commander), the **playback speed** while playing (§Playback speed), a **difficulty**
-picker per bot, an **energy and dominion** field per commander, and the **piece card** (§The
-piece spawner). While spectating, the speed is the spectator panel's and the piece card is
-hidden (§Sessions); in a playback the menu is not offered at all, since nothing may change a
+picker per bot, an **energy and dominion** field per commander, the **piece card** (§The
+piece spawner), and the **upgrade card** below it. While spectating, the speed is the spectator
+panel's and the piece and upgrade cards are hidden (§Sessions); in a playback the menu is not offered at all, since nothing may change a
 recorded match.
+
+The upgrade card lists a toggle per upgrade of the faction the piece card shows (the
+upgrade doc's first `ui.factions` entry). A toggle is pressed while the player selected in the
+Player setting owns that upgrade; pressing it grants or revokes it at once, with no research
+and no cost (`Commander.complete_upgrade` / `revoke_upgrade`). Revoking exists only here: in
+play an upgrade is never lost. A piece re-applies its stored effects (the hit-point maximum) on
+`Commander.upgrades_changed`, so a revoke takes a raised maximum back down at the same fraction
+of health.
 
 The resource fields accept digits only. Each shows the live amount until it is focused; Enter,
 or leaving the field, sets the commander's stockpile to what it holds, through

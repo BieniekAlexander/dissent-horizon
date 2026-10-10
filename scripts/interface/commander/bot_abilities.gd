@@ -54,7 +54,11 @@ func tick() -> int:
 			continue
 		considered += 1
 		for id: StringName in pool.granted_abilities():
-			if AbilityCatalog.is_passive(id) or not pool.is_ready(id):
+			if (
+				AbilityCatalog.is_passive(id)
+				or not pool.is_ready(id)
+				or not UpgradeCatalog.is_ability_unlocked(unit, id)
+			):
 				continue
 			match AbilityCatalog.command_of(id):
 				"command_launch":

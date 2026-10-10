@@ -774,7 +774,8 @@ upgrade nothing researches is a warning, since its button can never be drawn.
 
 A modifier selects by `piece:` or by `frame: BIO|MECH` (every unit of that frame), and carries
 exactly one effect: `range` (a shape id; needs `ability:`), `hp_factor`, `rearm_rate_factor`
-(the piece must carry a `charged:` weapon) or `cooldown_rate_factor` (needs `ability:`). A
+(the piece must carry a `charged:` weapon), `cooldown_rate_factor` (needs `ability:`) or
+`unlocks: true` (needs `ability:`; the ability is locked for that piece until researched). A
 factor is a positive number, 1.25 meaning a quarter more. The effects are
 `SpecRegistry.MODIFIER_EFFECTS`; a new one is added there together with the runtime reader
 that honours it. What each one does: the upgrades note §What an upgrade can change.
@@ -849,6 +850,13 @@ A rule yields one of five verdicts per piece:
 | `UNACCEPTED` | violated, undeclared | hard error; nothing is written |
 | `STALE` | declared but not violated (or not applicable) | hard error |
 | `INCOMPLETE` | an `ASSET` rule's slot is unfilled, undeclared | listed in the run summary with its `AssetState` (`PLACEHOLDER`/`MISSING`); never an error |
+
+The summary also reports the **combat model's staleness**: the armed units (a doc with
+`movement:`, a `weapons:` list and an energy cost) the shipped `resources/bots/combat_model.json`
+was never fitted on, and the types it knows that are no longer armed units. An unknown unit
+drops every producer that can train it onto the demand map, so a balance pass that adds or arms
+a piece should end with `tools/combat_model/regenerate.sh` (gdd/systems/ai/macro-learning.md §1).
+Reported, never an error: the bot plays on meanwhile.
 
 `ASSET` rules (`has_mesh_visual`, `has_voice_lines`, `has_death_sound`) are the one
 severity where an undeclared violation is not a failure: a missing asset crashes

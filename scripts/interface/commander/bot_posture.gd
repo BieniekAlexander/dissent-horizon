@@ -44,12 +44,13 @@ const MODULATION_SPAN: float = 2.0
 
 ## The BotDifficulty fields each dial divides by its factor, so a higher dial LOWERS them: all-in
 ## wants fewer extractors before production and commits at a lower count; offence launches at
-## a lower value ratio and holds less home; greed banks less. Sentinels (a value outside the
+## a lower value ratio and holds less home; greed banks less and builds where it is cheap rather
+## than where it is safe or spread. Sentinels (a value outside the
 ## field's search range) are never moved, exactly as the personality draw leaves them.
 const DIVIDED_BY_DIAL: Dictionary = {
 	Dial.COMMITMENT: ["income_structure_target", "army_commit_threshold"],
 	Dial.AGGRESSION: ["attack_value_ratio", "guard_strength_ratio"],
-	Dial.RISK: ["economy_reserve"],
+	Dial.RISK: ["economy_reserve", "place_safety_weight", "place_spacing_weight"],
 }
 
 #region Parameters — pushed from BotDifficulty by read_params

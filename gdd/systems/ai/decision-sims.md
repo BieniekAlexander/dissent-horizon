@@ -301,6 +301,28 @@ and a decision that reads the band parts from one that reads the bearing:
   one, whose walk is longer than the building's time to kill, does not. `needs:` a way to
   start a slot with a wave out and a staged reserve: without one the posture is DEFEND and
   the whole army answers, so it reads specification-red until that setting exists.
+- **`builds_where_it_can_hold`** (2026-10-09, T-101) — two enemy rocket batteries north and
+  nothing of the bot's own to answer them; with the bearings at 0 the `safety` field alone
+  tilts the barracks to the south side of the citadel (`placed` within six of a mark six cells
+  south). Its control with `place_safety_weight` at 0 breaks the ring along the threat axis
+  instead and reads red (run 2026-10-09). Two devices the spec needs: the bot EARNS its way to
+  the barracks from a far-off extractor (energy 250, reserve 0), so its one order (cap 1)
+  comes after the batteries are believed — nothing is believed on a bot's first think, and a
+  barracks bought at tick 3 is placed blind; and the prerequisite and the extractor stand
+  thirty cells south as a base of their own, so the citadel is the anchor and the only
+  neighbour (a prerequisite beside the citadel moved the anchor to their mean).
+- **`spacing_keeps_structures_apart`** (2026-10-09, T-101) — the same setup without the
+  batteries; at the top of `place_spacing_weight`'s range the one barracks is never ordered
+  within eight cells of the citadel's centre (`not` around a `placed`); at 0 it lands against
+  the eight-by-eight footprint's wall, within seven, and the negation reads red (run
+  2026-10-09). A first draft asked "within six" and read green at every weight, because six
+  from the centre of an eight-wide footprint is inside it: a `placed` bound has to be measured
+  from the footprint, not the centre.
+- TODO: the site valuation (lattice-and-topology.md §Safety, sites and placement, item 2) has
+  no sim because the harness has no NEUTRAL slot: an extraction site or a pond cannot be
+  authored into a spec, so "the bot takes the safe site over the richer exposed one" is a
+  unit test (`tests/test_BotSiteValuation.gd`) until one exists. The macro/ specification
+  above wants the same slot.
 
 ## What the runner adds
 

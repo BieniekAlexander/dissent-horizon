@@ -9,8 +9,8 @@ flavor:
     Bombard fires on it — that commitment is what the artillery is paying for. The nearest
     loaded Bombard fires as soon as it can, unless you have switched the Bombard to manual.
 
-    A Sleeper walks to the point itself, plants a beacon on the ground over 3 seconds, and
-    moves on. Its beacon stands until a Bombard is ordered onto it.
+    A Sleeper, once Cell Activation is researched, walks to the point itself, plants a beacon
+    on the ground over 3 seconds, and moves on. Its beacon stands until a Bombard is ordered onto it.
 
     A LOCAL ability: it is an order given to the spotter, not something the commander calls in,
     so it has no cell on the ORDNANCE card.

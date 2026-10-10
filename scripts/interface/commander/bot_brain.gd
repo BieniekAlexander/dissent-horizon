@@ -390,6 +390,8 @@ func _apply_config() -> void:
 	_economy.place_shelter_bias = config.place_shelter_bias
 	_economy.place_corridor_weight = config.place_corridor_weight
 	_economy.place_coverage_weight = config.place_coverage_weight
+	_economy.place_safety_weight = config.place_safety_weight
+	_economy.place_spacing_weight = config.place_spacing_weight
 	_production.utility_unit_cap = config.utility_unit_cap
 	# The two errand counts the utility demand is sized against. Both are already parameters
 	# of other managers; production reads them because a builder and a scout are units it has
@@ -551,6 +553,8 @@ func _apply_posture() -> BotDifficulty:
 	_economy.reserve = played.economy_reserve
 	_research.reserve = played.economy_reserve
 	_production.reserve = played.economy_reserve
+	_economy.place_safety_weight = played.place_safety_weight
+	_economy.place_spacing_weight = played.place_spacing_weight
 	_scout.information_value_energy = (
 		BotScout.INFORMATION_VALUE_ENERGY * _posture.factor(BotPosture.Dial.CURIOSITY)
 	)
@@ -581,7 +585,7 @@ func _threat_signal() -> float:
 	var fields: BotFields = bot.fields()
 	if fields == null or not fields.has_enemy_sources():
 		return 0.0
-	var arrival: float = fields.arrival_seconds_at(VU.in_xz(bot.base_centroid()))
+	var arrival: float = fields.arrival_seconds_at(VU.in_xz(bot.home_centroid()))
 	if arrival == INF:
 		return 0.0
 	return 1.0 - clampf(arrival / BotFields.QUIET_HORIZON_SECONDS, 0.0, 1.0)
@@ -686,4 +690,4 @@ func _preservation_retreat_dest(a_unit: Actor) -> Vector3:
 	var nearest: Actor = bot.nearest_own_structure(a_unit.global_position)
 	if nearest != null:
 		return nearest.global_position
-	return bot.base_centroid()
+	return bot.home_centroid()

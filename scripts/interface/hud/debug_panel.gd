@@ -2,7 +2,8 @@ class_name DebugPanel
 extends PanelContainer
 
 ## The debug menu: who the player is (or nobody, spectating), the playback speed while playing,
-## each bot's difficulty, every commander's energy and dominion, and the piece spawner's card.
+## each bot's difficulty, every commander's energy and dominion, the piece spawner's card, and
+## the upgrade card that grants or revokes the player's upgrades.
 ## Up exactly while the debug view is (DebugMode.is_active()), and while up it replaces the
 ## top-right HUD, whose nodes are named in `hidden_while_up`. A button folds it to its title
 ## bar. See gdd/systems/ux/ui/debug-mode.md.
@@ -40,6 +41,7 @@ const RESOURCE_FIELD_WIDTH: float = 72.0
 @onready var _resource_rows: VBoxContainer = %ResourceRows
 @onready var _faction_option: OptionButton = %FactionOption
 @onready var _piece_list: VBoxContainer = %PieceList
+@onready var _upgrade_list: HFlowContainer = %UpgradeList
 
 var _controller: RTSController = null
 var _scenario: Scenario = null
@@ -74,7 +76,11 @@ func _ready() -> void:
 	_factions = DebugRoster.factions(_entries)
 	_fold_button.pressed.connect(_toggle_fold)
 	_player_option.item_selected.connect(_on_player_selected)
-	_faction_option.item_selected.connect(func(_i: int) -> void: _build_pieces())
+	_faction_option.item_selected.connect(
+		func(_i: int) -> void:
+			_build_pieces()
+			_build_upgrades()
+	)
 	for faction: String in _factions:
 		_faction_option.add_item(faction.capitalize())
 	if _scenario != null:
@@ -86,11 +92,14 @@ func _ready() -> void:
 	_build_resources.call_deferred()
 	_remember_starting_player.call_deferred()
 	_build_pieces()
+	_build_upgrades()
 
 
 func _process(_a_delta: float) -> void:
 	_show_for_mode()
 	var is_up: bool = DebugMode.is_active()
+	if is_up:
+		_sync_upgrade_buttons()
 	if is_up == _is_up:
 		return
 	_is_up = is_up
@@ -120,6 +129,7 @@ func _process(_a_delta: float) -> void:
 func _show_for_mode() -> void:
 	var is_spectating: bool = _controller != null and _controller.is_look_only
 	_playback_controls.visible = not is_spectating
+	# Hides the upgrade card with it, which shares its scroll: no seat, nobody to upgrade.
 	_piece_card.visible = not is_spectating
 	if not _is_clock_bound and _scenario != null and _scenario.trigger_manager() != null:
 		_playback_controls.bind(_scenario.trigger_manager().simulation_clock)
@@ -273,6 +283,7 @@ func _select_player_faction() -> void:
 		return
 	_faction_option.select(index)
 	_build_pieces()
+	_build_upgrades()
 
 
 ## The scenes that say which faction `a_commander` plays: its faction's starting units, then
@@ -324,6 +335,58 @@ func _piece_button(a_entry: Dictionary) -> VerboseTooltipButton:
 	button.verbose_tooltip = tool.verbose_tooltip if tool != null else String(a_entry["scene"])
 	button.pressed.connect(func() -> void: _controller.arm_debug_piece(a_entry))
 	return button
+
+
+## One toggle per upgrade of the faction the piece card shows: pressed while the selected player
+## owns it. Pressing grants or revokes it outright — no research, no cost.
+func _build_upgrades() -> void:
+	for child: Node in _upgrade_list.get_children():
+		child.queue_free()
+	if _factions.is_empty():
+		return
+	var faction: String = _factions[maxi(_faction_option.selected, 0)]
+	for id: StringName in UpgradeCatalog.ids_of_faction(faction):
+		var button := Button.new()
+		button.name = String(id)
+		button.text = UpgradeCatalog.title_of(id)
+		button.toggle_mode = true
+		button.focus_mode = Control.FOCUS_NONE
+		var tool: Tool = Tool.for_name("command_tool_%s" % id)
+		button.tooltip_text = tool.verbose_tooltip if tool != null else String(id)
+		button.toggled.connect(
+			func(a_is_on: bool) -> void:
+				set_upgrade(_selected_player(), id, a_is_on)
+				_sync_upgrade_buttons()
+		)
+		_upgrade_list.add_child(button)
+	_sync_upgrade_buttons()
+
+
+## Press each upgrade toggle exactly when the selected player owns it. Polled while the menu is
+## up rather than signalled: the player can be swapped and research can finish at any time,
+## and a handful of buttons is nothing to check each frame.
+func _sync_upgrade_buttons() -> void:
+	var player: Commander = _selected_player()
+	for button: Node in _upgrade_list.get_children():
+		if button is Button and not button.is_queued_for_deletion():
+			var is_owned: bool = player != null and player.has_upgrade(StringName(button.name))
+			(button as Button).set_pressed_no_signal(is_owned)
+			(button as Button).disabled = player == null
+
+
+## Grant `id` to `commander` when `is_on`, revoke it otherwise. Nothing without a commander.
+static func set_upgrade(commander: Commander, id: StringName, is_on: bool) -> void:
+	if commander == null:
+		return
+	if is_on:
+		commander.complete_upgrade(id)
+	else:
+		commander.revoke_upgrade(id)
+
+
+## The commander the Player setting names: the local player, or null while spectating.
+func _selected_player() -> Commander:
+	return _scenario.local_player() if _scenario != null else null
 
 
 #endregion

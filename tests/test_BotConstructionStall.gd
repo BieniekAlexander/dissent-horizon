@@ -77,7 +77,7 @@ class StubEconomy:
 	func _income_structure_to_build() -> Variant:
 		return income_offer
 
-	func _income_build_spot() -> Variant:
+	func _income_build_spot(_a_builder: Actor = null) -> Variant:
 		return site_spot
 
 	func _owned_income_structure_count() -> int:

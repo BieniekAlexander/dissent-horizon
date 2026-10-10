@@ -33,6 +33,8 @@ static func meets_precondition(
 	var pool := actor.get_node_or_null("Abilities") as Abilities if actor != null else null
 	if pool == null or not pool.grants(ABILITY_ID):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	if not UpgradeCatalog.is_ability_unlocked(actor, ABILITY_ID):
+		return PreconditionFailureCause.MISSING_UPGRADE
 	if not pool.is_ready(ABILITY_ID):
 		return PreconditionFailureCause.ABILITY_NO_CHARGES
 	return PreconditionFailureCause.NONE

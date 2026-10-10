@@ -1112,14 +1112,10 @@ func _on_commander_changed(a_old_commander: Commander, a_new_commander: Commande
 ## Track the owning commander's upgrades: apply what it owns now, and what it researches later.
 ## A captured piece trades the old owner's upgrades for the new one's.
 func _follow_upgrades(a_old_commander: Commander, a_new_commander: Commander) -> void:
-	if a_old_commander != null and a_old_commander.upgrade_researched.is_connected(_on_upgrade):
-		a_old_commander.upgrade_researched.disconnect(_on_upgrade)
+	if a_old_commander != null and a_old_commander.upgrades_changed.is_connected(_apply_upgrades):
+		a_old_commander.upgrades_changed.disconnect(_apply_upgrades)
 	if a_new_commander != null:
-		a_new_commander.upgrade_researched.connect(_on_upgrade)
-	_apply_upgrades()
-
-
-func _on_upgrade(_a_id: StringName) -> void:
+		a_new_commander.upgrades_changed.connect(_apply_upgrades)
 	_apply_upgrades()
 
 
