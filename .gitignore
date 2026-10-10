@@ -398,7 +398,10 @@ $RECYCLE.BIN/
 # every editor open, so a committed copy only churns. `.godot/imported/` is deliberately NOT
 # ignored: it holds the .blend scenes (importing them needs Blender) and the s3tc textures, which
 # a headless import elsewhere cannot rebuild — a clone without it fails ~800 tests.
+# `.godot/*` (not `.godot/`) so the negation below can reach inside; it was missing until
+# 2026-10-10, so nothing under .godot/imported/ was ever actually committed.
 .godot/*
+!.godot/imported/
 gdd/.obsidian/
 # Obsidian's window state, rewritten on every open; the vault's settings and plugins above
 # stay tracked, this one file never is.

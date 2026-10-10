@@ -83,13 +83,16 @@ func reveal() -> void:
 ## Called when this unit attacks or is attacked. Forces the timed UNSTEALTHED
 ## window, which persists even after the unit leaves every detector's range.
 func unstealth() -> void:
+	var was: State = state
 	state = State.UNSTEALTHED
 	_unstealth_timer_ticks = UNSTEALTH_DURATION_TICKS
+	_report_transition(was)
 
 
 ## Advance stealth state by one physics tick. Must be called once per tick from
 ## Actor._update_state().
 func tick() -> void:
+	var was: State = state
 	var detected: bool = (
 		_last_detected_frame >= 0
 		and Engine.get_physics_frames() - _last_detected_frame <= REVEAL_FRESH_FRAMES
@@ -105,4 +108,30 @@ func tick() -> void:
 		_unstealth_timer_ticks = 0
 
 	state = State.REVEALED if detected else State.STEALTHED
+	_report_transition(was)
+
+
+#endregion
+
+
+#region Private helpers
+## Fire the piece's stealth occurrences on a crossing of the STEALTHED line: ON_EXIT_STEALTH
+## when it stops being hidden (a detector found it, or it fought), ON_ENTER_STEALTH when it is
+## hidden again. Which way it left is `state`, read by the listener — AlertCenter announces only
+## a detector's find (REVEALED), since a fight is announced as an attack already.
+func _report_transition(a_was: State) -> void:
+	var hidden_before: bool = a_was == State.STEALTHED
+	var hidden_now: bool = state == State.STEALTHED
+	if hidden_before == hidden_now:
+		return
+	var entity := get_parent() as Entity
+	if entity == null:
+		return
+	entity._fire_entity_occurrence(
+		(
+			Entity.EntityOccurrence.ON_ENTER_STEALTH
+			if hidden_now
+			else Entity.EntityOccurrence.ON_EXIT_STEALTH
+		)
+	)
 #endregion

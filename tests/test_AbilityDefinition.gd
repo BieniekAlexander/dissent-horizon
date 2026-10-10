@@ -74,11 +74,25 @@ func test_a_scene_path_emission_must_exist() -> void:
 	assert_string_contains(errors[0], "does not exist")
 
 
-func test_the_two_ability_flags_must_be_booleans() -> void:
-	for flag: String in ["passive", "hud_button"]:
+func test_the_ability_flags_must_be_booleans() -> void:
+	for flag: String in ["passive", "hud_button", "global_alert"]:
 		var errors: Array = _errors_for({"kind": "AbilityDefinition", "title": "Spot", flag: "yes"})
 		assert_eq(errors.size(), 1, flag)
 		assert_string_contains(errors[0], "%s must be true or false" % flag)
+
+
+func test_a_passive_ability_cannot_be_globally_alerted() -> void:
+	# A global alert counts down a caster's charge and announces its use; a passive has neither.
+	var errors: Array = _errors_for(
+		{"kind": "AbilityDefinition", "title": "Spot", "passive": true, "global_alert": true}
+	)
+	assert_eq(errors.size(), 1)
+	assert_string_contains(errors[0], "global_alert")
+
+
+func test_a_global_alert_is_read_from_its_entry() -> void:
+	assert_true(AbilityDefinition.from_entry(&"x", {"global_alert": true}).has_global_alert)
+	assert_false(AbilityDefinition.from_entry(&"x", {}).has_global_alert, "off unless authored")
 
 
 func test_a_command_and_an_unlock_route_are_alternatives() -> void:

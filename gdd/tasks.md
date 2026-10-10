@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-102**
+> Next id: **T-103**
 
 # Tasks
 
@@ -305,6 +305,70 @@ With interpolated rendering; 20 Hz would cut every per-tick cost by a third. Not
 → [combat/scan-and-vision-cost](systems/combat/scan-and-vision-cost.md) §Beyond both
 
 ## UX
+
+### T-102 · Alerts: tune the rudimentary build and decide what comes next #effort/medium #needs-input
+Built 2026-10-10 (branch `claude/alerts`): every alert raised for every commander and a throttled subset presented; units/base under attack, stealth detected, energy floating, infrastructure strained, and the superweapon lifecycle for abilities authoring `global_alert: true` (Cryogenic Implosion only); placeholder toasts, tones, a Space jump key that cycles back, and a superweapon countdown panel. Left: the decisions below, tuning every number in `AlertCatalog`, and the `PLANNED` list of other alert types.
+→ [ux/ui/alerts](systems/ux/ui/alerts.md)
+
+> [!question] Q — 2026-10-10
+> What counts as floating energy?
+> **Why it matters:** `AlertCenter._poll_economy` decides the line; an absolute floor fires early-game on a normal bank, an income-relative line alone fires at once while income is near zero.
+> **Options:**
+> 1. Spare energy ≥ max(1500, 60 s of income), held 10 s, released at 75 % (built).
+> 2. Spare energy ≥ a fixed amount only.
+> 3. Spare energy ≥ N seconds of income only, no floor.
+>
+> **Leaning:** 1 — the floor covers the opening, the income term scales with the match.
+>
+> **Answer:**
+
+> [!question] Q — 2026-10-10
+> Should a fight that never pauses ever be re-announced?
+> **Why it matters:** `AlertThrottle` follows 0 A.D.: every nearby hit restarts the hold, so a two-minute siege is one alert. OpenRA re-announces on a fixed cooldown however continuous the fight.
+> **Options:**
+> 1. Never — one ongoing fight, one alert (built).
+> 2. Cap a hold's lifetime (say 90 s from when it opened), then announce again.
+> 3. Drop spatial holds for a plain per-type cooldown (OpenRA).
+>
+> **Leaning:** 2 — keeps the spam control and still reminds a player who has looked away.
+>
+> **Answer:**
+
+> [!question] Q — 2026-10-10
+> Does a superweapon's countdown show before its owner has bought the tier-4 sanction that lets it fire?
+> **Why it matters:** `SuperweaponTimers` reads the building's charge, which recharges from construction regardless of the sanction; showing READY for a weapon that cannot fire misleads, while hiding it until the sanction is bought tells everyone the owner bought it.
+> **Options:**
+> 1. Show the building's charge regardless (built).
+> 2. Show the row only once the owner has unlocked the ability.
+> 3. Show the row, but "locked" instead of READY until unlocked.
+>
+> **Leaning:** 1 — matches Zero Hour and leaks no purchase.
+>
+> **Answer:**
+
+> [!question] Q — 2026-10-10
+> When a superweapon launches, is anyone told where?
+> **Why it matters:** the launch alert is unlocated for everyone today; the field's 5 s gather is visible only to whoever has vision of it, which is exactly who most needs a click-to-look.
+> **Options:**
+> 1. Nobody (built).
+> 2. Commanders with pieces inside the field get a located "incoming" alert.
+> 3. Everyone who has vision of the target point gets a located alert.
+>
+> **Leaning:** 2 — warns the people who can act on it without revealing more than the frost does.
+>
+> **Answer:**
+
+> [!question] Q — 2026-10-10
+> Which key jumps to the last alert?
+> **Why it matters:** `camera_jump_to_alert` is bound in `project.godot`; Space was free (the "fog view" note in command-card-and-hotkeys.md is stale), Backspace is the C&C convention.
+> **Options:**
+> 1. Space (built; StarCraft II).
+> 2. Backspace.
+> 3. Both.
+>
+> **Leaning:** 1 — the larger key for the action used mid-fight.
+>
+> **Answer:**
 
 ### T-095 · What the Drop and reinforcement sanctions draw while aiming #effort/low #unscoped
 A sanction now draws an area only when the ability itself states one (an authored `effect_radius`, or an event deriving its own, like the Gunship's reach and the Mortar's blast). Drop and the Anarchist reinforcement sanctions (Ambush, Informant, Dignify) state none, so they draw nothing; what they should show — the spread their pieces land in, a marker, nothing — is deferred (Alex, 2026-10-06). Scavenge lost its unsourced circle too and was not discussed.

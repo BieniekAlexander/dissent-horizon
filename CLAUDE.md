@@ -642,6 +642,11 @@ Mission scripting: triggers, conditions, objectives, dialogs, pause, highlights 
 - [`gdd/systems/scenario-scripting/tactics.md`](gdd/systems/scenario-scripting/tactics.md)
 - [`gdd/systems/scenario-scripting/starting-formations.md`](gdd/systems/scenario-scripting/starting-formations.md)
 
+## Alerts
+
+What a commander is told and when: every alert raised for everyone, a throttled subset presented.
+→ **[`gdd/systems/ux/ui/alerts.md`](gdd/systems/ux/ui/alerts.md)**
+
 ## The cursor
 
 Its five images, which one shows when, and why the OS keeps replacing it with its own.

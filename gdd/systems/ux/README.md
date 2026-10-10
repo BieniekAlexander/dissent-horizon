@@ -150,7 +150,7 @@ token has no such slot at all, which is different from being `EXEMPT`.
 | Death sound | every piece — a structure's collapse is its death | `ASSET` rule `has_death_sound` |
 | Sound per other piece event (a production loop, construction) | pieces × events | TODO |
 | Sound per weapon discharge and impact | weapons, emission phases | TODO |
-| Sound per interface action and alert | control actions, alerts | TODO |
+| Sound per interface action and alert | control actions, alerts | TODO — alerts have three placeholder tones, one per tone class ([alerts](ui/alerts.md) §Presentation) |
 | Music, ambience per map | game states, maps | TODO |
 
 ### World

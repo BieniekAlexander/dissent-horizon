@@ -1905,9 +1905,17 @@ func _validate_ability(a_spec: Dictionary) -> void:
 		# ability may be usable by several kinds of piece, and a piece is what knows its own
 		# charges. Naming it on the ability cannot express either.
 		_err(a_spec, "remove `caster:` — a piece declares what it casts, via abilities:")
-	for flag: String in ["passive", "hud_button"]:
+	for flag: String in ["passive", "hud_button", "global_alert"]:
 		if a_spec.has(flag) and not (a_spec[flag] is bool):
 			_err(a_spec, "%s must be true or false" % flag)
+	# A global alert announces who OWNS a caster and how long its charge has left. A passive
+	# ability has no caster charge to count down and no cast to announce.
+	if a_spec.get("global_alert", false) is bool and a_spec.get("passive", false) is bool:
+		if a_spec.get("global_alert", false) and a_spec.get("passive", false):
+			_err(
+				a_spec,
+				"a passive ability cannot carry `global_alert: true` — it has no charge to announce"
+			)
 	_validate_ability_range(a_spec)
 	_validate_ability_cast_by(a_spec)
 	_validate_ability_reveals(a_spec)

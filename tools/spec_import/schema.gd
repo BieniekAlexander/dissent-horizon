@@ -105,6 +105,7 @@ const TOP_LEVEL_ORDER: Array = [
 	# rule has nothing to say about them.
 	"passive",
 	"hud_button",
+	"global_alert",
 	"command",
 	"range",
 	"cast_by",

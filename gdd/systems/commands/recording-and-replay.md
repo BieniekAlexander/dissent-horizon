@@ -110,8 +110,8 @@ they landed. Bots are not recorded: they re-derive their orders from the same se
 Everything below is built unless marked `TODO`; it is kept as the statement of what each part
 is for.
 
-- TODO: **alerts and voice lines following the perspective.** There is no alert system yet, and
-  the only voice lines are the barks a player's own selection and orders play — in a playback the
+- TODO: **voice lines following the perspective.** Alerts do (2026-10-10): the HUD shows the
+  watched commander's ([ux/ui/alerts](../ux/ui/alerts.md) §Presentation). The only voice lines are the barks a player's own selection and orders play — in a playback the
   viewer's selection barks, and no order is issued through the controller, so none are heard for
   the recorded player's orders. Revisit when alerts exist.
 
@@ -190,8 +190,7 @@ orders a player can give.
   return to the title screen, as leaving a match is.
 - **The perspective is switchable**: each player's fog, lifted or not — the existing spectator
   machinery (the displayed fog). Not play-as, which a playback refuses: that changes the local player, which the
-  simulation reads. Alerts and voice lines follow the perspective on show (TODO above: there are
-  no alerts yet).
+  simulation reads. Alerts follow the perspective on show; voice lines do not yet (TODO above).
 - **The HUD is for looking**: the spectator session's. Superseded 2026-10-09: the first build kept
   the player's rig with its grid hidden; reusing the spectator session instead means a playback
   carries no player interface that could reach the simulation. The spectator session's HUD is
