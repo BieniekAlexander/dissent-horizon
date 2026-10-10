@@ -123,7 +123,7 @@ producible_types = Array[StringName]([&"an_bioMedium_dominionGen", &"an_bioLight
 
 [node name="Abilities" type="Node" parent="." unique_id=718242652]
 script = ExtResource("2_spec")
-groups = Array[Dictionary]([{ "initial_charges": 0, "max_charges": 1, "cooldown_ticks": 1800, "grants": [&"dignify", &"informant"] }])
+groups = Array[Dictionary]([{ "initial_charges": 0, "max_charges": 1, "cooldown_ticks": 1800, "alert": true, "grants": [&"dignify", &"informant"] }])
 
 [editable path="Selectable"]
 [editable path="Hurtbox"]

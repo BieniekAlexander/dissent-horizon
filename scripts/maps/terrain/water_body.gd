@@ -157,6 +157,11 @@ func rebuild() -> void:
 	_map.refresh_water()
 
 
+## The draw that took this pond's last energy — once per pond, since a spent pond pays nothing
+## and so is never drawn from again. AlertCenter tells the extractor's owner.
+signal drained(a_body: WaterBody)
+
+
 ## Draw `a_base_rate` energy at the pond multiplier, clamped to what is left. Returns what
 ## was actually withdrawn, which is 0 for a spent or uncharged body — an extractor pays its
 ## commander exactly this, so a drained pond stops earning without needing to be torn down.
@@ -165,6 +170,8 @@ func extract(a_base_rate: int) -> int:
 	if taken <= 0:
 		return 0
 	energy -= taken
+	if energy <= 0:
+		drained.emit(self)
 	return taken
 
 

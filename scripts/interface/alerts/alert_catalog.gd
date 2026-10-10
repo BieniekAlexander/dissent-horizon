@@ -20,6 +20,13 @@ enum Type {
 	SUPERWEAPON_READY,
 	SUPERWEAPON_LAUNCHED,
 	SUPERWEAPON_LOST,
+	COMMAND_CENTRE_ATTACKED,
+	EXTRACTOR_ATTACKED,
+	CONSTRUCTION_COMPLETE,
+	UNIT_READY,
+	RESEARCH_COMPLETE,
+	POND_DEPLETED,
+	ABILITY_CHARGED,
 }
 
 ## EVENT: something happened. STATE: something is true, and keeps being true until it is not —
@@ -45,6 +52,9 @@ enum Tone { ROUTINE, WARNING, URGENT }
 ##   repeat_seconds      float — STATE only: the reminder period while the state holds
 ##   sustain_seconds     float — STATE only: how long it must hold before the first alert
 ##   text            String — the toast's copy; `%s` takes the subject's title where there is one
+##   sound           StringName — which AlertFeed.SOUNDS clip it plays; unsaid, its tone's own
+##   counts          bool — a repeat folds into the newest toast as "×n" wherever it happened,
+##                   rather than only when it says the same thing about the same place
 ##
 ## TODO: every number below is a first guess, not a tuned value — see alerts.md §Tuning.
 static var DEFINITIONS: Dictionary = {
@@ -71,6 +81,32 @@ static var DEFINITIONS: Dictionary = {
 		"suppress_radius": 30.0,
 		"transfer_radius": 15.0,
 		"text": "Our base is under attack",
+	},
+	# The two structures a base is not a base without: special cases of the base under attack,
+	# above it in priority so each breaks through a base hold already open around it.
+	Type.EXTRACTOR_ATTACKED:
+	{
+		"kind": Kind.EVENT,
+		"tone": Tone.URGENT,
+		"priority": 3,
+		"group": &"attack",
+		"located": true,
+		"suppress_seconds": 30.0,
+		"suppress_radius": 30.0,
+		"transfer_radius": 15.0,
+		"text": "Our extractor is under attack",
+	},
+	Type.COMMAND_CENTRE_ATTACKED:
+	{
+		"kind": Kind.EVENT,
+		"tone": Tone.URGENT,
+		"priority": 4,
+		"group": &"attack",
+		"located": true,
+		"suppress_seconds": 30.0,
+		"suppress_radius": 30.0,
+		"transfer_radius": 15.0,
+		"text": "Our command centre is under attack",
 	},
 	Type.STEALTH_DETECTED:
 	{
@@ -159,6 +195,67 @@ static var DEFINITIONS: Dictionary = {
 		"suppress_seconds": 0.0,
 		"text": "Enemy %s destroyed",
 	},
+	# COMPLETIONS: never held back — each one is counted on the newest toast instead. One
+	# generic sound for now; per purchase later (AlertFeed.PURCHASE_SOUNDS).
+	Type.CONSTRUCTION_COMPLETE:
+	{
+		"kind": Kind.EVENT,
+		"tone": Tone.ROUTINE,
+		"priority": 0,
+		"group": &"",
+		"located": true,
+		"suppress_seconds": 0.0,
+		"sound": &"complete",
+		"counts": true,
+		"text": "%s complete",
+	},
+	Type.UNIT_READY:
+	{
+		"kind": Kind.EVENT,
+		"tone": Tone.ROUTINE,
+		"priority": 0,
+		"group": &"",
+		"located": true,
+		"suppress_seconds": 0.0,
+		"sound": &"complete",
+		"counts": true,
+		"text": "%s ready",
+	},
+	Type.RESEARCH_COMPLETE:
+	{
+		"kind": Kind.EVENT,
+		"tone": Tone.ROUTINE,
+		"priority": 0,
+		"group": &"",
+		"located": false,
+		"suppress_seconds": 0.0,
+		"sound": &"complete",
+		"counts": true,
+		"text": "Research complete: %s",
+	},
+	Type.POND_DEPLETED:
+	{
+		"kind": Kind.EVENT,
+		"tone": Tone.WARNING,
+		"priority": 0,
+		"group": &"",
+		"located": true,
+		"suppress_seconds": 0.0,
+		"text": "Lithium pond depleted",
+	},
+	# Only for a pool that authors `alert: true` (Abilities.alerts_on_charge) — every structure's
+	# today. Its owner only, at the caster.
+	Type.ABILITY_CHARGED:
+	{
+		"kind": Kind.EVENT,
+		"tone": Tone.ROUTINE,
+		"priority": 0,
+		"group": &"",
+		"located": true,
+		"suppress_seconds": 0.0,
+		"counts": true,
+		"text": "%s charged",
+	},
 }
 #endregion
 
@@ -188,6 +285,19 @@ static func group_of(a_type: Type) -> StringName:
 ## WITHOUT one for a particular viewer (an enemy's superweapon coming ready).
 static func may_locate(a_type: Type) -> bool:
 	return bool(definition(a_type)["located"])
+
+
+## The clip it plays: its own `sound`, else its tone's.
+static func sound_of(a_type: Type) -> StringName:
+	var own: Variant = definition(a_type).get("sound")
+	if own != null:
+		return StringName(own)
+	return StringName(String(Tone.keys()[tone_of(a_type)]).to_lower())
+
+
+## Whether a repeat is counted on the newest toast wherever it happened.
+static func counts_repeats(a_type: Type) -> bool:
+	return bool(definition(a_type).get("counts", false))
 
 
 static func suppress_ticks(a_type: Type) -> int:

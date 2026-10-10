@@ -30,7 +30,8 @@ extends Node
 ## of a single `charges` key could say that.
 
 ## The authored pools. Each is
-## `{"initial_charges": int, "max_charges": int, "cooldown_ticks": int, "grants": Array}`,
+## `{"initial_charges": int, "max_charges": int, "cooldown_ticks": int, "grants": Array}`, plus
+## `"alert": true` on a pool whose regained charge its owner is told about (AlertCenter),
 ## written by the spec importer from the piece doc's `abilities:`.
 ##
 ## An Array[Dictionary] rather than a resource per pool because the importer writes scenes
@@ -44,6 +45,10 @@ extends Node
 
 ## Pool capacity when a group leaves it unsaid — one charge, i.e. a plain cooldown.
 const DEFAULT_MAX_CHARGES: int = 1
+
+## Every Abilities component with at least one pool that alerts on a regained charge — what
+## AlertCenter scans, so it never visits a piece that has nothing to announce.
+const ALERTING_GROUP: StringName = &"alerting_ability_pools"
 
 ## Per-pool live state, index-aligned with `groups`.
 var _charges: Array[int] = []
@@ -79,6 +84,11 @@ func _rebuild() -> void:
 		_timers.append(float(_cooldown_ticks(pool)))
 		for id: Variant in pool.get("grants", []):
 			_pool_of[StringName(id)] = i
+	var alerting: bool = range(groups.size()).any(alerts_on_charge)
+	if alerting and not is_in_group(ALERTING_GROUP):
+		add_to_group(ALERTING_GROUP)
+	elif not alerting and is_in_group(ALERTING_GROUP):
+		remove_from_group(ALERTING_GROUP)
 
 
 func _physics_process(_a_delta: float) -> void:
@@ -332,6 +342,20 @@ func recharge_remaining(a_ability_id: StringName) -> int:
 ## a button for one ability asks.
 func pool_count() -> int:
 	return _charges.size()
+
+
+## Whether pool `a_index` authors `alert: true`: its owner is told each time it regains a
+## charge. Off unless authored. gdd/systems/ux/ui/alerts.md §The alerts.
+func alerts_on_charge(a_index: int) -> bool:
+	return a_index >= 0 and a_index < groups.size() and bool(groups[a_index].get("alert", false))
+
+
+## The first ability pool `a_index` grants — the name its charged alert goes by.
+func pool_first_grant(a_index: int) -> StringName:
+	if a_index < 0 or a_index >= groups.size():
+		return &""
+	var grants: Array = groups[a_index].get("grants", [])
+	return StringName(grants[0]) if not grants.is_empty() else &""
 
 
 func pool_charges(a_index: int) -> int:

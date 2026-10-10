@@ -20,6 +20,7 @@ abilities:
   - max_charges: 1
     initial_charges: 0
     cooldown: 240
+    alert: true
     grants: [blizzard]
 infrastructure: -200
 ui: {grid: [4, 2], factions: [colonial]}

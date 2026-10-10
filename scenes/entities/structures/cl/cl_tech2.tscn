@@ -119,7 +119,7 @@ script = ExtResource("18_fp57i")
 
 [node name="Abilities" type="Node" parent="." unique_id=1049230015]
 script = ExtResource("2_spec")
-groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 1800, "grants": [&"gunship"] }])
+groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 1800, "alert": true, "grants": [&"gunship"] }])
 
 [node name="Production" type="Node" parent="."]
 script = ExtResource("3_spec")

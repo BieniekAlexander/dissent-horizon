@@ -498,8 +498,15 @@ abilities:
   - max_charges: 1                # pool capacity; optional, defaults to 1
     initial_charges: 0            # stock when the piece is built; optional, defaults to max_charges
     cooldown: 60                  # seconds to regain ONE charge
+    alert: true                   # tell the owner each time it regains a charge (default false)
     grants: [beacon, freeze]      # ability ids; every id here draws on this pool
 ```
+
+`alert:` is off unless authored, and every structure's pools author it today: a structure's
+ability is one the player cannot see recharging without finding the building, while a unit's
+sits on the selection it was just used from. A pool granting a `global_alert:` ability is
+announced as a superweapon instead, never twice. →
+[`gdd/systems/ux/ui/alerts.md`](../../gdd/systems/ux/ui/alerts.md).
 
 Capacity and starting stock are separate keys because they answer different balance
 questions: `max_charges` is how much the ability holds, `initial_charges` is whether a

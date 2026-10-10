@@ -20,6 +20,7 @@ researches: [field_conditioning, gun_drill]
 abilities:
   - max_charges: 1
     cooldown: 60
+    alert: true
     grants: [gunship]
 infrastructure: -50
 ui: {grid: [1, 2], factions: [colonial], context_grid: [5, 0]}

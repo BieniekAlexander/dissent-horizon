@@ -56,6 +56,11 @@ var _floating: Dictionary = {}
 ## built: bool, charges: int, title: String}
 var _casters: Dictionary = {}
 
+## Commander ids whose completion signals are connected.
+var _listened: Dictionary = {}
+## "pool instance id:pool index" → the charges last seen, for _poll_ability_charges
+var _pool_charges: Dictionary = {}
+
 var _log: Array[Alert] = []
 #endregion
 
@@ -69,11 +74,24 @@ func bind(a_scenario: Scenario) -> void:
 	var manager: ScenarioTriggerManager = a_scenario.trigger_manager()
 	if manager != null and not manager.entity_occurrence.is_connected(report_occurrence):
 		manager.entity_occurrence.connect(report_occurrence)
+	_listen_to_commanders()
+	var map: Map = a_scenario.find_child("Map", true, false) as Map
+	if map != null:
+		bind_water_bodies(map.water_bodies)
 
 
 ## For a test: the commanders to address (index = id), and no scenario.
 func bind_commanders(a_commanders: Array) -> void:
 	_commanders = a_commanders
+	_listen_to_commanders()
+
+
+## Hear each of `a_bodies` (the map's lithium ponds) run dry.
+func bind_water_bodies(a_bodies: Array) -> void:
+	for body: Variant in a_bodies:
+		var pond := body as WaterBody
+		if pond != null and not pond.drained.is_connected(_on_pond_drained):
+			pond.drained.connect(_on_pond_drained)
 
 
 func _physics_process(_a_delta: float) -> void:
@@ -154,6 +172,7 @@ func poll() -> void:
 			continue
 		_poll_economy(c, now)
 	_poll_superweapons(now)
+	_poll_ability_charges(now)
 
 
 ## Raise `a_alert`: record it, then present it if its viewer's throttle admits it.
@@ -181,9 +200,9 @@ func _on_damaged(a_victim: Entity) -> void:
 	var attacker: int = a_victim.last_hit_by_commander_id
 	if attacker > 0 and a_victim.is_on_side_of(attacker):
 		return
-	var type := (
-		AlertCatalog.Type.STRUCTURES_ATTACKED if structure else AlertCatalog.Type.UNITS_ATTACKED
-	)
+	var type := AlertCatalog.Type.UNITS_ATTACKED
+	if structure:
+		type = _structure_attack_type(a_victim as Actor)
 	raise(
 		(
 			Alert
@@ -211,6 +230,52 @@ func _on_unhidden(a_piece: Entity) -> void:
 
 
 #endregion
+
+
+## Which "under attack" a structure's hit is: the command centre and the extractors are their
+## own alerts, the rest of the base the general one.
+static func _structure_attack_type(a_structure: Actor) -> AlertCatalog.Type:
+	if Deployment.is_command_centre(a_structure):
+		return AlertCatalog.Type.COMMAND_CENTRE_ATTACKED
+	if Extractor.of(a_structure) != null:
+		return AlertCatalog.Type.EXTRACTOR_ATTACKED
+	return AlertCatalog.Type.STRUCTURES_ATTACKED
+
+
+func _on_construction_finished(a_structure: Actor, a_commander: Commander) -> void:
+	_announce_completion(AlertCatalog.Type.CONSTRUCTION_COMPLETE, a_commander, a_structure)
+
+
+func _on_unit_trained(a_unit: Actor, a_commander: Commander) -> void:
+	_announce_completion(AlertCatalog.Type.UNIT_READY, a_commander, a_unit)
+
+
+func _on_upgrade_researched(a_id: StringName, a_commander: Commander) -> void:
+	var text: String = AlertCatalog.text_of(
+		AlertCatalog.Type.RESEARCH_COMPLETE, UpgradeCatalog.title_of(a_id)
+	)
+	raise(Alert.make(AlertCatalog.Type.RESEARCH_COMPLETE, a_commander.id, now_tick(), text))
+
+
+func _announce_completion(
+	a_type: AlertCatalog.Type, a_commander: Commander, a_piece: Actor
+) -> void:
+	if a_commander == null or a_commander.id <= 0 or a_piece == null:
+		return
+	var text: String = AlertCatalog.text_of(a_type, title_of(a_piece))
+	var alert := Alert.make(a_type, a_commander.id, now_tick(), text)
+	alert.purchase = a_piece.id
+	raise(alert.located_at(a_piece.global_position).about(a_piece))
+
+
+## A lithium pond ran dry: told to whoever was working it, at the pond.
+func _on_pond_drained(a_pond: WaterBody) -> void:
+	var extractor: Variant = a_pond.extractor if a_pond.has_extractor() else null
+	var owner: int = (extractor as Entity).commander_id if extractor is Entity else 0
+	if owner <= 0:
+		return
+	var alert := Alert.make(AlertCatalog.Type.POND_DEPLETED, owner, now_tick())
+	raise(alert.located_at(a_pond.global_position).about(a_pond))
 
 
 #region Polled sources
@@ -297,6 +362,44 @@ func _track_caster(
 		_announce_to_others(AlertCatalog.Type.SUPERWEAPON_LAUNCHED, entry, id, a_now)
 
 
+## A charge came back to a pool that authors `alert: true`: told to the caster's owner, at the
+## caster. A global-alert ability's pool is skipped — SUPERWEAPON_READY already says it, to
+## everyone. Pools register themselves (Abilities.ALERTING_GROUP) so nothing else is scanned.
+func _poll_ability_charges(a_now: int) -> void:
+	if not is_inside_tree():
+		return
+	var seen: Dictionary = {}
+	for node: Node in get_tree().get_nodes_in_group(Abilities.ALERTING_GROUP):
+		var pools := node as Abilities
+		var piece := pools.get_parent() as Actor if pools != null else null
+		if piece == null or piece.commander_id <= 0 or piece.is_planned or not piece.is_built:
+			continue
+		for i: int in pools.pool_count():
+			if not pools.alerts_on_charge(i):
+				continue
+			var key: String = "%d:%d" % [pools.get_instance_id(), i]
+			seen[key] = true
+			var charges: int = pools.pool_charges(i)
+			var before: int = int(_pool_charges.get(key, charges))
+			_pool_charges[key] = charges
+			if charges <= before:
+				continue
+			var ability: StringName = pools.pool_first_grant(i)
+			if AbilityCatalog.has_global_alert(ability):
+				continue
+			var text: String = AlertCatalog.text_of(
+				AlertCatalog.Type.ABILITY_CHARGED, AbilityCatalog.title_of(ability)
+			)
+			var alert := Alert.make(
+				AlertCatalog.Type.ABILITY_CHARGED, piece.commander_id, a_now, text
+			)
+			alert.key = pools.get_instance_id()
+			raise(alert.located_at(piece.global_position).about(piece))
+	for key: String in _pool_charges.keys():
+		if not seen.has(key):
+			_pool_charges.erase(key)
+
+
 ## Ready: its owner is told where (it is theirs); everyone else is told only that it is.
 func _announce_ready(a_piece: Actor, a_entry: Dictionary, a_key: int, a_now: int) -> void:
 	var title: String = a_entry["title"]
@@ -333,6 +436,33 @@ func _announce_to_others(
 
 
 #region Private helpers
+## The piece's player-facing name: its purchase button's label (the doc title), else its scene
+## root's name, else its own node name. Not the node name first: the engine renames a piece
+## added beside a same-named sibling to `@CharacterBody3D@123`, which is every second Recruit.
+static func title_of(a_piece: Node) -> String:
+	var entity := a_piece as Entity
+	if entity != null:
+		var tool: Tool = Tool.for_id(entity.id)
+		if tool != null and tool.label != "":
+			return tool.label
+	if a_piece.scene_file_path != "":
+		var packed := load(a_piece.scene_file_path) as PackedScene
+		if packed != null and packed.get_state().get_node_count() > 0:
+			return String(packed.get_state().get_node_name(0))
+	return String(a_piece.name)
+
+
+func _listen_to_commanders() -> void:
+	for commander: Variant in _commanders:
+		var c := commander as Commander
+		if c == null or c.id <= 0 or _listened.has(c.id):
+			continue
+		_listened[c.id] = true
+		c.construction_finished.connect(_on_construction_finished.bind(c))
+		c.unit_trained.connect(_on_unit_trained.bind(c))
+		c.upgrade_researched.connect(_on_upgrade_researched.bind(c))
+
+
 func _throttle_for(a_viewer_id: int) -> AlertThrottle:
 	if not _throttles.has(a_viewer_id):
 		_throttles[a_viewer_id] = AlertThrottle.new()

@@ -19,6 +19,7 @@ footprint: [3, 3]
 abilities:
   - max_charges: 1
     cooldown: 60
+    alert: true
     grants: [mortar]
 infrastructure: -100
 ui:

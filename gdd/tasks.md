@@ -307,7 +307,7 @@ With interpolated rendering; 20 Hz would cut every per-tick cost by a third. Not
 ## UX
 
 ### T-102 · Alerts: tune the rudimentary build and decide what comes next #effort/medium #needs-input
-Built 2026-10-10 (branch `claude/alerts`): every alert raised for every commander and a throttled subset presented; units/base under attack, stealth detected, energy floating, infrastructure strained, and the superweapon lifecycle for abilities authoring `global_alert: true` (Cryogenic Implosion only); placeholder toasts, tones, a Space jump key that cycles back, and a superweapon countdown panel. Left: the decisions below, tuning every number in `AlertCatalog`, and the `PLANNED` list of other alert types.
+Built 2026-10-10 (branch `claude/alerts`): every alert raised for every commander and a throttled subset presented; units/base/extractor/command-centre under attack, stealth detected, energy floating, infrastructure strained, construction/unit/research complete (counted on their toasts, one generic sound), lithium pond depleted, ability charged for pools authoring `alert: true` (every structure's), and the superweapon lifecycle for abilities authoring `global_alert: true` (Cryogenic Implosion only); placeholder toasts, tones, a Space jump key that cycles back, and a superweapon countdown panel. Left: the decisions below, tuning every number in `AlertCatalog`, and the `PLANNED` list of other alert types.
 → [ux/ui/alerts](systems/ux/ui/alerts.md)
 
 > [!question] Q — 2026-10-10

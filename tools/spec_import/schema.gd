@@ -218,7 +218,7 @@ const NESTED_ORDER: Dictionary = {
 	],
 	"reach": ["ground", "air"],
 	"deploys": ["time", "undeploy_time", "cancellable"],
-	"abilities": ["max_charges", "initial_charges", "cooldown", "grants"],
+	"abilities": ["max_charges", "initial_charges", "cooldown", "alert", "grants"],
 	"ui": ["grid", "active_grid", "context_grid", "factions", "tooltip", "verbose"],
 	"levels":
 	[

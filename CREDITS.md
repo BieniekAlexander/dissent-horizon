@@ -15,4 +15,4 @@ Downloaded from freesound.org (freeware).
 
 Synthesised for this project by `tools/alert_sounds/make_alert_sounds.py`; no third-party material.
 
-- `alert_routine.wav`, `alert_warning.wav`, `alert_urgent.wav`
+- `alert_routine.wav`, `alert_warning.wav`, `alert_urgent.wav`, `alert_complete.wav`

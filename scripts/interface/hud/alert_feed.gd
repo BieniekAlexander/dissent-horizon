@@ -29,11 +29,17 @@ const JUMP_CYCLE_RESET_SECONDS: float = 3.0
 
 const WIDTH: float = 300.0
 
+## Clips by AlertCatalog.sound_of name: one per tone, plus the generic completion.
 const SOUNDS: Dictionary = {
-	AlertCatalog.Tone.ROUTINE: preload("res://assets/audio/alerts/alert_routine.wav"),
-	AlertCatalog.Tone.WARNING: preload("res://assets/audio/alerts/alert_warning.wav"),
-	AlertCatalog.Tone.URGENT: preload("res://assets/audio/alerts/alert_urgent.wav"),
+	&"routine": preload("res://assets/audio/alerts/alert_routine.wav"),
+	&"warning": preload("res://assets/audio/alerts/alert_warning.wav"),
+	&"urgent": preload("res://assets/audio/alerts/alert_urgent.wav"),
+	&"complete": preload("res://assets/audio/alerts/alert_complete.wav"),
 }
+## A completion's own clip, by the piece id it bought (Alert.purchase), over the generic one.
+## PLANNED: empty until purchases have sounds of their own — gdd/systems/ux/ui/alerts.md
+## §Presentation.
+const PURCHASE_SOUNDS: Dictionary = {}
 const ACCENTS: Dictionary = {
 	AlertCatalog.Tone.ROUTINE: Color(0.55, 0.75, 0.95),
 	AlertCatalog.Tone.WARNING: Color(1.0, 0.75, 0.25),
@@ -123,7 +129,7 @@ func present(a_alert: Alert) -> void:
 	if a_alert.viewer_id != int(viewer.call()):
 		return
 	_show_toast(a_alert)
-	_play_sound(AlertCatalog.tone_of(a_alert.type))
+	_play_sound(a_alert)
 	if a_alert.has_position:
 		_history.push_front(a_alert)
 		if _history.size() > HISTORY_SIZE:
@@ -151,17 +157,21 @@ func _toasts() -> Array[Control]:
 
 func _show_toast(a_alert: Alert) -> void:
 	# The same words about the same place while the last toast is still up: count it rather
-	# than stack it.
+	# than stack it. A counting type (a completion) is counted on whichever toast already says
+	# it, wherever it happened, and that toast comes back to the top.
 	var toasts: Array[Control] = _toasts()
-	if not toasts.is_empty():
-		var newest: Control = toasts[0]
-		if _repeats(newest.get_meta(&"alert") as Alert, a_alert):
-			var repeats: int = int(newest.get_meta(&"repeats")) + 1
-			newest.set_meta(&"repeats", repeats)
-			newest.set_meta(&"born", _clock)
-			newest.modulate.a = 1.0
-			(newest.get_meta(&"label") as Label).text = "%s  ×%d" % [a_alert.text, repeats]
-			_refresh_toast_target(newest, a_alert)
+	var candidates: Array[Control] = (
+		toasts if AlertCatalog.counts_repeats(a_alert.type) else toasts.slice(0, 1)
+	)
+	for toast: Control in candidates:
+		if _repeats(toast.get_meta(&"alert") as Alert, a_alert):
+			var repeats: int = int(toast.get_meta(&"repeats")) + 1
+			toast.set_meta(&"repeats", repeats)
+			toast.set_meta(&"born", _clock)
+			toast.modulate.a = 1.0
+			(toast.get_meta(&"label") as Label).text = "%s  ×%d" % [a_alert.text, repeats]
+			_refresh_toast_target(toast, a_alert)
+			move_child(toast, 0)
 			return
 	var toast := _build_toast(a_alert)
 	add_child(toast)
@@ -201,10 +211,11 @@ func _build_toast(a_alert: Alert) -> PanelContainer:
 
 
 ## Whether `a_new` says what `a_old` said, about the same place — so one toast can count both.
+## A counting type needs only the same words; the toast then jumps to the newest.
 static func _repeats(a_old: Alert, a_new: Alert) -> bool:
 	if a_old == null or a_old.text != a_new.text or a_old.has_position != a_new.has_position:
 		return false
-	if not a_old.has_position:
+	if not a_old.has_position or AlertCatalog.counts_repeats(a_new.type):
 		return true
 	return a_old.xz().distance_to(a_new.xz()) < AlertCatalog.suppress_radius(a_new.type)
 
@@ -233,14 +244,22 @@ func _on_toast_input(a_event: InputEvent, a_toast: Control) -> void:
 		accept_event()
 
 
-func _play_sound(a_tone: AlertCatalog.Tone) -> void:
+func _play_sound(a_alert: Alert) -> void:
+	var tone: int = int(AlertCatalog.tone_of(a_alert.type))
 	var quiet: bool = _clock - _last_sound_at < SOUND_GAP_SECONDS
-	if quiet and int(a_tone) <= _last_sound_tone:
+	if quiet and tone <= _last_sound_tone:
 		return
 	_last_sound_at = _clock
-	_last_sound_tone = int(a_tone)
+	_last_sound_tone = tone
 	if _player == null or not _player.is_inside_tree():
 		return
-	_player.stream = SOUNDS[a_tone]
+	_player.stream = sound_for(a_alert)
 	_player.play()
+
+
+## The clip `a_alert` plays: its purchase's own, when one exists, else its catalog sound.
+static func sound_for(a_alert: Alert) -> AudioStream:
+	if a_alert.purchase != &"" and PURCHASE_SOUNDS.has(a_alert.purchase):
+		return PURCHASE_SOUNDS[a_alert.purchase]
+	return SOUNDS[AlertCatalog.sound_of(a_alert.type)]
 #endregion

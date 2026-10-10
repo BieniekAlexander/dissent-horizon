@@ -26,6 +26,9 @@ TONES = {
     "alert_warning": [(740.0, 0.00, 0.14), (988.0, 0.12, 0.20)],
     # URGENT — three quick high pulses: "act now".
     "alert_urgent": [(1175.0, 0.00, 0.09), (1175.0, 0.12, 0.09), (1397.0, 0.24, 0.16)],
+    # COMPLETE — a soft falling major third: "done". The generic completion, until purchases
+    # have their own.
+    "alert_complete": [(880.0, 0.00, 0.12), (698.5, 0.10, 0.22)],
 }
 
 PEAK = 0.45  # of full scale; the bus sits at -6 dB and these sit under unit barks

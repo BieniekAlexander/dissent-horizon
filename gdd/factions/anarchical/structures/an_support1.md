@@ -19,6 +19,7 @@ footprint: [3, 3]
 abilities:
   - max_charges: 1
     cooldown: 180
+    alert: true
     grants: [ambush]
 infrastructure: -75
 ui:

@@ -2434,7 +2434,7 @@ func _check_piece_placeholders(a_spec: Dictionary, a_text: String, a_where: Stri
 
 
 ## `ability_groups:` — the pools of charges this piece's abilities draw on. Each entry is
-## `{max_charges, initial_charges, cooldown, grants}`; abilities listed in one entry SHARE
+## `{max_charges, initial_charges, cooldown, alert, grants}`; abilities listed in one entry SHARE
 ## its charges. `max_charges` defaults to 1 and `initial_charges` to `max_charges`, so a
 ## plain cooldown is still `{cooldown, grants}`.
 ##
@@ -2484,6 +2484,8 @@ func _validate_ability_groups(a_spec: Dictionary) -> void:
 						% [where, int(group["initial_charges"]), cap]
 					)
 				)
+		if group.has("alert") and not (group["alert"] is bool):
+			_err(a_spec, "%s alert must be true or false" % where)
 		if not group.has("cooldown"):
 			_err(a_spec, "%s needs a cooldown: (seconds)" % where)
 		elif (

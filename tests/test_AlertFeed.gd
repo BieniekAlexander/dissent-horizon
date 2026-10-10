@@ -76,3 +76,24 @@ func test_the_stack_is_capped() -> void:
 	for i: int in AlertFeed.MAX_TOASTS + 3:
 		_feed.present(_located(i * 1000.0))
 	assert_eq(_toasts(), AlertFeed.MAX_TOASTS)
+
+
+func _ready_alert(a_text: String, a_x: float) -> Alert:
+	return Alert.make(AlertCatalog.Type.UNIT_READY, ME, 0, a_text).located_at(Vector3(a_x, 0, 0))
+
+
+func test_completions_are_counted_on_the_toast_that_says_them() -> void:
+	_feed.present(_ready_alert("Recruit ready", 0.0))
+	_feed.present(_ready_alert("Badger ready", 500.0))
+	_feed.present(_ready_alert("Recruit ready", 900.0))
+	assert_eq(_toasts(), 2, "the Recruit toast counted the second Recruit")
+	var top := _feed.get_child(0) as PanelContainer
+	assert_string_contains((top.get_meta(&"label") as Label).text, "Recruit ready  ×2")
+	_feed.jump_to_recent()
+	assert_eq(_jumps.back(), Vector2(900, 0), "and points at the newest")
+
+
+func test_a_completion_plays_the_generic_sound_until_its_purchase_has_one() -> void:
+	var alert := _ready_alert("Recruit ready", 0.0)
+	alert.purchase = &"anything"
+	assert_eq(AlertFeed.sound_for(alert), AlertFeed.SOUNDS[&"complete"])

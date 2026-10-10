@@ -22,6 +22,9 @@ var _subject: WeakRef = null
 ## A key that identifies "the same thing again" for keyed (non-spatial) throttling — the
 ## caster's instance id for a superweapon, the commander id for a state.
 var key: int = 0
+## For a completion: the piece id bought, so its sound can one day be its own
+## (AlertFeed.PURCHASE_SOUNDS). Empty otherwise.
+var purchase: StringName = &""
 #endregion
 
 

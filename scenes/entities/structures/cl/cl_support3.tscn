@@ -114,7 +114,7 @@ script = ExtResource("18_lxkyp")
 
 [node name="Abilities" type="Node" parent="." unique_id=148241249]
 script = ExtResource("2_spec")
-groups = Array[Dictionary]([{ "initial_charges": 0, "max_charges": 1, "cooldown_ticks": 7200, "grants": [&"blizzard"] }])
+groups = Array[Dictionary]([{ "initial_charges": 0, "max_charges": 1, "cooldown_ticks": 7200, "alert": true, "grants": [&"blizzard"] }])
 metadata/_visual_default_mesh = "structure"
 
 [node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("23_xies8")]

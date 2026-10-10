@@ -276,3 +276,132 @@ func test_the_countdown_reads_as_minutes_and_seconds() -> void:
 	assert_eq(SuperweaponTimers.countdown_text(row), "2:13")
 	row["charges"] = 1
 	assert_eq(SuperweaponTimers.countdown_text(row), "READY")
+
+
+# --- Command centre and extractor under attack ------------------------------------------
+
+
+func test_a_command_centre_hit_is_its_own_alert() -> void:
+	var centre := _piece(
+		FakePieces.BUILDING.merged({"id": Deployment.command_centre_ids()[0]}), OWN
+	)
+	_hit(centre, FOE)
+	assert_eq(_presented[0].type, AlertCatalog.Type.COMMAND_CENTRE_ATTACKED)
+
+
+func test_an_extractor_hit_is_its_own_alert() -> void:
+	var extractor := _piece(FakePieces.BUILDING, OWN)
+	var component := Extractor.new()
+	component.name = "Extractor"
+	extractor.add_child(component)
+	_hit(extractor, FOE)
+	assert_eq(_presented[0].type, AlertCatalog.Type.EXTRACTOR_ATTACKED)
+
+
+func test_the_command_centre_breaks_through_a_base_hold() -> void:
+	_hit(_piece(FakePieces.BUILDING, OWN), FOE)
+	_center.set_tick(1)
+	_hit(_piece(FakePieces.BUILDING.merged({"id": Deployment.command_centre_ids()[0]}), OWN), FOE)
+	var types: Array = _presented.map(func(a: Alert) -> int: return a.type)
+	assert_eq(
+		types, [AlertCatalog.Type.STRUCTURES_ATTACKED, AlertCatalog.Type.COMMAND_CENTRE_ATTACKED]
+	)
+
+
+# --- Completions ------------------------------------------------------------------------
+
+
+func test_a_finished_structure_is_told_where() -> void:
+	var own := _commanders[OWN] as Commander
+	var structure := _piece(FakePieces.BUILDING, OWN, Vector3(3.0, 0.0, 4.0))
+	own.construction_finished.emit(structure)
+	var done: Array[Alert] = _of(_presented, AlertCatalog.Type.CONSTRUCTION_COMPLETE)
+	assert_eq(done.size(), 1)
+	assert_eq(done[0].viewer_id, OWN)
+	assert_eq(done[0].xz(), Vector2(3.0, 4.0))
+	assert_eq(done[0].purchase, structure.id, "carries what was bought, for its own sound later")
+
+
+func test_every_trained_unit_is_presented_to_be_counted() -> void:
+	var own := _commanders[OWN] as Commander
+	for i: int in 3:
+		own.unit_trained.emit(_piece(FakePieces.SOLDIER, OWN))
+	assert_eq(_of(_presented, AlertCatalog.Type.UNIT_READY).size(), 3, "never held back")
+
+
+func test_finished_research_is_nowhere() -> void:
+	(_commanders[OWN] as Commander).upgrade_researched.emit(&"some_upgrade")
+	var done: Array[Alert] = _of(_presented, AlertCatalog.Type.RESEARCH_COMPLETE)
+	assert_eq(done.size(), 1)
+	assert_false(done[0].has_position)
+
+
+func test_a_piece_with_no_purchase_or_scene_is_called_by_its_name() -> void:
+	var piece := _piece(FakePieces.SOLDIER, OWN)
+	assert_eq(AlertCenter.title_of(piece), String(piece.name))
+
+
+# --- Ponds ------------------------------------------------------------------------------
+
+
+func test_a_drained_pond_tells_whoever_worked_it() -> void:
+	var pond := WaterBody.new()
+	add_child_autofree(pond)
+	pond.energy = 1
+	pond.extractor = _piece(FakePieces.BUILDING, OWN)
+	_center.bind_water_bodies([pond])
+	pond.extract(100)
+	var dry: Array[Alert] = _of(_presented, AlertCatalog.Type.POND_DEPLETED)
+	assert_eq(dry.size(), 1)
+	assert_eq(dry[0].viewer_id, OWN)
+	assert_true(dry[0].has_position)
+	pond.extract(100)
+	assert_eq(_of(_raised, AlertCatalog.Type.POND_DEPLETED).size(), 1, "once, not per draw")
+
+
+# --- Ability charged --------------------------------------------------------------------
+
+
+func _pool_piece(a_ability: StringName, a_alert: bool) -> Actor:
+	return _piece(
+		{
+			"structure": true,
+			"abilities": [{"grants": [a_ability], "initial_charges": 0, "alert": a_alert}],
+		},
+		OWN
+	)
+
+
+func test_a_charged_pool_that_alerts_tells_its_owner_where() -> void:
+	FakePieces.install_ability(&"test_spell", {"title": "Spell"})
+	var piece := _pool_piece(&"test_spell", true)
+	_center.poll()
+	_charge(piece, 1)
+	_center.set_tick(1)
+	_center.poll()
+	var charged: Array[Alert] = _of(_presented, AlertCatalog.Type.ABILITY_CHARGED)
+	assert_eq(charged.size(), 1)
+	assert_eq(charged[0].viewer_id, OWN)
+	assert_true(charged[0].has_position)
+	assert_string_contains(charged[0].text, "Spell")
+
+
+func test_a_pool_is_silent_unless_it_authors_alert() -> void:
+	FakePieces.install_ability(&"test_spell", {"title": "Spell"})
+	var piece := _pool_piece(&"test_spell", false)
+	assert_false(piece.get_node("Abilities").is_in_group(Abilities.ALERTING_GROUP))
+	_center.poll()
+	_charge(piece, 1)
+	_center.set_tick(1)
+	_center.poll()
+	assert_eq(_of(_raised, AlertCatalog.Type.ABILITY_CHARGED).size(), 0)
+
+
+func test_a_superweapon_pool_is_announced_as_a_superweapon_only() -> void:
+	var piece := _pool_piece(SUPERWEAPON, true)
+	_center.poll()
+	_charge(piece, 1)
+	_center.set_tick(1)
+	_center.poll()
+	assert_eq(_of(_raised, AlertCatalog.Type.ABILITY_CHARGED).size(), 0)
+	assert_gt(_of(_raised, AlertCatalog.Type.SUPERWEAPON_READY).size(), 0)

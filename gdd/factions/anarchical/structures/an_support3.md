@@ -20,6 +20,7 @@ abilities:
   - max_charges: 1
     initial_charges: 0
     cooldown: 300
+    alert: true
     grants: [global_emp]
 infrastructure: -200
 ui:

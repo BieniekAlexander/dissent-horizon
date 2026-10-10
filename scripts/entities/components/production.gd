@@ -357,6 +357,8 @@ func _spawn_unit(
 	unit.update_commands(chain if not chain.is_empty() else null)
 	if a_transaction != null:
 		a_transaction.complete(unit)
+	if entity.commander != null:
+		entity.commander.unit_trained.emit(unit)
 
 
 ## A finished RESEARCH job: nothing appears, the commander simply owns the upgrade. The
