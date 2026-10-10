@@ -140,6 +140,21 @@ static func has_hud_button(id: StringName) -> bool:
 	return definition(id).has_hud_button
 
 
+## Whether every commander is told who owns a caster of this ability and sees its charge
+## count down (doc key `global_alert:`). gdd/systems/ux/ui/alerts.md §Global alerts.
+static func has_global_alert(id: StringName) -> bool:
+	return definition(id).has_global_alert
+
+
+## Every ability that authors `global_alert: true`, in the generated (alphabetical) order.
+static func global_alert_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for id: StringName in ids():
+		if has_global_alert(id):
+			out.append(id)
+	return out
+
+
 ## Whether the sanction grid is where this ability comes from — i.e. whether it is an
 ## SANCTION. Abilities that are free, or bought at a structure, are not.
 static func is_dominion_unlocked(id: StringName) -> bool:

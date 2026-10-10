@@ -26,6 +26,7 @@ abilities:
   - max_charges: 1
     initial_charges: 0
     cooldown: 60
+    alert: true
     grants:
       - beacon
       - freeze

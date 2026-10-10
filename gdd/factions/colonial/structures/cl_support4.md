@@ -20,6 +20,7 @@ abilities:
   - max_charges: 1
     initial_charges: 0
     cooldown: 180
+    alert: true
     grants: [cryogenic_implosion]
 infrastructure: -200
 ui: {grid: [5, 2], factions: [colonial]}

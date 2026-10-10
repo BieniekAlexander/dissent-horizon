@@ -94,6 +94,8 @@ signal commander_eliminated(a_commander_id: int)
 ## The match's event log: every summary and statistic of this match reads it, never the game.
 ## Null in the editor.
 var match_log: MatchLog = null
+## The match's alerts: every commander's, raised and presented (AlertCenter). Null in the editor.
+var _alert_center: AlertCenter = null
 
 ## Per commander id: whether it has placed a command centre yet, which is what ARMS the
 ## HEGEMONY rule for it — before the drop lands every commander owns no centre, and that is
@@ -109,6 +111,11 @@ var recorder: ReplayRecorder = null
 ## A recording to PLAY BACK instead of a match to play: set before the scenario enters the tree,
 ## and it takes the seed and the orders from the recording. Null for a live match.
 var replay_to_play: ReplayFile = null
+
+## For a skirmish the lobby built: the recipe it was built from (SkirmishLauncher), which the
+## replay header records so playback regenerates the same map and slots. Empty for an authored
+## scenario, whose scene file is its own recipe.
+var skirmish_recipe: Dictionary = {}
 
 ## Every piece that has entered play this session, by spawn serial (Entity.spawn_serial) — how
 ## a recorded order names a piece. Kept for a piece's whole life, garrisoned (off the tree)
@@ -231,6 +238,9 @@ func _ready() -> void:
 	event_manager.message_requested.connect(_on_scenario_message)
 	event_manager.game_over.connect(_on_game_over)
 	event_manager.scenario_completed.connect(_on_scenario_completed)
+	# After the opening force spawned and the bus exists: a match does not start by telling
+	# anyone about the pieces it was dealt. gdd/systems/ux/ui/alerts.md.
+	_create_alert_center()
 
 	# Scenario-driven HUD: acknowledge pop-ups and the objective checklist. Owned here rather
 	# than by the player rig because they belong to the SCENARIO — a spectator or test session
@@ -984,6 +994,22 @@ func _create_match_log() -> void:
 	match_log.name = "MatchLog"
 	add_child(match_log)
 	match_log.begin(self)
+
+
+## Start the match's alerts (AlertCenter). Not in the editor, which plays no match.
+func _create_alert_center() -> void:
+	if Engine.is_editor_hint():
+		return
+	_alert_center = AlertCenter.new()
+	_alert_center.name = "AlertCenter"
+	add_child(_alert_center)
+	_alert_center.bind(self)
+
+
+## The match's alerts, or null before the scenario is ready (and always in the editor). The HUD
+## binds to it deferred, since the player rig is ready before its scenario is.
+func alerts() -> AlertCenter:
+	return _alert_center
 
 
 ## The node that receives the debug toggle, and the session's debug permission with it. First

@@ -105,6 +105,7 @@ const TOP_LEVEL_ORDER: Array = [
 	# rule has nothing to say about them.
 	"passive",
 	"hud_button",
+	"global_alert",
 	"command",
 	"range",
 	"cast_by",
@@ -217,7 +218,7 @@ const NESTED_ORDER: Dictionary = {
 	],
 	"reach": ["ground", "air"],
 	"deploys": ["time", "undeploy_time", "cancellable"],
-	"abilities": ["max_charges", "initial_charges", "cooldown", "grants"],
+	"abilities": ["max_charges", "initial_charges", "cooldown", "alert", "grants"],
 	"ui": ["grid", "active_grid", "context_grid", "factions", "tooltip", "verbose"],
 	"levels":
 	[

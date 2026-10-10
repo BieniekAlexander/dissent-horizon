@@ -22,6 +22,7 @@ footprint:
   - 4
 abilities:
   - cooldown: 30
+    alert: true
     grants:
       - bombard
 beacon: 20

@@ -24,6 +24,10 @@ var verbose: String = ""
 var is_passive: bool = false
 ## Whether it gets a button on the top-of-screen bar. Authored, not derived.
 var has_hud_button: bool = false
+## Whether every commander is told who owns a caster of it and sees that caster's charge count
+## down — the Zero Hour superweapon convention. Authored, not derived.
+## gdd/systems/ux/ui/alerts.md §Global alerts.
+var has_global_alert: bool = false
 ## The grid command it is armed as, or "" — a dominion-unlocked one is armed per level.
 var command: String = ""
 ## How far from the target point it may be used, in world units.
@@ -51,6 +55,7 @@ static func from_entry(ability_id: StringName, entry: Dictionary) -> AbilityDefi
 	definition.verbose = str(entry.get("verbose", ""))
 	definition.is_passive = bool(entry.get("passive", false))
 	definition.has_hud_button = bool(entry.get("hud_button", false))
+	definition.has_global_alert = bool(entry.get("global_alert", false))
 	definition.command = str(entry.get("command", ""))
 	definition.range_metres = float(entry.get("range", DEFAULT_RANGE))
 	definition.cast_arity = (

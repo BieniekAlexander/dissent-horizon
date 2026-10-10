@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://cff5ag28s3u4b" path="res://scenes/scenarios/prologue/s1/s1.tscn" id="3_s1"]
 [ext_resource type="PackedScene" uid="uid://b83u41t5nicmq" path="res://scenes/scenarios/prologue/s2/s2.tscn" id="4_s2"]
 [ext_resource type="PackedScene" uid="uid://bnatbpkct15lc" path="res://scenes/scenarios/prologue/s3/s3.tscn" id="5_hj162"]
+[ext_resource type="Script" path="res://scripts/interface/menu/skirmish_lobby.gd" id="6_lobby"]
 
 [sub_resource type="Resource" id="Entry_s1"]
 script = ExtResource("2_entry")
@@ -62,40 +63,122 @@ theme_override_font_sizes/font_size = 52
 text = "Dissent Horizon"
 horizontal_alignment = 1
 
-[node name="Buttons" type="VBoxContainer" parent="Center/Column" unique_id=2080379222]
+[node name="MainPage" type="VBoxContainer" parent="Center/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="ButtonTemplate" type="Button" parent="Center/Column/Buttons" unique_id=419725609]
+[node name="CampaignPage" type="VBoxContainer" parent="Center/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="CampaignHeading" type="Label" parent="Center/Column/CampaignPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Campaign"
+horizontal_alignment = 1
+
+[node name="Buttons" type="VBoxContainer" parent="Center/Column/CampaignPage" unique_id=2080379222]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ButtonTemplate" type="Button" parent="Center/Column/CampaignPage/Buttons" unique_id=419725609]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(360, 48)
 layout_mode = 2
 text = "Scenario"
 
-[node name="ReplaysHeading" type="Label" parent="Center/Column"]
+[node name="SkirmishPage" type="VBoxContainer" parent="Center/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="SkirmishLobby" type="VBoxContainer" parent="Center/Column/SkirmishPage"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("6_lobby")
+
+[node name="ReplaysPage" type="VBoxContainer" parent="Center/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ReplaysHeading" type="Label" parent="Center/Column/ReplaysPage"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.85, 0.9, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 26
 text = "Replays"
 horizontal_alignment = 1
 
-[node name="ReplayScroll" type="ScrollContainer" parent="Center/Column"]
-custom_minimum_size = Vector2(360, 200)
+[node name="ReplayScroll" type="ScrollContainer" parent="Center/Column/ReplaysPage"]
+custom_minimum_size = Vector2(360, 260)
 layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="ReplayList" type="VBoxContainer" parent="Center/Column/ReplayScroll"]
+[node name="ReplayList" type="VBoxContainer" parent="Center/Column/ReplaysPage/ReplayScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="ReplayStatus" type="Label" parent="Center/Column"]
+[node name="ReplayStatus" type="Label" parent="Center/Column/ReplaysPage"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(360, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.55, 0.45, 1)
 horizontal_alignment = 1
 autowrap_mode = 3
+
+[node name="OptionsPage" type="VBoxContainer" parent="Center/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="OptionsHeading" type="Label" parent="Center/Column/OptionsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Options"
+horizontal_alignment = 1
+
+[node name="VolumeRow" type="HBoxContainer" parent="Center/Column/OptionsPage"]
+layout_mode = 2
+
+[node name="VolumeLabel" type="Label" parent="Center/Column/OptionsPage/VolumeRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Volume"
+
+[node name="Volume" type="HSlider" parent="Center/Column/OptionsPage/VolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="JumpScopeRow" type="HBoxContainer" parent="Center/Column/OptionsPage"]
+layout_mode = 2
+
+[node name="JumpScopeLabel" type="Label" parent="Center/Column/OptionsPage/JumpScopeRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Alert jump key"
+
+[node name="JumpScope" type="OptionButton" parent="Center/Column/OptionsPage/JumpScopeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+tooltip_text = "Which alerts the jump key cycles through."
+
+[node name="OptionsNote" type="Label" parent="Center/Column/OptionsPage"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.65, 1)
+text = "Volume is not saved yet."
+horizontal_alignment = 1

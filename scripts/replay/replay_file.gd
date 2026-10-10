@@ -96,7 +96,7 @@ static func header_for(a_scenario: Scenario, a_version: String) -> Dictionary:
 			)
 		)
 	var map: Map = a_scenario.get_node_or_null("Map") as Map
-	return {
+	var header: Dictionary = {
 		"type": HEADER_TYPE,
 		"scenario": a_scenario.scene_file_path,
 		"map": map.scene_file_path if map != null else "",
@@ -104,6 +104,10 @@ static func header_for(a_scenario: Scenario, a_version: String) -> Dictionary:
 		"slots": slots,
 		"version": a_version,
 	}
+	# A lobby-built skirmish's map exists in no file: its recipe is what rebuilds it.
+	if not a_scenario.skirmish_recipe.is_empty():
+		header["skirmish"] = a_scenario.skirmish_recipe
+	return header
 
 
 ## Why a replay with `a_header` cannot be played by this build, or "" when it can. A simulation

@@ -908,15 +908,18 @@ func _sync_ability_groups(a_ctx: Ctx, a_spec: Dictionary) -> void:
 		for ability in group["grants"]:
 			grants.append(TscnDoc.fmt_string_name(str(ability)))
 		var max_charges: int = maxi(1, int(group.get("max_charges", Abilities.DEFAULT_MAX_CHARGES)))
+		# `alert` is written only when on, so a pool that never alerts keeps the text it had.
+		var alert: String = '"alert": true, ' if bool(group.get("alert", false)) else ""
 		(
 			parts
 			. append(
 				(
-					'{ "initial_charges": %d, "max_charges": %d, "cooldown_ticks": %d, "grants": [%s] }'
+					'{ "initial_charges": %d, "max_charges": %d, "cooldown_ticks": %d, %s"grants": [%s] }'
 					% [
 						clampi(int(group.get("initial_charges", max_charges)), 0, max_charges),
 						max_charges,
 						maxi(1, TimeUtils.ticks_from_seconds(float(group["cooldown"]))),
+						alert,
 						", ".join(grants),
 					]
 				)

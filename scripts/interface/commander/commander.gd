@@ -167,6 +167,9 @@ signal purchase_progressed(a_transaction: PurchaseTransaction, a_stage: StringNa
 ## One of this commander's structures finished construction, on the tick it did.
 signal construction_finished(a_structure: Actor)
 
+## One of this commander's producers finished a unit and put it on the map (Production).
+signal unit_trained(a_unit: Actor)
+
 
 ## Add `amount` energy (negative to spend). Single write-point for the energy pool.
 func add_energy(a_amount: int) -> void:

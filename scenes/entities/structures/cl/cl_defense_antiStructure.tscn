@@ -119,7 +119,7 @@ radius = 20.0
 
 [node name="Abilities" type="Node" parent="." unique_id=1138283495]
 script = ExtResource("2_spec")
-groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 900, "grants": [&"bombard"] }])
+groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 900, "alert": true, "grants": [&"bombard"] }])
 
 [node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("24_1hyoh")]
 

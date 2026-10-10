@@ -9,6 +9,7 @@
 		"factions": [
 			"anarchists"
 		],
+		"global_alert": false,
 		"grid": [
 			0,
 			1
@@ -43,6 +44,7 @@
 		"factions": [
 			"colonial"
 		],
+		"global_alert": false,
 		"grid": [
 			1,
 			1
@@ -72,6 +74,7 @@
 		"factions": [
 			"colonial"
 		],
+		"global_alert": false,
 		"grid": [
 			1,
 			2
@@ -104,6 +107,7 @@
 		"factions": [
 			"colonial"
 		],
+		"global_alert": false,
 		"grid": [
 			0,
 			0
@@ -127,6 +131,7 @@
 		"factions": [
 			"colonial"
 		],
+		"global_alert": true,
 		"grid": [
 			2,
 			2
@@ -154,6 +159,7 @@
 		"dominion": false,
 		"emits": "res://scenes/entities/projectiles/an/an_plant_bomb.tscn",
 		"factions": [],
+		"global_alert": false,
 		"grid": [],
 		"hud_button": false,
 		"levels": [],
@@ -174,6 +180,7 @@
 		"factions": [
 			"anarchists"
 		],
+		"global_alert": false,
 		"grid": [
 			0,
 			0
@@ -203,6 +210,7 @@
 		"factions": [
 			"colonial"
 		],
+		"global_alert": false,
 		"grid": [
 			0,
 			1
@@ -242,6 +250,7 @@
 		"factions": [
 			"colonial"
 		],
+		"global_alert": false,
 		"grid": [
 			3,
 			0
@@ -276,6 +285,7 @@
 		"factions": [
 			"anarchists"
 		],
+		"global_alert": false,
 		"grid": [
 			1,
 			2
@@ -305,6 +315,7 @@
 		"factions": [
 			"colonial"
 		],
+		"global_alert": false,
 		"grid": [
 			0,
 			2
@@ -339,6 +350,7 @@
 		"factions": [
 			"anarchists"
 		],
+		"global_alert": false,
 		"grid": [
 			1,
 			0
@@ -376,6 +388,7 @@
 		"dominion": false,
 		"emits": "res://scenes/entities/projectiles/radiation.tscn",
 		"factions": [],
+		"global_alert": false,
 		"grid": [],
 		"hud_button": false,
 		"levels": [],
@@ -396,6 +409,7 @@
 		"factions": [
 			"anarchists"
 		],
+		"global_alert": false,
 		"grid": [
 			1,
 			1
@@ -435,6 +449,7 @@
 		"factions": [
 			"anarchists"
 		],
+		"global_alert": false,
 		"grid": [
 			0,
 			2
@@ -462,6 +477,7 @@
 		"dominion": false,
 		"emits": "",
 		"factions": [],
+		"global_alert": false,
 		"grid": [],
 		"hud_button": false,
 		"levels": [],
@@ -482,6 +498,7 @@
 		"factions": [
 			"colonial"
 		],
+		"global_alert": false,
 		"grid": [
 			1,
 			0
@@ -509,6 +526,7 @@
 		"dominion": false,
 		"emits": "",
 		"factions": [],
+		"global_alert": false,
 		"grid": [],
 		"hud_button": false,
 		"levels": [],
@@ -529,6 +547,7 @@
 		"factions": [
 			"colonial"
 		],
+		"global_alert": false,
 		"grid": [
 			2,
 			0
@@ -561,6 +580,7 @@
 		"dominion": true,
 		"emits": "",
 		"factions": [],
+		"global_alert": false,
 		"grid": [],
 		"hud_button": false,
 		"levels": [
@@ -595,6 +615,7 @@
 		"dominion": false,
 		"emits": "",
 		"factions": [],
+		"global_alert": false,
 		"grid": [],
 		"hud_button": false,
 		"levels": [],
@@ -613,6 +634,7 @@
 		"dominion": false,
 		"emits": "",
 		"factions": [],
+		"global_alert": false,
 		"grid": [],
 		"hud_button": false,
 		"levels": [],

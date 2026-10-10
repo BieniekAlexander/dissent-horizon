@@ -240,7 +240,7 @@ channels exist or are planned:
 
 | channel | what presents it | what L0 reads |
 |---|---|---|
-| game-wide announcement | nothing yet — see the `cue:` field below | a commander-wide event: a type and a time, a position only if the announcement carries one, no entity |
+| game-wide announcement | `AlertCenter.alert_presented` ([ux/ui/alerts](../ux/ui/alerts.md)); no bot subscribes yet — see also the `cue:` field below | a commander-wide event: a type and a time, a position only if the announcement carries one, no entity |
 | rendered piece | fog + `Entity.is_visible_to` (`Stealth`, `fog_clear_at`) | a sighting — today's path |
 | transient effect: particles, badges, animation state, sound | `StatusVisuals`, `MeshVisual` channels, `AnimationRig`, the audio players | a LOW-CONFIDENCE sighting, or a state hint on an existing track (reloading, under construction) |
 

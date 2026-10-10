@@ -498,8 +498,15 @@ abilities:
   - max_charges: 1                # pool capacity; optional, defaults to 1
     initial_charges: 0            # stock when the piece is built; optional, defaults to max_charges
     cooldown: 60                  # seconds to regain ONE charge
+    alert: true                   # tell the owner each time it regains a charge (default false)
     grants: [beacon, freeze]      # ability ids; every id here draws on this pool
 ```
+
+`alert:` is off unless authored, and every structure's pools author it today: a structure's
+ability is one the player cannot see recharging without finding the building, while a unit's
+sits on the selection it was just used from. A pool granting a `global_alert:` ability is
+announced as a superweapon instead, never twice. →
+[`gdd/systems/ux/ui/alerts.md`](../../gdd/systems/ux/ui/alerts.md).
 
 Capacity and starting stock are separate keys because they answer different balance
 questions: `max_charges` is how much the ability holds, `initial_charges` is whether a
@@ -666,6 +673,7 @@ flavor:
     The held-key tier of the same.
 passive: false             # never emitted through a command; standing while owned (default false)
 hud_button: false          # does it get a button on the top bar? (default false)
+global_alert: false        # is everyone told who owns a caster, and shown its timer? (default false)
 command: command_bombard   # the grid command its HUD button arms; sanction-unlocked abilities
                            # are armed as their own cell instead, so the two are alternatives
 cast_by: SINGLE            # how many SELECTED casters fire it with no modifier held:
@@ -713,6 +721,15 @@ piece that can use the ability and arms it, leaving one right-click to aim.
 A doc with `levels:` is one **family** — a chain running down one column, where each
 level continues and **supersedes** the one above it. `parent` is never written by
 hand: it is the level ordering.
+
+**`global_alert:` is the superweapon convention, and it defaults to false.** Zero Hour
+tells every player when anyone has a superweapon and shows its countdown; this flag opts an
+ability into the same. Every commander hears when a caster of it is begun, finished, charged
+and fired, and sees each caster's charge timer — but is never told WHERE an enemy's is. It
+is about the ability rather than the caster because it is the strike, not the building, that
+everyone needs to plan around. A `passive:` ability cannot carry it: it has no charge to
+count down. → [`gdd/systems/ux/ui/alerts.md`](../../gdd/systems/ux/ui/alerts.md)
+§Global alerts.
 
 A family is **not** the same thing as a column. Several unrelated abilities may share
 a column (the Colonials' Gunship sits under Scan 3 without continuing it); those are

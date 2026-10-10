@@ -499,7 +499,7 @@ static func _scene_paths(dir: String) -> Array[String]:
 	return out
 
 
-## {ability_id: {"title", "description", "verbose", "passive", "hud_button",
+## {ability_id: {"title", "description", "verbose", "passive", "hud_button", "global_alert",
 ## "command", "emits", "dominion"}} — one entry per kind: AbilityDefinition doc.
 ##
 ## THE ABILITY DEFINITION AT RUNTIME. What a piece can do is on the piece
@@ -524,6 +524,10 @@ static func abilities_json(registry: RefCounted) -> String:
 			"verbose": render_placeholders(registry, str(spec.get("verbose", ""))),
 			"passive": bool(spec.get("passive", false)),
 			"hud_button": bool(spec.get("hud_button", false)),
+			# EVERY commander is told when anyone owns a piece that casts it, sees its charge count
+			# down, and hears it ready and launched — never where. gdd/systems/ux/ui/alerts.md
+			# §Global alerts.
+			"global_alert": bool(spec.get("global_alert", false)),
 			"command": str(spec.get("command", "")),
 			# HOW FAR from the target point the ability may be used. Per ability rather than one
 			# constant for all of them — see AbilityCatalog.range_of for why that mattered.

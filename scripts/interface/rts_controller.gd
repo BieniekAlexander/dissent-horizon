@@ -21,6 +21,11 @@ static var PLAYER_COMMANDER_ID: int = 1
 
 const SELECTION_BLOCKING_UI_GROUP: StringName = &"selection_blocking_ui"
 
+## Jump the camera to the newest alert that may say where; pressed again, to the one before.
+## Deliberately not `command_*` (it orders nothing) nor `isometric_camera_*` (RTSCamera3D reads
+## that prefix itself): a one-off with its own branch. gdd/systems/ux/ui/alerts.md §Presentation.
+const ALERT_JUMP_ACTION: StringName = &"camera_jump_to_alert"
+
 ## Other HUD layers whose visibility follows this HUD's hide button: the scenario timer, a
 ## spectator's labels, the replay banner. A dialog and the pause menu are not HUD and stay up.
 ## gdd/systems/ux/ui/hud-layout.md §Hiding the HUD.
@@ -123,6 +128,9 @@ signal command_issued(entity: Entity, command_type: Script)
 #region Properties
 @onready var map: Map = _session_root().find_child("Map") as Map
 @onready var camera: RTSCamera3D = get_viewport().get_camera_3d()
+## The alert toasts and superweapon countdowns (_build_alert_hud). Null until built.
+var alert_feed: AlertFeed = null
+var _superweapon_timers: SuperweaponTimers = null
 @onready var _info_view: InfoView = $InfoSection
 ## The four PERSISTENT panels — visible in every selection state, because each answers a
 ## question you can ask with nothing selected. Optional (get_node_or_null) so a session
@@ -539,6 +547,10 @@ func _ready():
 	_cursor_readout = CursorReadout.new()
 	add_child(_cursor_readout)
 
+	# The alert toasts and the superweapon countdowns. Built in code; bound once the scenario
+	# is ready, which is after this rig is. gdd/systems/ux/ui/alerts.md §Presentation.
+	_build_alert_hud()
+
 	# Says which of the three cards is on screen. A STUB — see CardModeBanner.
 	_mode_banner = CardModeBanner.new()
 	$CommandsSection/CommandsBorder.add_child(_mode_banner)
@@ -548,6 +560,46 @@ func _ready():
 	if is_look_only:
 		_apply_look_only_layout()
 	_build_hud_toggle()
+
+
+## Build the alert toasts and superweapon countdowns, and bind them once the scenario exists.
+func _build_alert_hud() -> void:
+	alert_feed = AlertFeed.new()
+	add_child(alert_feed)
+	alert_feed.anchor_to_left_edge()
+	alert_feed.viewer = alert_viewer_id
+	alert_feed.jump_requested.connect(_on_alert_jump_requested)
+	_superweapon_timers = SuperweaponTimers.new()
+	add_child(_superweapon_timers)
+	_superweapon_timers.anchor_to_right_edge()
+	_bind_alert_hud.call_deferred()
+
+
+func _bind_alert_hud() -> void:
+	var scenario: Scenario = Scenario.of(self) if is_inside_tree() else null
+	var center: AlertCenter = scenario.alerts() if scenario != null else null
+	if center == null:
+		return
+	alert_feed.bind(center)
+	_superweapon_timers.bind(center)
+
+
+## Whose alerts this HUD shows: the local player's, or when only looking, the commander being
+## watched — alerts follow the perspective, as fog does.
+func alert_viewer_id() -> int:
+	if PLAYER_COMMANDER_ID > 0:
+		return PLAYER_COMMANDER_ID
+	return Fog.active_commander_id
+
+
+## The jump key: the newest located alert, then older ones on repeat presses. False when none.
+func jump_to_recent_alert() -> bool:
+	return alert_feed != null and alert_feed.jump_to_recent()
+
+
+func _on_alert_jump_requested(a_world_xz: Vector2) -> void:
+	if camera != null:
+		camera.center_on(a_world_xz)
 
 
 ## Turn this HUD look-only, or back into a player's, at runtime: the player detached from or
@@ -1255,6 +1307,8 @@ func _unhandled_input(a_event: InputEvent) -> void:
 		delete_selection()
 	elif _drop_for_event(a_event) >= 0:
 		arm_drop(_drop_for_event(a_event) as Deployment.Drop)
+	elif a_event.is_action_pressed(ALERT_JUMP_ACTION):
+		jump_to_recent_alert()
 	elif a_event.is_action_pressed("card_ordnance"):
 		# SETS rather than toggles, and so does Tab — which is what makes the pair predictable:
 		# neither key's meaning depends on where you currently are. Backtick always means
@@ -1296,6 +1350,9 @@ func _look_only_input(a_event: InputEvent) -> void:
 		additive_latched = false
 	elif get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX).size() > 0:
 		_dispatch_control_group(get_action_names_by_prefix(a_event, CONTROL_GROUP_ACTION_PREFIX))
+	elif a_event.is_action_pressed(ALERT_JUMP_ACTION):
+		# Looking only moves the camera, so a watcher may follow the alerts too.
+		jump_to_recent_alert()
 
 
 #region Issuing the current order

@@ -26,6 +26,7 @@ garrison:
 abilities:
   - max_charges: 1
     cooldown: 1
+    alert: true
     grants:
       - work_detail
 infrastructure: 100

@@ -6,6 +6,7 @@ flavor:
   verbose: potato
 ui: {grid: [2, 2], factions: [colonial]}
 hud_button: true
+global_alert: true
 column: 2
 levels:
   - title: Cryogenic Implosion
@@ -39,5 +40,8 @@ Places a `cryogenic_implosion_field` at the target point
   own included, and `aoe_huge` is tall enough to reach aircraft.
 - **PLASMA is armour-scaled**: 3000 lands in full on LIGHT, ×0.75 on MEDIUM and ×0.6 on
   STRONG, and equally on BIO and MECH.
+- **Announced to everyone** (`global_alert: true`). Every commander is told when a
+  Cryogenic Imploder is being built, finished, charged and fired, and sees each one's charge
+  count down — never where it is. → [alerts](../../../systems/ux/ui/alerts.md) §Global alerts.
 - **Unattributed.** `EventPlaceEmission` launches with no firing piece, so the blast earns
   no veterancy and pays no kill bounty — the same as Blizzard.

@@ -35,7 +35,12 @@ const TEAM_COLOR_MAP: Dictionary = {
 	1: Color(.2, 1, 1),
 	2: Color(1, 1, .2),
 	3: Color(.1, .6, .1),
-	4: Color(1, .2, .2)
+	4: Color(1, .2, .2),
+	# Slots 5–8: the skirmish lobby offers up to Commander.NUM_MAX_COMMANDERS players.
+	5: Color(1, .55, .1),
+	6: Color(.7, .3, 1),
+	7: Color(1, .45, .75),
+	8: Color(.55, .75, .55),
 }
 #endregion
 
@@ -70,6 +75,12 @@ signal entity_occurrence(occurrence: EntityOccurrence, source: Entity)
 ## current scene. Null when the scene has no manager — reactions are then skipped,
 ## though `entity_occurrence` still fires.
 var _trigger_manager: ScenarioTriggerManager
+
+## The commander whose piece last hurt this one, or -1 when the last hit was unattributed (an
+## unowned strike, a status effect whose source is gone). Written BEFORE ON_RECEIVE_DAMAGE fires,
+## so a listener knows friendly fire from an attack — AlertCenter, which must not tell a player
+## their base is under attack by their own splash. Not cleared: read it in the occurrence.
+var last_hit_by_commander_id: int = -1
 #endregion
 
 #region Identity
@@ -964,6 +975,9 @@ func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
 		a_from._fire_entity_occurrence(EntityOccurrence.ON_DEAL_DAMAGE)
 	if was_lethal:
 		_credit_kill(a_from)
+	last_hit_by_commander_id = (
+		a_from.commander_id if a_from != null and is_instance_valid(a_from) else -1
+	)
 	_fire_entity_occurrence(EntityOccurrence.ON_RECEIVE_DAMAGE)
 
 

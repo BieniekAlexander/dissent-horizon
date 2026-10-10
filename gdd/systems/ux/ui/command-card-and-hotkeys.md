@@ -143,7 +143,7 @@ ability buttons are reviewed only by `test_ControlBinding`, since verbs are auth
 
 **HUD buttons are `FOCUS_NONE`** (`VerboseTooltipButton._ready`). A focused Control eats the
 keys the game listens for before `_unhandled_input` sees them: Tab would move focus instead of
-flipping the card, and Space (the fog view) and Enter would re-press whichever button was last
+flipping the card, and Space (the jump to the last alert) and Enter would re-press whichever button was last
 clicked.
 
 ## Three cards, two keys

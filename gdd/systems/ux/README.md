@@ -150,7 +150,7 @@ token has no such slot at all, which is different from being `EXEMPT`.
 | Death sound | every piece — a structure's collapse is its death | `ASSET` rule `has_death_sound` |
 | Sound per other piece event (a production loop, construction) | pieces × events | TODO |
 | Sound per weapon discharge and impact | weapons, emission phases | TODO |
-| Sound per interface action and alert | control actions, alerts | TODO |
+| Sound per interface action and alert | control actions, alerts | TODO — alerts have three placeholder tones, one per tone class ([alerts](ui/alerts.md) §Presentation) |
 | Music, ambience per map | game states, maps | TODO |
 
 ### World
@@ -171,7 +171,7 @@ The standing HUD is [ui/](ui/README.md), and each of its notes is its own row.
 | Slot kind | State |
 |---|---|
 | Minimap | built — [ui/hud-layout](ui/hud-layout.md) §The minimap |
-| Menu screen per entry point (title, match setup, settings, loading, post-match) | TODO: a main menu exists (`scenes/menu/main_menu.tscn`); the rest is unscoped, and the win/lose screen is `tasks.md` T-080 |
+| Menu screen per entry point (title, match setup, settings, loading, post-match) | placeholder title pages and skirmish lobby built ([ui/menus](ui/menus.md)); TODO: settings, loading and post-match screens — the win/lose screen is `tasks.md` T-080 |
 | Campaign presentation (briefings, portraits) | TODO: follows `gdd/modes/campaign/` |
 | Accessibility variant per signal (colourblind team palettes, a shape beside every colour) | TODO |
 

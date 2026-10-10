@@ -116,6 +116,6 @@ script = ExtResource("14_spec")
 
 [node name="Abilities" type="Node" parent="."]
 script = ExtResource("19_spec")
-groups = Array[Dictionary]([{ "initial_charges": 0, "max_charges": 1, "cooldown_ticks": 9000, "grants": [&"cryogenic_implosion"] }])
+groups = Array[Dictionary]([{ "initial_charges": 0, "max_charges": 1, "cooldown_ticks": 5400, "alert": true, "grants": [&"cryogenic_implosion"] }])
 
 [editable path="Hurtbox"]
