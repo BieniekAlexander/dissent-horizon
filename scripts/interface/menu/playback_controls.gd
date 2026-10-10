@@ -3,9 +3,12 @@ extends VBoxContainer
 
 ## The pause menu's debug playback section: a speed slider, a pause toggle that outlives the
 ## menu, and "as fast as possible". Shown while the scenario has `debug_allowed`, and in every
-## replay playback, where speed is the viewer's to set. The
-## mechanism is PlaybackSpeed; this is only its controls. Layout is authored in
-## scenes/interface/playback_controls.tscn.
+## replay playback, where speed is the viewer's to set. The mechanism is PlaybackSpeed; this is
+## only its controls. Layout is authored in scenes/interface/playback_controls.tscn.
+##
+## The slider takes no keyboard focus (`focus_mode` none in the scene): the arrow keys pan the
+## camera, which works behind the menu, and a focused slider would take each press as a step —
+## moving the speed while the player meant to look around.
 
 @onready var _speed_slider: HSlider = %SpeedSlider
 @onready var _speed_label: Label = %SpeedLabel

@@ -55,6 +55,7 @@ text = "Volume"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
+focus_mode = 0
 max_value = 1.0
 step = 0.05
 value = 0.5
