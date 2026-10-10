@@ -230,6 +230,10 @@ order would be thrown away by the first target. The sortie sits beside the queue
   it keeps circling the station, picks up and lets go of targets by the range shape standing
   there, and cannot be drawn off the point. → [combat/range-buckets](../../combat/range-buckets.md)
   §Where a reach is measured from.
+- **It sees only the station, and only on station.** Its vision stands at its orbit's centre
+  (`vision_from: orbit`) and counts only while `Sortie.is_on_station`, so it scouts nothing on
+  the way in or out. → [combat/range-buckets](../../combat/range-buckets.md) §Vision from the
+  orbit.
 - **Idle on station circles the station.** Anything else that ends with the orbit anchored
   elsewhere (a Stop settles where it was given) is re-anchored by the sortie.
 

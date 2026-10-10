@@ -21,12 +21,29 @@ levels:
 
       It is a real aircraft on the anti-air layer the whole time: shoot it down and the strike
       is over.
+  - title: Gunship 2
+    tier: 3
+    cost: 1000
+    cooldown: 60
+    description: Calls a {{ cl_aircraftMedium_gunship2 }} to hold station over the target point for 20 seconds, firing on anything it finds. Replaces Gunship.
+    verbose: |
+      The same sortie with a different gun. Everything else about it — the run in, the 20
+      seconds on station, the Attack orders, the run home — is level 1's.
 ---
 # Gunship
 
 Sits in the Scan column WITHOUT continuing it: it is a separate sanction doc that happens
 to share the column, which is layout rather than a dependency. That is why it has no
 parent and does not supersede Scan 3.
+
+## Progression
+Gunship 2 replaces Gunship: the same sortie (`EventGunship`, 20 s on station) flying
+[[cl_aircraftMedium_gunship2]], whose only difference is its weapon — a placeholder copy of the
+Constable's. Each level is its own event scene, because the flown piece is the event's
+`gunship_scene` (`sanction_gunship.tscn`, `sanction_gunship_2.tscn`).
+
+TODO: Gunship 2's tier (T4, `tier: 3`, the next row down) and price (1000, the bottom of the T4
+band) were chosen by Claude 2026-10-10, not by Alex; the request named only the weapon.
 
 ## Mechanic
 An **off-map ability**: a [[cl_aircraftMedium_gunship]] flies a sortie over the target point —

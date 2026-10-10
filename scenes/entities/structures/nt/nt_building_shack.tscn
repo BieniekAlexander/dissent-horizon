@@ -120,5 +120,6 @@ script = ExtResource("18_spec")
 range_bonus = 4.0
 capacity = 3
 occupiable_frames = 1
+flushable = true
 
 [editable path="Hurtbox"]

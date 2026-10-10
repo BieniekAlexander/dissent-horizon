@@ -357,9 +357,14 @@ func set_deployed(a_deployed: bool) -> void:
 
 
 ## Whether this entity currently reveals fog for its owner. A PLANNED structure never does:
-## ordering a build must not scout the site. Actor narrows it further.
+## ordering a build must not scout the site, and an ORBIT vision only while it holds its orbit
+## (VisionRange.is_active). Actor narrows it further.
 func grants_vision() -> bool:
-	return vision_range_shape != null and vision_range_shape.shape != null and not is_planned
+	if vision_range_shape == null or vision_range_shape.shape == null or is_planned:
+		return false
+	return (
+		not (vision_range_shape is VisionRange) or (vision_range_shape as VisionRange).is_active()
+	)
 
 
 #region Aggro
@@ -840,7 +845,9 @@ func _validate() -> void:
 ## (i.e. the entity was placed directly in the scene rather than spawned by
 ## the Scenario loader).
 func _auto_initialize() -> void:
-	if map != null:
+	# Out of the world by the time the deferred call lands (garrisoned on its first frame): there
+	# is no tree to look the map up in.
+	if map != null or not is_inside_tree():
 		return
 	# A GUT run has no current_scene — tests instantiate entities directly rather than
 	# opening a scene — and calling find_child on that null is an error, not a miss.
@@ -955,12 +962,30 @@ func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
 	if a_from != null and a_from.veterancy != null:
 		a_from.veterancy.gain_experience(roundi(final_amount * Veterancy.XP_PER_DAMAGE))
 		a_from._fire_entity_occurrence(EntityOccurrence.ON_DEAL_DAMAGE)
-		if was_lethal:
-			a_from.veterancy.gain_experience(roundi(defense.hp_max * Veterancy.XP_PER_KILL_HP))
-			a_from._fire_entity_occurrence(EntityOccurrence.ON_KILL)
 	if was_lethal:
-		_pay_kill_bounty(a_from)
+		_credit_kill(a_from)
 	_fire_entity_occurrence(EntityOccurrence.ON_RECEIVE_DAMAGE)
+
+
+## Kill this piece outright, credited to `a_from` exactly as a lethal hit would be — the
+## killer's kill experience, its ON_KILL, the kill bounty — then die. For a death that is not
+## damage: a flushed garrison's occupants (Garrison.flush), who die out of the world.
+func kill(a_from: Actor = null) -> void:
+	if defense != null:
+		if defense.hp <= 0:
+			return
+		defense.apply_damage(defense.hp)
+	_credit_kill(a_from)
+	_on_death()
+
+
+## What `a_from` earns for killing this piece: experience for the kill, its ON_KILL, and the
+## kill bounty. Nothing for an unattributed death.
+func _credit_kill(a_from: Actor) -> void:
+	if a_from != null and is_instance_valid(a_from) and a_from.veterancy != null:
+		a_from.veterancy.gain_experience(roundi(defense.hp_max * Veterancy.XP_PER_KILL_HP))
+		a_from._fire_entity_occurrence(EntityOccurrence.ON_KILL)
+	_pay_kill_bounty(a_from)
 
 
 ## Pay the killer's standing kill bounty (the Anarchists' Scavenge passive) for
@@ -1002,7 +1027,9 @@ func _on_death() -> void:
 	# the single death chokepoint: Actor._on_death reaches it via super()
 	# after its commander bookkeeping, which leaves those references intact.
 	_fire_entity_occurrence(EntityOccurrence.ON_DEATH)
-	EntityDeathSounds.play_for(id, get_tree() if is_inside_tree() else null)
+	# The main loop rather than get_tree(): a piece may die out of the world (a flushed
+	# occupant) and is still heard.
+	EntityDeathSounds.play_for(id, Engine.get_main_loop() as SceneTree)
 
 	# Structure-flavored grid teardown: any entity that occupies the terrain grid
 	# (registered via Structure → Map.add_structure) must release its cells so the
@@ -1066,7 +1093,10 @@ func _triggers_root() -> Node:
 func _resolve_trigger_manager() -> ScenarioTriggerManager:
 	if _trigger_manager != null and is_instance_valid(_trigger_manager):
 		return _trigger_manager
-	var scene_root := get_tree().current_scene if is_inside_tree() else null
+	# The main loop rather than get_tree(), so a piece out of the world (a garrison occupant)
+	# still reports what happens to it — a flushed occupant's death counts toward objectives.
+	var tree := Engine.get_main_loop() as SceneTree
+	var scene_root: Node = tree.current_scene if tree != null else null
 	if scene_root != null:
 		_trigger_manager = (
 			scene_root.get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager

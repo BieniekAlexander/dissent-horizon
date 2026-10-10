@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=3 uid="uid://btt838afko6qs"]
+[gd_scene load_steps=34 format=3 uid="uid://btt838afko6qs"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://c0nk6c2u6b7sn" path="res://scenes/components/navigation_agent.tscn" id="1_spec"]
@@ -21,7 +21,6 @@
 [ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="18_spec"]
 [ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="19_spec"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="20_spec"]
-[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_aerial_medium.tres" id="21_spec"]
 [ext_resource type="Script" uid="uid://dmwpdpec67a16" path="res://scripts/entities/components/loadout.gd" id="22_spec"]
 [ext_resource type="Script" uid="uid://cp224skenfnc2" path="res://scripts/entities/tools/weapon.gd" id="23_spec"]
 [ext_resource type="PackedScene" uid="uid://b132d37e4g7ff" path="res://scenes/entities/projectiles/cl/gunship_bullet.tscn" id="24_spec"]
@@ -29,6 +28,7 @@
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/air_range_siege.tres" id="26_spec"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/air_range_long.tres" id="27_spec"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="28_spec"]
+[ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_ground_small.tres" id="29_spec"]
 
 [sub_resource type="PrismMesh" id="PrismMesh_placeholder"]
 size = Vector3(1.2, 0.25, 1.4)
@@ -66,7 +66,8 @@ metadata/_visual_default_hurtbox = "CylinderShape3D"
 [node name="AggroRangeGround" parent="." instance=ExtResource("4_spec")]
 
 [node name="VisionRange" parent="." instance=ExtResource("5_spec")]
-shape = ExtResource("21_spec")
+shape = ExtResource("29_spec")
+origin = 1
 
 [node name="Ownership" type="Node" parent="."]
 script = ExtResource("6_spec")

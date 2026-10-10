@@ -14,12 +14,15 @@ extends Node
 ##   UNSTEALTHED — it has attacked or been attacked, forcing it fully visible for
 ##                 UNSTEALTH_DURATION_TICKS regardless of detector coverage.
 ##
-## Detection protocol (frame-stamp approach, ordering-safe):
+## Detection protocol (frame stamp):
 ##   - Any entity with a DetectionRange shape calls reveal() on this node each
 ##     physics frame it overlaps the stealthed entity. reveal() records the
-##     current physics-frame index rather than setting a flag, so this unit's own
-##     tick() can compare against the frame index regardless of which entity
-##     processed first this tick.
+##     current physics-frame index rather than setting a flag.
+##   - tick() counts a stamp from THIS frame or the one before (REVEAL_FRESH_FRAMES). Which of
+##     two pieces ticks first is their tree order — commander by commander, so every piece of
+##     commander 1 before any of commander 2's — and a detector ticking after this unit stamps a
+##     frame this unit has already ticked. Counting only the current frame made that pairing
+##     never reveal: player 1's stealth units were invisible to player 2's detectors.
 ##   - Combat events (attacked / attacking) call unstealth(), which starts the
 ##     timed UNSTEALTHED window. That window is independent of detector coverage.
 
@@ -33,6 +36,10 @@ enum State {
 ## Physics frames the unit stays UNSTEALTHED after the last combat event.
 ## 90 frames ≈ 3 s at 30 ticks/s.
 const UNSTEALTH_DURATION_TICKS: int = 90
+
+## How many frames back a reveal() stamp still counts: one, so a detector that ticked after
+## this unit last frame reveals it now. The cost is one tick of lag leaving a detector's range.
+const REVEAL_FRESH_FRAMES: int = 1
 #endregion
 
 #region Properties
@@ -83,7 +90,10 @@ func unstealth() -> void:
 ## Advance stealth state by one physics tick. Must be called once per tick from
 ## Actor._update_state().
 func tick() -> void:
-	var detected := Engine.get_physics_frames() == _last_detected_frame
+	var detected: bool = (
+		_last_detected_frame >= 0
+		and Engine.get_physics_frames() - _last_detected_frame <= REVEAL_FRESH_FRAMES
+	)
 
 	# An open combat window pins the unit UNSTEALTHED until the timer elapses,
 	# regardless of detector coverage. Once it closes, fall through to the

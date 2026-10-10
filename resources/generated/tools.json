@@ -697,7 +697,7 @@
 		],
 		"scene": "res://scenes/entities/units/cl/cl_bioLight_builder.tscn",
 		"tooltip": "Train Servant — 200 energy, 8s",
-		"verbose": "Train Servant — 200 energy, 8s\n120 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16\nBuilds: Citadel, Extractor, Compound, Barracks, Sam, Watch Tower, Bombard, Sky Port, Production Yard, Operations Center, Academy, Annex, Supply Beacon, Storm Cell\nRepairs damaged mechanical units and structures"
+		"verbose": "Train Servant — 200 energy, 8s\n120 HP · light armour · bio frame\ngrounded, speed 1.4 · vision 16\nBuilds: Citadel, Extractor, Compound, Barracks, Sam, Watch Tower, Bombard, Sky Port, Production Yard, Operations Center, Academy, Annex, Supply Beacon, Storm Cell, Cryogenic Imploder\nRepairs damaged mechanical units and structures"
 	},
 	"command_tool_cl_bioLight_stealth": {
 		"context": "TRAIN",
@@ -716,8 +716,8 @@
 			"cl_barracks"
 		],
 		"scene": "res://scenes/entities/units/cl/cl_bioLight_stealth.tscn",
-		"tooltip": "Train sleeper — 600 energy, 15s",
-		"verbose": "Train sleeper — 600 energy, 15s\nRequires: Operations Center\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nShotgun: 45 lead, reach 8"
+		"tooltip": "Train sleeper — 450 energy, 15s",
+		"verbose": "Train sleeper — 450 energy, 15s\nRequires: Operations Center\n120 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nShotgun: 45 lead, reach 8"
 	},
 	"command_tool_cl_bioMedium_antiStrong": {
 		"context": "TRAIN",
@@ -965,6 +965,24 @@
 		"scene": "res://scenes/entities/structures/cl/cl_support3.tscn",
 		"tooltip": "Build Storm Cell — 2000 energy, 30s",
 		"verbose": "Build Storm Cell — 2000 energy, 30s\nRequires: Academy\n1500 HP · strong armour · mech frame\n5×5 cells · vision 24\nCosts 200 infrastructure upkeep"
+	},
+	"command_tool_cl_support4": {
+		"context": "BUILD",
+		"context_grid": [],
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			5,
+			2
+		],
+		"id": "cl_support4",
+		"label": "Cryogenic Imploder",
+		"needs_docking": false,
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_support4.tscn",
+		"tooltip": "Build Cryogenic Imploder — 2500 energy, 40s",
+		"verbose": "Build Cryogenic Imploder — 2500 energy, 40s\nRequires: Academy\n1500 HP · strong armour · mech frame\n5×5 cells · vision 24\nCosts 200 infrastructure upkeep"
 	},
 	"command_tool_cl_tech1": {
 		"context": "BUILD",

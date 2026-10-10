@@ -308,6 +308,15 @@
 		},
 		"requires": []
 	},
+	"cl_aircraftMedium_gunship2": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
 	"cl_aircraftMedium_support": {
 		"build_time_ticks": 450,
 		"cost": {
@@ -372,7 +381,7 @@
 		"build_time_ticks": 450,
 		"cost": {
 			"dominion": 0,
-			"energy": 600,
+			"energy": 450,
 			"infrastructure": 0
 		},
 		"requires": [
@@ -508,6 +517,17 @@
 		"cost": {
 			"dominion": 0,
 			"energy": 2000,
+			"infrastructure": 0
+		},
+		"requires": [
+			"cl_tech2"
+		]
+	},
+	"cl_support4": {
+		"build_time_ticks": 1200,
+		"cost": {
+			"dominion": 0,
+			"energy": 2500,
 			"infrastructure": 0
 		},
 		"requires": [

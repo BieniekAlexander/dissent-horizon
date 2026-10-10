@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://d3i8gyv13tvod"]
 
+[ext_resource type="Script" path="res://scripts/entities/components/vision_range.gd" id="1_vision"]
+
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_so4an"]
 height = 100.0
 radius = 5.0
@@ -8,4 +10,5 @@ radius = 5.0
 visible = false
 shape = SubResource("CylinderShape3D_so4an")
 disabled = true
+script = ExtResource("1_vision")
 debug_color = Color(0.2, 0.6, 1, 0.3)

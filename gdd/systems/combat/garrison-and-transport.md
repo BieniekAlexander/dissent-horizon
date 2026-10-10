@@ -310,3 +310,48 @@ holds them. Its user is the Warden's Security Tower, where a garrisoned Shock Dr
 `range_bonus_by_piece` that ADDED to the occupant's reach (the Shock Drone's was +10). Both
 went stale the moment a bucket moved.
 
+
+## Flushing a garrison
+
+**A FLUSH kills everything inside a garrison and leaves the host standing, empty** (Alex,
+2026-10-10). Only a garrison that says so can be flushed — `garrison.flushable`, false by
+default (`Garrison.flushable`). The four neutral buildings (`nt_building_*`) are flushable;
+nothing else is yet. Two things flush one:
+
+- **A flushing emission that STRIKES the host** (`flushes: true` on the emission,
+  `Payload.flushes`). Only a contact counts: the shot must land on the host itself — a free
+  flight's contact ray striking its hurtbox, or a single-target shot landing on it. A blast that
+  merely reaches the building does not flush it, however much of it the blast covers; occupants
+  are out of the world, so a blast never reached them anyway. The flush lands at the payout,
+  before the damage, so the payout hits a host already emptied. The Toxin Tractor's cloud
+  (`an_mechMedium_antiBio`) is the first.
+- **A unit that STORMS garrisons** (`flushes: true` on the piece, a presence-only `Flusher`
+  component). Right-clicked onto a flushable garrison its ENEMY holds, it is ordered to `Flush`:
+  an Occupy that, on arrival, flushes the host and enters it in the same tick
+  (`Flush.fulfill_action`). The flush makes the room, so capacity is asked of the emptied host.
+  It sits in the click ladder above the Attack fallback, so the Flusher storms an enemy-held
+  building rather than shooting it. The Sleeper (`cl_bioLight_stealth`) is the first.
+
+`flushes:` means the same thing on both: *this flushes a flushable garrison it reaches* — by
+striking it for an emission, by walking in for a piece.
+
+What a flush does to the host follows from the garrison rules rather than adding any:
+
+- **A neutral building reverts to neutral.** Its occupants had adopted it; with nobody left
+  inside it is unowned again (`Garrison._revert_adopted_commander`), so a Flusher may then enter
+  it like any neutral building. A host its enemy OWNS outright would be emptied and not entered
+  (`Occupy.host_admits`) — no such flushable host exists today.
+- **A Flusher never flushes friends.** `Flush` applies only to an enemy-held host; a friendly or
+  empty one is Occupy's. If the holders leave while it walks over, it simply enters.
+- **Each occupant's weapons come off the host with it** (`Garrison.discard`), so a bunker does
+  not keep firing the dead men's guns.
+
+**A flushed occupant is KILLED, and the kill is credited** (Alex, 2026-10-10): to the piece
+that fired the flushing emission, or to the Flusher that stormed the host. It dies as a lethal
+hit would kill it (`Entity.kill`) — its death reaction, death sound and objective tallies, and
+the killer's kill experience, `ON_KILL` and kill bounty — though it dies out of the world, which
+is why the death sound and the trigger manager are found through the main loop rather than the
+dead piece's own tree. A flushing emission whose shooter has died since credits nobody.
+
+TODO: bots neither storm garrisons with a Flusher nor aim a flushing emission at an occupied
+building on purpose; a Toxin Tractor flushes only what its ordinary targeting happens to strike.

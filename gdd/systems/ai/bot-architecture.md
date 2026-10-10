@@ -737,7 +737,7 @@ is both the right question (the tightest point is what pinches) and the only mir
 one. It is capped at four cells, because without a cap it stops meaning "keep your lanes open"
 and starts meaning "go stand in the middle of the map".
 
-Since 2026-10-09 (T-101) two terms join the score and the anchor is a per-order choice: the
+Since 2026-10-09 two terms join the score and the anchor is a per-order choice: the
 `safety` channel (`− place_safety_weight × safety`, where a building is expected to live, read
 off the fields) and the blast-spacing penalty (`+ place_spacing_weight × spacing`, one for each
 own structure the candidate stands on, nothing one blast away), and a static defence is still
@@ -943,7 +943,7 @@ claimed whole or not at all. The engine abandons a duplicate on arrival regardle
 [water-bodies](../terrain-and-navigation/water-bodies.md) §One extractor per body); this is what
 stops the bot spending a builder walking to a job that will be thrown away.
 
-**A pond is priced against a site since 2026-10-09 (T-101, the answer to T-006):** every
+**A pond is priced against a site since 2026-10-09 (the answer to T-006):** every
 site and pond stands in one comparison by what the extractor is expected to EARN there — its
 rate, a pond's `POND_RATE_MULTIPLIER` times a site's, for the lifetime the `safety` field
 gives it, a pond's capped by its reservoir — less what the builder's walk defers and the

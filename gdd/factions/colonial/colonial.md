@@ -14,6 +14,7 @@ sanctions:
   - freeze
   - blizzard
   - beacon
+  - cryogenic_implosion
 ---
 # Colonials
 

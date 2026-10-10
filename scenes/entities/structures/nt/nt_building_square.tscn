@@ -74,6 +74,7 @@ range_bonus = 4.0
 metadata/_custom_type_script = "uid://dlhe01nj6efuh"
 capacity = 5
 occupiable_frames = 1
+flushable = true
 
 [node name="#####CONTROLS#####" type="Node" parent="." unique_id=1510662102]
 

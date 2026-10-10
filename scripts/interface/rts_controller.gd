@@ -3189,7 +3189,8 @@ const LAUNCH_ABILITY: StringName = &"irradiate"
 ##
 ## NOTHING RESTATES A RULE HERE, and the order is load-bearing — Repair above Occupy so a
 ## burning transport is mended rather than boarded, Rearm above Occupy so an aircraft
-## clicking its airfield reloads, Embark directly below Occupy. Why each, and what a
+## clicking its airfield reloads, Flush above the Attack fallback so a Flusher storms an
+## enemy-held building rather than shooting it, Embark directly below Occupy. Why each, and what a
 ## restated rule cost last time: gdd/systems/commands/the-click-ladder.md §The default
 ## ladder.
 ##
@@ -3198,7 +3199,7 @@ const LAUNCH_ABILITY: StringName = &"irradiate"
 ##
 ## TaskShelter sits last: its target (a Shelter, no Garrison/Defense of its own) never
 ## overlaps what any other branch here matches, so its position among them is arbitrary.
-static var DELEGATED_BRANCHES: Array = [Repair, Rearm, Occupy, Embark, TaskShelter]
+static var DELEGATED_BRANCHES: Array = [Repair, Rearm, Flush, Occupy, Embark, TaskShelter]
 
 
 ## Picks the concrete Command Script class to instantiate given the controller state, for
@@ -3364,6 +3365,9 @@ static func _command_specificity(command_type: Script) -> int:
 	if command_type == Rearm:
 		return 3
 	if command_type == Occupy:
+		return 4
+	# Occupy's rank: it is Occupy onto a host the enemy holds, so it can never tie with one.
+	if command_type == Flush:
 		return 4
 	# The same rank as Occupy on purpose: they are one mechanic seen from its two ends, and
 	# a tie is resolved by whichever the selection resolved first — which, given the ladder

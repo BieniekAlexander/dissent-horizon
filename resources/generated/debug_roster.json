@@ -285,6 +285,15 @@
 	},
 	{
 		"faction": "colonial",
+		"id": "cl_aircraftMedium_gunship2",
+		"is_fixture": false,
+		"label": "Gunship 2",
+		"producers": [],
+		"scene": "res://scenes/entities/units/cl/cl_aircraftMedium_gunship2.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "colonial",
 		"id": "cl_aircraftMedium_support",
 		"is_fixture": false,
 		"label": "Reverence",
@@ -484,6 +493,15 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/cl/cl_support3.tscn",
 		"tool": "command_tool_cl_support3"
+	},
+	{
+		"faction": "colonial",
+		"id": "cl_support4",
+		"is_fixture": true,
+		"label": "Cryogenic Imploder",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/cl/cl_support4.tscn",
+		"tool": "command_tool_cl_support4"
 	},
 	{
 		"faction": "colonial",

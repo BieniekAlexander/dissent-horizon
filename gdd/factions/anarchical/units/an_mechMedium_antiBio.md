@@ -33,6 +33,7 @@ weapons:
       speed: HYPER
       trajectory: LINEAR
       hitscan: false
+      flushes: true
     split_time: 1
     reload_time: 1
     clip_size: 1
@@ -49,3 +50,7 @@ ui: {grid: [1, 1], factions: [anarchists]}
 - NOT a damage-over-time. A lingering toxin cloud would be a `DamageOverTimeStatusEffect`
   (the script exists — `lazer_burn` uses it) and is the obvious next step if this wants
   to read as gas rather than as a caustic shell
+- **It flushes garrisons** (`flushes: true` on the cloud; Alex, 2026-10-10): a cloud that STRIKES
+  a flushable garrison's host kills everything inside. Only a direct hit counts — catching the
+  building in the blast does not. See
+  [garrison-and-transport](../../../systems/combat/garrison-and-transport.md) §Flushing a garrison

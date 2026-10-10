@@ -776,7 +776,7 @@ func _validate_piece(a_spec: Dictionary) -> void:
 		_err(a_spec, "stealth must be true or false")
 	# Identity components: presence only, their tuning is scene-authored (SpecSceneSync.
 	# IDENTITY_COMPONENTS).
-	for key: String in ["shelter", "extraction_site", "extractor", "plants_beacons"]:
+	for key: String in ["shelter", "extraction_site", "extractor", "plants_beacons", "flushes"]:
 		if a_spec.has(key) and not (a_spec[key] is bool):
 			_err(a_spec, "%s must be true or false — its tuning lives in the scene" % key)
 	if a_spec.has("garrison"):
@@ -799,6 +799,7 @@ func _validate_piece(a_spec: Dictionary) -> void:
 	# a body of radius 0 has no footprint to push through the world or be shot at.
 	_resolve_shape_key(a_spec, "vision")
 	_check_radius(a_spec, "vision", true)
+	_check_vision_from(a_spec)
 	_check_radius(a_spec, "beacon_range", true)
 	_validate_ability_groups(a_spec)
 	# What this piece can SEE THROUGH stealth with. Zero-or-absent is the overwhelming
@@ -1276,6 +1277,7 @@ const GARRISON_KEYS: Array = [
 	"bunker",
 	"preserve_occupants",
 	"captures",
+	"flushable",
 	"range_bonus",
 	"reach_by_piece",
 	"pieces",
@@ -1309,7 +1311,7 @@ func _validate_garrison(a_spec: Dictionary, a_g: Variant) -> void:
 			_err(a_spec, "unknown garrison key '%s' (expected one of %s)" % [key, GARRISON_KEYS])
 	if g.has("capacity") and not (g["capacity"] is int and int(g["capacity"]) >= 0):
 		_err(a_spec, "garrison.capacity must be a non-negative int")
-	for flag in ["closed", "releasable", "bunker", "preserve_occupants", "captures"]:
+	for flag in ["closed", "releasable", "bunker", "preserve_occupants", "captures", "flushable"]:
 		if g.has(flag) and not (g[flag] is bool):
 			_err(a_spec, "garrison.%s must be true or false" % flag)
 	if g.has("range_bonus"):
@@ -1569,8 +1571,29 @@ const WEAPON_KEYS: Array = [
 	"hits"
 ]
 
+## The doc's `senses.vision_from:` values, mapped to VisionRange.Origin.
+const VISION_FROM: Dictionary = {"body": VisionRange.Origin.BODY, "orbit": VisionRange.Origin.ORBIT}
+
 ## The doc's `range_from:` values, mapped to Weapon.RangeOrigin.
 const RANGE_FROM: Dictionary = {"hull": Weapon.RangeOrigin.HULL, "orbit": Weapon.RangeOrigin.ORBIT}
+
+
+## `senses.vision_from:` names one of VISION_FROM, and `orbit` needs something to stand at: a
+## vision to move, and an orbit — a FLYING `aerial:` — to stand it at the centre of.
+func _check_vision_from(a_spec: Dictionary) -> void:
+	if not a_spec.has("vision_from"):
+		return
+	var origin: String = str(a_spec["vision_from"])
+	if not VISION_FROM.has(origin):
+		_err(a_spec, "senses.vision_from must be one of %s" % [VISION_FROM.keys()])
+		return
+	if origin != "orbit":
+		return
+	if float(a_spec.get("vision", 0.0)) <= 0.0:
+		_err(a_spec, "senses.vision_from: orbit needs a senses.vision to move")
+	var aerial: Variant = a_spec.get("aerial")
+	if not (aerial is Dictionary and str((aerial as Dictionary).get("mode", "")) == "FLYING"):
+		_err(a_spec, "senses.vision_from: orbit needs aerial.mode: FLYING — nothing else orbits")
 
 
 ## A piece whose weapon fires from its orbit (`range_from: orbit`) orbits at that weapon's

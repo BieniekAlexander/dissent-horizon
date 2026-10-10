@@ -36,6 +36,7 @@ extends RefCounted
 ##   interactions: Array     `Interaction.Type`s, which adds an `Interactor`
 ##   garrison: Dictionary    a `Garrison`: capacity: int, sentence_length: float, bunker: bool,
 ##                             captures: bool (takes prisoners by contact; the truck's cage),
+##                             flushable: bool (a flush kills everything inside),
 ##                             frames / armours / movements: int masks, ids: Array
 ##   aerial: bool            an `Aerial` component that flies (implies a navigated `Movement`)
 ##   flying: bool            `Movement.mode` FLYING rather than HOVERING (needs `aerial`)
@@ -57,6 +58,7 @@ extends RefCounted
 ## cooldown_ticks}
 ##   shelter: bool          a `Shelter` component that spawns a blank unit
 ##   repairs: bool          a `Repairs` component: the piece can mend
+##   flushes: bool          a `Flusher` component: the piece storms enemy-held garrisons
 ##   dimensions: Vector2i    a structure's footprint (`structure()` only; default 1×1)
 ##   selectable: bool        false makes the `Selectable` refuse the player (default true)
 ##   obstruction: bool       a structure blocks line of fire (`structure()` only; default true)
@@ -280,6 +282,8 @@ static func _build(a_options: Dictionary, a_structure: bool) -> Actor:
 		_add_node(piece, shelter, "Shelter")
 	if a_options.get("repairs", false):
 		_add_node(piece, Repairs.new(), "Repairs")
+	if a_options.get("flushes", false):
+		_add_node(piece, Flusher.new(), "Flusher")
 	if a_options.has("vision"):
 		var vision: Node = _scene("vision_range.tscn")
 		vision.name = "VisionRange"
@@ -338,6 +342,7 @@ static func _add_garrison(a_piece: Actor, a_spec: Dictionary) -> void:
 	garrison.unload_time = float(a_spec.get("unload_time", 0.0))
 	garrison.bunker = bool(a_spec.get("bunker", true))
 	garrison.captures = bool(a_spec.get("captures", false))
+	garrison.flushable = bool(a_spec.get("flushable", false))
 	if a_spec.has("frames"):
 		garrison.occupiable_frames = int(a_spec["frames"])
 	if a_spec.has("armours"):

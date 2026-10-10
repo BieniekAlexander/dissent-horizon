@@ -61,9 +61,14 @@ static func launch(
 
 
 #region Queries
+## Whether the aircraft is circling its station — the firing stage, between the two transits.
+func is_on_station() -> bool:
+	return phase == Phase.ON_STATION
+
+
 ## Whether the aircraft's weapons are live: on station and nowhere else.
 func can_use_weapons() -> bool:
-	return phase == Phase.ON_STATION
+	return is_on_station()
 
 
 ## The orders out of [a_orders] the aircraft takes. In transit, only its own leg. On station,

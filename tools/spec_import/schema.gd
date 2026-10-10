@@ -79,6 +79,7 @@ const TOP_LEVEL_ORDER: Array = [
 	"extraction_site",
 	"extractor",
 	"plants_beacons",
+	"flushes",
 	# Root-node properties: neither belongs to a component.
 	"infrastructure",
 	"occupancy_size",
@@ -130,7 +131,7 @@ const NESTED_ORDER: Dictionary = {
 	"build": ["cost", "time", "requires", "completes_as"],
 	"cost": ["energy", "infrastructure", "dominion"],
 	"defense": ["hp", "armour", "frame"],
-	"senses": ["vision", "detection"],
+	"senses": ["vision", "vision_from", "detection"],
 	"body": ["radius"],
 	"movement":
 	[
@@ -154,6 +155,7 @@ const NESTED_ORDER: Dictionary = {
 		"bunker",
 		"preserve_occupants",
 		"captures",
+		"flushable",
 		"range_bonus",
 		"reach_by_piece",
 		"pieces",
@@ -194,6 +196,7 @@ const NESTED_ORDER: Dictionary = {
 		"trajectory",
 		"hitscan",
 		"bio_ground_aim",
+		"flushes",
 		"phases"
 	],
 	# One phase of an emission, in the order it is read: how it moves, what ends it, what it does.
@@ -245,7 +248,7 @@ const NESTS: Dictionary = {
 	"build":
 	{"cost": "cost", "time": "build_time", "requires": "requires", "completes_as": "completes_as"},
 	"defense": {"hp": "hp", "armour": "armour", "frame": "frame"},
-	"senses": {"vision": "vision", "detection": "detection"},
+	"senses": {"vision": "vision", "vision_from": "vision_from", "detection": "detection"},
 	"body": {"radius": "movement_radius"},
 }
 
@@ -300,6 +303,7 @@ const DOC_KEY: Dictionary = {
 	"armour": "defense.armour",
 	"frame": "defense.frame",
 	"vision": "senses.vision",
+	"vision_from": "senses.vision_from",
 	"detection": "senses.detection",
 	"movement_radius": "body.radius",
 	"ability_groups": "abilities",

@@ -12,7 +12,8 @@ type: system-note
 ## The inputs are all placeholders
 
 **Superseded in part (2026-10-02)** by [sanction-calibration](sanction-calibration.md): a
-first-pass price ladder, a four-tier grid, starting dominion and a dominion-to-energy exchange
+first-pass price ladder, a four-tier grid (five since 2026-10-10, the fifth a superweapon tier),
+starting dominion and a dominion-to-energy exchange
 rate, all as starting points for playtesting. The section below is kept as the 2026-09-30
 state.
 

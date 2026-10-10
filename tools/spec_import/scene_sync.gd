@@ -80,6 +80,7 @@ const IDENTITY_COMPONENTS: Dictionary = {
 	"extraction_site": ["ExtractionSite", "res://scripts/entities/structures/extraction_site.gd"],
 	"extractor": ["Extractor", "res://scripts/entities/structures/extractor.gd"],
 	"plants_beacons": ["BeaconPlanter", "res://scripts/entities/components/beacon_planter.gd"],
+	"flushes": ["Flusher", "res://scripts/entities/components/flusher.gd"],
 }
 const SCRIPT_EMISSION_PHASE: String = "res://scripts/entities/tools/emission_phase.gd"
 const SCRIPT_SPAWN_EMISSION: String = "res://scripts/scenario/events/event_spawn_emission.gd"
@@ -659,6 +660,17 @@ func _sync_shapes(a_ctx: Ctx, a_spec: Dictionary) -> void:
 			_set_shape_radius(a_ctx, SHAPE_PATHS[key], radius)
 	if a_spec.has("detection"):
 		_sync_detection_range(a_ctx, float(a_spec["detection"]), _library_id(a_spec, "detection"))
+	_sync_vision_from(a_ctx, a_spec)
+
+
+## `senses.vision_from:` onto the VisionRange, BODY when the doc names none — so removing the
+## key puts a vision back on its piece rather than leaving it where it was.
+func _sync_vision_from(a_ctx: Ctx, a_spec: Dictionary) -> void:
+	var vision: VisionRange = a_ctx.inst.get_node_or_null(SHAPE_PATHS["vision"]) as VisionRange
+	if vision == null:
+		return
+	var origin: int = SpecRegistry.VISION_FROM[str(a_spec.get("vision_from", "body"))]
+	_set_prop(a_ctx, SHAPE_PATHS["vision"], "origin", vision.origin, origin, str(origin))
 
 
 ## The shape-library id a doc key named (SpecRegistry._resolve_shape_key), or "".
@@ -994,7 +1006,7 @@ func _sync_garrison(a_ctx: Ctx, a_g: Variant) -> void:
 		_set_prop(
 			a_ctx, "Garrison", "capacity", node.capacity if node != null else -1, cap, str(cap)
 		)
-	for flag: String in ["bunker", "preserve_occupants", "releasable", "captures"]:
+	for flag: String in ["bunker", "preserve_occupants", "releasable", "captures", "flushable"]:
 		if g.has(flag):
 			var v: bool = bool(g[flag])
 			_set_prop(
@@ -1539,6 +1551,16 @@ func _sync_payload(a_ctx: Ctx, a_spec: Dictionary) -> void:
 			payload.bio_ground_aim if payload != null else not aims,
 			aims,
 			"true" if aims else "false"
+		)
+	if a_spec.has("flushes"):
+		var flushes: bool = bool(a_spec["flushes"])
+		_set_prop(
+			a_ctx,
+			"Payload",
+			"flushes",
+			payload.flushes if payload != null else not flushes,
+			flushes,
+			"true" if flushes else "false"
 		)
 
 

@@ -25,6 +25,11 @@ const HITSCAN_MAX_ERROR_ANGLE: float = deg_to_rad(2.0)
 ## lands on its target whatever it hits. See projectiles.md §Free flight.
 @export var bio_ground_aim: bool = false
 ## Damage applied per payout, before veterancy and the damage table.
+## Whether STRIKING a flushable garrison's host flushes it — kills everything inside
+## (Garrison.flush). Only a contact counts: the shot must land on the host itself, never merely
+## catch it in its blast. Doc key `flushes:` on the emission.
+## Rules: gdd/systems/combat/garrison-and-transport.md §Flushing a garrison.
+@export var flushes: bool = false
 @export var base_damage: float = 5.0
 @export var damage_type: Damage.Type = Damage.Type.LEAD
 
@@ -37,6 +42,9 @@ var target: Entity
 ## array's element check.
 var _contact_victims: Array = []
 var _has_contact_victims: bool = false
+## The piece a blast's contact struck, for a flushing payload: the only piece it may flush.
+## Untyped, as `_contact_victims`, since it may be freed before the payout.
+var _struck: Variant = null
 #endregion
 
 
@@ -94,6 +102,7 @@ func aim_error(a_velocity: Vector3) -> Vector3:
 
 ## Pay out once: on the target, or on everything in the blast.
 func apply() -> void:
+	_flush_struck()
 	var damage: Damage = Damage.new(_effective_damage(), damage_type)
 	# `from` and `target` can each be freed before this lands, and a freed object fails a
 	# typed parameter's class check (CLAUDE.md §A freed object cannot be passed to a typed
@@ -166,12 +175,28 @@ func _on_phase_ticking(a_phase: EmissionPhase) -> void:
 ## (projectiles.md §The blast is measured at the contact).
 func _on_struck(a_collider: Object) -> void:
 	if has_blast():
+		_struck = Entity.entity_from_collider(a_collider) if flushes else null
 		_contact_victims = _blast_victims()
 		_has_contact_victims = true
 		return
 	target = Entity.entity_from_collider(a_collider)
 	var phased: PhasedLocomotion = _phased()
 	phased.set_goal(phased.goal_position, phased.goal_arrival, target)
+
+
+## Flush the garrison this payout landed ON, if it flushes: a single-target shot's target, or
+## the piece a blast's contact struck — never a piece only inside the blast. Before the damage,
+## so the payout lands on a host already emptied.
+func _flush_struck() -> void:
+	if not flushes:
+		return
+	var struck: Variant = _struck if has_blast() else target
+	_struck = null
+	if struck == null or not is_instance_valid(struck) or not (struck is Node):
+		return
+	var garrison: Garrison = (struck as Node).get_node_or_null("Garrison") as Garrison
+	if garrison != null:
+		garrison.flush(from if is_instance_valid(from) else null)
 
 
 ## Everything a blast here would reach, right now.

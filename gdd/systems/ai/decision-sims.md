@@ -301,7 +301,7 @@ and a decision that reads the band parts from one that reads the bearing:
   one, whose walk is longer than the building's time to kill, does not. `needs:` a way to
   start a slot with a wave out and a staged reserve: without one the posture is DEFEND and
   the whole army answers, so it reads specification-red until that setting exists.
-- **`builds_where_it_can_hold`** (2026-10-09, T-101) — two enemy rocket batteries north and
+- **`builds_where_it_can_hold`** (2026-10-09) — two enemy rocket batteries north and
   nothing of the bot's own to answer them; with the bearings at 0 the `safety` field alone
   tilts the barracks to the south side of the citadel (`placed` within six of a mark six cells
   south). Its control with `place_safety_weight` at 0 breaks the ring along the threat axis
@@ -311,7 +311,7 @@ and a decision that reads the band parts from one that reads the bearing:
   barracks bought at tick 3 is placed blind; and the prerequisite and the extractor stand
   thirty cells south as a base of their own, so the citadel is the anchor and the only
   neighbour (a prerequisite beside the citadel moved the anchor to their mean).
-- **`spacing_keeps_structures_apart`** (2026-10-09, T-101) — the same setup without the
+- **`spacing_keeps_structures_apart`** (2026-10-09) — the same setup without the
   batteries; at the top of `place_spacing_weight`'s range the one barracks is never ordered
   within eight cells of the citadel's centre (`not` around a `placed`); at 0 it lands against
   the eight-by-eight footprint's wall, within seven, and the negation reads red (run

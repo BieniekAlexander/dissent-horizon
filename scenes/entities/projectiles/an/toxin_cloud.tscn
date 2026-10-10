@@ -75,3 +75,4 @@ script = ExtResource("3_spec")
 script = ExtResource("mig_payload")
 base_damage = 18.0
 damage_type = 2
+flushes = true

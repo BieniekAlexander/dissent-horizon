@@ -157,6 +157,25 @@ target could move it says so instead:
 physics server, once per range test and once per layer per pickup. It is paid only by an
 ORBIT weapon, and there are few of those in play at a time.
 
+### Vision from the orbit
+
+A piece's VISION may stand at its orbit's centre too (`VisionRange.Origin`, doc key
+`senses.vision_from:`). **BODY** is every piece's vision: the shape rides on the piece. **ORBIT**
+stands it at the orbit's centre, where the fog stamps it (the fog stamps every vision from the
+shape's own position, not the piece's), and it SEES ONLY WHILE THE PIECE HOLDS THAT ORBIT —
+airborne and FLYING, and on a Sortie only on station (`VisionRange.is_active`, through
+`Entity.grants_vision`). Nothing else orbits, so the importer refuses `orbit` without
+`aerial.mode: FLYING`, like `range_from:`.
+
+It is the vision half of fighting from the orbit, so an ORBIT weapon and an ORBIT vision measure
+from the same point and the importer's `reach_within_vision` holds between them unchanged. The
+Gunships are the first (2026-10-10): blind in transit, they see the station they were called to
+and a margin past the circle they fire into — `vision_ground_small` around a 12 orbit.
+
+**Pitfall accepted:** the shape is `top_level` and re-stood at the orbit's centre every tick,
+because the orbit's anchor moves without announcing it. One `global_position` write per ORBIT
+vision per tick, on a handful of pieces.
+
 ## Asymmetries between the families
 
 The buckets exist so that the families can be ORDERED against each other. The orderings

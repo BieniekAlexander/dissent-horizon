@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-101**
+> Next id: **T-102**
 
 # Tasks
 
@@ -93,9 +93,12 @@ Audited 2026-10-04; the tech-locked picker, the tech rung, Scan's REVEAL and Fre
 `BotScheduler.WORK_UNITS_PER_TICK`, the budget every bot's jobs share; a provisional 2000 units (~2 ms).
 → [ai/think-scheduling](systems/ai/think-scheduling.md) §Decision 2
 
-### T-006 · How is a lithium pond priced against an extraction site? #effort/medium #needs-input
+### T-006 · How is a lithium pond priced against an extraction site? #effort/medium #scoped
 The bot picks by distance; a pond pays double and is finite, so which is worth more is a value-over-time question sharing a currency with the ability one.
 → [ai/bot-architecture](systems/ai/bot-architecture.md) §The bot works lithium ponds
+
+> [!check] Status — 2026-10-09
+> Decided (Alex, in chat): yield = rate × expected lifetime, the lifetime read off the planned `safety` field and capped by a pond's reservoir — one comparison over sites and ponds, no planning-horizon parameter. Built as part of T-101.
 
 ### T-007 · The bot's scout and its fog disagree about terrain #effort/low #unscoped
 Scout raycasts stop on terrain and fog does not, so ground behind a ridge is never counted as scouted. Resolves with T-008, or with the scout reading fog instead.
@@ -302,9 +305,9 @@ Guarantee counts of clusters of given sizes, positioned relative to the starts �
 Built: `Structure.quarter_turns`, oriented footprints, `[` `]` and press-drag-release placement. Left: the bot placing non-square structures at both orientations (with mirror equivariance), recording the count in the replay stream (T-037), and two-form (deploy) pieces once they exist.
 → [terrain-and-navigation/footprint-rotation](systems/terrain-and-navigation/footprint-rotation.md)
 
-> [!check] Status — 2026-10-08
-> Built the bot half: `BotEconomy` ranks a non-square footprint at both orientations in one list (a tie goes to the one lying across the threat axis), faces it up the threat axis (`facing_turns`), and orders it with that `quarter_turns` (`BotActuator.build`). Replay recording came with T-037 (an order's message carries `quarter_turns`). Tests: four new in `tests/test_BotPlacementEquivariance.gd`.
-> **Not done:** two-form (deploy) pieces — still the note's §Deferred `TODO`, since no shipped piece has two forms. `Map.mirror_map` / `shift_map` keeping a rotated structure's count is unexercised until an authored map holds one.
+> [!check] Status — 2026-10-09
+> The bot lays every structure at the default count (`BotEconomy.DEFAULT_QUARTER_TURNS`) and its order carries it (`BotActuator.build`); the orientation ranking and threat-axis facing built 2026-10-08 were withdrawn on Alex's instruction (2026-10-09: no benefit expected from game signals deciding rotation yet) and are recorded in the note's §Deferred as a `TODO` so the rule is not re-derived. Replay recording came with T-037. Test: `tests/test_BotPlacementEquivariance.gd` pins the default count.
+> **Not done:** a rule choosing the rotation (deferred by Alex); two-form (deploy) pieces — still §Deferred, since no shipped piece has two forms. `Map.mirror_map` / `shift_map` keeping a rotated structure's count is unexercised until an authored map holds one.
 
 ### T-059 · Tile-type movement cost and harvestable ground #effort/medium #unscoped
 `TileType.texture` is read by the shader but no tile type has one assigned; `move_cost` / `harvestable` are commented out and unread.

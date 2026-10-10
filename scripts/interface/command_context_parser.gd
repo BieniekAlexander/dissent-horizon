@@ -159,6 +159,9 @@ static func _build_rules() -> Array:
 		# take it is the target garrison's own occupancy masks, checked per-target in
 		# Occupy.meets_precondition rather than per-actor here.
 		[CommandContextParser._can_occupy, "command_occupy"],
+		# Storming an enemy-held garrison: presence of a Flusher (see Flush). WHICH garrisons is
+		# per-target, in Flush.meets_precondition.
+		[func(e: Entity): return Flusher.flushes(e), "command_flush"],
 		# The other side of the same mechanic: a commandable that HOLDS units can call one in.
 		# This is the ENTRY direction, so it asks is_closed() and NOT the question Evacuate
 		# asks — the two directions of the door are separate statements (the Compound takes
@@ -328,6 +331,7 @@ static func _build_command_names() -> Dictionary:
 		Ability: "command_ability",
 		Interact: "command_interact",
 		Occupy: "command_occupy",
+		Flush: "command_flush",
 		Embark: "command_embark",
 		Evacuate: "command_evacuate",
 		Deploy: "command_deploy",

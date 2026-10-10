@@ -110,6 +110,7 @@ const MISSING: Dictionary = {
 	"Plant": "the Sapper's charge is never planted",
 	"Detonate": "and so never set off",
 	"Embark": "the bot never loads a transport",
+	"Flush": "the bot never storms an enemy-held garrison with a Flusher (the Sleeper)",
 	"TaskShelter":
 	(
 		"the bot hand-drives its Stock Trucks one capture at a time; it never"

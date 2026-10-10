@@ -117,6 +117,35 @@
 		"valence": "NEUTRAL",
 		"verbose": "Range is unlimited; what limits it is VISION BY PROXY. The shot may be aimed at any\npoint one of your pieces is currently spotting, so the gun is worth nothing on its\nown and everything beside a spotter.\n\nA beacon marks a point once and is spent by the shot that uses it; a Bombard's own\nsurroundings and a Reverence's are marked permanently and cost nothing. Spotted\nground inside a permanent range is preferred, so a free solution never burns a\nbeacon a Recruit was walked across the map to place.\n\nOn AUTOMATIC, the default, your guns also fire on their own at a beacon a Recruit is\nholding, as soon as one is loaded — the loaded gun nearest the beacon answers it.\nRight-click this button to switch all your guns between automatic and manual; a lit\ntop edge means automatic. On manual, a gun fires only when you order it."
 	},
+	"cryogenic_implosion": {
+		"active_grid": [],
+		"cast_by": "SINGLE",
+		"command": "",
+		"description": "potato",
+		"dominion": true,
+		"emits": "",
+		"factions": [
+			"colonial"
+		],
+		"grid": [
+			2,
+			2
+		],
+		"hud_button": true,
+		"levels": [
+			{
+				"description": "Frost gathers over the target for 5 seconds, then implodes, dealing 3000 plasma damage to everything inside it.",
+				"title": "Cryogenic Implosion",
+				"verbose": "The Colonial superweapon, cast from the Cryogenic Imploder. The 5 seconds of\ngathering frost are its warning: anyone can see it coming and walk out. When it\nimplodes it strikes friend and foe alike, on the ground and in the air."
+			}
+		],
+		"passive": false,
+		"range": 5.0,
+		"reveals": "",
+		"title": "Cryogenic Implosion",
+		"valence": "NEUTRAL",
+		"verbose": "potato"
+	},
 	"detonate": {
 		"active_grid": [],
 		"cast_by": "ALL",
@@ -286,6 +315,11 @@
 				"description": "Calls a Gunship to hold station over the target point for 20 seconds, firing on anything it finds.",
 				"title": "Gunship",
 				"verbose": "The gunship flies in from your side of the board with its guns cold, circles the point\nyou clicked, and opens fire on whatever comes into reach. While it is on station you may\norder it to attack a target, but not to go anywhere else. When its time is up it flies\nhome the way it came.\n\nIt is a real aircraft on the anti-air layer the whole time: shoot it down and the strike\nis over."
+			},
+			{
+				"description": "Calls a Gunship 2 to hold station over the target point for 20 seconds, firing on anything it finds. Replaces Gunship.",
+				"title": "Gunship 2",
+				"verbose": "The same sortie with a different gun. Everything else about it — the run in, the 20\nseconds on station, the Attack orders, the run home — is level 1's."
 			}
 		],
 		"passive": false,

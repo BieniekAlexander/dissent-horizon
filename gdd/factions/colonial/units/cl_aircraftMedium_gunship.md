@@ -17,7 +17,8 @@ defense:
   armour: MEDIUM
   frame: MECH
 senses:
-  vision: vision_aerial_medium
+  vision: vision_ground_small
+  vision_from: orbit
 movement: {speed: HYPER, turn_rate: 150, max_acceleration: 6, max_deceleration: -10}
 aerial: {mode: FLYING, orbit_speed: FLEET}
 weapons:
@@ -57,6 +58,10 @@ for the sortie it flies.
   the range shape standing at the orbit's centre, a target in reach stays in reach all the way
   round, changing target never moves it — and its orbit radius is not authored: the importer
   sets it to the weapon's ground reach.
+- **It sees from its orbit, not from its hull** (`vision_from: orbit`; Alex, 2026-10-10): its
+  only vision stands at the orbit's centre, and only while it is on station. It is blind on
+  the way in and out. The radius is `vision_ground_small` (16), the smallest vision bucket
+  wider than the orbit (12), so it sees a little past everything it can shoot.
 - **HP, armour and handling are placeholders** (Alex, 2026-10-06: "pretty arbitrarily filled
   in for now"), to be tuned once it has been flown in a game. Orbit speed FLEET is Alex's.
 - No `ui:` key — never built or trained, so it has no command-grid button and its economy

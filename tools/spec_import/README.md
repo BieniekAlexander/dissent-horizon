@@ -249,6 +249,10 @@ senses:                        # -> the detection volumes on the root
   vision: vision_ground_small  # a shape-library id. 0 / false / LEFT EMPTY opts out
                                # (no aggro: key — it is derived from weapon reach at
                                # runtime, per layer; see combat/range-buckets)
+  vision_from: body            # where the vision stands (VisionRange.Origin): body = on
+                               # the piece; orbit = at the centre of its orbit, seeing only
+                               # while it holds that orbit (on a sortie, only on station).
+                               # orbit needs aerial: {mode: FLYING}. Omitted = body.
   detection: detection_small   # library id it sees THROUGH stealth with; creates a
                                # DetectionRange volume. 0 / false / left empty opts out
 
@@ -325,6 +329,8 @@ garrison:
                                # Mutually exclusive with the mask lists and with `pieces`
   bunker: true                 # occupants fire out
   preserve_occupants: true     # occupants are released rather than killed when it dies
+  flushable: true              # a flushing emission striking it, or a Flusher storming it,
+                               # kills everything inside (Garrison.flushable). Default false
   range_bonus: {from: ground_range_medium, to: ground_range_long}
                                # extra reach for occupants firing out: the gap between two
                                # reach buckets, never a number
@@ -351,7 +357,8 @@ stealth: true                  # gives the piece a Stealth component (presence i
                                # mechanic — the component has no exports)
 shelter: true                  # identity components, by PRESENCE only — also
                                # extraction_site / extractor / plants_beacons (a spotter that
-                               # plants a ground beacon and leaves, rather than holding one);
+                               # plants a ground beacon and leaves, rather than holding one) /
+                               # flushes (a Flusher: storms enemy-held flushable garrisons);
                                # tuning stays in the scene
 beacon: 20                     # persistent bombardable bubble (BeaconRange); false removes
 infrastructure: -40                    # Actor.infrastructure: >0 provides, <0 consumes, 0 neutral
@@ -553,6 +560,8 @@ damage: 3                      # Payload.base_damage
 damage_type: LEAD
 hitscan: false                 # the AIMING rule: true = the named target, false = the HitShape
 blast: aoe_medium              # optional: an aoe_* library shape (omit = single target)
+flushes: true                  # striking a flushable garrison's host kills everything inside;
+                               # only a contact counts, never the blast (Payload.flushes)
 status_effects: [lazer_burn]   # status-effect ids -> instanced scenes under EffectApplicator
 phases:                        # or the shorthand: speed: + trajectory: (see below)
   - motion: {preset: BALLISTIC, speed: FAST}

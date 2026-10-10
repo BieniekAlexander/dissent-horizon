@@ -207,7 +207,7 @@ what" are two reads, and both are arrivals against a clock.
 
 ## Safety, sites and placement
 
-Built 2026-10-09 (T-101), from Alex's answers of the same day; the decisions and what they
+Built 2026-10-09, from Alex's answers of the same day; the decisions and what they
 superseded are kept here, the rules themselves are the code named in each item.
 
 The bot used to anchor every non-extractor building on one base centroid, pick an extractor
@@ -289,7 +289,7 @@ faction, derived from the largest area-of-effect bucket in the shape library rat
 (Alex, Q7: effect sizes will be similar across factions). Both weights are searched
 difficulty fields divided by the `risk` dial. The radial compactness term stays at 1 as the
 ruler, read now as TRAVEL cost — the walk the safety field does not price — and the annulus
-bounds stay (Alex, 2026-10-09, T-101).
+bounds stay (Alex, 2026-10-09).
 
 **6. Cover.** Pure statics on `BotFields` (`kill_clock`, `lifetime_of`, `safety_of`,
 `clusters_of`) and the fixture's responders and defences, `tests/test_BotFields.gd`; the terms,
@@ -311,7 +311,7 @@ SEARCHED, appended at the END of `SEARCH_RANGES` so the roster's draw order is k
 much margin before a threat stops weighing on what the bot buys (the threat clock's shape),
 and `place_coverage_weight`, how many cells of sprawl a static defence's full coverage of
 the band is worth. The quiet-ground horizon, the band slack, the presence penalty's rate
-and the clock's floor are model constants. Two more are searched since 2026-10-09 (T-101),
+and the clock's floor are model constants. Two more are searched since 2026-10-09,
 appended likewise and both divided by the posture layer's `risk` dial: `place_safety_weight`
 and `place_spacing_weight` (§Safety, sites and placement, item 5). The held horizon and the
 blast-spacing radius are constants — the one the unit every site yield is measured against,
@@ -493,7 +493,7 @@ for the condition tally, which is what an A/B reads, but never for a per-slot re
    red; the guard's arrival sim is specification-red until a slot can start with a wave out.
    The `placed` check was added for the turret. The self-play A/B of the consumers against a
    bot with the job off is §Measured below.
-6. Built 2026-10-09 (T-101) — §Safety, sites and placement: the `safety` channel over the
+6. Built 2026-10-09 — §Safety, sites and placement: the `safety` channel over the
    threat and answer reads, the site valuation, the per-order base, the clusters and the
    blast-spacing term, with the two difficulty fields; the overlay's Fields layer marks the
    bases and reports the stored channel. Not measured yet: the channel costs a kill clock per

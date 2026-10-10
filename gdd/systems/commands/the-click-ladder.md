@@ -46,12 +46,13 @@ where a producer holding a tool picks `Train`.
 | 3 | `Assemble` | the target is the actor's own unfinished structure, and the actor can build that type |
 | 4 | `Repair` | delegated to `Repair.meets_precondition` |
 | 5 | `Rearm` | delegated to `Rearm.meets_precondition` |
-| 6 | `Occupy` | delegated to `Occupy.meets_precondition` |
-| 7 | `Embark` | delegated to `Embark.meets_precondition` |
-| 8 | `Attack` | hostile, and some weapon in the actor's `Loadout` can target it |
-| 9 | `MoveCommand` | everything else — a rally point for a stationary `can_rally()` host, a move for a unit |
+| 6 | `Flush` | delegated to `Flush.meets_precondition` |
+| 7 | `Occupy` | delegated to `Occupy.meets_precondition` |
+| 8 | `Embark` | delegated to `Embark.meets_precondition` |
+| 9 | `Attack` | hostile, and some weapon in the actor's `Loadout` can target it |
+| 10 | `MoveCommand` | everything else — a rally point for a stationary `can_rally()` host, a move for a unit |
 
-### Branches 4–7 delegate rather than restate
+### Branches 4–8 delegate rather than restate
 
 Each asks its own command class whether the order would hold, and none of them re-states
 that rule here. **A second copy of a rule in this ladder is a copy that rots**, and one
@@ -74,11 +75,15 @@ Their ORDER is the interesting part, and each step of it is a trade:
   point of the building.
 * **Rearm below Repair**, on the same reasoning: a unit that could both mend and rearm
   wants to mend a damaged airfield first.
+* **Flush above Occupy, and so above Attack.** The two cannot both apply — Flush takes only a
+  host the actor's ENEMY holds, which Occupy refuses — but Flush must come before the Attack
+  fallback: a Flusher right-clicking an enemy-held building means "storm it", not "shoot it".
+  See [garrison-and-transport](../combat/garrison-and-transport.md) §Flushing a garrison.
 * **Embark directly below Occupy.** The two cannot both apply unless each side would take
   the other, in which case the click reads as "I go in" — the older and stronger idiom.
-* **TaskShelter has no order relative to the other four at all.** Its target is a Shelter,
+* **TaskShelter has no order relative to the others at all.** Its target is a Shelter,
   which carries neither a Garrison nor a Defense component, so it can never overlap what any
-  of the above resolve for — unlike the other four, which trade off against each other on a
+  of the above resolve for — unlike the others, which trade off against each other on a
   shared kind of target. See [unit-tasking](unit-tasking.md).
 
 ### Attack above the rally fallback

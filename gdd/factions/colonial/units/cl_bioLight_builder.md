@@ -39,6 +39,7 @@ builds:
   - cl_support1
   - cl_support2
   - cl_support3
+  - cl_support4
 repairs: true
 ui:
   grid: [0, 1]

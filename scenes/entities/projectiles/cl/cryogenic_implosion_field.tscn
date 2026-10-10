@@ -1,0 +1,108 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://ib1ubp0sl3cf" path="res://scripts/entities/entity.gd" id="1_entity"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="2_own"]
+[ext_resource type="Script" uid="uid://c28nka3yk6jwr" path="res://scripts/entities/tools/emission_phase.gd" id="3_phase"]
+[ext_resource type="Script" uid="uid://yu7nsgg3h7wg" path="res://scripts/entities/components/phased_locomotion.gd" id="4_loco"]
+[ext_resource type="Script" uid="uid://bmx2rwwqpyfbt" path="res://scripts/entities/components/payload.gd" id="5_payload"]
+[ext_resource type="Shape3D" path="res://resources/generated/shapes/aoe_huge.tres" id="6_shape"]
+[ext_resource type="Script" path="res://scripts/rendering/ground_ring.gd" id="7_ring"]
+[ext_resource type="Script" path="res://scripts/rendering/implosion_particles.gd" id="8_flakes"]
+[ext_resource type="Texture2D" path="res://assets/effects/snowflake.svg" id="9_flake"]
+[ext_resource type="PackedScene" path="res://scenes/effects/emissions/plasma_impact.tscn" id="10_burst"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_flakes"]
+emission_shape = 6
+emission_ring_axis = Vector3(0, 1, 0)
+emission_ring_height = 3.0
+emission_ring_radius = 10.0
+emission_ring_inner_radius = 0.0
+angle_min = -180.0
+angle_max = 180.0
+direction = Vector3(0, 1, 0)
+spread = 180.0
+initial_velocity_min = 0.0
+initial_velocity_max = 0.3
+angular_velocity_min = -90.0
+angular_velocity_max = 90.0
+gravity = Vector3(0, 0, 0)
+tangential_accel_min = 0.2
+tangential_accel_max = 0.6
+damping_min = 0.5
+damping_max = 1.0
+scale_min = 0.25
+scale_max = 0.5
+turbulence_enabled = true
+turbulence_noise_strength = 0.5
+turbulence_noise_scale = 4.0
+turbulence_influence_min = 0.05
+turbulence_influence_max = 0.1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_flake"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.85, 0.95, 1, 0.95)
+albedo_texture = ExtResource("9_flake")
+billboard_mode = 3
+billboard_keep_scale = true
+
+[sub_resource type="QuadMesh" id="QuadMesh_flake"]
+material = SubResource("StandardMaterial3D_flake")
+
+[node name="CryogenicImplosionField" type="CharacterBody3D"]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_entity")
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("2_own")
+
+[node name="Payload" type="Node" parent="."]
+script = ExtResource("5_payload")
+base_damage = 3000.0
+damage_type = 4
+
+[node name="HitShape" type="CollisionShape3D" parent="."]
+shape = ExtResource("6_shape")
+
+[node name="FieldRing" type="Decal" parent="."]
+script = ExtResource("7_ring")
+color = Color(0.6, 0.85, 1, 0.9)
+
+[node name="Flakes" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 471
+lifetime = 6.0
+randomness = 0.2
+fixed_fps = 0
+process_material = SubResource("ParticleProcessMaterial_flakes")
+draw_pass_1 = SubResource("QuadMesh_flake")
+script = ExtResource("8_flakes")
+collapse_phase = NodePath("Implode")
+burst_phase = NodePath("Detonate")
+
+[node name="Burst" parent="." instance=ExtResource("10_burst")]
+transform = Transform3D(6, 0, 0, 0, 6, 0, 0, 0, 6, 0, 1.5, 0)
+
+[node name="Gather" type="Node3D" parent="."]
+script = ExtResource("3_phase")
+ends_on_arrival = false
+lifespan_seconds = 4.4
+visuals = Array[NodePath]([NodePath("Flakes"), NodePath("FieldRing")])
+
+[node name="Implode" type="Node3D" parent="."]
+script = ExtResource("3_phase")
+ends_on_arrival = false
+lifespan_seconds = 0.6
+visuals = Array[NodePath]([NodePath("FieldRing")])
+
+[node name="Detonate" type="Node3D" parent="."]
+script = ExtResource("3_phase")
+ends_on_arrival = false
+lifespan_seconds = 0.8
+applies_payload = true
+visuals = Array[NodePath]([NodePath("Burst")])
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("4_loco")

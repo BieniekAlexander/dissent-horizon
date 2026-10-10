@@ -143,7 +143,7 @@ billboard = 2
 
 [node name="Builds" type="Node" parent="." unique_id=2124894070]
 script = ExtResource("1_spec")
-buildable_types = Array[StringName]([&"cl_commandCenter", &"nt_extractor", &"cl_infrastructure", &"cl_barracks", &"cl_defense_antiAircraft", &"cl_defense_antiLight", &"cl_defense_antiStructure", &"cl_airField", &"cl_warFactory", &"cl_tech1", &"cl_tech2", &"cl_support1", &"cl_support2", &"cl_support3"])
+buildable_types = Array[StringName]([&"cl_commandCenter", &"nt_extractor", &"cl_infrastructure", &"cl_barracks", &"cl_defense_antiAircraft", &"cl_defense_antiLight", &"cl_defense_antiStructure", &"cl_airField", &"cl_warFactory", &"cl_tech1", &"cl_tech2", &"cl_support1", &"cl_support2", &"cl_support3", &"cl_support4"])
 
 [node name="Repairs" type="Node" parent="." unique_id=1079729441]
 script = ExtResource("2_spec")

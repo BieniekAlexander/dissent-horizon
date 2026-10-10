@@ -16,6 +16,6 @@ defense:
 senses:
   vision: vision_ground_large
 footprint: [8, 5]
-garrison: {capacity: 10, frames: [BIO], range_bonus: {from: ground_range_medium, to: ground_range_long}}
+garrison: {capacity: 10, frames: [BIO], flushable: true, range_bonus: {from: ground_range_medium, to: ground_range_long}}
 infrastructure: 100
 ---

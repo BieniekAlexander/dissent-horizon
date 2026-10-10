@@ -340,7 +340,7 @@ X at all.** Each is a fixed ordering or a missing action, and no parameter reach
    not sayable** — the candidate disc is anchored on the base centroid, so "somewhere else
    entirely" has no expression — and neither is "spread out so one blast does not kill three",
    which wants a term over the bot's OWN structures that nothing computes. **Both reachable
-   since 2026-10-09 (T-101):** a building is anchored on one of the bot's bases (a producer
+   since 2026-10-09:** a building is anchored on one of the bot's bases (a producer
    on the one nearest the action, the rest on the farthest), scored by the `safety` field
    (`place_safety_weight`) and pushed out of one blast of its own (`place_spacing_weight`),
    and an extractor goes to the most valuable site rather than the nearest;

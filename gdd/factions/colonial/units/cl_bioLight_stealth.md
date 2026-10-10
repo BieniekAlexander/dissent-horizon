@@ -7,7 +7,7 @@ flavor:
   verbose: potato
 build:
   cost:
-    energy: 600
+    energy: 450
   time: 15
   requires:
     - cl_tech1
@@ -46,6 +46,7 @@ abilities:
       - spot
 stealth: true
 plants_beacons: true
+flushes: true
 ui:
   grid:
     - 3
@@ -63,6 +64,10 @@ ui:
   the pattern. Not hitscan: a hitscan emission carries no blast shape
   ([projectiles](../../../systems/combat/projectiles.md) §The shape's presence is the blast).
   Clip size and damage per shell were Alex's picks; the cadence is from his spec.
+- **Storms garrisons** (`flushes: true`; Alex, 2026-10-10). Right-clicked onto a flushable
+  garrison its enemy holds, it walks up, kills everything inside and takes the place itself, in
+  one tick. See [garrison-and-transport](../../../systems/combat/garrison-and-transport.md)
+  §Flushing a garrison.
 - **Plants beacons only after [[cell_activation|Cell Activation]]** is researched at the
   [[cl_tech1|Operations Center]]. Until then its Spot button stays on the card, drawn LOCKED.
 - **Plants beacons** with the same [[spot|Spot]] order a Recruit uses, in its own way

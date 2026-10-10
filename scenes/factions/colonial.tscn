@@ -20,6 +20,8 @@
 [ext_resource type="PackedScene" uid="uid://cc16o1ep6fm7" path="res://scenes/entities/units/cl/cl_bioLight_builder.tscn" id="1_spec"]
 [ext_resource type="PackedScene" path="res://scenes/factions/formations/wedge_3.tscn" id="99_form"]
 [ext_resource type="Script" path="res://scripts/interface/commander/dominion_route.gd" id="90_route"]
+[ext_resource type="PackedScene" path="res://scenes/scenario_events/sanction_cryogenic_implosion.tscn" id="24_implosion"]
+[ext_resource type="PackedScene" path="res://scenes/scenario_events/sanction_gunship_2.tscn" id="25_gunship2"]
 
 [sub_resource type="Resource" id="Sanction_promotion"]
 script = ExtResource("6_ord")
@@ -248,13 +250,50 @@ column = 3
 dominion_cost = 350
 metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 
+[sub_resource type="Resource" id="Resource_sanction_cryogenic_implosion"]
+script = ExtResource("6_ord")
+sanction_name = "Cryogenic Implosion"
+event_scene = ExtResource("24_implosion")
+ability_id = &"cryogenic_implosion"
+ability_level = 1
+description = "Frost gathers over the target for 5 seconds, then implodes, dealing 3000 plasma damage to everything inside it."
+verbose_description = "The Colonial superweapon, cast from the Cryogenic Imploder. The 5 seconds of\ngathering frost are its warning: anyone can see it coming and walk out. When it\nimplodes it strikes friend and foe alike, on the ground and in the air."
+cooldown_duration = 60.0
+effect_radius = 10.0
+min_targets = 4
+
+[sub_resource type="Resource" id="Resource_unlock_cryogenic_implosion"]
+script = ExtResource("7_unlock")
+sanction = SubResource("Resource_sanction_cryogenic_implosion")
+tier = 4
+column = 2
+dominion_cost = 300
+
+[sub_resource type="Resource" id="Resource_sanction_gunship_2"]
+script = ExtResource("6_ord")
+sanction_name = "Gunship 2"
+event_scene = ExtResource("25_gunship2")
+ability_id = &"gunship"
+ability_level = 2
+description = "Calls a Gunship 2 to hold station over the target point for 20 seconds, firing on anything it finds. Replaces Gunship."
+verbose_description = "The same sortie with a different gun. Everything else about it — the run in, the 20\nseconds on station, the Attack orders, the run home — is level 1's."
+cooldown_duration = 60.0
+
+[sub_resource type="Resource" id="Resource_unlock_gunship_2"]
+script = ExtResource("7_unlock")
+sanction = SubResource("Resource_sanction_gunship_2")
+tier = 3
+column = 1
+dominion_cost = 1000
+parent = SubResource("Unlock_gunship")
+
 [node name="Colonial" type="Node" unique_id=1574932771]
 script = ExtResource("1_fac")
 faction_name = "Haustoria"
 infrastructure_source = &"cl_infrastructure"
 starting_units = Array[PackedScene]([ExtResource("1_spec"), ExtResource("1_spec"), ExtResource("1_spec")])
 starting_formation = ExtResource("99_form")
-sanction_unlocks = Array[ExtResource("7_unlock")]([SubResource("Unlock_promotion"), SubResource("Unlock_drop1"), SubResource("Unlock_drop2"), SubResource("Unlock_drop3"), SubResource("Unlock_scan1"), SubResource("Unlock_scan2"), SubResource("Unlock_gunship"), SubResource("Unlock_freeze1"), SubResource("Unlock_freeze2"), SubResource("Unlock_blizzard"), SubResource("Unlock_beacon")])
+sanction_unlocks = Array[ExtResource("7_unlock")]([SubResource("Unlock_promotion"), SubResource("Unlock_drop1"), SubResource("Unlock_drop2"), SubResource("Unlock_drop3"), SubResource("Unlock_scan1"), SubResource("Unlock_scan2"), SubResource("Unlock_gunship"), SubResource("Resource_unlock_gunship_2"), SubResource("Unlock_freeze1"), SubResource("Unlock_freeze2"), SubResource("Unlock_blizzard"), SubResource("Unlock_beacon"), SubResource("Resource_unlock_cryogenic_implosion")])
 metadata/_custom_type_script = "uid://cyrg0j3vbx1ds"
 
 [node name="DominionGeneration" type="Node" parent="."]

@@ -44,6 +44,7 @@ classes in [building-roles](building-roles.md):
 | Annex (`cl_support1`) | minor support | 1000 | — | **500** | |
 | Supply Beacon (`cl_support2`) | Drop ordnance caster | 1200 | — | **800** | one 60 s charge |
 | Storm Cell (`cl_support3`) | Blizzard, superweapon-like, 240 s | 2500 | Particle Cannon 5000 (2500) | **2000** | still the dearest building; the charge is the cost |
+| Cryogenic Imploder (`cl_support4`) | Cryogenic Implosion, the T5 superweapon, 300 s | — | Particle Cannon 5000 (2500) | **2500** | TODO: placeholder, set 2026-10-10 a step above the Storm Cell; untuned |
 | Citadel (`cl_commandCenter`) | command centre | 2000 | 2000 (1000) | **1500** | decided: another one must be a poor buy against army |
 | Watch Tower, Sam | statics | 400 | 800–1000 (400–500) | 400 | already at half |
 | Bombard | static artillery | 1000 | — | 1000 | |

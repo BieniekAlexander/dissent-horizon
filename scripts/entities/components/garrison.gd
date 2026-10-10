@@ -124,6 +124,12 @@ var occupiable_movements: int = MOVEMENT_GROUNDED
 ## Doc key `captures:`; false by default, so a hold has to say so.
 @export var captures: bool = false
 
+## Whether this garrison can be FLUSHED: everything inside it killed by a flushing emission
+## that strikes the host, or by a flushing unit storming it (flush). Doc key `flushable:`; false
+## by default, so a host has to say so — the neutral buildings do.
+## Rules: gdd/systems/combat/garrison-and-transport.md §Flushing a garrison.
+@export var flushable: bool = false
+
 ## Whether occupants may be ordered out (see can_release). Defaults to true: a garrison you
 ## can walk into is one you can walk out of, and even a hold filled by capture releases what
 ## it holds — an occupant nothing can ever let out is a cell, and wants saying explicitly.
@@ -526,6 +532,26 @@ func paying_count() -> int:
 	if sentence_length <= 0.0:
 		return garrisoned_count()
 	return mini(_sentence_remaining.size(), SENTENCES_AT_ONCE)
+
+
+## Kill everything inside — a flush — credited to `a_by`, and say how many died. A no-op on a
+## host that is not flushable. Each occupant dies as a lethal hit by `a_by` would kill it
+## (Entity.kill): its death reaction, sound and objectives, and `a_by`'s kill experience and
+## bounty. The host is left standing and empty: a neutral building its occupants had adopted
+## returns to neutral, and each occupant's hoisted Loadout comes off the host with it (detach).
+func flush(a_by: Actor = null) -> int:
+	if not flushable:
+		return 0
+	var flushed: Array[Actor] = _garrisoned.duplicate()
+	for unit: Actor in flushed:
+		if is_instance_valid(unit):
+			detach(unit)
+			unit.kill(a_by)
+	_garrisoned.clear()
+	_sentence_remaining.clear()
+	_revert_adopted_commander(get_parent() as Actor)
+	_refresh_aggro_range()
+	return flushed.size()
 
 
 ## Free all garrisoned units without returning them to the scene.

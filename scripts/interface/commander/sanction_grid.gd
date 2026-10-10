@@ -30,8 +30,9 @@ class_name SanctionGrid extends RefCounted
 
 ## Rows. A faction authors as few as it likes but never past this — the fixed shape is
 ## what lets the HUD draw one grid and the player learn one sanction grid, rather than each
-## faction redefining what a tier means.
-const NUM_TIERS: int = 4
+## faction redefining what a tier means. The last row is the superweapon tier
+## (gdd/systems/macroeconomics/pacing/sanction-calibration.md §Tiers).
+const NUM_TIERS: int = 5
 
 ## Columns, i.e. how many sanction families a sanction grid can run at once. Six, matching
 ## the command grid's width (see ControlBinding.GRID_WIDTH), so the game's two HUD

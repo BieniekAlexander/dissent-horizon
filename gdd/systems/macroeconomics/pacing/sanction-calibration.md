@@ -85,8 +85,14 @@ only the site route (`Extractor.works_ponds`, `EnergyExtractor.valid_placement`)
 
 ## Tiers
 
-**Decided (Alex, 2026-10-02): four tiers, down from five.** Higher tiers bring more volatility and
-need more investment.
+**Decided (Alex, 2026-10-10): five tiers, the fifth a dedicated SUPERWEAPON tier.** This
+supersedes the 2026-10-02 decision below, which cut the grid from five tiers to four. T1–T4 keep
+their meaning; T5 holds one superweapon per faction, cast from its own dedicated building
+(the Colonials' Cryogenic Implosion, from the Cryogenic Imploder `cl_support4`). A faction need
+not fill it: an empty bottom row costs nothing, since a tier only has to open if it holds cells.
+
+*Superseded (2026-10-10):* **Decided (Alex, 2026-10-02): four tiers, down from five.** Higher
+tiers bring more volatility and need more investment.
 
 **The placement rule** (Decided): **offensive strength arrives later than defensive, utility and
 informational strength.** Roles are not more specific than that. Strength of any kind still
@@ -101,6 +107,7 @@ Rough guidance for where a cell lands:
 | T2 | mild offence; defence and information can be strong |
 | T3 | strong offence: big swings in a match |
 | T4 | close to game-ending: several buildings destroyed, a small army made invincible, an army taken out of a fight |
+| T5 | a superweapon: one per faction, cast only from its own dedicated building |
 
 ### Price ladder
 
@@ -121,12 +128,20 @@ become every player's way of paying the tier toll
 | T2 | 200–350 |
 | T3 | 450–750 |
 | T4 | 1000–1500 |
+| T5 | 300 (Decided, Alex 2026-10-10) |
 | **starting dominion** | **about 100, the same for every player** — below the cheapest cell (Decided) |
 
 A flat starting amount is a fair head start once each faction's rate is calibrated so its first
 purchase lands at the same time (§Time to tier). This supersedes
 [dominion-and-ordnance](dominion-and-ordnance.md) §Starting dominion's suggestion to set it per
 faction.
+
+**T5 is priced BELOW T4 on purpose** (Alex, 2026-10-10: the Cryogenic Implosion at 300). A
+superweapon's real price is everything around the cell: the breadth toll down four tiers (two T4
+cells, 2000+ dominion, before T5 opens at all) and its dedicated building's energy and charge.
+The cell itself is the cheap last step. TODO: whether that holds once other factions author a
+T5 cell, and whether the ladder's T1-held-low reasoning (starting dominion must buy nothing)
+needs a T5 analogue, are open.
 
 ### Time to tier
 
@@ -212,6 +227,7 @@ Each tier T1–T3 needs at least two cells, or the tier below it can never open.
 | T2 | Drop 1, Scan 2, Freeze 2, Beacon |
 | T3 | Drop 2, Gunship |
 | T4 | Drop 3, Blizzard |
+| T5 | Cryogenic Implosion |
 
 - **Drop stays at three levels** (Decided, for now), placed T2–T4 because even Drop 1 can open a
   second front. Drop 1 at T1, framed as reinforcing a defence, is the alternative.
@@ -325,6 +341,8 @@ Done, as starting points for playtesting:
   since an ability no grid offers is free, so leaving it on the Lab would have granted it with no
   dominion cost. The doc stays, unlisted, until it moves to a faction with a low-tier EMP.
 - [sanction-grid](../sanctions/sanction-grid.md)'s worked examples and cell counts.
+- **2026-10-10:** `SanctionGrid.NUM_TIERS` 4 → 5 for the superweapon tier; the Colonials'
+  Cryogenic Implosion (`tier: 4`, 300) is its first cell. The Anarchists' T5 is empty.
 
 Not done:
 

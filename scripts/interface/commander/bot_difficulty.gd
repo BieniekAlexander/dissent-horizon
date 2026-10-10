@@ -378,7 +378,7 @@ const SEARCH_RANGES: Dictionary = {
 	"posture_dead_band": [0.0, 0.5],
 	"posture_hold_seconds": [0.0, 60.0],
 	"assumed_enemy_income_parity": [0.0, 1.5],
-	# Placement safety and blast spacing, appended 2026-10-09 (T-101).
+	# Placement safety and blast spacing, appended 2026-10-09.
 	"place_safety_weight": [0.0, 20.0],
 	"place_spacing_weight": [0.0, 25.0],
 }
