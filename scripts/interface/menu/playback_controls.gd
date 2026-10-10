@@ -5,6 +5,10 @@ extends VBoxContainer
 ## spectator panel while spectating and by the debug menu while playing; each host decides when
 ## it shows (is_offered). The mechanism is PlaybackSpeed; this is only its controls. Layout is
 ## authored in scenes/interface/playback_controls.tscn.
+##
+## The slider takes no keyboard focus (`focus_mode` none in the scene): the arrow keys pan the
+## camera, which keeps working while these controls are up, and a focused slider would take each
+## press as a step — moving the speed while the player meant to look around.
 
 @onready var _speed_slider: HSlider = %SpeedSlider
 @onready var _speed_label: Label = %SpeedLabel
