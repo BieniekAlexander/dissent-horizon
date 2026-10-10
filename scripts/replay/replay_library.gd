@@ -73,6 +73,15 @@ static func prepare_playback(a_path: String) -> Dictionary:
 	var refused: String = replay.playback_refusal(ReplayFile.current_version())
 	if not refused.is_empty():
 		return {"refusal": "This replay cannot be played: %s." % refused}
+	# A lobby-built skirmish is rebuilt from its recipe — its map was generated, not saved.
+	# Blocking: generation takes seconds. TODO: generate off the main thread as the lobby does.
+	var recipe: Variant = replay.header.get("skirmish")
+	if recipe is Dictionary:
+		var built: Dictionary = SkirmishLauncher.launch(recipe)
+		if built.has("refusal"):
+			return {"refusal": "This replay's skirmish cannot be rebuilt: %s." % built["refusal"]}
+		(built["scenario"] as Scenario).replay_to_play = replay
+		return built
 	var scene_path: String = str(replay.header.get("scenario", ""))
 	if scene_path.is_empty() or not ResourceLoader.exists(scene_path):
 		return {"refusal": "This replay's scenario is not in this build: '%s'." % scene_path}

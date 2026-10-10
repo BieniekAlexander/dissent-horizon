@@ -32,6 +32,13 @@ const MAIN_MENU_SCENE: String = "res://scenes/menu/main_menu.tscn"
 ## anything observe navigation without hooking the SceneTree — and lets tests assert that a
 ## button asked to navigate without actually performing the swap.
 signal scene_change_requested(path: String)
+## Emitted by quit_game just before the application closes.
+signal quit_requested
+#endregion
+
+#region Properties
+## Set by a test so quit_game announces without quitting.
+var suppress_quit: bool = false
 #endregion
 
 
@@ -71,6 +78,29 @@ func go_to_packed(a_scene: PackedScene) -> Error:
 			"SceneManager: could not open '%s': %s" % [a_scene.resource_path, error_string(result)]
 		)
 	return result
+
+
+## Swap to `a_scene`, a node built at runtime and not yet in the tree — a skirmish the lobby
+## assembled (SkirmishLauncher). The tree takes ownership; on a refused swap it is freed here.
+func go_to_node(a_scene: Node) -> Error:
+	if a_scene == null:
+		push_error("SceneManager: asked to open a null node; staying put.")
+		return ERR_INVALID_PARAMETER
+	_resume()
+	scene_change_requested.emit(a_scene.scene_file_path)
+	var result: Error = get_tree().change_scene_to_node(a_scene)
+	if result != OK:
+		push_error("SceneManager: could not open a built scene: %s" % error_string(result))
+		a_scene.free()
+	return result
+
+
+## Close the application. Announced first, like a scene change, so a test can see the request
+## without the tree actually quitting.
+func quit_game() -> void:
+	quit_requested.emit()
+	if not suppress_quit:
+		get_tree().quit()
 
 
 ## Play the replay at `a_path`, replacing the whole tree with its scenario set up to play it

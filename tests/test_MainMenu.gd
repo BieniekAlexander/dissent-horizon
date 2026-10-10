@@ -98,4 +98,57 @@ func test_opening_an_invalid_entry_is_refused_rather_than_crashing() -> void:
 
 	assert_push_error_count(2, "both bad opens are reported")
 	assert_eq(menu.button_labels(), ["Fine"] as Array[String], "and the screen is left alone")
+
+
+#endregion
+
+
+#region Pages
+func test_the_main_page_leads_everywhere() -> void:
+	var menu: MainMenu = _menu([])
+	assert_eq(
+		menu.main_labels(),
+		["Campaign", "Arcade (WIP)", "Skirmish", "Replays", "Options", "Quit"] as Array[String]
+	)
+	assert_eq(menu.page, MainMenu.Page.MAIN)
+
+
+func test_arcade_is_greyed_out() -> void:
+	assert_true(_menu([]).main_button("Arcade").disabled)
+
+
+func test_each_entry_opens_its_page_and_back_returns() -> void:
+	var menu: MainMenu = _menu([_entry("First")])
+	for entry: Array in [
+		["Campaign", MainMenu.Page.CAMPAIGN],
+		["Skirmish", MainMenu.Page.SKIRMISH],
+		["Replays", MainMenu.Page.REPLAYS],
+		["Options", MainMenu.Page.OPTIONS],
+	]:
+		menu.main_button(entry[0]).pressed.emit()
+		assert_eq(menu.page, entry[1], entry[0])
+		assert_false(menu.main_button(entry[0]).is_visible_in_tree(), "the main page is hidden")
+		menu.show_page(MainMenu.Page.MAIN)
+
+
+func test_the_campaign_lists_the_scenarios() -> void:
+	var menu: MainMenu = _menu([_entry("First"), _entry("Second")])
+	menu.show_page(MainMenu.Page.CAMPAIGN)
+	assert_eq(menu.button_labels(), ["First", "Second"] as Array[String])
+
+
+func test_quit_asks_to_close_the_application() -> void:
+	var menu: MainMenu = _menu([])
+	SceneManager.suppress_quit = true
+	watch_signals(SceneManager)
+	menu.main_button("Quit").pressed.emit()
+	SceneManager.suppress_quit = false
+	assert_signal_emitted(SceneManager, "quit_requested")
+
+
+func test_the_lobby_back_button_returns_to_the_main_page() -> void:
+	var menu: MainMenu = _menu([])
+	menu.show_page(MainMenu.Page.SKIRMISH)
+	menu.lobby().back_requested.emit()
+	assert_eq(menu.page, MainMenu.Page.MAIN)
 #endregion

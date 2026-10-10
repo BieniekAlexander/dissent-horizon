@@ -35,7 +35,12 @@ const TEAM_COLOR_MAP: Dictionary = {
 	1: Color(.2, 1, 1),
 	2: Color(1, 1, .2),
 	3: Color(.1, .6, .1),
-	4: Color(1, .2, .2)
+	4: Color(1, .2, .2),
+	# Slots 5–8: the skirmish lobby offers up to Commander.NUM_MAX_COMMANDERS players.
+	5: Color(1, .55, .1),
+	6: Color(.7, .3, 1),
+	7: Color(1, .45, .75),
+	8: Color(.55, .75, .55),
 }
 #endregion
 

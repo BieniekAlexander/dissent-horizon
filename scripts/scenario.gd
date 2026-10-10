@@ -112,6 +112,11 @@ var recorder: ReplayRecorder = null
 ## and it takes the seed and the orders from the recording. Null for a live match.
 var replay_to_play: ReplayFile = null
 
+## For a skirmish the lobby built: the recipe it was built from (SkirmishLauncher), which the
+## replay header records so playback regenerates the same map and slots. Empty for an authored
+## scenario, whose scene file is its own recipe.
+var skirmish_recipe: Dictionary = {}
+
 ## Every piece that has entered play this session, by spawn serial (Entity.spawn_serial) — how
 ## a recorded order names a piece. Kept for a piece's whole life, garrisoned (off the tree)
 ## included, which is why it is a lookup rather than a scan of the "piece" group; entries for
