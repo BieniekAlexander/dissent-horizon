@@ -58,3 +58,11 @@ func test_the_slider_sets_the_speed_and_max_speed_overrides_it() -> void:
 	assert_false(slider.editable, "the slider is moot at max speed")
 	(_controls.find_child("NormalButton", true, false) as Button).pressed.emit()
 	assert_eq(PlaybackSpeed.multiplier(), PlaybackSpeed.NORMAL_MULTIPLIER)
+
+
+## The arrow keys pan the camera, which keeps working while these controls are up, and a focused
+## slider takes each press as a step: panning used to nudge the speed a tick at a time (×0.90 to
+## ×1.10 around normal). The slider takes no focus; the mouse still drags it.
+func test_the_speed_slider_takes_no_keyboard_focus() -> void:
+	var slider: Slider = _controls.find_child("SpeedSlider", true, false) as Slider
+	assert_eq(slider.focus_mode, Control.FOCUS_NONE)

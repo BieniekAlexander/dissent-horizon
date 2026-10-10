@@ -117,3 +117,13 @@ func test_it_works_without_a_clock() -> void:
 	assert_false(
 		_menu.is_open(), "and close it — being unable to pause is not being unable to quit"
 	)
+
+
+## The arrow keys pan the camera, which keeps working behind this menu, and a slider holding
+## keyboard focus takes each press as a step. The volume slider takes no focus; the mouse still
+## drags it.
+func test_the_volume_slider_takes_no_keyboard_focus() -> void:
+	var menu: PauseMenu = (load("res://scenes/menu/pause_menu.tscn") as PackedScene).instantiate()
+	add_child_autofree(menu)
+	var volume: Slider = menu.get_node("%VolumeSlider") as Slider
+	assert_eq(volume.focus_mode, Control.FOCUS_NONE)
