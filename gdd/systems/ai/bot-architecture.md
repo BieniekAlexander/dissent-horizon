@@ -669,7 +669,8 @@ the cell, in the faction scene, beside the other aiming knobs. Tests:
 
 **The rule: placement is chosen in the BOT'S frame, never in the world's.** Two hard
 constraints filter the candidates, a scored comparison picks among what survives, and no term
-anywhere names an axis of the map.
+anywhere names an axis of the map. Where a building is ANCHORED is a choice among the bot's
+bases since 2026-10-09 (§The score, last paragraph).
 
 The deployment drops are ranked by the same score (`BotDeployment`), anchored on the army
 before the command centre exists — see
@@ -736,11 +737,14 @@ is both the right question (the tightest point is what pinches) and the only mir
 one. It is capped at four cells, because without a cap it stops meaning "keep your lanes open"
 and starts meaning "go stand in the middle of the map".
 
-> **PLANNED (2026-10-09)** — two terms join this score, and the anchor stops being the one base
-> centroid: a `safety` term read off the fields, and a blast-spacing penalty over the bot's own
-> structures; the anchor becomes a per-order choice among the bot's clusters. Decided with Alex;
-> [lattice-and-topology](world-model/lattice-and-topology.md) §Safety, sites and placement
-> (`gdd/tasks.md` T-101).
+Since 2026-10-09 (T-101) two terms join the score and the anchor is a per-order choice: the
+`safety` channel (`− place_safety_weight × safety`, where a building is expected to live, read
+off the fields) and the blast-spacing penalty (`+ place_spacing_weight × spacing`, one for each
+own structure the candidate stands on, nothing one blast away), and a static defence is still
+anchored on the region that asked for it while every other building is anchored on one of the
+bot's BASES — a producer on the one nearest the action, anything else on the farthest.
+Compactness stays the ruler, read as travel cost. The rules and what they superseded:
+[lattice-and-topology](world-model/lattice-and-topology.md) §Safety, sites and placement.
 
 ### Two details that are the whole of why it actually mirrors
 
@@ -920,8 +924,8 @@ slot, not the position.
 
 ## The bot works lithium ponds, not just extraction sites
 
-**`_income_build_spot` considers both reservoirs and takes whichever is nearer the base.** Until
-2026-09-12 it scanned the `extraction_site` group alone, so every lithium pond on a map was
+**`_income_build_spot` considers both reservoirs** (and, since 2026-10-09, takes the more
+VALUABLE — below). Until 2026-09-12 it scanned the `extraction_site` group alone, so every lithium pond on a map was
 invisible to the bot — half the energy economy, uncontested for a human opponent. Measured on
 `skirmish.tscn` (two ponds): **0 of 2 worked after four simulated minutes before, 2 of 2
 after.**
@@ -939,11 +943,14 @@ claimed whole or not at all. The engine abandons a duplicate on arrival regardle
 [water-bodies](../terrain-and-navigation/water-bodies.md) §One extractor per body); this is what
 stops the bot spending a builder walking to a job that will be thrown away.
 
-> **PLANNED — a pond is priced with a ruler today.** Distance is the whole comparison, but a
-> pond pays `POND_RATE_MULTIPLIER` times faster and is FINITE. Decided 2026-10-09: yield = rate ×
-> expected lifetime, the lifetime read off the `safety` field and capped by the reservoir, one
-> comparison over sites and ponds — [lattice-and-topology](world-model/lattice-and-topology.md)
-> §Safety, sites and placement (`gdd/tasks.md` T-101).
+**A pond is priced against a site since 2026-10-09 (T-101, the answer to T-006):** every
+site and pond stands in one comparison by what the extractor is expected to EARN there — its
+rate, a pond's `POND_RATE_MULTIPLIER` times a site's, for the lifetime the `safety` field
+gives it, a pond's capped by its reservoir — less what the builder's walk defers and the
+extractor costs (`BotEconomy._income_build_spot`, `site_value`); a site the builder could not
+finish before a builder-killing enemy arrives is refused. Distance is the tie-break. The rule
+and its reasoning: [lattice-and-topology](world-model/lattice-and-topology.md) §Safety, sites
+and placement, item 2.
 
 ### Income is found by scouting
 

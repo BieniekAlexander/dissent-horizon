@@ -74,8 +74,26 @@ class FakeBot:
 	func get_units() -> Array:
 		return []
 
+	func get_structures() -> Array:
+		return []
+
 	func buildable_production_structure_types() -> Array:
 		return production
+
+	## The safety channel a test sets, in place of the one read off a preview no fake has.
+	var safety_channel: PackedFloat32Array = PackedFloat32Array()
+
+	func safety_channel_for(_a_type: StringName) -> PackedFloat32Array:
+		return safety_channel
+
+	## The bases a test sets; the real read grows the bot's structures on the lattice.
+	var bot_bases: Array = []
+
+	func bases() -> Array:
+		return bot_bases
+
+	func threat_point() -> Variant:
+		return VU.in_xz(threat) if threat != null else null
 
 	func buildable_defence_structure_types() -> Array:
 		return defence
@@ -103,9 +121,14 @@ class FakeBot:
 class StubEconomy:
 	extends BotEconomy
 	var dims: Vector2i = Vector2i(2, 2)
+	## The own structures the spacing penalty keeps clear of, set by a test.
+	var neighbours: Array = []
 
 	func _dims_for_type(_a_type: StringName) -> Vector2i:
 		return dims
+
+	func _neighbour_positions() -> Array:
+		return neighbours
 
 
 var _world: Node3D
@@ -502,3 +525,120 @@ func test_two_mirrored_bots_with_fields_choose_mirrored_spots() -> void:
 		assert_not_null(north, "%s: the north bot found somewhere" % type)
 		assert_not_null(south, "%s: the south bot found somewhere" % type)
 		assert_almost_eq(_xz(south), -_xz(north), Vector2(EPS, EPS), "%s: mirrored" % type)
+
+
+# ─── SAFETY, SPACING AND THE BASE A BUILDING JOINS ──────────────────────────
+# lattice-and-topology.md §Safety, sites and placement, items 3 and 5.
+
+
+## The believed threat lies east, so the bearing pulls production east; the safety channel
+## says the ground north of the base is where a building lives and the ground south is not.
+func test_a_building_goes_where_the_safety_channel_says_it_can_hold() -> void:
+	var bot: FakeBot = _bot_at(Vector2.ZERO, Vector2(40.0, 0.0))
+	var fields: FixtureFields = _fields_over_map()
+	fields.home = [fields.lattice.index_at(Vector2.ZERO)]
+	bot._fields = fields
+	var channel := PackedFloat32Array()
+	channel.resize(fields.lattice.cell_count())
+	for index: int in fields.lattice.cell_count():
+		channel[index] = (
+			1.0 if fields.lattice.centre_of(fields.lattice.cell_of(index)).y < -2.0 else 0.0
+		)
+	bot.safety_channel = channel
+	var economy := StubEconomy.new(bot, null)
+	economy.place_safety_weight = 0.0
+	var unsafe: Vector2 = _xz(economy._find_build_spot(PRODUCTION))
+	economy = StubEconomy.new(bot, null)
+	economy.place_safety_weight = 20.0
+	var safe: Vector2 = _xz(economy._find_build_spot(PRODUCTION))
+	assert_gt(unsafe.x, absf(unsafe.y), "weight 0: east, by the bearing alone")
+	assert_lt(safe.y, -2.0, "weighted: onto the ground the channel holds safe")
+
+
+func test_spacing_keeps_a_building_out_of_one_blast_of_its_own() -> void:
+	var bot: FakeBot = _bot_at(Vector2.ZERO, Vector2(40.0, 0.0))
+	var economy := StubEconomy.new(bot, null)
+	economy.place_spacing_weight = 0.0
+	var tight: Vector2 = _xz(economy._find_build_spot(PRODUCTION))
+	var radius: float = BotEconomy.blast_spacing_cells()
+	assert_gt(radius, 0.0, "the shape library names an area-of-effect bucket")
+	economy = StubEconomy.new(bot, null)
+	economy.neighbours = [tight]
+	economy.place_spacing_weight = 0.0
+	assert_almost_eq(
+		_xz(economy._find_build_spot(PRODUCTION)), tight, Vector2(EPS, EPS), "weight 0: unmoved"
+	)
+	economy = StubEconomy.new(bot, null)
+	economy.neighbours = [tight]
+	economy.place_spacing_weight = 30.0
+	var spaced: Vector2 = _xz(economy._find_build_spot(PRODUCTION))
+	assert_gt(spaced.distance_to(tight), radius * 0.5, "pushed out of the neighbour's blast")
+	assert_almost_eq(
+		BotEconomy.spacing_penalty(
+			Vector2.ZERO, [Vector2(radius, 0.0), Vector2(radius * 0.5, 0.0)], radius
+		),
+		0.5,
+		EPS,
+		"zero at one blast, half at half a blast"
+	)
+	assert_eq(
+		BotEconomy.spacing_penalty(Vector2.ZERO, [Vector2.ZERO], 0.0), 0.0, "no radius: no term"
+	)
+
+
+func test_two_mirrored_bots_with_safety_and_spacing_choose_mirrored_spots() -> void:
+	var base := Vector2(-6.5, 9.5)
+	var threat := Vector2(4.5, -8.5)
+	var north_bot: FakeBot = _bot_at(base, threat)
+	var south_bot: FakeBot = _bot_at(-base, -threat)
+	north_bot._fields = _fields_over_map()
+	south_bot._fields = _fields_over_map()
+	var lattice: Lattice = north_bot._fields.lattice
+	var north_channel := PackedFloat32Array()
+	var south_channel := PackedFloat32Array()
+	north_channel.resize(lattice.cell_count())
+	south_channel.resize(lattice.cell_count())
+	for index: int in lattice.cell_count():
+		var cell: Vector2i = lattice.cell_of(index)
+		var value: float = 1.0 if (cell.x + 2 * cell.y) % 3 == 0 else 0.3
+		north_channel[index] = value
+		south_channel[lattice.index_of(lattice.reflected(cell))] = value
+	north_bot.safety_channel = north_channel
+	south_bot.safety_channel = south_channel
+	var neighbour := Vector2(-3.5, 6.5)
+	for type: StringName in [PRODUCTION, SUPPORT]:
+		var north_economy := StubEconomy.new(north_bot, null)
+		north_economy.neighbours = [neighbour]
+		north_economy.place_safety_weight = 9.0
+		north_economy.place_spacing_weight = 4.0
+		var south_economy := StubEconomy.new(south_bot, null)
+		south_economy.neighbours = [-neighbour]
+		south_economy.place_safety_weight = 9.0
+		south_economy.place_spacing_weight = 4.0
+		var north: Variant = north_economy._find_build_spot(type)
+		var south: Variant = south_economy._find_build_spot(type)
+		assert_not_null(north, "%s: the north bot found somewhere" % type)
+		assert_not_null(south, "%s: the south bot found somewhere" % type)
+		assert_almost_eq(_xz(south), -_xz(north), Vector2(EPS, EPS), "%s: mirrored" % type)
+
+
+## Two bases, the action to the east: a producer joins the eastern one, a support building the
+## western; with one base, home. (Without the fields the walk is as the crow flies.)
+func test_a_producer_joins_the_base_nearest_the_action_and_a_support_building_the_farthest(
+) -> void:
+	var bot: FakeBot = _bot_at(Vector2.ZERO, Vector2(40.0, 0.0))
+	var east := {"centroid": Vector2(10.0, 0.0), "members": [Vector2(10.0, 0.0)]}
+	var west := {"centroid": Vector2(-10.0, 0.0), "members": [Vector2(-10.0, 0.0)]}
+	bot.bot_bases = [west, east]
+	var economy := StubEconomy.new(bot, null)
+	assert_almost_eq(economy._anchor_for(PRODUCTION), east["centroid"], Vector2(EPS, EPS))
+	assert_almost_eq(economy._anchor_for(SUPPORT), west["centroid"], Vector2(EPS, EPS))
+	bot.bot_bases = [east]
+	assert_almost_eq(
+		economy._anchor_for(PRODUCTION), east["centroid"], Vector2(EPS, EPS), "one base: it is home"
+	)
+	bot.bot_bases = [west, east]
+	bot.threat = null
+	# Nothing believed: the action is the map's middle, which here is east of both bases... the
+	# map runs 0..32, so its centre (16, 16) is nearer the east base.
+	assert_almost_eq(economy._anchor_for(PRODUCTION), east["centroid"], Vector2(EPS, EPS))

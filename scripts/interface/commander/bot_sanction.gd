@@ -325,4 +325,4 @@ func _densest_cluster(a_enemies: Array, a_radius: float) -> Dictionary:
 func _home_or_army() -> Vector3:
 	if _bot.army_size() > 0:
 		return _bot.army_centroid()
-	return _bot.base_centroid()
+	return _bot.home_centroid()

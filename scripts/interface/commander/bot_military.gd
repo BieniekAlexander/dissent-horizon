@@ -855,7 +855,7 @@ func _home_anchor_position() -> Vector3:
 ## Where "home" is: the base centroid if we own structures, else the army's
 ## centre of mass, else null (nothing to anchor on).
 func _home_anchor() -> Variant:
-	var base: Vector3 = _bot.base_centroid()
+	var base: Vector3 = _bot.home_centroid()
 	if base != Vector3.ZERO:
 		return base
 	if _bot.army_size() > 0:
