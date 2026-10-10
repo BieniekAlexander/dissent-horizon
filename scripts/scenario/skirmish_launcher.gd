@@ -92,6 +92,9 @@ static func build(a_recipe: Dictionary, a_map: GeneratedMap) -> Dictionary:
 		slot.faction = load(str(player["faction"])) as PackedScene
 		slot.alliance = int(player["team"])
 		slot.is_bot = bool(player["is_bot"])
+		slot.difficulty = (
+			int(player.get("difficulty", template.difficulty)) as PlayerSlot.Difficulty
+		)
 		slots.append(slot)
 	scenario.player_slots = slots
 	scenario.rng_seed = int(a_recipe["rng_seed"])

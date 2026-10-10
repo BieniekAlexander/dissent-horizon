@@ -23,7 +23,7 @@ one page, `MainMenu.page`:
 | CAMPAIGN | one button per authored mission (`scenarios`, ScenarioEntry rows): the three prologue missions |
 | SKIRMISH | the lobby, `SkirmishLobby` — below |
 | REPLAYS | every replay under `user://replays/`, newest first; an unplayable one is refused with the reason |
-| OPTIONS | master volume, not saved — there is no settings system yet (`TODO`) |
+| OPTIONS | master volume (not saved, `TODO`) and the alert jump key's scope (saved) |
 
 - **Arcade** is a disabled button labelled WIP: the mode is not built.
 - **Back** on every page, and Escape, return to MAIN. The lobby's Back is its own (it must stay
@@ -33,6 +33,14 @@ one page, `MainMenu.page`:
 - Showing a page focuses its first enabled button, so keyboard and gamepad always start
   somewhere.
 
+## Options
+
+`GameSettings` (`scripts/interface/game_settings.gd`) is the saved half of the Options page: a
+ConfigFile at `user://settings.cfg`, loaded on first read and written on every change, values
+stored by enum NAME so reordering an enum never reinterprets a saved choice. It holds one
+setting so far, the alert jump key's scope ([alerts](alerts.md) §Presentation), defaulting to
+negative alerts only. `TODO`: the master volume is set live and not saved.
+
 ## Skirmish
 
 The lobby is state first: `SkirmishSetup` (`scripts/interface/menu/skirmish_setup.gd`) holds
@@ -41,8 +49,10 @@ the choices and validates them; `SkirmishLobby` only draws and edits it.
 **Choices.** 2–8 players (`Commander.NUM_MAX_COMMANDERS`). Each slot: a faction or Random, and
 No team or Team 1–7 (`PlayerSlot.alliance`). The first slot carries a **You** checkbox: ticked,
 the player plays slot 1; unticked, every slot is a bot and the player spectates. Every other
-slot is a bot. Teamless players are each an alliance of their own, so all teamless is a
-free-for-all.
+slot is a bot. Every bot slot has a **difficulty** dropdown (PlayerSlot.Difficulty, HARD by
+default — what every lobby bot played before it existed); the player's own slot keeps its choice
+but greys it out until it is unticked. Teamless players are each an alliance of their own, so
+all teamless is a free-for-all.
 
 **Validation.** Everyone in one alliance cannot be played (Play is disabled and the reason
 shown).
@@ -53,7 +63,7 @@ play them. `TODO`: Libertarian and Technocratic have command centres but stub sa
 
 **The match is always HEGEMONY**, built from the `skirmish.tscn` template: its root script
 (`Skirmish`), HUD rig and trigger host, and its first PlayerSlot as every player's base
-(starting energy, bot difficulty — HARD today). Its authored map is replaced.
+(starting energy and the rest). Its authored map is replaced.
 
 ### The recipe
 

@@ -21,6 +21,8 @@ const FACTIONS: Array[String] = [
 	"res://scenes/factions/anarchical.tscn",
 	"res://scenes/factions/colonial.tscn",
 ]
+## A new bot slot's difficulty: what every lobby bot played at before the dropdown existed.
+const DEFAULT_DIFFICULTY: PlayerSlot.Difficulty = PlayerSlot.Difficulty.HARD
 ## No team: the slot is an alliance of its own (PlayerSlot.alliance 0).
 const NO_TEAM: int = 0
 #endregion
@@ -28,7 +30,8 @@ const NO_TEAM: int = 0
 #region Properties
 ## True: the person at the keyboard plays slot 1. False: every slot is a bot and they watch.
 var human_plays_first_slot: bool = true
-## One per player, in slot order: {"faction": scene path or RANDOM, "team": 0 … NUM_TEAMS}.
+## One per player, in slot order: {"faction": scene path or RANDOM, "team": 0 … NUM_TEAMS,
+## "difficulty": PlayerSlot.Difficulty — ignored while the slot is the player's}.
 var _slots: Array[Dictionary] = []
 #endregion
 
@@ -51,7 +54,7 @@ func player_count() -> int:
 func set_player_count(a_count: int) -> void:
 	var count: int = clampi(a_count, MIN_PLAYERS, MAX_PLAYERS)
 	while _slots.size() < count:
-		_slots.append({"faction": RANDOM, "team": NO_TEAM})
+		_slots.append({"faction": RANDOM, "team": NO_TEAM, "difficulty": DEFAULT_DIFFICULTY})
 	_slots.resize(count)
 
 
@@ -66,6 +69,24 @@ func set_faction(a_slot: int, a_faction: String) -> void:
 	if a_faction != RANDOM and not FACTIONS.has(a_faction):
 		return
 	_slots[a_slot]["faction"] = a_faction
+
+
+func difficulty_of(a_slot: int) -> PlayerSlot.Difficulty:
+	return _slots[a_slot]["difficulty"]
+
+
+## Set slot `a_slot`'s bot difficulty. Kept while the slot is the player's, for when it is not.
+func set_difficulty(a_slot: int, a_difficulty: PlayerSlot.Difficulty) -> void:
+	if a_slot < 0 or a_slot >= _slots.size():
+		return
+	if not PlayerSlot.Difficulty.values().has(a_difficulty):
+		return
+	_slots[a_slot]["difficulty"] = a_difficulty
+
+
+## Whether slot `a_slot` is a bot: every slot but the first, and the first when unticked.
+func is_bot(a_slot: int) -> bool:
+	return a_slot > 0 or not human_plays_first_slot
 
 
 func team_of(a_slot: int) -> int:
@@ -119,7 +140,8 @@ func recipe(a_rng: RandomNumberGenerator) -> Dictionary:
 				{
 					"faction": faction,
 					"team": team_of(i),
-					"is_bot": i > 0 or not human_plays_first_slot,
+					"is_bot": is_bot(i),
+					"difficulty": int(difficulty_of(i)),
 				}
 			)
 		)

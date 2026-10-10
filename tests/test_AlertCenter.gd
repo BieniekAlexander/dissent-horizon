@@ -165,7 +165,7 @@ func test_stealth_reports_its_transitions() -> void:
 
 
 func test_floating_energy_is_told_after_it_holds() -> void:
-	(_commanders[OWN] as Commander).energy = AlertCenter.FLOAT_MIN_ENERGY * 2
+	(_commanders[OWN] as Commander).energy = ResourcePressure.ENERGY_SURPLUS_THRESHOLD + 1
 	_center.poll()
 	assert_eq(_of(_raised, AlertCatalog.Type.ENERGY_FLOATING).size(), 0, "not yet")
 	_center.set_tick(AlertCatalog.sustain_ticks(AlertCatalog.Type.ENERGY_FLOATING))
@@ -176,16 +176,16 @@ func test_floating_energy_is_told_after_it_holds() -> void:
 	assert_false(floating[0].has_position, "a state is nowhere")
 
 
-func test_floating_has_hysteresis() -> void:
+func test_floating_is_the_hud_surplus_line() -> void:
+	# One definition: the alert floats exactly when the EnergyBar pulses.
 	var own := _commanders[OWN] as Commander
-	own.energy = AlertCenter.FLOAT_MIN_ENERGY
+	own.energy = ResourcePressure.ENERGY_SURPLUS_THRESHOLD
 	_center.poll()
-	# Just under the line, but above the release level: still floating, so the latch keeps
-	# counting rather than restarting.
-	own.energy = int(AlertCenter.FLOAT_MIN_ENERGY * 0.9)
 	_center.set_tick(AlertCatalog.sustain_ticks(AlertCatalog.Type.ENERGY_FLOATING))
 	_center.poll()
-	assert_eq(_of(_raised, AlertCatalog.Type.ENERGY_FLOATING).size(), 1)
+	assert_eq(
+		_of(_raised, AlertCatalog.Type.ENERGY_FLOATING).size(), 0, "at the line is not over it"
+	)
 
 
 func test_strained_infrastructure_is_told() -> void:

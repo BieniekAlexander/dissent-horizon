@@ -14,7 +14,7 @@ extends Control
 ## SKIRMISH is the SkirmishLobby. REPLAYS lists every replay under `user://replays/`, newest
 ## first; a replay this build cannot play is listed all the same and refused, with the reason,
 ## when chosen (gdd/systems/commands/recording-and-replay.md §Watching). OPTIONS holds the master
-## volume, unsaved — there is no settings system yet.
+## volume (unsaved) and the alert jump key's scope (GameSettings, saved).
 ##
 ## Every transition goes through the SceneManager autoload, which is also what a scenario uses
 ## to come BACK here — one description of what changing scene means, including clearing the
@@ -62,6 +62,7 @@ var page: Page = Page.MAIN
 @onready var _replay_status: Label = %ReplayStatus
 @onready var _lobby: SkirmishLobby = %SkirmishLobby
 @onready var _volume: HSlider = %Volume
+@onready var _jump_scope: OptionButton = %JumpScope
 @onready var _pages: Dictionary = {
 	Page.MAIN: %MainPage,
 	Page.CAMPAIGN: %CampaignPage,
@@ -84,6 +85,7 @@ func _ready() -> void:
 	var bus: int = AudioServer.get_bus_index(MASTER_BUS)
 	_volume.value = db_to_linear(AudioServer.get_bus_volume_db(bus)) if bus >= 0 else 1.0
 	_volume.value_changed.connect(_on_volume_changed)
+	_build_jump_scope()
 	show_page(Page.MAIN)
 
 
@@ -258,6 +260,22 @@ func _first_button(a_root: Node) -> Button:
 		if nested != null:
 			return nested
 	return null
+
+
+## The jump key's scope, one item per GameSettings.AlertJumpScope, saved when changed.
+func _build_jump_scope() -> void:
+	_jump_scope.clear()
+	_jump_scope.add_item("Negative alerts only", GameSettings.AlertJumpScope.NEGATIVE)
+	_jump_scope.add_item("All alerts", GameSettings.AlertJumpScope.ALL)
+	_jump_scope.select(_jump_scope.get_item_index(GameSettings.alert_jump_scope()))
+	_jump_scope.item_selected.connect(
+		func(i: int) -> void: GameSettings.set_alert_jump_scope(_jump_scope.get_item_id(i))
+	)
+
+
+## The jump-scope control, for a test.
+func jump_scope_control() -> OptionButton:
+	return _jump_scope
 
 
 func _on_volume_changed(a_value: float) -> void:

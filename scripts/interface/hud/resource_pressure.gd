@@ -41,6 +41,12 @@ const PANEL_COLOR: Color = Color(0.055, 0.067, 0.051, 0.87)
 ## the player opened a dialog. Self-referential pulses (a colour toward its own `.lightened()`)
 ## are what the bars use — see EnergyBar/InfrastructureBar — rather than pulsing toward white,
 ## which would flash to a colour that means nothing on the bar it is drawn on.
+## Whether `a_commander` is sitting on more energy than it is using — the one definition the
+## EnergyBar's pulse and the floating-energy alert (AlertCenter) both read.
+static func is_energy_floating(a_commander: Commander) -> bool:
+	return a_commander.energy > ENERGY_SURPLUS_THRESHOLD
+
+
 static func pulse_between(a_color1: Color, a_color2: Color) -> Color:
 	var phase: float = (
 		fmod(float(Time.get_ticks_msec()) / 1000.0, PULSE_PERIOD_SECONDS) / PULSE_PERIOD_SECONDS

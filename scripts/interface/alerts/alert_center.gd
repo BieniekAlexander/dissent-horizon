@@ -24,14 +24,6 @@ signal alert_presented(a_alert: Alert)
 ## enough for a superweapon's launch and cheap enough to scan every structure.
 const POLL_SECONDS: float = 1.0 / 3.0
 
-## FLOATING ENERGY: spare energy (banked minus what the queue has already promised) counts as
-## floating at max(FLOAT_MIN_ENERGY, FLOAT_INCOME_SECONDS of income) and stops at
-## FLOAT_RELEASE_RATIO of that, so a bank hovering at the line does not flap.
-## TODO: placeholders — alerts.md §Tuning.
-const FLOAT_MIN_ENERGY: int = 1500
-const FLOAT_INCOME_SECONDS: float = 60.0
-const FLOAT_RELEASE_RATIO: float = 0.75
-
 ## How many raised alerts `recent()` keeps — the record of what happened, presented or not.
 const LOG_SIZE: int = 256
 #endregion
@@ -49,8 +41,6 @@ var _throttles: Dictionary = {}
 ## commander id → AlertLatch, per state type
 var _float_latches: Dictionary = {}
 var _strain_latches: Dictionary = {}
-## commander id → whether it is floating (the hysteresis memory)
-var _floating: Dictionary = {}
 
 ## Superweapon casters, by piece instance id → {piece: WeakRef, owner: int, ability: StringName,
 ## built: bool, charges: int, title: String}
@@ -281,13 +271,8 @@ func _on_pond_drained(a_pond: WaterBody) -> void:
 #region Polled sources
 func _poll_economy(a_commander: Commander, a_now: int) -> void:
 	var id: int = a_commander.id
-	var spare: int = a_commander.energy - a_commander.energy_committed()
-	var line: float = maxf(
-		FLOAT_MIN_ENERGY, a_commander.energy_collection_rate() * FLOAT_INCOME_SECONDS
-	)
-	var was_floating: bool = bool(_floating.get(id, false))
-	var floating: bool = spare >= line or (was_floating and spare >= line * FLOAT_RELEASE_RATIO)
-	_floating[id] = floating
+	# The HUD's own definition, so the bar pulsing and the alert speaking can never disagree.
+	var floating: bool = ResourcePressure.is_energy_floating(a_commander)
 	if _latch(_float_latches, id, AlertCatalog.Type.ENERGY_FLOATING).update(floating, a_now):
 		var alert := Alert.make(AlertCatalog.Type.ENERGY_FLOATING, id, a_now)
 		alert.key = id

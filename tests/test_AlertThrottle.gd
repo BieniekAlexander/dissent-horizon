@@ -54,11 +54,24 @@ func test_the_hold_expires() -> void:
 
 
 func test_a_fight_that_keeps_going_in_place_stays_one_alert() -> void:
-	# Each nearby hit restarts the hold, so an ongoing fight never re-announces itself.
+	# Each nearby hit restarts the hold, so an ongoing fight does not re-announce itself before
+	# its longest hold.
 	var step: int = AlertCatalog.suppress_ticks(UNITS) / 2
 	_throttle.admit(_at(UNITS, 0.0, 0))
 	for i: int in range(1, 5):
 		assert_false(_throttle.admit(_at(UNITS, 0.0, i * step)), "hit %d" % i)
+
+
+func test_an_unbroken_fight_is_said_again_after_the_longest_hold() -> void:
+	var step: int = AlertCatalog.suppress_ticks(UNITS) / 2
+	var limit: int = AlertCatalog.max_hold_ticks(UNITS)
+	assert_lt(limit, 1 << 40, "precondition: attacks have a longest hold")
+	_throttle.admit(_at(UNITS, 0.0, 0))
+	var tick: int = step
+	while tick < limit:
+		assert_false(_throttle.admit(_at(UNITS, 0.0, tick)), "still the same fight at %d" % tick)
+		tick += step
+	assert_true(_throttle.admit(_at(UNITS, 0.0, limit)), "announced again")
 
 
 func test_a_drifting_fight_carries_its_hold_with_it() -> void:

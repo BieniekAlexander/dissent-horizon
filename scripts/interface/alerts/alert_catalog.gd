@@ -49,8 +49,12 @@ enum Tone { ROUTINE, WARNING, URGENT }
 ##   suppress_radius     float — cells; a group alert inside this of a held one is swallowed
 ##   transfer_radius     float — cells; a swallowed alert this close MOVES the hold to itself and
 ##                       restarts its clock, so one ongoing fight stays one alert
+##   max_hold_seconds    float — the longest a spatial hold lasts from when it opened, however
+##                       busy: an unbroken fight is announced again after this
 ##   repeat_seconds      float — STATE only: the reminder period while the state holds
 ##   sustain_seconds     float — STATE only: how long it must hold before the first alert
+##   negative        bool — news of harm (an attack, a detected enemy, a dry pond). The jump
+##                   key visits only these by default (GameSettings.AlertJumpScope)
 ##   text            String — the toast's copy; `%s` takes the subject's title where there is one
 ##   sound           StringName — which AlertFeed.SOUNDS clip it plays; unsaid, its tone's own
 ##   counts          bool — a repeat folds into the newest toast as "×n" wherever it happened,
@@ -60,6 +64,7 @@ enum Tone { ROUTINE, WARNING, URGENT }
 static var DEFINITIONS: Dictionary = {
 	Type.UNITS_ATTACKED:
 	{
+		"negative": true,
 		"kind": Kind.EVENT,
 		"tone": Tone.WARNING,
 		"priority": 1,
@@ -68,10 +73,12 @@ static var DEFINITIONS: Dictionary = {
 		"suppress_seconds": 30.0,
 		"suppress_radius": 30.0,
 		"transfer_radius": 15.0,
+		"max_hold_seconds": 90.0,
 		"text": "Our units are under attack",
 	},
 	Type.STRUCTURES_ATTACKED:
 	{
+		"negative": true,
 		"kind": Kind.EVENT,
 		"tone": Tone.URGENT,
 		"priority": 2,
@@ -80,12 +87,14 @@ static var DEFINITIONS: Dictionary = {
 		"suppress_seconds": 30.0,
 		"suppress_radius": 30.0,
 		"transfer_radius": 15.0,
+		"max_hold_seconds": 90.0,
 		"text": "Our base is under attack",
 	},
 	# The two structures a base is not a base without: special cases of the base under attack,
 	# above it in priority so each breaks through a base hold already open around it.
 	Type.EXTRACTOR_ATTACKED:
 	{
+		"negative": true,
 		"kind": Kind.EVENT,
 		"tone": Tone.URGENT,
 		"priority": 3,
@@ -94,10 +103,12 @@ static var DEFINITIONS: Dictionary = {
 		"suppress_seconds": 30.0,
 		"suppress_radius": 30.0,
 		"transfer_radius": 15.0,
+		"max_hold_seconds": 90.0,
 		"text": "Our extractor is under attack",
 	},
 	Type.COMMAND_CENTRE_ATTACKED:
 	{
+		"negative": true,
 		"kind": Kind.EVENT,
 		"tone": Tone.URGENT,
 		"priority": 4,
@@ -106,10 +117,12 @@ static var DEFINITIONS: Dictionary = {
 		"suppress_seconds": 30.0,
 		"suppress_radius": 30.0,
 		"transfer_radius": 15.0,
+		"max_hold_seconds": 90.0,
 		"text": "Our command centre is under attack",
 	},
 	Type.STEALTH_DETECTED:
 	{
+		"negative": true,
 		"kind": Kind.EVENT,
 		"tone": Tone.WARNING,
 		"priority": 1,
@@ -118,6 +131,7 @@ static var DEFINITIONS: Dictionary = {
 		"suppress_seconds": 20.0,
 		"suppress_radius": 20.0,
 		"transfer_radius": 10.0,
+		"max_hold_seconds": 90.0,
 		"text": "Stealthed enemy detected",
 	},
 	Type.ENERGY_FLOATING:
@@ -134,6 +148,7 @@ static var DEFINITIONS: Dictionary = {
 	},
 	Type.INFRASTRUCTURE_STRAINED:
 	{
+		"negative": true,
 		"kind": Kind.STATE,
 		"tone": Tone.WARNING,
 		"priority": 0,
@@ -146,6 +161,7 @@ static var DEFINITIONS: Dictionary = {
 	},
 	Type.SUPERWEAPON_BEGUN:
 	{
+		"negative": true,
 		"kind": Kind.EVENT,
 		"tone": Tone.WARNING,
 		"priority": 0,
@@ -156,6 +172,7 @@ static var DEFINITIONS: Dictionary = {
 	},
 	Type.SUPERWEAPON_BUILT:
 	{
+		"negative": true,
 		"kind": Kind.EVENT,
 		"tone": Tone.WARNING,
 		"priority": 0,
@@ -177,6 +194,7 @@ static var DEFINITIONS: Dictionary = {
 	},
 	Type.SUPERWEAPON_LAUNCHED:
 	{
+		"negative": true,
 		"kind": Kind.EVENT,
 		"tone": Tone.URGENT,
 		"priority": 0,
@@ -235,6 +253,7 @@ static var DEFINITIONS: Dictionary = {
 	},
 	Type.POND_DEPLETED:
 	{
+		"negative": true,
 		"kind": Kind.EVENT,
 		"tone": Tone.WARNING,
 		"priority": 0,
@@ -295,6 +314,11 @@ static func sound_of(a_type: Type) -> StringName:
 	return StringName(String(Tone.keys()[tone_of(a_type)]).to_lower())
 
 
+## Whether this type is news of harm — what the jump key visits under the default scope.
+static func is_negative(a_type: Type) -> bool:
+	return bool(definition(a_type).get("negative", false))
+
+
 ## Whether a repeat is counted on the newest toast wherever it happened.
 static func counts_repeats(a_type: Type) -> bool:
 	return bool(definition(a_type).get("counts", false))
@@ -302,6 +326,13 @@ static func counts_repeats(a_type: Type) -> bool:
 
 static func suppress_ticks(a_type: Type) -> int:
 	return TimeUtils.ticks_from_seconds(float(definition(a_type).get("suppress_seconds", 0.0)))
+
+
+## Unsaid, a hold never ages out.
+static func max_hold_ticks(a_type: Type) -> int:
+	if not definition(a_type).has("max_hold_seconds"):
+		return 1 << 62
+	return TimeUtils.ticks_from_seconds(float(definition(a_type)["max_hold_seconds"]))
 
 
 static func suppress_radius(a_type: Type) -> float:

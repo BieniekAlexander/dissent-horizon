@@ -95,8 +95,10 @@ SUPERWEAPON_READY, not twice.
 `Stealth._report_transition` fires `ON_EXIT_STEALTH` / `ON_ENTER_STEALTH` on every crossing of
 the STEALTHED line; `Entity` had documented these since before they were emitted.
 
-**Floating energy** is spare energy (banked minus what the production queue has promised)
-of at least max(1500, 60 s of income), held for 10 s; it clears below 75 % of that line.
+**Floating energy is the HUD's own surplus line**: banked energy over
+`ResourcePressure.ENERGY_SURPLUS_THRESHOLD`, asked through `ResourcePressure.is_energy_floating` —
+the same test that makes the EnergyBar pulse, so the bar and the alert never disagree. Held for
+10 s before it speaks. Decided 2026-10-10, superseding an income-scaled line with hysteresis.
 
 ## State alerts
 
@@ -127,8 +129,10 @@ The research, and what was taken from it:
 - **Temporal, presentation side**: `AlertFeed` plays no sound within 1 s of the last unless the
   new one is louder, and folds a repeat of the newest toast into a "×n" count.
 
-Pitfall accepted: under the 0 A.D. rule a siege that never pauses never re-announces. OpenRA's
-plain 30 s cooldown would re-announce it; see T-102.
+**A fight that never pauses is announced again after 90 s.** Pure 0 A.D. holds would keep a
+siege one alert forever, since every hit restarts the hold; each hold therefore also remembers
+when it OPENED, keeps that through every transfer, and ends `max_hold_seconds` (90) later
+however busy it is. Decided 2026-10-10, over leaving it silent and over OpenRA's plain cooldown.
 
 ## Global alerts — the superweapon convention
 
@@ -146,8 +150,11 @@ finished caster of such an ability:
   caster in its owner's colour, reading its `Abilities.recharge_remaining`, or READY.
 
 It sits on the ability rather than the caster because the strike, not the building, is what
-everyone plans around. `TODO`: the timer counts the building's charge whether or not the owner
-has bought the tier-4 sanction that lets it fire (T-102).
+everyone plans around. **The countdown is the building's charge whether or not its owner has
+bought the tier-4 sanction that lets it fire** — Zero Hour's way, and it reveals no purchase.
+Decided 2026-10-10.
+
+`TODO` (deferred 2026-10-10): whether anyone is told WHERE a launch lands. Today nobody is.
 
 ## Presentation
 
@@ -160,17 +167,22 @@ Rudimentary by design (T-102 lists what a real pass would add).
   `tools/alert_sounds/make_alert_sounds.py`): one per `AlertCatalog.Tone`, and one generic
   completion. `PLANNED`: a sound per purchase — `AlertFeed.PURCHASE_SOUNDS`, keyed by the piece
   id an alert carries in `Alert.purchase`, is already consulted first and is empty.
-- **Jump key** `camera_jump_to_alert` (Space): the newest located alert; pressed again within
-  3 s, the one before, cycling through the last eight (StarCraft II's idiom). Available when
-  only watching, too.
+- **Jump key** `camera_jump_to_alert` (Space, kept 2026-10-10): the newest located alert; pressed
+  again within 3 s, the one before, cycling through the last eight (StarCraft II's idiom).
+  Available when only watching, too.
+- **Jump scope** — an option (`GameSettings.AlertJumpScope`, saved): **NEGATIVE** (the default)
+  visits only news of harm — a type whose catalog row says `negative`: every attack, a detected
+  enemy, a dry pond — and **ALL** visits every located alert, completions and charged abilities
+  too. The feed remembers four times the cycle's depth, so a run of completions cannot push the
+  last attacks out of the negative cycle.
 - **Perspective**: the HUD shows the local player's alerts, or when spectating or watching a
   replay, the watched commander's — the T-037 item "alerts follow the perspective".
 
 ## Tuning
 
-`TODO`: every number in `AlertCatalog` and the floating-energy line is a first guess: 30 s
-holds over 30 cells (about a command centre's vision) for attacks, 20 s / 20 cells for
-detection, reminders every 60 s (energy) and 45 s (infrastructure).
+`TODO`: every number in `AlertCatalog` is a first guess: 30 s holds over 30 cells (about a
+command centre's vision) for attacks, 20 s / 20 cells for detection, 90 s longest hold,
+reminders every 60 s (energy) and 45 s (infrastructure).
 
 ## Not built — tracked by other games, worth considering
 

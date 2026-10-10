@@ -22,8 +22,9 @@ const FADE_SECONDS: float = 1.0
 ## The shortest real gap between two alert sounds. A louder alert interrupts a quieter one
 ## anyway; an equal or quieter one inside the gap stays silent (its toast still shows).
 const SOUND_GAP_SECONDS: float = 1.0
-## How many located alerts the jump key cycles back through.
+## How many located alerts are remembered for the jump key to cycle back through.
 const HISTORY_SIZE: int = 8
+const HISTORY_DEPTH_FACTOR: int = 4
 ## A jump-key press this long after the last one starts again from the newest alert.
 const JUMP_CYCLE_RESET_SECONDS: float = 3.0
 
@@ -110,18 +111,27 @@ func bind(a_center: AlertCenter) -> void:
 ## Jump to the newest located alert; pressed again within JUMP_CYCLE_RESET_SECONDS, to the one
 ## before it, and so on. False when there is nowhere to go.
 func jump_to_recent() -> bool:
-	if _history.is_empty():
+	var targets: Array[Alert] = history()
+	if targets.is_empty():
 		return false
 	var cycling: bool = _clock - _last_jump_at < JUMP_CYCLE_RESET_SECONDS
-	_jump_index = (_jump_index + 1) % _history.size() if cycling else 0
+	_jump_index = (_jump_index + 1) % targets.size() if cycling else 0
 	_last_jump_at = _clock
-	jump_requested.emit(_history[_jump_index].xz())
+	jump_requested.emit(targets[_jump_index].xz())
 	return true
 
 
-## Located alerts the jump key would visit, newest first.
+## Located alerts the jump key would visit, newest first: under the player's jump scope
+## (GameSettings.alert_jump_scope), only news of harm unless they chose every alert.
 func history() -> Array[Alert]:
-	return _history.duplicate()
+	var everything: bool = GameSettings.alert_jump_scope() == GameSettings.AlertJumpScope.ALL
+	var out: Array[Alert] = []
+	for alert: Alert in _history:
+		if everything or AlertCatalog.is_negative(alert.type):
+			out.append(alert)
+			if out.size() == HISTORY_SIZE:
+				break
+	return out
 
 
 ## Show `a_alert` if it is addressed to this HUD's viewer. Public so a test can feed it.
@@ -132,7 +142,9 @@ func present(a_alert: Alert) -> void:
 	_play_sound(a_alert)
 	if a_alert.has_position:
 		_history.push_front(a_alert)
-		if _history.size() > HISTORY_SIZE:
+		# Kept deeper than the jump cycle, so a run of completions does not push the last few
+		# attacks out of a scope that skips completions.
+		if _history.size() > HISTORY_SIZE * HISTORY_DEPTH_FACTOR:
 			_history.pop_back()
 		# A new alert is where the next press should go first.
 		_jump_index = -1

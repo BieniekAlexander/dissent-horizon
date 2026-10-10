@@ -146,6 +146,21 @@ func test_quit_asks_to_close_the_application() -> void:
 	assert_signal_emitted(SceneManager, "quit_requested")
 
 
+func test_the_options_page_saves_the_jump_scope() -> void:
+	GameSettings.path = "user://test_main_menu_settings.cfg"
+	GameSettings.reset()
+	var menu: MainMenu = _menu([])
+	var scope: OptionButton = menu.jump_scope_control()
+	assert_eq(scope.get_selected_id(), GameSettings.AlertJumpScope.NEGATIVE, "the default")
+	var all: int = scope.get_item_index(GameSettings.AlertJumpScope.ALL)
+	scope.select(all)
+	scope.item_selected.emit(all)
+	assert_eq(GameSettings.alert_jump_scope(), GameSettings.AlertJumpScope.ALL)
+	DirAccess.remove_absolute(GameSettings.path)
+	GameSettings.path = GameSettings.PATH
+	GameSettings.reset()
+
+
 func test_the_lobby_back_button_returns_to_the_main_page() -> void:
 	var menu: MainMenu = _menu([])
 	menu.show_page(MainMenu.Page.SKIRMISH)

@@ -119,7 +119,7 @@ func _fill_regions() -> Array[Dictionary]:
 
 func _fill_color(a_frac: float) -> Color:
 	var base: Color = BarGradient.with_saturation_ramp(_gradient.sample(a_frac), a_frac)
-	if commander.energy > ResourcePressure.ENERGY_SURPLUS_THRESHOLD:
+	if ResourcePressure.is_energy_floating(commander):
 		return ResourcePressure.pulse_between(base, base.lightened(0.5))
 	return base
 

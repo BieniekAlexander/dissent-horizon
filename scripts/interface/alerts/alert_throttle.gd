@@ -10,7 +10,8 @@ extends RefCounted
 ## of a hold is swallowed; if it is also inside `transfer_radius` it MOVES the hold to itself and
 ## restarts its clock, so one fight that drifts across the map stays one alert. A swallowed alert
 ## of HIGHER priority breaks through instead: it is admitted and replaces the hold (units under
-## attack, then the base behind them).
+## attack, then the base behind them). However busy, a hold lasts at most `max_hold_seconds`
+## from when it opened, so a fight that never pauses is announced again.
 ##
 ## KEYED (no group) — one hold per (type, key) for `suppress_seconds`: the same superweapon
 ## coming ready twice inside ten seconds is said once. A zero time admits everything.
@@ -50,16 +51,21 @@ func clear() -> void:
 func _admit_spatial(a_alert: Alert, a_group: StringName) -> bool:
 	var now: int = a_alert.tick
 	var holds: Array = _holds_by_group.get(a_group, [])
+	# A hold ends when its fight goes quiet for suppress_seconds, or when it has stood for
+	# max_hold_seconds however busy it is — so a siege that never pauses is said again.
 	holds = holds.filter(
 		func(h: Dictionary) -> bool:
-			return now - int(h["tick"]) < AlertCatalog.suppress_ticks(h["type"])
+			return (
+				now - int(h["tick"]) < AlertCatalog.suppress_ticks(h["type"])
+				and now - int(h["opened"]) < AlertCatalog.max_hold_ticks(h["type"])
+			)
 	)
 	_holds_by_group[a_group] = holds
 
 	var here: Vector2 = a_alert.xz()
 	var priority: int = AlertCatalog.priority_of(a_alert.type)
 	var fresh: Dictionary = {
-		"position": here, "tick": now, "priority": priority, "type": a_alert.type
+		"position": here, "tick": now, "opened": now, "priority": priority, "type": a_alert.type
 	}
 	var radius: float = AlertCatalog.suppress_radius(a_alert.type)
 	var transfer: float = AlertCatalog.transfer_radius(a_alert.type)
@@ -72,6 +78,8 @@ func _admit_spatial(a_alert: Alert, a_group: StringName) -> bool:
 			holds[i] = fresh
 			return true
 		if priority == int(hold["priority"]) and distance < transfer:
+			# Moved and restarted, but still the same fight: it keeps the time it opened.
+			fresh["opened"] = hold["opened"]
 			holds[i] = fresh
 		return false
 	holds.append(fresh)

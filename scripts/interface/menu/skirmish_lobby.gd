@@ -57,7 +57,7 @@ func _ready() -> void:
 
 	_rows = GridContainer.new()
 	_rows.name = "Rows"
-	_rows.columns = 4
+	_rows.columns = 5
 	_rows.add_theme_constant_override("h_separation", 10)
 	add_child(_rows)
 
@@ -205,6 +205,22 @@ func _add_row(a_slot: int) -> void:
 	)
 	_rows.add_child(team)
 
+	# A bot's difficulty; disabled on the player's own slot, which no bot plays.
+	var difficulty := OptionButton.new()
+	difficulty.name = "Difficulty%d" % (a_slot + 1)
+	difficulty.custom_minimum_size = Vector2(CONTROL_WIDTH * 0.7, 0.0)
+	for name: String in PlayerSlot.Difficulty.keys():
+		difficulty.add_item(name.capitalize(), PlayerSlot.Difficulty[name])
+	difficulty.select(difficulty.get_item_index(setup.difficulty_of(a_slot)))
+	difficulty.set_meta(&"human", not setup.is_bot(a_slot))
+	difficulty.tooltip_text = "Bot difficulty" if setup.is_bot(a_slot) else "You play this slot"
+	difficulty.item_selected.connect(
+		func(i: int) -> void:
+			setup.set_difficulty(a_slot, difficulty.get_item_id(i) as PlayerSlot.Difficulty)
+			refresh()
+	)
+	_rows.add_child(difficulty)
+
 
 func _on_player_count_selected(a_index: int) -> void:
 	setup.set_player_count(_player_count.get_item_id(a_index))
@@ -221,7 +237,7 @@ func _set_editable(a_on: bool) -> void:
 	_back.disabled = not a_on
 	for child: Node in _rows.get_children():
 		if child is BaseButton:
-			(child as BaseButton).disabled = not a_on
+			(child as BaseButton).disabled = not a_on or bool(child.get_meta(&"human", false))
 
 
 func _button(a_name: String, a_text: String) -> Button:

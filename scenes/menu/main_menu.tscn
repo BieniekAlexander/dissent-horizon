@@ -163,8 +163,22 @@ max_value = 1.0
 step = 0.01
 value = 1.0
 
+[node name="JumpScopeRow" type="HBoxContainer" parent="Center/Column/OptionsPage"]
+layout_mode = 2
+
+[node name="JumpScopeLabel" type="Label" parent="Center/Column/OptionsPage/JumpScopeRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Alert jump key"
+
+[node name="JumpScope" type="OptionButton" parent="Center/Column/OptionsPage/JumpScopeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+tooltip_text = "Which alerts the jump key cycles through."
+
 [node name="OptionsNote" type="Label" parent="Center/Column/OptionsPage"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.6, 0.65, 1)
-text = "More options to come. Settings are not saved yet."
+text = "Volume is not saved yet."
 horizontal_alignment = 1

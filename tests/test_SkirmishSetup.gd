@@ -78,3 +78,19 @@ func test_unticking_the_first_slot_makes_every_player_a_bot() -> void:
 func test_the_same_rng_gives_the_same_recipe() -> void:
 	var setup := SkirmishSetup.new(4)
 	assert_eq(setup.recipe(_rng(3)), setup.recipe(_rng(3)))
+
+
+func test_each_bot_has_its_own_difficulty_in_the_recipe() -> void:
+	var setup := SkirmishSetup.new(3)
+	assert_eq(setup.difficulty_of(2), SkirmishSetup.DEFAULT_DIFFICULTY)
+	setup.set_difficulty(1, PlayerSlot.Difficulty.EASY)
+	setup.set_difficulty(2, PlayerSlot.Difficulty.IMPOSSIBLE)
+	var players: Array = setup.recipe(_rng())["players"]
+	assert_eq(players[1]["difficulty"], PlayerSlot.Difficulty.EASY)
+	assert_eq(players[2]["difficulty"], PlayerSlot.Difficulty.IMPOSSIBLE)
+
+
+func test_an_unknown_difficulty_is_ignored() -> void:
+	var setup := SkirmishSetup.new()
+	setup.set_difficulty(1, 99 as PlayerSlot.Difficulty)
+	assert_eq(setup.difficulty_of(1), SkirmishSetup.DEFAULT_DIFFICULTY)

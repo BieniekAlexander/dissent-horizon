@@ -52,3 +52,18 @@ func test_picking_a_team_edits_the_setup() -> void:
 	team.select(3)
 	team.item_selected.emit(3)
 	assert_eq(_lobby.setup.team_of(1), 3)
+
+
+func test_a_bot_row_sets_its_difficulty() -> void:
+	var difficulty := _rows().get_node("Difficulty2") as OptionButton
+	var index: int = difficulty.get_item_index(PlayerSlot.Difficulty.EASY)
+	difficulty.select(index)
+	difficulty.item_selected.emit(index)
+	assert_eq(_lobby.setup.difficulty_of(1), PlayerSlot.Difficulty.EASY)
+
+
+func test_the_players_own_slot_has_no_difficulty_until_it_is_a_bot() -> void:
+	assert_true((_rows().get_node("Difficulty1") as OptionButton).disabled)
+	(_rows().get_node("HumanSlot") as CheckBox).toggled.emit(false)
+	await wait_process_frames(1)
+	assert_false((_rows().get_node("Difficulty1") as OptionButton).disabled)
