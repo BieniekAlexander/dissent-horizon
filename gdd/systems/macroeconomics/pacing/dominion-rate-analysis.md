@@ -261,8 +261,8 @@ Decided (Alex, 2026-10-05): the one-at-a-time row at a 30 s sentence.
 
 | Knob | Was | Now | Where |
 |---|---|---|---|
-| Processing | every captive serving at once | **one at a time**, the rest queue unpaid | `Garrison.SENTENCES_AT_ONCE` (1), `Garrison.paying_count()` |
-| Sentence | 60 s | **30 s** | `cl_infrastructure.md` `garrison.sentence_length` |
+| Processing | every captive serving at once | **one at a time**, the rest queue unpaid | `OccupantDominionGenerator.SENTENCES_AT_ONCE` (1), `OccupantDominionGenerator.paying_count()` |
+| Sentence | 60 s | **30 s** | `OccupantDominionGenerator.SENTENCE_SECONDS` |
 | Rate per captive serving | 10 per 5 s (2/s) | **25 per 5 s** (5/s), so V = **150** | `OccupantDominionGenerator.dominion_per_unit` |
 | Servant | 500 energy | **200 energy** (≈ 1.3 energy per dominion) | `cl_bioLight_builder.md` `build.cost.energy` |
 

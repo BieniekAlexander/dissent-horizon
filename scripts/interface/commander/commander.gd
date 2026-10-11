@@ -725,9 +725,8 @@ func owned_producers() -> Array:
 
 
 ## Owned, built structures that can receive deposited prisoners (e.g. a Compound) and still
-## have room. Identified by a positive `sentence_length` (see Garrison.can_intern) — so any
-## future holding structure is picked up automatically, while ordinary garrisons (a
-## safehouse) are never mistaken for prisons.
+## have room. Identified by carrying a prison (OccupantDominionGenerator.prison_of), so
+## ordinary garrisons (a safehouse) are never mistaken for camps.
 ##
 ## Lives on the base class rather than only on [Bot]: a human player's Stock Truck needs the
 ## same question answered for its own tasking (TaskShelter._nearest_available_compound).
@@ -737,8 +736,8 @@ func get_deposit_structures() -> Array:
 			return (
 				s.structure_is_active()
 				and s.is_built
-				and s.garrison != null
-				and s.garrison.can_intern()
+				and OccupantDominionGenerator.prison_of(s) != null
+				and OccupantDominionGenerator.prison_of(s).can_intern()
 			)
 	)
 
@@ -1005,7 +1004,7 @@ func dominion_contributor_count() -> int:
 ## now — what `DominionBar`'s projection region reads, rather than
 ## `dominion_collection_rate()`'s instantaneous rate, which over-states the next minute once
 ## sentences decay occupancy. Per Shelter, summed: arrivals capped by the Shelter's regeneration
-## and the trucks' round trips, times `sentence_length`, capped at the captives the Compound
+## and the trucks' round trips, times the sentence length, capped at the captives the Compound
 ## sentences at once. colonial-dominion.md; economy-bars.md §Rate projection.
 ##
 ## TODO: the round trip ignores the carrier's `Garrison.unload_time` — gdd/tasks.md T-044.
@@ -1036,8 +1035,9 @@ func _trucks_by_tasked_shelter() -> Dictionary:
 	return by_shelter
 
 
-## One Shelter's contribution: `dominion_per_unit * min(arrival_rate * sentence_length,
-## Garrison.SENTENCES_AT_ONCE)`, or 0.0 when there is nowhere for these trucks to deliver, the
+## One Shelter's contribution: `dominion_per_unit * min(arrival_rate * SENTENCE_SECONDS,
+## SENTENCES_AT_ONCE)` (OccupantDominionGenerator), or 0.0 when there is nowhere for these
+## trucks to deliver, the
 ## Shelter names no regeneration rate, or the trucks have none.
 func _projected_rate_for_shelter(a_shelter: Entity, a_trucks: Array) -> float:
 	var shelter := a_shelter.get_node_or_null("Shelter") as Shelter
@@ -1060,15 +1060,14 @@ func _projected_rate_for_shelter(a_shelter: Entity, a_trucks: Array) -> float:
 		float(a_trucks.size()) / round_trip_seconds if round_trip_seconds > 0.0 else INF
 	)
 	var arrival_rate: float = minf(1.0 / shelter.spawn_interval, truck_throughput)
-	var sentence_length: float = compound.garrison.sentence_length
-	var generator := compound.get_node_or_null("DominionGenerator") as OccupantDominionGenerator
-	if generator == null or sentence_length <= 0.0:
+	var prison: OccupantDominionGenerator = OccupantDominionGenerator.prison_of(compound)
+	if prison == null:
 		return 0.0
 	var serving: float = minf(
-		arrival_rate * sentence_length,
-		float(mini(Garrison.SENTENCES_AT_ONCE, compound.garrison.capacity))
+		arrival_rate * OccupantDominionGenerator.SENTENCE_SECONDS,
+		float(mini(OccupantDominionGenerator.SENTENCES_AT_ONCE, compound.garrison.capacity))
 	)
-	return float(generator.dominion_per_unit) * serving
+	return float(prison.dominion_per_unit) * serving
 
 
 ## Energy per second flowing OUT into units currently being trained — each active job's cost

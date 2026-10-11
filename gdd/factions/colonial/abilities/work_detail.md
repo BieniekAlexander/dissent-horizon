@@ -28,7 +28,7 @@ reason to think about where a Compound goes.
 
 ## Mechanic
 No deployment, no aim point, no charge of its own. On a sentence completing —
-`Garrison._emit_positional_bonus`, fired once per captive consumed — every adjacent
+`OccupantDominionGenerator._emit_positional_bonus`, fired once per captive consumed — every adjacent
 friendly structure's ability pools each have `SENTENCE_COOLDOWN_BONUS` (8%) of their own
 FULL cooldown deducted, via `Abilities.reduce_all_cooldowns`. A percentage of the pool's own
 duration, not of whatever time is left on it: a pool close to charging gets the same

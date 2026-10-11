@@ -130,7 +130,7 @@ defence — which is a ROLE, §Roles are not affordances):
 | **sensing** | reveals | `VisionRange` shape, Scan (`AbilityDefinition.reveals`), `BeaconRange.radius`, detection of `Stealth` | area |
 | **income** | makes resources | `EnergyExtractor.energy_rate`, `DominionGenerator.dominion_rate`, `OccupantDominionGenerator.dominion_per_unit`, `Shelter` (`spawn_interval`, `capacity`) | commander |
 | **production** | makes pieces | `Production.producible_types` and rate, `Builds.buildable_types`, infrastructure provided and consumed | commander |
-| **logistics** | holds, carries, restores | `Garrison` (`capacity`, occupancy masks, `is_closed`, `can_intern`), `DockingBay` / `DockingPad` / `Runway` (`charge_rate`), `Repairs.repair_rate` | target, area |
+| **logistics** | holds, carries, restores | `Garrison` (`capacity`, occupancy masks, `is_closed`), `OccupantDominionGenerator.prison_of`, `DockingBay` / `DockingPad` / `Runway` (`charge_rate`), `Repairs.repair_rate` | target, area |
 | **conversion** | changes what something is or whose it is | `Interactor` / `Interaction` (`DEPOSIT`, `HIJACK`), `Liberator` / `Liberatable`, capture | target |
 | **persistence** | how long it is what it is | `Lifespan.lifespan_seconds`, `Deployable` (`deploy_ticks`, the noun switch) | self |
 

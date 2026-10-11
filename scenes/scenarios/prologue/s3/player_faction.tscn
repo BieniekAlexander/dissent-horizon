@@ -26,6 +26,7 @@ metadata/_custom_type_script = "uid://bhm0bavkjvt0q"
 [sub_resource type="Resource" id="Resource_twmkk"]
 script = ExtResource("5_v8jg3")
 sanction_name = "Ambush"
+description = "Drops 3 Irregulars at the target point. Use it to reinforce a failing defence, or to open a second front behind the enemy line."
 cooldown_duration = 90.0
 event_scene = ExtResource("5_pbnny")
 metadata/_custom_type_script = "uid://cteoy2vx2l533"

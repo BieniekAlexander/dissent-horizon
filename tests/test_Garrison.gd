@@ -70,6 +70,10 @@ func _garrison(a_capacity: int) -> Garrison:
 	return autofree(g)
 
 
+func _prison(a_compound: Actor) -> OccupantDominionGenerator:
+	return a_compound.get_node("DominionGenerator") as OccupantDominionGenerator
+
+
 func _message_for(a_target: Entity) -> CommandMessage:
 	return CommandMessage.new(null, a_target)
 
@@ -173,12 +177,9 @@ func test_the_compound_is_a_closed_hold_that_sentences_what_is_deposited():
 	)
 	assert_gt(hold.capacity, 0, "it has room to hold what is deposited")
 	assert_false(hold.bunker)
-	assert_true(hold.can_intern(), "it takes deposited captives")
-	assert_gt(hold.sentence_length, 0.0, "a captive serves a term before being consumed")
-	assert_true(
-		compound.get_node("DominionGenerator") is OccupantDominionGenerator,
-		"its dominion is generated per occupant"
-	)
+	var prison: OccupantDominionGenerator = OccupantDominionGenerator.prison_of(compound)
+	assert_not_null(prison, "its dominion generator is a prison")
+	assert_true(prison.can_intern(), "it takes deposited captives")
 	compound.free()
 
 
@@ -303,13 +304,14 @@ func test_a_servant_let_out_of_a_compound_leaves_the_prisoners_serving():
 	var captive: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(captive)
 	hold.garrison(servant)
-	hold.simulation_step(1.0)
+	_prison(compound).simulation_step(1.0)
 	hold.evacuate_by_order(null)
 	assert_true(servant.is_inside_tree(), "released before its sentence ended, back in the game")
 	assert_eq(hold.occupants(), [captive] as Array[Actor])
+	assert_eq(_prison(compound).sentence_remaining(servant), -1.0, "its term went with it")
 	assert_almost_eq(
-		hold._sentence_remaining[captive],
-		hold.sentence_length - 1.0,
+		_prison(compound).sentence_remaining(captive),
+		OccupantDominionGenerator.SENTENCE_SECONDS - 1.0,
 		0.001,
 		"the prisoner's term carries on where it was"
 	)
@@ -322,16 +324,16 @@ func test_evacuating_only_captives_releases_nobody():
 	hold.garrison(captive)
 	hold.evacuate_by_order(null)
 	assert_eq(hold.garrisoned_count(), 1)
-	assert_true(hold._sentence_remaining.has(captive), "and its sentence is still running")
+	assert_gt(
+		_prison(compound).sentence_remaining(captive), 0.0, "and its sentence is still running"
+	)
 
 
 ## The half a release must NOT do. Sentencing is the Compound's act, reached only through a
 ## DEPOSIT interaction, so a captive let out in the field goes back as itself.
 func test_a_released_captive_is_not_sentenced():
 	var truck: Actor = _entity(SUPPLY_TRUCK, 1)
-	var cage: Garrison = truck.garrison as Garrison
-	assert_eq(cage.sentence_length, 0.0, "the cage sentences nothing")
-	assert_false(cage.can_intern(), "only a Compound does that")
+	assert_null(OccupantDominionGenerator.prison_of(truck), "the cage is no prison")
 
 
 ## Exit is its own statement, so it can be shut without shutting entry.
@@ -424,7 +426,7 @@ func test_deposit_moves_prisoners_into_the_compound_unconverted():
 	var truck: Actor = _loaded_truck(2)
 	var captives: Array[Actor] = truck.garrison.occupants().duplicate()
 	var compound: Actor = _entity(COMPOUND, 2)
-	assert_eq(compound.garrison.deposit_from(truck.garrison), 2, "both captives are moved")
+	assert_eq(compound.garrison.transfer_from(truck.garrison), 2, "both captives are moved")
 	assert_eq(truck.garrison.garrisoned_count(), 0, "the truck is empty again")
 	assert_eq(compound.garrison.garrisoned_count(), 2, "the compound holds two")
 	assert_eq(
@@ -449,17 +451,17 @@ func test_a_deposit_takes_the_servants_riding_along_and_sentences_them():
 	truck.garrison.garrison(servant)
 	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
-	assert_eq(hold.deposit_from(truck.garrison), 2, "the prisoner and the Servant")
+	assert_eq(hold.transfer_from(truck.garrison), 2, "the prisoner and the Servant")
 	assert_true(servant in hold.occupants())
 	assert_almost_eq(
-		hold._sentence_remaining[servant],
-		hold.sentence_length,
+		_prison(compound).sentence_remaining(servant),
+		OccupantDominionGenerator.SENTENCE_SECONDS,
 		0.001,
 		"a Servant serves a sentence like a prisoner"
 	)
 	# Its turn comes after the prisoner's: one term, then a tick to start its own, then that.
-	hold.simulation_step(hold.sentence_length + 1.0)
-	hold.simulation_step(hold.sentence_length + 1.0)
+	_prison(compound).simulation_step(OccupantDominionGenerator.SENTENCE_SECONDS + 1.0)
+	_prison(compound).simulation_step(OccupantDominionGenerator.SENTENCE_SECONDS + 1.0)
 	assert_false(is_instance_valid(servant), "and is consumed at the end of it")
 
 
@@ -467,11 +469,11 @@ func test_a_deposited_captive_serves_a_sentence():
 	var truck: Actor = _loaded_truck(1)
 	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
-	hold.deposit_from(truck.garrison)
+	hold.transfer_from(truck.garrison)
 	var captive: Actor = hold.occupants()[0]
 	assert_almost_eq(
-		hold._sentence_remaining[captive],
-		hold.sentence_length,
+		_prison(compound).sentence_remaining(captive),
+		OccupantDominionGenerator.SENTENCE_SECONDS,
 		0.001,
 		"the term starts fresh on arrival"
 	)
@@ -480,10 +482,9 @@ func test_a_deposited_captive_serves_a_sentence():
 func test_a_finished_sentence_consumes_the_captive():
 	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
-	hold.sentence_length = 1.0
 	var captive: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(captive)
-	hold.simulation_step(1.5)
+	_prison(compound).simulation_step(OccupantDominionGenerator.SENTENCE_SECONDS + 0.5)
 	assert_eq(hold.garrisoned_count(), 0, "the term is up — the captive leaves the hold")
 	assert_false(is_instance_valid(captive), "and is consumed, not returned to the world")
 
@@ -491,11 +492,10 @@ func test_a_finished_sentence_consumes_the_captive():
 func test_a_sentence_not_yet_finished_survives_a_tick():
 	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
-	hold.sentence_length = 10.0
 	var captive: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(captive)
-	hold.simulation_step(1.0)
-	assert_eq(hold.garrisoned_count(), 1, "nine seconds still to serve")
+	_prison(compound).simulation_step(1.0)
+	assert_eq(hold.garrisoned_count(), 1, "most of the term still to serve")
 	assert_true(is_instance_valid(captive))
 
 
@@ -503,62 +503,94 @@ func test_internment_is_partial_when_the_camp_is_nearly_full():
 	var truck: Actor = _loaded_truck(2)
 	var compound: Actor = _entity(COMPOUND, 1)
 	compound.garrison.capacity = 1
-	assert_eq(compound.garrison.deposit_from(truck.garrison), 1, "only what fits is taken")
+	assert_eq(compound.garrison.transfer_from(truck.garrison), 1, "only what fits is taken")
 	assert_eq(truck.garrison.garrisoned_count(), 1, "the truck keeps the rest")
 
 
 func test_captives_serve_one_at_a_time_in_arrival_order():
 	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
-	hold.sentence_length = 10.0
+	var prison: OccupantDominionGenerator = _prison(compound)
+	var term: float = OccupantDominionGenerator.SENTENCE_SECONDS
 	var first: Actor = _entity(TERRESTRIAL, 0)
 	var second: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(first)
 	hold.garrison(second)
-	hold.simulation_step(4.0)
-	assert_almost_eq(hold._sentence_remaining[first], 6.0, 0.001, "the first serves")
-	assert_almost_eq(hold._sentence_remaining[second], 10.0, 0.001, "the second waits, untouched")
-	hold.simulation_step(7.0)
+	prison.simulation_step(4.0)
+	assert_almost_eq(prison.sentence_remaining(first), term - 4.0, 0.001, "the first serves")
+	assert_almost_eq(prison.sentence_remaining(second), term, 0.001, "the second waits, untouched")
+	prison.simulation_step(term - 3.0)
 	assert_false(is_instance_valid(first), "the first is consumed at the end of its term")
 	assert_almost_eq(
-		hold._sentence_remaining[second], 10.0, 0.001, "the next term starts on the next tick"
+		prison.sentence_remaining(second), term, 0.001, "the next term starts on the next tick"
 	)
-	hold.simulation_step(1.0)
-	assert_almost_eq(hold._sentence_remaining[second], 9.0, 0.001, "and then it serves")
+	prison.simulation_step(1.0)
+	assert_almost_eq(prison.sentence_remaining(second), term - 1.0, 0.001, "and then it serves")
 
 
 func test_only_the_captive_serving_pays():
 	var compound: Actor = _entity(COMPOUND, 1)
 	var hold: Garrison = compound.garrison
-	assert_eq(hold.paying_count(), 0, "an empty prison pays for nobody")
+	var prison: OccupantDominionGenerator = _prison(compound)
+	assert_eq(prison.paying_count(), 0, "an empty prison pays for nobody")
 	hold.garrison(_entity(TERRESTRIAL, 0))
 	hold.garrison(_entity(TERRESTRIAL, 0))
 	hold.garrison(_entity(TERRESTRIAL, 0))
 	assert_eq(hold.garrisoned_count(), 3)
-	assert_eq(hold.paying_count(), Garrison.SENTENCES_AT_ONCE, "the rest wait their turn unpaid")
-
-
-func test_an_ordinary_garrison_pays_for_every_occupant():
-	var host: Actor = _entity(OPEN_GARRISON, 1)
-	var garrison: Garrison = host.get_node("Garrison") as Garrison
-	garrison.garrison(_entity(SERVANT, 1))
-	garrison.garrison(_entity(SERVANT, 1))
-	assert_eq(garrison.paying_count(), 2, "no sentences, so no queue")
-
-
-func test_a_garrison_with_no_sentence_length_takes_no_deposit():
-	var truck: Actor = _loaded_truck(1)
-	var shelter: Actor = _entity(OPEN_GARRISON, 1)
-	assert_false(
-		(shelter.get_node("Garrison") as Garrison).can_intern(),
-		"an ordinary garrison is shelter, not a camp"
-	)
 	assert_eq(
-		(shelter.get_node("Garrison") as Garrison).deposit_from(truck.garrison),
-		0,
-		"and it takes nothing"
+		prison.paying_count(),
+		OccupantDominionGenerator.SENTENCES_AT_ONCE,
+		"the rest wait their turn unpaid"
 	)
-	assert_eq(truck.garrison.garrisoned_count(), 1, "the truck still has its captive")
+
+
+func test_a_host_without_a_prison_is_no_deposit_target():
+	var shelter: Actor = _entity(OPEN_GARRISON, 1)
+	assert_null(
+		OccupantDominionGenerator.prison_of(shelter), "an ordinary garrison is shelter, not a camp"
+	)
+
+
+## Under the SimulationStepper the prison is stepped like any other component: an idle camp may
+## sleep, a captive's arrival wakes it (Garrison.garrison), and the term runs out on the
+## stepper's own ticks.
+func test_the_stepper_runs_a_sentence_to_its_end():
+	var stepper := SimulationStepper.new()
+	add_child_autofree(stepper)
+	stepper.set_physics_process(false)
+	var compound: Actor = _entity(COMPOUND, 1)
+	compound.set_physics_process(false)
+	compound.spawn_serial = 1
+	stepper.enlist(compound)
+	var tick_seconds: float = 1.0 / TimeUtils.ticks_per_second()
+	for _i: int in 3:
+		stepper.step(tick_seconds)
+	var captive: Actor = _entity(TERRESTRIAL, 0)
+	compound.garrison.garrison(captive)
+	var term_ticks: int = ceili(
+		OccupantDominionGenerator.SENTENCE_SECONDS * TimeUtils.ticks_per_second()
+	)
+	for _i: int in term_ticks - 2:
+		stepper.step(tick_seconds)
+	assert_true(is_instance_valid(captive), "still serving just short of its term")
+	for _i: int in 4:
+		stepper.step(tick_seconds)
+	assert_false(is_instance_valid(captive), "consumed once its term is up")
+
+
+## Switched off, the prison is inert: no deposit target, no sentence, no dominion, so what the
+## camp holds stays until freed (the mission camps of the prologue).
+func test_a_disabled_prison_holds_its_captives_unsentenced():
+	var compound: Actor = _entity(COMPOUND, 1)
+	var prison: OccupantDominionGenerator = _prison(compound)
+	prison.is_disabled = true
+	assert_null(OccupantDominionGenerator.prison_of(compound), "it is no deposit target")
+	var captive: Actor = _entity(TERRESTRIAL, 0)
+	compound.garrison.garrison(captive)
+	prison.simulation_step(OccupantDominionGenerator.SENTENCE_SECONDS * 2.0)
+	assert_true(is_instance_valid(captive), "nobody is consumed")
+	assert_eq(compound.garrison.garrisoned_count(), 1, "the captive is still held")
+	assert_eq(prison.paying_count(), 0, "and nobody serves")
 
 
 func test_deposit_applies_to_a_camp_and_not_to_a_safehouse():
@@ -781,7 +813,7 @@ func test_the_camp_banks_dominion_for_the_prisoner_serving():
 	generator.tick()
 	assert_eq(
 		compound.commander.dominion - before,
-		Garrison.SENTENCES_AT_ONCE * generator.dominion_per_unit,
+		OccupantDominionGenerator.SENTENCES_AT_ONCE * generator.dominion_per_unit,
 		"the prisoner serving banks its dominion; the one waiting its turn banks nothing"
 	)
 
@@ -793,6 +825,22 @@ func test_an_empty_camp_banks_nothing():
 	generator.ticks_elapsed = DominionGenerator.TICK_RATE - 1
 	generator.tick()
 	assert_eq(compound.commander.dominion, before, "no prisoners, no dominion")
+
+
+## The mission's one-off camp (is_disabled) holds and sentences prisoners like any other, and
+## pays its owner nothing for them — nor says it would.
+func test_a_disabled_camp_banks_nothing_for_its_prisoners():
+	var compound: Actor = _entity(COMPOUND, 1)
+	var generator: OccupantDominionGenerator = compound.get_node("DominionGenerator")
+	generator.is_disabled = true
+	compound.garrison.garrison(_entity(TERRESTRIAL, 0))
+	var before: int = compound.commander.dominion
+	generator.ticks_elapsed = DominionGenerator.TICK_RATE - 1
+	generator.tick()
+	assert_eq(compound.commander.dominion, before, "a disabled camp pays nothing")
+	assert_eq(generator.payout(), 0, "and projects nothing")
+	assert_eq(generator.contributor_count(), 0, "and credits no captive")
+	assert_eq(compound.garrison.garrisoned_count(), 1, "while the prisoner is still held")
 
 
 ## A held unit is off the tree and has no position of its own; where it is in the world is its

@@ -35,7 +35,7 @@
 [ext_resource type="PackedScene" uid="uid://cdgbo5xwji08j" path="res://scenes/scenarios/prologue/win_dialog.tscn" id="31_1v7fj"]
 [ext_resource type="PackedScene" uid="uid://b4mg8vf6usyv5" path="res://scenes/scenarios/prologue/lose_dialog.tscn" id="35_8vkoe"]
 [ext_resource type="PackedScene" uid="uid://ban5app3r0001" path="res://scenes/entities/units/an/an_bioLight_antiStructure.tscn" id="35_u5gk7"]
-[ext_resource type="PackedScene" uid="uid://b6oqu7bqdu6sy" path="res://scenes/entities/structures/cl/cl_infrastructure.tscn" id="36_hnwh1"]
+[ext_resource type="PackedScene" path="res://scenes/scenarios/prologue/cl_infrastructure_no_dominion.tscn" id="36_hnwh1"]
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="37_3gtty"]
 
 [sub_resource type="Resource" id="PlayerSlot_human"]
@@ -755,7 +755,7 @@ texture = ExtResource("10_1wxwt")
 script = ExtResource("20_dwboj")
 commander_id = 1
 entity_scenes = Array[PackedScene]([ExtResource("37_3gtty")])
-count_expression = "6"
+count_expression = "3"
 garrison_host = NodePath("..")
 
 [node name="InternmentCampEasy" parent="." unique_id=236277723 groups=["remaining_camps"] instance=ExtResource("36_hnwh1")]
@@ -772,7 +772,7 @@ texture = ExtResource("10_1wxwt")
 script = ExtResource("20_dwboj")
 commander_id = 1
 entity_scenes = Array[PackedScene]([ExtResource("37_3gtty")])
-count_expression = "6"
+count_expression = "3"
 garrison_host = NodePath("..")
 
 [node name="InternmentCampMedium" parent="." unique_id=358458526 groups=["remaining_camps"] instance=ExtResource("36_hnwh1")]
@@ -789,7 +789,7 @@ texture = ExtResource("10_1wxwt")
 script = ExtResource("20_dwboj")
 commander_id = 1
 entity_scenes = Array[PackedScene]([ExtResource("37_3gtty")])
-count_expression = "6"
+count_expression = "3"
 garrison_host = NodePath("..")
 
 [node name="InternmentCampHard" parent="." unique_id=1467864757 groups=["remaining_camps"] instance=ExtResource("36_hnwh1")]
@@ -806,7 +806,7 @@ texture = ExtResource("10_1wxwt")
 script = ExtResource("20_dwboj")
 commander_id = 1
 entity_scenes = Array[PackedScene]([ExtResource("37_3gtty")])
-count_expression = "6"
+count_expression = "3"
 garrison_host = NodePath("..")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=397765655]

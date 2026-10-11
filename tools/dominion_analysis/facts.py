@@ -181,17 +181,21 @@ def load() -> dict:
         },
         "colonial": {
             "compound_capacity": compound_doc["garrison"]["capacity"],
-            "sentence_seconds": compound_doc["garrison"]["sentence_length"],
+            # A constant of the Compound's prison, not a doc key (OccupantDominionGenerator).
+            "sentence_seconds": _script_default(
+                "scripts/entities/components/occupant_dominion_generator.gd", "SENTENCE_SECONDS"),
             "truck_capacity": truck_doc["garrison"]["capacity"],
             # The truck's DEPOSIT interaction, one constant duration per deposit.
             "deposit_seconds": float(_scene_export(
                 "scenes/entities/units/cl/cl_mechLight_dominionGen.tscn",
                 "", "duration", 0.5) or _deposit_duration()),
             "deposit_seconds_per_captive": 0.0,
-            # Garrison.SENTENCES_AT_ONCE: 1 means a Compound sentences one captive at a time.
-            # The model has no other queue width, so anything else falls back to all at once.
+            # OccupantDominionGenerator.SENTENCES_AT_ONCE: 1 means a Compound sentences one
+            # captive at a time. The model has no other queue width, so anything else falls back
+            # to all at once.
             "processing": "queue" if _script_default(
-                "scripts/entities/components/garrison.gd", "SENTENCES_AT_ONCE") == 1
+                "scripts/entities/components/occupant_dominion_generator.gd",
+                "SENTENCES_AT_ONCE") == 1
             else "simultaneous",
         },
         "shelter": {
