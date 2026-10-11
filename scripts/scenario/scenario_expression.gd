@@ -39,10 +39,12 @@ extends RefCounted
 ##   seconds — the same clock in seconds
 ##   fires   — how many times the owning trigger has fired already; 0 the first time, so
 ##             "2 + fires" spawns 2, then 3, then 4 …
+##   difficulty — the mission's difficulty, 1 EASY / 2 MEDIUM / 3 HARD
+##             (Scenario.difficulty_level); "4 + 2 * difficulty" scales a wave with it
 ## Declared as Array[String] rather than PackedStringArray because a PackedStringArray
 ## constructor call is not a constant expression in GDScript; Expression.parse takes the
 ## packed form, so _parse converts on the way in.
-const INPUT_NAMES: Array[String] = ["tick", "seconds", "fires"]
+const INPUT_NAMES: Array[String] = ["tick", "seconds", "fires", "difficulty"]
 
 ## Parsed expressions keyed by source text, so re-evaluating a field every cycle doesn't
 ## re-parse it. A failed parse caches `null`, which also keeps its warning to one per source
@@ -67,30 +69,10 @@ static func evaluate_float(
 	fires: int = 0,
 	where: String = "scenario expression"
 ) -> float:
-	if not is_authored(source):
+	var result: Variant = _execute(source, manager, fires, where, fallback)
+	if result == null:
 		return fallback
-	var expression: Expression = _parse(source, where)
-	if expression == null:
-		return fallback
-
-	var result: Variant = expression.execute(_inputs(manager, fires), null, false)
-	if expression.has_execute_failed():
-		# The usual cause is a name that isn't in INPUT_NAMES — Expression reports it as an
-		# "Invalid named index", which is opaque on its own, so list what IS available.
-		push_warning(
-			(
-				'%s: could not evaluate "%s" (%s). Available: %s. Using %s.'
-				% [
-					where,
-					source,
-					expression.get_error_text(),
-					", ".join(PackedStringArray(INPUT_NAMES)),
-					fallback
-				]
-			)
-		)
-		return fallback
-	if not (result is int or result is float):
+	if not _is_number(result):
 		push_warning(
 			(
 				'%s: "%s" produced %s, not a number. Using %s.'
@@ -99,6 +81,31 @@ static func evaluate_float(
 		)
 		return fallback
 	return float(result)
+
+
+## Evaluate `source` as a truth: a comparison ("difficulty >= 2") is taken as it is, and a
+## number is true while it is nonzero. Falls back to `fallback` exactly as evaluate_float does.
+static func evaluate_bool(
+	source: String,
+	fallback: bool,
+	manager: ScenarioTriggerManager,
+	fires: int = 0,
+	where: String = "scenario expression"
+) -> bool:
+	var result: Variant = _execute(source, manager, fires, where, fallback)
+	if result == null:
+		return fallback
+	if result is bool:
+		return result
+	if not _is_number(result):
+		push_warning(
+			(
+				'%s: "%s" produced %s, not a truth or a number. Using %s.'
+				% [where, source, type_string(typeof(result)), fallback]
+			)
+		)
+		return fallback
+	return not is_zero_approx(float(result))
 
 
 ## Editor-time check: "" when `source` is usable, otherwise a description of what is wrong,
@@ -112,19 +119,23 @@ static func evaluate_float(
 ## Runs the expression once with dummy inputs, because an unknown NAME (the likeliest typo)
 ## is not a parse error — Expression only discovers it at execute time. Deliberately builds
 ## its own Expression rather than using the shared cache, so editing a field re-checks it.
-static func validation_error(source: String) -> String:
+static func validation_error(source: String, allows_truth: bool = false) -> String:
 	if not is_authored(source):
 		return ""
 	var expression := Expression.new()
 	if expression.parse(source, PackedStringArray(INPUT_NAMES)) != OK:
 		return "cannot be parsed (%s)" % expression.get_error_text()
-	var result: Variant = expression.execute([0, 0.0, 0], null, false)
+	var result: Variant = expression.execute(
+		[0, 0.0, 0, int(Scenario.MissionDifficulty.MEDIUM)], null, false
+	)
 	if expression.has_execute_failed():
 		return (
 			"cannot be evaluated (%s) — the available variables are %s"
 			% [expression.get_error_text(), ", ".join(PackedStringArray(INPUT_NAMES))]
 		)
-	if not (result is int or result is float):
+	if allows_truth and result is bool:
+		return ""
+	if not _is_number(result):
 		return "produces %s, not a number" % type_string(typeof(result))
 	return ""
 
@@ -145,6 +156,40 @@ static func evaluate_int(
 
 
 #region Internals
+## Run `source` with the session's inputs; null (after a warning naming `where` and the
+## `fallback` used instead) when it is blank, does not parse, or fails at execute time.
+static func _execute(
+	source: String, manager: ScenarioTriggerManager, fires: int, where: String, fallback: Variant
+) -> Variant:
+	if not is_authored(source):
+		return null
+	var expression: Expression = _parse(source, where)
+	if expression == null:
+		return null
+	var result: Variant = expression.execute(_inputs(manager, fires), null, false)
+	if expression.has_execute_failed():
+		# The usual cause is a name that isn't in INPUT_NAMES — Expression reports it as an
+		# "Invalid named index", which is opaque on its own, so list what IS available.
+		push_warning(
+			(
+				'%s: could not evaluate "%s" (%s). Available: %s. Using %s.'
+				% [
+					where,
+					source,
+					expression.get_error_text(),
+					", ".join(PackedStringArray(INPUT_NAMES)),
+					fallback
+				]
+			)
+		)
+		return null
+	return result
+
+
+static func _is_number(value: Variant) -> bool:
+	return value is int or value is float
+
+
 ## Parse `source` once and cache it. Returns null when the text doesn't parse.
 static func _parse(source: String, where: String) -> Expression:
 	if _parsed.has(source):
@@ -168,7 +213,9 @@ static func _parse(source: String, where: String) -> Expression:
 ## produce a number.
 static func _inputs(manager: ScenarioTriggerManager, fires: int) -> Array:
 	var tick: int = 0
+	var difficulty: int = Scenario.MissionDifficulty.MEDIUM
 	if manager != null and manager.scenario != null:
 		tick = manager.scenario.tick
-	return [tick, TimeUtils.seconds_from_ticks(tick), fires]
+		difficulty = manager.scenario.difficulty_level()
+	return [tick, TimeUtils.seconds_from_ticks(tick), fires, difficulty]
 #endregion

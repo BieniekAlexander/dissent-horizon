@@ -94,6 +94,7 @@ a posture is what every mark in the other categories is tilted by.
 |---|---|---|---|
 | Posture and objective, and the structure behind it | L3 | stored | a ring and stick in the posture's colour (red attack, blue defend, green mass); an outline on the structure |
 | Squads (main, reserve, guard): members and the point each policy holds | L3 | stored | a ring per member in the squad's colour, a filled square at the centroid, a line to the policy's point |
+| A mission's tactic squads, and the rule each is running ([tactics](../scenario-scripting/tactics.md) §Trigger-decided mission commanders) | L3 | stored | as the squads above, in grey; readout |
 | Rally point; abandoned objectives until they expire | L3 | stored | a yellow stick; a grey X |
 | Each unit's current target | L3 | stored | a line from unit to target |
 | Wave state: launch value, value now, the spent and retreat lines, regroup timer, time on objective | L3 | stored | readout |

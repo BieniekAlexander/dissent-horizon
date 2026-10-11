@@ -17,6 +17,9 @@ extends RefCounted
 
 ## The squad's name, for the registry and the harness. Not unique by construction.
 var name: StringName = &""
+## Why the squad holds its policy, in a few words, for the debug overlay: a mission tactic writes
+## its winning rule's name. Never read by a decision.
+var reason: String = ""
 
 ## What the squad is kept doing, or null while it has no orders. Assigned by the decision
 ## side; `tick()` notices the change.

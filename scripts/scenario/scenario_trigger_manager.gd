@@ -31,6 +31,14 @@ signal scenario_completed
 signal entity_occurrence(occurrence: Entity.EntityOccurrence, source: Entity)
 #endregion
 
+#region Constants
+## How often a ScenarioTactic over a commander with no running brain (the human's slot, neutral)
+## re-decides, in seconds. A tactic over a bot runs on that bot's combat period instead.
+## Copied from MEDIUM's combat period rather than read from it, so retuning the bot's tiers does
+## not silently retime a mission's scripted squads; revisit when a mission wants another pace.
+const TACTIC_PERIOD_SECONDS: float = 0.667
+#endregion
+
 #region Properties
 ## Populated in _ready() from the GlobalTrigger child nodes, in scene-tree order. Also
 ## includes the triggers found inside ObjectiveChain children — a chain step is an ordinary
@@ -59,6 +67,8 @@ var simulation_clock: SimulationClock
 
 var scenario: Scenario
 var map: Map
+## The actuator a mission's scripted orders go through (mission_actuator), made on first use.
+var _mission_actuator: BotActuator = null
 
 var _fog: Node  # fog.gd MeshInstance3D; cached on first get_fog() call
 
@@ -286,6 +296,15 @@ func report_entity_occurrence(a_occurrence: Entity.EntityOccurrence, a_source: E
 
 
 ## Return the Commander with the given id, or null.
+## Every order a mission gives — an EventIssueCommand, a tactic's policy — goes through this
+## actuator: the same audited surface the bot orders by, with its own usage ledger so a mission's
+## orders are never counted as the bot's decisions.
+func mission_actuator() -> BotActuator:
+	if _mission_actuator == null:
+		_mission_actuator = BotActuator.new(map)
+	return _mission_actuator
+
+
 func get_commander(a_id: int) -> Commander:
 	if scenario == null:
 		return null

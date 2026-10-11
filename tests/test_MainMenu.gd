@@ -4,7 +4,7 @@ extends GutTest
 ## list is data, so adding a mission is a new array row rather than a new node — these guard
 ## that the row → button mapping stays honest, including the misconfigured cases.
 ##
-## Nothing here PRESSES a button: `open()` calls change_scene_to_packed, which would swap the
+## Nothing here PRESSES a button: `open()` calls change_scene_to_node, which would swap the
 ## whole tree out from under the running test. The wiring is covered by asserting the labels
 ## and by calling open() with a deliberately invalid entry.
 
