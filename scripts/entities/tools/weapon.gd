@@ -421,6 +421,22 @@ func _warn_if_launching_from_origin() -> void:
 
 
 #region Public API
+## This weapon's cadence state as one short token, for SimulationDigest: the split and reload
+## timers, the ammo left, a charged clip's recharge, and the lock (held ticks, and the target's
+## serial or the ground point).
+func digest_token() -> String:
+	var lock: String = "-"
+	if _lock_target is Vector3:
+		var at: Vector3 = _lock_target
+		lock = "%.2f,%.2f,%.2f" % [at.x, at.y, at.z]
+	elif is_instance_valid(_lock_target) and _lock_target is Entity:
+		lock = str((_lock_target as Entity).spawn_serial)
+	return (
+		"%d/%d/%d/%.4f/%d>%s"
+		% [_split_timer_ticks, _reload_timer_ticks, _ammo, _charge_accum, _lock_ticks, lock]
+	)
+
+
 ## Returns true when this weapon can target the given entity: i.e. the target
 ## exposes a targetable layer (ground/air) that this weapon's target_mask covers.
 ## Entities with no targetable layer (targetable_layers() == 0) can't be attacked.
@@ -653,7 +669,7 @@ func is_ready() -> bool:
 ## Record that `a_target` was held — in range and aimed at — on physics frame `a_frame`. Counts
 ## at most once per frame, so a command that asks twice in a tick does not double the hold. A
 ## different target, or a frame skipped since the last hold, starts the count again.
-func hold_target(a_target: Variant, a_frame: int = Engine.get_physics_frames()) -> void:
+func hold_target(a_target: Variant, a_frame: int = SimulationClock.physics_frame()) -> void:
 	if a_frame == _lock_frame and _is_same_target(a_target):
 		return
 	if not _is_same_target(a_target) or a_frame != _lock_frame + 1:
@@ -665,7 +681,7 @@ func hold_target(a_target: Variant, a_frame: int = Engine.get_physics_frames()) 
 
 ## Whether the startup has been paid on `a_target`: held for startup_time_ticks, and held as
 ## recently as the previous frame. Always true for a weapon with no startup.
-func is_locked_on(a_target: Variant, a_frame: int = Engine.get_physics_frames()) -> bool:
+func is_locked_on(a_target: Variant, a_frame: int = SimulationClock.physics_frame()) -> bool:
 	return (
 		startup_time_ticks <= 0
 		or (
@@ -677,7 +693,7 @@ func is_locked_on(a_target: Variant, a_frame: int = Engine.get_physics_frames())
 
 
 ## How far through its startup on `a_target` the weapon is, 0.0–1.0.
-func lock_fraction(a_target: Variant, a_frame: int = Engine.get_physics_frames()) -> float:
+func lock_fraction(a_target: Variant, a_frame: int = SimulationClock.physics_frame()) -> float:
 	if startup_time_ticks <= 0:
 		return 1.0
 	if not _is_same_target(a_target) or a_frame - _lock_frame > 1:

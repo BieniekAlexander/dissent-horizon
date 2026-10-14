@@ -154,6 +154,9 @@ What remains of a tick, by function: the per-actor order, command and movement l
 
 ## The plan, ranked by payoff
 
+Tick cost is also what gates rollback netplay, which re-runs several ticks inside one frame
+([commands/netplay](../commands/netplay.md) §Rollback, later).
+
 The fixes live in the notes that own each system. This is the index and the order.
 
 | # | What | Status | Expected | Owner |

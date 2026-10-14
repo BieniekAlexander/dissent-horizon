@@ -1398,7 +1398,7 @@ func _string_pulled_target() -> Vector3:
 		return Vector3.INF
 
 	var here: Vector3 = parent.global_position
-	var tick: int = Engine.get_physics_frames()
+	var tick: int = SimulationClock.physics_frame()
 	# Reuse the cached answer unless it has aged out or the unit has travelled far enough that
 	# the geometry it was computed from no longer applies.
 	if (

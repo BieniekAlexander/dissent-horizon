@@ -94,3 +94,90 @@ func test_an_unknown_difficulty_is_ignored() -> void:
 	var setup := SkirmishSetup.new()
 	setup.set_difficulty(1, 99 as PlayerSlot.Difficulty)
 	assert_eq(setup.difficulty_of(1), SkirmishSetup.DEFAULT_DIFFICULTY)
+
+
+# --- Networked: open slots and seats ---------------------------------------------------------
+
+
+func _networked(a_players: int = 3) -> SkirmishSetup:
+	var setup := SkirmishSetup.new(a_players)
+	setup.is_networked = true
+	return setup
+
+
+func test_the_host_always_plays_the_first_slot() -> void:
+	var setup := SkirmishSetup.new()
+	setup.human_plays_first_slot = false
+	setup.is_networked = true
+	assert_false(setup.is_bot(0))
+	assert_eq(setup.peer_in(0), SkirmishSetup.HOST_PEER)
+	setup.set_open(0, true)
+	assert_false(setup.is_open(0), "the host's slot is never open")
+
+
+func test_an_open_slot_is_a_persons_and_a_closed_one_a_bot() -> void:
+	var setup: SkirmishSetup = _networked()
+	setup.set_open(1, true)
+	assert_false(setup.is_bot(1))
+	assert_true(setup.is_bot(2))
+	assert_false(setup.recipe(RandomNumberGenerator.new())["players"][1]["is_bot"])
+
+
+func test_a_slot_is_never_open_off_the_network() -> void:
+	var setup := SkirmishSetup.new(3)
+	setup.set_open(1, true)
+	assert_false(setup.is_open(1))
+	assert_true(setup.is_bot(1))
+
+
+func test_a_joiner_is_seated_in_the_first_free_open_slot_and_may_move() -> void:
+	var setup: SkirmishSetup = _networked(4)
+	setup.set_open(2, true)
+	setup.set_open(3, true)
+	assert_eq(setup.seat_anywhere(5), 2)
+	assert_eq(setup.seat_anywhere(6), 3)
+	assert_eq(setup.seat_anywhere(7), -1, "no open slot is left")
+	setup.unseat(6)
+	assert_true(setup.seat(5, 3), "moved")
+	assert_eq(setup.slot_of(5), 3)
+	assert_eq(setup.peer_in(2), 0, "and the slot it left is free")
+
+
+func test_a_taken_or_closed_slot_cannot_be_claimed() -> void:
+	var setup: SkirmishSetup = _networked()
+	setup.set_open(1, true)
+	assert_true(setup.seat(5, 1))
+	assert_false(setup.seat(6, 1), "taken")
+	assert_false(setup.seat(6, 2), "a bot's")
+	setup.set_open(1, false)
+	assert_eq(setup.slot_of(5), -1, "closing a slot unseats its player")
+
+
+func test_play_waits_for_every_open_slot_to_be_taken() -> void:
+	var setup: SkirmishSetup = _networked()
+	setup.set_team(0, 1)
+	setup.set_team(1, 2)
+	setup.set_open(1, true)
+	assert_false(setup.can_play())
+	setup.seat_anywhere(5)
+	assert_true(setup.can_play())
+
+
+func test_match_seats_name_each_peer_and_its_commander() -> void:
+	var setup: SkirmishSetup = _networked()
+	setup.set_open(2, true)
+	setup.seat(5, 2)
+	assert_eq(setup.match_seats(), {SkirmishSetup.HOST_PEER: 1, 5: 3})
+
+
+func test_a_setup_survives_the_wire() -> void:
+	var setup: SkirmishSetup = _networked(4)
+	setup.set_faction(1, SkirmishSetup.FACTIONS[1])
+	setup.set_team(2, 3)
+	setup.set_difficulty(3, PlayerSlot.Difficulty.EASY)
+	setup.set_open(1, true)
+	setup.seat(5, 1)
+	var back: SkirmishSetup = SkirmishSetup.from_dict(
+		JSON.parse_string(JSON.stringify(setup.to_dict()))
+	)
+	assert_eq(back.to_dict(), setup.to_dict())

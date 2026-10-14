@@ -113,3 +113,107 @@ func test_a_purchase_is_cancelled_by_its_id() -> void:
 	)
 	_stream._physics_process(0.0)
 	assert_null(commander.production_queue.find_by_id(77))
+
+
+#region Lockstep
+## Counts its polls, so a test can see whether the poller ran.
+class CountingCondition:
+	extends Condition
+	var polls: int = 0
+
+	func poll(_a_manager: ScenarioTriggerManager) -> void:
+		polls += 1
+
+
+## A trigger host with a clock, kept out of the tree: an in-tree clock would pause GUT itself.
+func _give_scenario_a_clock() -> SimulationClock:
+	var manager := ScenarioTriggerManager.new()
+	manager.name = "ScenarioTriggerManager"
+	manager.simulation_clock = SimulationClock.new()
+	_scenario.add_child(manager)
+	autofree(manager.simulation_clock)
+	return manager.simulation_clock
+
+
+## A session for commander 1 on `a_network`, with peer 2 commanding commander 2 when `a_with_peer`.
+func _lockstep(a_network: LoopbackNetwork, a_delay_ticks: int, a_with_peer: bool) -> Lockstep:
+	var others: Dictionary = {2: 2} if a_with_peer else {}
+	if a_with_peer:
+		a_network.endpoint(2)
+	return Lockstep.new(
+		a_network.endpoint(1), 1, others, TimeUtils.seconds_from_ticks(a_delay_ticks)
+	)
+
+
+func test_networked_alone_with_no_delay_an_order_applies_as_before() -> void:
+	_stream.join_lockstep(_lockstep(LoopbackNetwork.new(), 0, false))
+	_stream.submit(_hold_fire_order())
+	_stream._physics_process(0.0)
+	assert_true(_piece.is_holding_fire, "applied at the start of the next tick")
+
+
+func test_networked_an_order_applies_after_the_input_delay() -> void:
+	_stream.join_lockstep(_lockstep(LoopbackNetwork.new(), 2, false))
+	var order: PlayerOrder = _hold_fire_order()
+	_stream.submit(order)
+	for t: int in 2:
+		_scenario.tick = t
+		_stream._physics_process(0.0)
+		assert_false(_piece.is_holding_fire, "not on tick %d" % t)
+	_scenario.tick = 2
+	watch_signals(_stream)
+	_stream._physics_process(0.0)
+	assert_true(_piece.is_holding_fire)
+	var applied: PlayerOrder = get_signal_parameters(_stream, "order_applied")[0]
+	assert_eq(applied.tick, 2, "stamped with the tick it applied on")
+
+
+func test_networked_the_world_is_held_until_every_peer_has_sent_the_tick() -> void:
+	var clock: SimulationClock = _give_scenario_a_clock()
+	var network := LoopbackNetwork.new()
+	var lockstep: Lockstep = _lockstep(network, 0, true)
+	_stream.join_lockstep(lockstep)
+	_stream.submit(_hold_fire_order())
+	_stream._physics_process(0.0)
+	assert_true(clock.is_held_by(SimulationClock.REASON_NETWORK_WAIT), "peer 2 has not sent tick 0")
+	assert_false(_piece.is_holding_fire)
+	var remote := Turn.new(0, 2, [] as Array[PlayerOrder])
+	network.endpoint(2).send(1, TurnPacket.new(2, -1, [remote] as Array[Turn]).encode())
+	network.step()
+	_stream._physics_process(0.0)
+	assert_false(clock.is_paused(), "released once the tick is confirmed")
+	assert_true(_piece.is_holding_fire, "and its orders applied in the same frame")
+
+
+func test_networked_a_held_tick_is_applied_once() -> void:
+	var clock: SimulationClock = _give_scenario_a_clock()
+	_stream.join_lockstep(_lockstep(LoopbackNetwork.new(), 0, false))
+	_stream.submit(_hold_fire_order())
+	clock.hold(SimulationClock.REASON_DIALOG)
+	_stream._physics_process(0.0)
+	assert_false(_piece.is_holding_fire, "another hold keeps the tick from running")
+	clock.release(SimulationClock.REASON_DIALOG)
+	watch_signals(_stream)
+	_stream._physics_process(0.0)
+	_stream._physics_process(0.0)
+	assert_signal_emit_count(_stream, "order_applied", 1, "the tick did not advance; once only")
+
+
+func test_conditions_are_not_polled_through_a_network_wait() -> void:
+	var clock := SimulationClock.new()
+	var manager := ScenarioTriggerManager.new()
+	manager.simulation_clock = clock
+	var poller := ConditionPoller.new()
+	poller.manager = manager
+	var condition := CountingCondition.new()
+	poller.add(condition)
+	clock.hold(SimulationClock.REASON_NETWORK_WAIT)
+	poller._physics_process(0.0)
+	assert_eq(condition.polls, 0, "how long a stall lasts differs per machine")
+	clock.release(SimulationClock.REASON_NETWORK_WAIT)
+	clock.hold(SimulationClock.REASON_DIALOG)
+	poller._physics_process(0.0)
+	assert_eq(condition.polls, 1, "a dialog's hold is still polled through")
+	for node: Node in [clock, manager, poller]:
+		node.free()
+#endregion

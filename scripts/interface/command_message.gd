@@ -77,6 +77,11 @@ var quarter_turns: int = 0
 ## DEFAULTS TO TRUE: everything that isn't a player order through the HUD keeps the
 ## original always-defer behavior. The controller is the only thing that sets it false.
 var defer_if_unaffordable: bool = true
+## A player's order placed this message, and it has a place: the controller draws a waypoint for
+## it while a selected unit's command chain holds it. Set by OrderDispatcher as it applies the
+## order, identically on every machine, so the waypoint is read off the simulation each frame and
+## nothing is drawn from the apply itself (netplay.md §Rules, no side effect in the apply path).
+var shows_waypoint: bool = false
 
 ## True when this command was issued as a multi-unit group move that capped every
 ## capable unit's Movement.speed_cap to the slowest member's speed (see
@@ -187,6 +192,7 @@ static func deep_copy(message: CommandMessage) -> CommandMessage:
 	copy.origin = message.origin
 	copy.match_group_speed = message.match_group_speed
 	copy.defer_if_unaffordable = message.defer_if_unaffordable
+	copy.shows_waypoint = message.shows_waypoint
 	copy.sanction = message.sanction
 	# Shared, NOT copied: every snapshot of one build order points at the same purchase
 	# and at the same blueprint.

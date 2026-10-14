@@ -54,6 +54,24 @@ default — what every lobby bot played before it existed); the player's own slo
 but greys it out until it is unticked. Teamless players are each an alliance of their own, so
 all teamless is a free-for-all.
 
+## Multiplayer
+
+The MULTIPLAYER page (`MultiplayerConnect`) hosts a lobby on a port, or joins one by address and
+port (default `47600`), and hands the open `LobbyLink` to the same `SkirmishLobby`, networked
+([commands/netplay](../../commands/netplay.md) §Decisions, entry):
+
+- **The host** edits the setup as on one machine, ticks **Open** on each slot another player may
+  take (a closed slot is a bot), and sets the input delay — prefilled from the measured round
+  trips until typed over. Every edit is sent to every joiner. Play waits until every Open slot is
+  taken, and every joiner's match connection is open.
+- **A joiner** is seated in the first free Open slot on joining, or refused with the reason (no
+  free slot, another build, another platform). It sees the setup but edits nothing, and may
+  **Take** another free Open slot.
+- **Play** starts every peer: each generates the map from the host's recipe and enters the match
+  from its own seat (`NetMatch.build_scenario`). **Back**, and Escape, leave the lobby; a refusal
+  or a host leaving returns a joiner to the Multiplayer page with the reason.
+- The status line lists who is in the lobby, with each joiner's round trip.
+
 **Validation.** Everyone in one alliance cannot be played (Play is disabled and the reason
 shown).
 

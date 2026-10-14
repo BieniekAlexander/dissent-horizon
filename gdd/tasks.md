@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-104**
+> Next id: **T-109**
 
 # Tasks
 
@@ -116,6 +116,27 @@ The macro valuation (demand map → strength per energy → savings) is one addi
 >
 > **Answer:** My only feedback here is that I will frequently be making changes to the roster, and I'm aware that changes to the pieces will impact the quality of the bot's evaluations. I think the simulations can represent safe expectations of the evaluations, and failing simulations implies that retraining is warranted.
 
+### T-108 · Should a lone scout keep going until it has seen the whole map? #effort/low #scoped #done
+The scout-coverage design simulation (`scenes/scenarios/test/test_scout_coverage.tscn`) expects one bot with one unit to see every scout point within 3000 ticks; it failed, already at HEAD, because its unit could not take orders and, once replaced, because the bot judged its unit too valuable to send.
+
+> [!done] Q — resolved — 2026-10-14
+> Which is wrong: the expectation, or the bot?
+> **Why it matters:** the expectation is a design claim about scouting; the bot's price test is what makes it false. Changing either changes what this simulation tells you.
+> **Options:**
+> 1. The expectation: a lone builder should not tour the whole map; lower it to a coverage fraction the bot does reach (measure it) or to "a scout is sent", and keep the price test.
+> 2. The bot: an idle bot with nothing else to do should keep scouting; the price test should not make an unthreatened, unemployed unit stand still.
+> 3. The harness: give the bot a unit meant to scout (cheap, fast, no other job) instead of its builder, and keep both the expectation and the price test.
+>
+> **Leaning:** 3 — the question the simulation asks is whether the sweep covers the map, and a builder is the one unit the bot is right to keep home.
+>
+> **Answer:** 3
+> **Resolved:** option 3 — the harness places the Libertarian Gatling Tank (`lb_mechLight_antiLight1`, the cheapest and fastest unit that builds nothing) on a 60-cell map (`tools/generate_test_scenarios.gd`, `SCOUT`, `SCOUT_MAP_CELLS`); expectation and price test unchanged.
+
+> [!check] Status — 2026-10-14
+> Built: the harness change above, and a BotScout bug it exposed — a lattice whose pitch does not divide the map put its last row and column of scout points OFF the map, where no fog ever reports them seen, so a scout toured the edge forever (stuck at 86% here). `BotScout.on_map` now pulls such a point onto the map's edge cell; this affects any map whose size is not a multiple of the lattice pitch, generated skirmishes included.
+> Tests: full suite green, 4471; `TestScoutCoverage` now PASSES (every point seen at tick 2863 of 3000; seeded and deterministic). No Anarchist unit fit option 3 (none is cheap enough without a build job), so the slot is Libertarian.
+> **Not done:** `TestKamikazeNoCluster` still fails, as it did at HEAD.
+
 ## Combat
 
 ### T-013 · Should aggro rise for long-reach pieces? #effort/low #needs-input
@@ -191,6 +212,15 @@ Built: a match is bit-reproducible from its seed (navigation synchronous project
 > Built: the order boundary and the record/replay core (every player action a `PlayerOrder` applied at tick start; spawn serials; versioned gzip JSON-lines files with a per-second digest and keep-three autosaves; debug mode invalidates), and watching: the start screen's replay panel (`MainMenu`, `ReplayLibrary`), opening a playback through `SceneManager.play_replay` with refusals for another version, a debug-invalidated recording or a missing scenario; Save replay with a name at the foot of every end-of-match summary (`ReplaySaveForm`); a playback runs as a spectator session (every slot a `Bot`; the recorded human stays the simulation's local player) watched through the look-only HUD — the player's HUD scene (`scenes/interface/player_hud.tscn`, split out of `player.tscn`) with selection, info panel and minimap in place and the `SpectatorPanel` (views; Pause/Slower/Faster in a replay) in the command grid's slot — plus `ReplayViewer`'s banner and Q/W/E/R keys; a Hide HUD button above the minimap on every HUD, leaving Show HUD on the bottom edge; dialogs resolved only by the recording; UI clip picks off the simulation's global generator (`pick_random`/`shuffle` guarded); the header's start point per slot. Rules in recording-and-replay.md §What is built and ux/ui/hud-layout.md §The look-only HUD, §Hiding the HUD.
 > Tests: replay and HUD tests all pass (`test_ReplayLibrary`, `test_ReplayViewer`, `test_ReplaySaveForm`, `test_ReplayPlayback`, `test_MainMenuReplays`, `test_HudToggle`, `test_ReplayRoundTrip` incl. a human-rig skirmish played back as a spectator). This cloud container has no `.godot/imported` or UID cache, so its full suite is red on the untouched base too (161 failures); the only new ones are 4 menu/scenario tests failing on the container's "invalid UID" load warnings alone.
 > **Not done:** alerts and voice lines following the perspective — there is no alert system yet (note §The plan, `TODO`). Still open in the note: the codec decision and measuring one seed across two platforms. Deferred by design: seeking, rollback networking, play-from-here.
+
+### T-107 · Netplay: lockstep now, built to carry forward to rollback #effort/high #scoped #shelved
+Decided (Alex, 2026-10-11): peer-to-peer deterministic lockstep over the existing `PlayerOrder` stream for the short term, rollback in the long term, with lockstep built in rollback's shape (a run-ahead window of 0). Scoped 2026-10-12; first pieces built 2026-10-13 (status below). The model, the pieces that carry forward, the rules and the rollback prerequisites are in the note; the decisions made 2026-10-13 are recorded in the note §Decisions. Rollback itself waits on a tick roughly ten times cheaper (note §Rollback, later).
+→ [commands/netplay](systems/commands/netplay.md)
+
+> [!check] Status — 2026-10-14
+> All 16 scoping questions answered; outcomes in the note §Decisions. Built: the widened `SimulationDigest`, `InputBuffer`, `Turn`, `TurnPacket`, `NetTransport` with a loopback (2026-10-13), and the lockstep loop — `Lockstep` seals local orders for tick + input delay, exchanges turns, and lets a tick run only once confirmed, driven by `OrderStream.join_lockstep`, which holds the world (`REASON_NETWORK_WAIT`) until then; `ENetTransport`, peer-to-peer in a full mesh by address and port; and the handshake and ready barrier — `NetSession` (status broadcast: build, platform, loaded map digest; the host's recipe, seats and delay; refusals), `TransportMux`, `MapDigest`, and `NetMatch`, which holds the scenario's world from its first frame until every peer has loaded the same map; and the remote human's commander — `Scenario.local_commander_id` names this machine's seat, every other human slot is a brainless `Bot`, and a networked replay plays from the seat it was recorded from; and the per-player verdict — HEGEMONY judges every commander alike inside the simulation and only tells the local player theirs, so judging no longer stops when the local player is out; pause, debug mode and playback speed refused in a networked match; the Multiplayer lobby (`MultiplayerConnect`, `LobbyLink`, `SkirmishLobby` networked, Open slots per Alex's answer); and desync detection (`DesyncCheck`, the match ends with this machine's state written to `user://desync/`); the two-process test — two headless peers on this machine play a match through the whole stack and stay in step; and the forfeit timeout at Alex's leanings — a 30 s wait named in a readout, then a vote-agreed fence and a FORFEIT order that eliminates the silent player on one tick for everyone; and submit-time order feedback — a preview drawn at submit, then waypoints read off the units' own commands, own units only (2026-10-14). A hold now changes nothing but timing: simulation code reads `SimulationClock.physics_frame()`, navigation agents and obstacles are never paused, and the navigation server is off for a hold (dialogs-and-pause §A hold changes nothing but timing). Also fixed on the way: the `attack0.otterbahn.wav` bark (an extensible WAV that imported empty and broke `control_feedback_sounds.gd`) and the sanction bar's missing-tooltip errors.
+> Tests: full suite green on this Mac, 4511 in 400 files — including `test_Lockstep`, `test_ENetTransport` (real sockets on localhost), `test_NetSession`, `test_NetMatch` (a match started through the barrier plays back exactly), `test_RemoteHumanSlot`, `test_TwoProcessNetplay`, `test_OrderFeedback`, `test_LobbyLink`, `test_NetworkedLobby`, `test_DesyncCheck`, `test_NetworkedHolds`, the free-for-all and viewer-independence cases in `test_Alliances`, a match held through repeated stalls that replays digest for digest (`test_ReplayRoundTrip`), `test_AvoidanceNotPaused`, and an engine-frame-counter scan in `test_SeededRandomness`.
+> **Not done:** a DROP's selection and a toggle's card refresh still fire from the apply (fine for lockstep, a TODO before rollback); a bot taking a forfeited slot (team games); a three-way network split can fence at different ticks; a match across two real machines over a real network (and two platforms) has not been tried. Joiners' round trips to each other are not measured for the input delay.
 
 ### T-038 · Move-line drag: the follow-ups #effort/medium #unscoped #shelved
 Built for the unarmed right click only. Left: the minimap, armed orders, navmesh snapping of slots, recording issued destinations in the replay (T-037).

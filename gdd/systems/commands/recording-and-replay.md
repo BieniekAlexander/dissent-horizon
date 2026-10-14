@@ -100,6 +100,9 @@ T-037). One seed makes one match, tick for tick ([ai/selfplay-harness](../ai/sel
 - **The header's start point** per slot: `Scenario.slot_start_point` — the start point's name and
   XZ for a Skirmish, empty for a scenario that places its slots by authoring. Informational: a
   playback re-derives where each slot starts from the scene, as the match did.
+- **The header's seat**, for a networked match only: `local_commander_id`, the commander the
+  recording machine played. The simulation reads the local player, so a playback plays from the
+  same seat ([netplay](netplay.md) §Rules).
 
 A replay is the scenario, its seed and slots, and the stream of **orders the human players
 gave**. Playback re-runs the simulation from the seed and feeds the orders back in on the ticks
@@ -134,7 +137,7 @@ is for.
   and toggle paths beside it) out of the controller. Approved as a restructure (§9) on
   2026-09-29.
 - **The stream is shaped for networking** — tick-stamped, per commander, serializable — though
-  no networking is built. See §Networking.
+  no networking is built. See [netplay](netplay.md).
 
 ### The file (Persistence)
 
@@ -157,6 +160,10 @@ is for.
 - **Every second, the file records a hash of the simulation state**, and playback compares it,
   reporting the first tick that differs. The hash moves from `tools/selfplay/run_match.gd`
   (`_state_digest`) into game code, so the harness and replay use the one instrument.
+- **What the hash covers** is everything a physics tick governs, keyed by spawn serial
+  ([netplay](netplay.md) §Decisions, the digest). Its script is versioned with the replay, so a
+  change to what it covers refuses older recordings instead of reporting drift at their first
+  digest.
 - **Across platforms is unmeasured.** TODO: measure one seed on two platforms before promising
   a replay plays anywhere but where it was made.
 - The source scan in `tests/test_SeededRandomness.gd` extends to wall-clock reads in simulation
@@ -216,10 +223,8 @@ orders a player can give.
 - **Seeking** by re-running from the start at full speed, and later by **periodic snapshots**.
   Snapshots need the simulation state to be saved and restored whole — a save system the game
   does not have.
-- **Networking, by rollback.** The goal is for players to send each other their inputs — this
-  order stream — and each machine to keep its own simulation in step. Rollback also needs the
-  snapshot-and-restore above, and a simulation that can re-run several ticks inside one frame.
-  Out of scope for now; the only requirement it places today is the stream's shape.
+- **Networking** sends this order stream between machines: lockstep first, rollback later, which
+  needs the snapshot-and-restore above. Its own note: [netplay](netplay.md).
 - Taking control mid-replay ("play from here") is out of scope.
 
 ## Known work the plan depends on

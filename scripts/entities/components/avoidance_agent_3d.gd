@@ -30,6 +30,21 @@ extends NavigationAgent3D
 ##                 an exception bit, and every agent masks the whole pool range, so every
 ##                 agent of every team steers around a standing piece one-sided.
 
+
+#region Lifecycle
+## Never paused with the world. A paused agent is taken out of the navigation server's avoidance
+## and put back on resume, and that changes the avoidance it solves afterwards: any hold — a
+## dialog, the pause menu, a network stall — would play a different match from one never held.
+## Instead the whole navigation server is switched off for a hold (SimulationClock), so a kept
+## agent computes nothing while held. The obstacle component is kept running for the same reason
+## (avoidance_obstacle.tscn); test_ReplayRoundTrip holds a match through stalls and requires its
+## playback to match.
+func _init() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
+#endregion
+
 #region Constants
 ## Number of low layer bits reserved for commander team channels.
 const _TEAM_BITS: int = Commander.NUM_MAX_COMMANDERS  ## = 8

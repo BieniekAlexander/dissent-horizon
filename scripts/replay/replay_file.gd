@@ -16,11 +16,14 @@ const EXTENSION: String = "jsonl.gz"
 ## The record type of the first line.
 const HEADER_TYPE: String = "header"
 ## Directories and files whose content decides what a replay plays back as: change any and the
-## same orders no longer reproduce the match, so the version stamp hashes them.
+## same orders no longer reproduce the match, so the version stamp hashes them. The digest's
+## own script is one: a recording's digests are only comparable with digests built the same way,
+## so a change to what it covers refuses old replays rather than reporting drift at their first.
 const VERSIONED_PATHS: Array[String] = [
 	"res://scripts/generated/",
 	"res://resources/generated/",
 	"res://scenes/entities/",
+	"res://scripts/replay/simulation_digest.gd",
 ]
 
 ## The header: the scenario, its map, the seed, every slot, and the version stamp.
@@ -104,6 +107,10 @@ static func header_for(a_scenario: Scenario, a_version: String) -> Dictionary:
 		"slots": slots,
 		"version": a_version,
 	}
+	# A networked match's recording is one peer's: the simulation read that peer's player as the
+	# local one, and its playback must too.
+	if a_scenario.local_commander_id >= 1:
+		header["local_commander_id"] = a_scenario.local_commander_id
 	# A lobby-built skirmish's map exists in no file: its recipe is what rebuilds it.
 	if not a_scenario.skirmish_recipe.is_empty():
 		header["skirmish"] = a_scenario.skirmish_recipe

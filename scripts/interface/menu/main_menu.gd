@@ -11,23 +11,26 @@ extends Control
 ## fields on a new array row in the inspector. Buttons are duplicated from %ButtonTemplate, a
 ## hidden node in the same scene, so restyling every button is editing ONE node.
 ##
-## SKIRMISH is the SkirmishLobby. REPLAYS lists every replay under `user://replays/`, newest
-## first; a replay this build cannot play is listed all the same and refused, with the reason,
-## when chosen (gdd/systems/commands/recording-and-replay.md §Watching). OPTIONS holds the master
-## volume (unsaved) and the alert jump key's scope (GameSettings, saved).
+## SKIRMISH is the SkirmishLobby. MULTIPLAYER hosts or joins a lobby by address
+## (MultiplayerConnect) and hands it to the same SkirmishLobby, networked. REPLAYS lists every
+## replay under `user://replays/`, newest first; a replay this build cannot play is listed all
+## the same and refused, with the reason, when chosen
+## (gdd/systems/commands/recording-and-replay.md §Watching). OPTIONS holds the master volume
+## (unsaved) and the alert jump key's scope (GameSettings, saved).
 ##
 ## Every transition goes through the SceneManager autoload, which is also what a scenario uses
 ## to come BACK here — one description of what changing scene means, including clearing the
 ## tree-wide pause.
 
 #region Constants
-enum Page { MAIN, CAMPAIGN, SKIRMISH, REPLAYS, OPTIONS }
+enum Page { MAIN, CAMPAIGN, SKIRMISH, MULTIPLAYER, REPLAYS, OPTIONS }
 
 ## The main page's buttons, in order: [name, label, page it opens (or -1), enabled].
 const MAIN_ENTRIES: Array = [
 	["Campaign", "Campaign", Page.CAMPAIGN, true],
 	["Arcade", "Arcade (WIP)", -1, false],
 	["Skirmish", "Skirmish", Page.SKIRMISH, true],
+	["Multiplayer", "Multiplayer", Page.MULTIPLAYER, true],
 	["Replays", "Replays", Page.REPLAYS, true],
 	["Options", "Options", Page.OPTIONS, true],
 	["Quit", "Quit", -1, true],
@@ -63,6 +66,9 @@ var page: Page = Page.MAIN
 @onready var _lobby: SkirmishLobby = %SkirmishLobby
 @onready var _volume: HSlider = %Volume
 @onready var _jump_scope: OptionButton = %JumpScope
+## The Multiplayer page: built in code, like the lobby it leads to.
+var _multiplayer: MultiplayerConnect = null
+
 @onready var _pages: Dictionary = {
 	Page.MAIN: %MainPage,
 	Page.CAMPAIGN: %CampaignPage,
@@ -82,6 +88,7 @@ func _ready() -> void:
 	for each: Page in [Page.CAMPAIGN, Page.REPLAYS, Page.OPTIONS]:
 		(_pages[each] as Control).add_child(_back_button())
 	_lobby.back_requested.connect(show_page.bind(Page.MAIN))
+	_build_multiplayer_page()
 	var bus: int = AudioServer.get_bus_index(MASTER_BUS)
 	_volume.value = db_to_linear(AudioServer.get_bus_volume_db(bus)) if bus >= 0 else 1.0
 	_volume.value_changed.connect(_on_volume_changed)
@@ -91,7 +98,11 @@ func _ready() -> void:
 
 func _unhandled_input(a_event: InputEvent) -> void:
 	if page != Page.MAIN and a_event.is_action_pressed(&"ui_cancel") and not _lobby.is_launching():
-		show_page(Page.MAIN)
+		# Leaving the lobby closes a networked one rather than abandoning its connection.
+		if page == Page.SKIRMISH:
+			_lobby.leave()
+		else:
+			show_page(Page.MAIN)
 		get_viewport().set_input_as_handled()
 
 
@@ -166,6 +177,10 @@ func lobby() -> SkirmishLobby:
 	return _lobby
 
 
+func multiplayer_page() -> MultiplayerConnect:
+	return _multiplayer
+
+
 #endregion
 
 
@@ -184,6 +199,29 @@ func _build_main_page() -> void:
 		else:
 			button.pressed.connect(show_page.bind(entry[2]))
 		_main_page.add_child(button)
+
+
+func _build_multiplayer_page() -> void:
+	var page_node := VBoxContainer.new()
+	page_node.name = "MultiplayerPage"
+	_multiplayer = MultiplayerConnect.new()
+	_multiplayer.name = "MultiplayerConnect"
+	page_node.add_child(_multiplayer)
+	_main_page.get_parent().add_child(page_node)
+	_pages[Page.MULTIPLAYER] = page_node
+	_multiplayer.back_requested.connect(show_page.bind(Page.MAIN))
+	_multiplayer.lobby_opened.connect(_open_networked_lobby)
+	_lobby.lobby_left.connect(_on_lobby_left)
+
+
+func _open_networked_lobby(a_link: LobbyLink) -> void:
+	_lobby.attach(a_link)
+	show_page(Page.SKIRMISH)
+
+
+func _on_lobby_left(a_reason: String) -> void:
+	_multiplayer.show_status(a_reason)
+	show_page(Page.MULTIPLAYER)
 
 
 func _back_button() -> Button:

@@ -19,9 +19,16 @@ const ANARCHICAL: String = "res://scenes/factions/anarchical.tscn"
 ## is why the scenarios below still read that way. Its old scene is gone with the old id.
 const KAMIKAZE: String = "res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn"
 const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-const TECHNICIAN: String = "res://scenes/entities/units/an/technician.tscn"
+## The scout-coverage harness's lone unit, meant to scout (gdd/tasks.md T-108): the cheapest
+## and fastest piece that builds nothing, the Libertarian Gatling Tank. Cheap is what matters —
+## BotScout prices a tour as the map's staleness against the unit's cost, so a dearer unit is
+## kept home before the map is covered; its gun does nothing on a map with no enemy.
+const SCOUT: String = "res://scenes/entities/units/lb/lb_mechLight_antiLight1.tscn"
+const LIBERTARIAN: String = "res://scenes/factions/libertarian.tscn"
 
 const OUT_DIR: String = "res://scenes/scenarios/test"
+## The scout-coverage map's width in cells; why this size is at its use.
+const SCOUT_MAP_CELLS: int = 60
 
 
 func _ready() -> void:
@@ -105,14 +112,14 @@ func _generate_scout_coverage() -> void:
 	root.name = "TestScoutCoverage"
 	root.max_ticks = 3200
 	# One bot, no economy (energy 0) so its lone unit is free to scout rather than build.
-	root.player_slots = [_slot(PlayerSlot.Difficulty.MEDIUM, 0)]
-	# Map sized so a single unit, seeing only its true ~5-unit vision radius, can still
-	# sweep every scout point within the 3000-tick budget — yet wider than that radius, so
-	# it must travel to the corners rather than seeing everything from spawn.
-	root.add_child(_flat_map(16))
+	root.player_slots = [_slot(PlayerSlot.Difficulty.MEDIUM, 0, LIBERTARIAN)]
+	# Map sized against the scout's vision radius (the `medium` ground bucket, 20 cells): wide
+	# enough that it sees about a third from spawn, so it must travel and the bot finds
+	# scouting worth it, yet small enough to sweep within the 3000-tick budget.
+	root.add_child(_flat_map(SCOUT_MAP_CELLS))
 
-	# A single fast unit at centre.
-	_place(root, TECHNICIAN, 1, Vector2.ZERO)
+	# A single unit at centre: the bot's only piece, so whatever it scouts with is this.
+	_place(root, SCOUT, 1, Vector2.ZERO)
 
 	var check := ConditionScoutCoverage.new()
 	check.commander_id = 1
@@ -127,10 +134,12 @@ func _generate_scout_coverage() -> void:
 # ─── BUILDERS ────────────────────────────────────────────────────────────────
 
 
-func _slot(a_difficulty: PlayerSlot.Difficulty, a_energy: int) -> PlayerSlot:
+func _slot(
+	a_difficulty: PlayerSlot.Difficulty, a_energy: int, a_faction: String = ANARCHICAL
+) -> PlayerSlot:
 	var slot := PlayerSlot.new()
 	slot.is_bot = true
-	slot.faction = load(ANARCHICAL)
+	slot.faction = load(a_faction)
 	slot.difficulty = a_difficulty
 	slot.starting_energy = a_energy
 	slot.starting_dominion = 0

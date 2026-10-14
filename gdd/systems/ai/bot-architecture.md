@@ -282,6 +282,17 @@ inverted once at grid-build time rather than per sampled point, which paid for t
 work.
 
 
+
+### The scout grid stays on the map
+
+A scout point is the centre of a lattice cell, and a lattice whose pitch does not divide the
+map overhangs it by part of a cell. A point centred out there is one no fog ever reports seen,
+so it stays stale for good and a scout is sent back to it for the rest of the match — measured
+2026-10-14 on a 64-cell map with a pitch of 5, where the lone scout toured the edge with 14% of
+the grid unseeable. Each such point is pulled onto the map, to the centre of the edge cell
+(`BotScout.on_map`). `TestScoutCoverage` (`tools/simulation/`) is the check that the sweep
+reaches every point.
+
 ## The decision surface
 
 **Every decision a commander must make, and where this bot makes it.** The list is

@@ -29,6 +29,9 @@ func remove(a_condition: Condition) -> void:
 func _physics_process(_a_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
+	var clock: SimulationClock = manager.simulation_clock if manager != null else null
+	if clock != null and clock.is_held_by(SimulationClock.REASON_NETWORK_WAIT):
+		return
 	# Iterate a COPY. poll() can fire its owning trigger inline, and a one-shot trigger disarms
 	# itself while firing — which calls remove() on this very array. Walking the live array
 	# would shift the remaining entries left mid-loop, so the condition sitting immediately
