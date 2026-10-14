@@ -16,13 +16,21 @@ name its classes, so without it they fail to parse.
 2. **Install the build tools:** a C++17 compiler and [SCons](https://scons.org/).
    - macOS: `xcode-select --install` (the Command Line Tools), then `pip install scons`.
    - Linux: your distribution's `g++` (or `clang`), then `pip install scons`.
+   - Windows: Visual Studio 2022 or its Build Tools with the "Desktop development with C++"
+     workload (`winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait
+     --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"`), then
+     `python -m pip install scons`. `tools\install_godot.ps1` installs the matching engine and
+     puts `godot` on your PATH. The `.blend` meshes import through Blender, and are saved by
+     Blender 5.1, which older versions cannot open; install it and, if Godot does not find it,
+     set *Editor Settings → FileSystem → Import → Blender → Blender Path*.
 3. **Build the extension** from the repository root:
    ```
    tools/build_native.sh
    ```
    The first run fetches the `native/godot-cpp` submodule; a clean build takes under a minute.
    The library lands in `bin/`, which is git-ignored. **Run it again after pulling any change
-   to `native/`.** Add `--release` to also build the library an export ships.
+   to `native/`.** Add `--release` to also build the library an export ships. On Windows run it
+   from Git Bash, or `powershell -ExecutionPolicy Bypass -File tools\build_native.ps1`.
 4. **Open the project:** point Godot at `project.godot` in the repository root.
 
 On macOS the script builds against the SDK your installed toolchain designates (`$SDKROOT` if

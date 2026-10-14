@@ -13,6 +13,9 @@ extends RefCounted
 static func entries(a_directory: String = ReplayFile.DIRECTORY) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var suffix: String = "." + ReplayFile.EXTENSION
+	# A machine that has never finished a match has no replay directory yet.
+	if not DirAccess.dir_exists_absolute(a_directory):
+		return out
 	for file: String in DirAccess.get_files_at(a_directory):
 		if not file.ends_with(suffix):
 			continue

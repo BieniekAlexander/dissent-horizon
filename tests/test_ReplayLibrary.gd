@@ -71,6 +71,12 @@ func test_entries_reads_the_directory_and_marks_autosaves() -> void:
 	assert_eq(ReplayLibrary.label_for(autosaves[0]), "Autosave · 2027-01-15 08:00 UTC")
 
 
+func test_entries_of_a_directory_never_created_is_empty() -> void:
+	var never_created: String = DIR.path_join("never_created")
+	assert_false(DirAccess.dir_exists_absolute(never_created))
+	assert_eq(ReplayLibrary.entries(never_created), [] as Array[Dictionary])
+
+
 func test_a_label_drops_the_extension() -> void:
 	var entry: Dictionary = {"file": "skirmish_win.jsonl.gz", "is_autosave": false}
 	assert_eq(ReplayLibrary.label_for(entry), "skirmish_win")
