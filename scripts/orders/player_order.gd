@@ -37,6 +37,9 @@ enum Kind {
 	DROP,
 	PENDING_COMMAND,
 	DIALOG,
+	## A networked player who went silent is out of the match, on the tick every remaining peer
+	## agreed (Lockstep's drop votes). Never given by a player; stood in by the input buffer.
+	FORFEIT,
 }
 
 var kind: Kind

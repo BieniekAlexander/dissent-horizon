@@ -53,9 +53,9 @@ everything.
   for pieces whose role IS range.
 - **Differentiation lost.** 10 ground weapons now sit in `long`, where they used to span 7–10. Within a bucket, units are now told apart by speed, toughness and vision only.
 
-TODO: `technician.tscn` and `petrel.tscn` have no spec doc, so the importer never touches
-them and they keep a cylinder of their own (0.375 and a scene-authored radius). Give them
-docs, or point their range nodes at a bucket by hand.
+TODO: `petrel.tscn` has no spec doc, so the importer never touches it and it keeps a cylinder
+of its own (a scene-authored radius). Give it a doc, or point its range nodes at a bucket by
+hand.
 
 ## Aggro is derived from reach
 

@@ -501,3 +501,20 @@ func test_the_fresh_fraction_within_a_radius_counts_only_the_points_inside_it() 
 	assert_almost_eq(_scout.fresh_fraction_within(Vector2(1.0, 0.0), 10.0), 0.5, 1e-9)
 	assert_eq(_scout.fresh_fraction_within(Vector2(100.0, 0.0), 10.0), 0.0, "no point inside")
 	assert_almost_eq(_scout.fresh_fraction_within(Vector2.ZERO, 100.0), 2.0 / 3.0, 1e-9)
+
+
+# A scout point is where a scout goes to look, so one off the map is one nothing ever sees.
+const MAP_BOUNDS: Rect2 = Rect2(-32.0, -32.0, 64.0, 64.0)
+
+
+func test_a_point_beyond_the_map_is_pulled_to_its_edge_cell() -> void:
+	assert_eq(BotScout.on_map(Vector2(32.5, -12.5), MAP_BOUNDS), Vector2(31.5, -12.5))
+	assert_eq(BotScout.on_map(Vector2(-40.0, 40.0), MAP_BOUNDS), Vector2(-31.5, 31.5))
+
+
+func test_a_point_on_the_map_is_left_where_it_is() -> void:
+	assert_eq(BotScout.on_map(Vector2(7.5, -2.5), MAP_BOUNDS), Vector2(7.5, -2.5))
+
+
+func test_with_no_bounds_a_point_is_left_where_it_is() -> void:
+	assert_eq(BotScout.on_map(Vector2(99.0, 99.0), Rect2()), Vector2(99.0, 99.0))

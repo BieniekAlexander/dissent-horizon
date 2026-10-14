@@ -23,6 +23,12 @@ const HUMAN_HARNESS: String = "res://scenes/scenarios/skirmish.tscn"
 const HUMAN_RUN_TICKS: int = 900
 ## Past the opening force's deferred spawn.
 const HUMAN_ORDER_TICK: int = 300
+## The networked match's other peer: the harness's other commander, whose turns the test sends.
+const REMOTE_COMMANDER: int = 1
+## The networked match's input delay, and how often the remote peer's turns arrive: further apart
+## than the delay, so the world is held between bursts.
+const STALL_DELAY_TICKS: int = 2
+const STALL_BURST_FRAMES: int = 7
 
 
 func test_a_recorded_match_plays_back_identically() -> void:
@@ -85,6 +91,60 @@ func test_a_match_with_a_human_plays_back_as_a_spectator_session() -> void:
 	var drift: int = playback.recorder.first_drift_tick
 	await _tear_down(playback)
 	assert_eq(drift, -1, "the spectator playback never differed from the recording")
+
+
+## A networked match holds its world whenever a peer's turn is late, for as long as it is late —
+## a different length on every machine. The holds must change nothing but timing: a match
+## recorded through them plays back, un-networked and never held, digest for digest.
+## gdd/systems/commands/netplay.md §The model.
+func test_a_match_played_through_network_stalls_plays_back_identically() -> void:
+	var scenario: Scenario = await _boot(null)
+	var network := LoopbackNetwork.new()
+	var remote: LoopbackTransport = network.endpoint(REMOTE_COMMANDER)
+	var lockstep := Lockstep.new(
+		network.endpoint(ORDER_COMMANDER),
+		ORDER_COMMANDER,
+		{REMOTE_COMMANDER: REMOTE_COMMANDER},
+		TimeUtils.seconds_from_ticks(STALL_DELAY_TICKS),
+		scenario.tick
+	)
+	scenario.order_stream.join_lockstep(lockstep)
+	var clock: SimulationClock = scenario.trigger_manager().simulation_clock
+	var given: Array[int] = []
+	var remote_sent_through: int = scenario.tick - 1
+	var held_frames: int = 0
+	# Bounded, so a deadlock fails the test rather than hanging the suite.
+	for frame: int in RUN_TICKS * STALL_BURST_FRAMES:
+		if scenario.tick >= RUN_TICKS:
+			break
+		if ORDER_TICKS.has(scenario.tick) and not given.has(scenario.tick):
+			given.append(scenario.tick)
+			_give_order(scenario)
+		# The remote peer's empty turns arrive in late bursts, so the world is held between them.
+		if frame % STALL_BURST_FRAMES == 0:
+			var turns: Array[Turn] = []
+			for t: int in range(remote_sent_through + 1, scenario.tick + 2):
+				turns.append(Turn.new(t, REMOTE_COMMANDER, [] as Array[PlayerOrder]))
+			remote_sent_through = scenario.tick + 1
+			remote.send(
+				ORDER_COMMANDER, TurnPacket.new(REMOTE_COMMANDER, scenario.tick - 1, turns).encode()
+			)
+		network.step()
+		remote.receive()
+		await get_tree().physics_frame
+		if clock.is_held_by(SimulationClock.REASON_NETWORK_WAIT):
+			held_frames += 1
+	clock.clear()
+	var recording: ReplayFile = ReplayFile.from_bytes(scenario.recorder.replay.to_bytes())
+	var reached: int = scenario.tick
+	await _tear_down(scenario)
+	assert_gte(reached, RUN_TICKS, "the match ran to its end")
+	assert_gt(held_frames, 0, "the world was held")
+	var orders: Array = recording.records.filter(
+		func(r: Dictionary) -> bool: return r.get("type") == ReplayRecorder.ORDER_TYPE
+	)
+	assert_eq(orders.size(), ORDER_TICKS.size(), "every order was recorded")
+	assert_eq(await _play_back(recording), -1, "the playback never differed from the recording")
 
 
 func _record() -> ReplayFile:

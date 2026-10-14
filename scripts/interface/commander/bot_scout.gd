@@ -346,7 +346,8 @@ func debug_scouts() -> Array:
 # ─── GRID CONSTRUCTION ───────────────────────────────────────────────────────
 
 
-## One point per lattice cell, at the cell's centre, with the terrain's height there.
+## One point per lattice cell, at the cell's centre — pulled onto the map where the lattice
+## overhangs it — with the terrain's height there.
 func _build_scout_grid() -> void:
 	var fields: BotFields = _bot.fields()
 	if fields == null:
@@ -357,11 +358,23 @@ func _build_scout_grid() -> void:
 	_map_width = size.x
 	_map_depth = size.y
 	var init_ts: float = -(SCOUT_EXPIRATION_TIMER + 1.0)
+	var bounds: Rect2 = _bot.map.world_bounds()
 	for index: int in _lattice.cell_count():
 		var idx: Vector2i = _lattice.cell_of(index)
 		_scout_grid[idx] = init_ts
-		var xz: Vector2 = _lattice.centre_of(idx)
+		var xz: Vector2 = on_map(_lattice.centre_of(idx), bounds)
 		_scout_grid_positions[idx] = Vector3(xz.x, _bot.map.terrain_height_at(xz), xz.y)
+
+
+## `a_xz`, pulled inside `a_bounds` to the centre of the nearest edge cell when it lies beyond.
+## A lattice whose pitch does not divide the map overhangs it by part of a cell, and a scout point
+## centred out there is one no fog ever reports seen: it stays stale for good, and the scout is
+## sent back to it forever. An empty `a_bounds` (no heightmap yet) leaves `a_xz` as it is.
+static func on_map(a_xz: Vector2, a_bounds: Rect2) -> Vector2:
+	if not a_bounds.has_area():
+		return a_xz
+	var inset: Vector2 = Vector2.ONE * Map.CELL_SIZE * 0.5
+	return a_xz.clamp(a_bounds.position + inset, a_bounds.end - inset)
 
 
 # ─── LOS UPDATE ──────────────────────────────────────────────────────────────

@@ -462,7 +462,7 @@ scenes/
   entities/                       — all game entities, grouped by category then faction; none inherits another
     units/                        — per-faction subfolders
       tc/vanguard.tscn
-      an/technician.tscn, b_irregular.tscn, warlord.tscn, b_kamikaze.tscn
+      an/tc_bioLight_builder.tscn, b_irregular.tscn, warlord.tscn, b_kamikaze.tscn
       cl/h_recruit.tscn, h_badger.tscn
     structures/                   — per-faction subfolders
       nt/building.tscn, extractor.tscn, extraction_site.tscn, shelter.tscn
@@ -567,6 +567,9 @@ Commands are the primary game-action abstraction. Each command is a `RefCounted`
 applied by `OrderDispatcher` at the start of the next tick** — never by UI code touching pieces
 directly, or a replay of the match drifts. Pieces in an order are named by `Entity.spawn_serial`.
 → [`gdd/systems/commands/recording-and-replay.md`](gdd/systems/commands/recording-and-replay.md)
+
+Netplay — the same order stream exchanged between machines: lockstep now, built to carry forward to rollback.
+→ [`gdd/systems/commands/netplay.md`](gdd/systems/commands/netplay.md)
 
 Build, Assemble and Repair — the construction and repair command family.
 → **[`gdd/systems/commands/construction.md`](gdd/systems/commands/construction.md)**
@@ -943,6 +946,8 @@ work rather than deriving something.
 **Navmesh cell-exclusion approach**: `NavManager._build_chunk()` builds one quad per cell from `TerrainGrid.navigable_mask`, which starts from passability (`_cell_state == 0`: in bounds, no building, not steep, not blocked, not submerged). Do not replace this with Godot's geometry-bake path — it's too slow and doesn't encode terrain heights correctly.
 
 **The simulation rate is `TimeUtils.ticks_per_second()`, never `Engine.physics_ticks_per_second`**: debug playback speed changes the engine rate (and `Engine.time_scale` with it) so that a tick still means 1/30 of a game second. Code that reads the engine rate as the game's would run every timer and speed wrong at any speed but 1×. → [`gdd/systems/ux/ui/debug-mode.md`](gdd/systems/ux/ui/debug-mode.md) §Playback speed
+
+**A hold changes nothing but timing**: simulation code measures frames with `SimulationClock.physics_frame()`, never `Engine.get_physics_frames()` (which counts through a pause; `test_SeededRandomness` scans for it), and navigation agents and obstacles are never paused. A dialog, the pause menu or a network stall must not change the match. → [`gdd/systems/scenario-scripting/dialogs-and-pause.md`](gdd/systems/scenario-scripting/dialogs-and-pause.md) §A hold changes nothing but timing
 
 **`Map.CELL_SIZE` const**: fog, NavManager, and coordinate helpers all derive from this. It's `1.0` and encoded as Map's scale. Don't add a separate `cell_size` export that could diverge.
 

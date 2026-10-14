@@ -57,6 +57,8 @@ static func apply(order: PlayerOrder, scenario: Scenario) -> Array:
 			return _apply_pending_command_order(order, scenario)
 		PlayerOrder.Kind.DIALOG:
 			_apply_dialog(order, scenario)
+		PlayerOrder.Kind.FORFEIT:
+			scenario.forfeit(order.commander_id)
 	return []
 
 
@@ -161,6 +163,7 @@ static func apply_pending_command(
 		var snapshot: CommandMessage = CommandMessage.deep_copy(message)
 		if map != null:
 			snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
+		snapshot.shows_waypoint = true
 		if transaction.queue_player_command(command_type.new(snapshot), not add_to_queue):
 			indicated.append(snapshot)
 	return indicated
@@ -278,7 +281,7 @@ static func apply_command(
 
 	var line: Array = modifiers.get("line", [])
 	var unit_to_destination: Dictionary = (
-		line_destinations(capable, _line_point(line, 0), _line_point(line, 2))
+		line_destinations(capable, line_point(line, 0), line_point(line, 2))
 		if not line.is_empty()
 		else fanned_destinations(map, command_type, capable, message)
 	)
@@ -305,6 +308,7 @@ static func apply_command(
 			snapshot.world_position = VU.from_xz(unit_to_destination[c])
 		snapshot.world_position.y = map.terrain_height_at(snapshot.xz_position)
 		if command_type.requires_position():
+			snapshot.shows_waypoint = true
 			indicated.append(snapshot)
 		_hand_over(c, command_type, snapshot, add_to_queue, interrupts)
 		# AFTER the handover: update_commands drops the outgoing command, whose PREDELETE
@@ -381,7 +385,7 @@ static func _purchase_training(
 		)
 
 
-static func _line_point(line: Array, index: int) -> Vector2:
+static func line_point(line: Array, index: int) -> Vector2:
 	return Vector2(float(line[index]), float(line[index + 1]))
 
 

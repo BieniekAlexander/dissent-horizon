@@ -108,7 +108,10 @@ func test_the_main_page_leads_everywhere() -> void:
 	var menu: MainMenu = _menu([])
 	assert_eq(
 		menu.main_labels(),
-		["Campaign", "Arcade (WIP)", "Skirmish", "Replays", "Options", "Quit"] as Array[String]
+		(
+			["Campaign", "Arcade (WIP)", "Skirmish", "Multiplayer", "Replays", "Options", "Quit"]
+			as Array[String]
+		)
 	)
 	assert_eq(menu.page, MainMenu.Page.MAIN)
 
@@ -122,6 +125,7 @@ func test_each_entry_opens_its_page_and_back_returns() -> void:
 	for entry: Array in [
 		["Campaign", MainMenu.Page.CAMPAIGN],
 		["Skirmish", MainMenu.Page.SKIRMISH],
+		["Multiplayer", MainMenu.Page.MULTIPLAYER],
 		["Replays", MainMenu.Page.REPLAYS],
 		["Options", MainMenu.Page.OPTIONS],
 	]:

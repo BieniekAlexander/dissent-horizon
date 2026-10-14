@@ -32,7 +32,7 @@ const ANARCHICAL: PackedScene = preload("res://scenes/factions/anarchical.tscn")
 ## is theirs, and the passive row has nothing to draw for any other faction today.
 const PIECES: Array[String] = [
 	"res://scenes/entities/units/an/an_bioLight_builder.tscn",
-	"res://scenes/entities/units/an/technician.tscn",
+	"res://scenes/entities/units/an/tc_bioLight_builder.tscn",
 	"res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn",
 ]
 ## Pieces whose cards carry every column, for `--cards`: a Recruit (two ability pools), an

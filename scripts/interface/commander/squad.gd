@@ -132,7 +132,7 @@ func redirect() -> void:
 func tick() -> void:
 	if policy == null:
 		return
-	var live: Array = fielded().filter(eligible)
+	var live: Array = fielded().filter(_takes_orders).filter(eligible)
 	if live.is_empty():
 		return
 	if _issued == null or not policy.same_as(_issued):
@@ -147,4 +147,10 @@ func tick() -> void:
 	for unit: Actor in to_order:
 		_reached[unit.get_instance_id()] = true
 	policy.issue(to_order)
+
+
+## A piece that takes no orders (`commandable: false`, no Orders component) is a member that is
+## never ordered, as a garrisoned one is not: there is nothing to give the order to.
+static func _takes_orders(a_unit: Actor) -> bool:
+	return a_unit.command_receiver != null
 #endregion

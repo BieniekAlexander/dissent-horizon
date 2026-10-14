@@ -350,10 +350,52 @@ func test_teammates_are_not_rivals() -> void:
 	_with_player(
 		func() -> void:
 			m.scenario._physics_process(0.0)
-			assert_eq(m.scenario._rivals(), 0)
+			assert_eq(
+				m.scenario.verdict_of(1), Scenario.Verdict.UNDECIDED, "teammates are not rivals"
+			)
 			assert_false(m.scenario._game_over_seen, "a session with no rival never wins")
 	)
 	m.free_all()
+
+
+## The verdicts of a three-way free-for-all in which commander 1 goes first, then 2, watched
+## from `a_viewer` (0 for a spectator): commander id -> Verdict, and whether the match ended.
+func _ffa_verdicts(a_viewer: int) -> Dictionary:
+	var m: Match = _match([0, 0, 0])
+	var saved: int = RTSController.PLAYER_COMMANDER_ID
+	RTSController.PLAYER_COMMANDER_ID = a_viewer
+	m.scenario._physics_process(0.0)
+	_destroy_centres(m.commanders[1])
+	m.scenario._physics_process(0.0)
+	var after_first: bool = m.scenario.is_match_over()
+	_destroy_centres(m.commanders[2])
+	m.scenario._physics_process(0.0)
+	var out: Dictionary = {
+		"verdicts": m.scenario._verdicts.duplicate(),
+		"over_after_first": after_first,
+		"over": m.scenario.is_match_over(),
+		"second_eliminated": (m.commanders[2] as Commander).is_eliminated,
+	}
+	RTSController.PLAYER_COMMANDER_ID = saved
+	m.free_all()
+	return out
+
+
+func test_judging_goes_on_after_the_local_player_is_out() -> void:
+	var seen: Dictionary = _ffa_verdicts(1)
+	assert_false(seen["over_after_first"], "two players are left")
+	assert_true(seen["second_eliminated"], "the others are still judged once the local one is out")
+	assert_true(seen["over"])
+	assert_eq(
+		seen["verdicts"],
+		{1: Scenario.Verdict.LOST, 2: Scenario.Verdict.LOST, 3: Scenario.Verdict.WON}
+	)
+
+
+func test_every_viewer_judges_the_same_match() -> void:
+	var from_one: Dictionary = _ffa_verdicts(1)
+	assert_eq(_ffa_verdicts(3), from_one, "a networked peer playing another seat")
+	assert_eq(_ffa_verdicts(0), from_one, "a spectator")
 
 
 func test_a_match_log_names_every_winner() -> void:

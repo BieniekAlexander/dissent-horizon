@@ -14,8 +14,22 @@ type: system-note
 
 Holds are **reason-keyed and counted** (`hold(reason)` / `release(reason)`), because more than one system may want the world stopped at once; the world resumes only when the last hold goes. Nothing "unpauses" — it releases its own hold.
 
+A hold stops one machine's world only, so a networked match takes no hold a player asks for: the clock takes no other hold in a networked scenario (`SimulationClock._refuses`), so pause is refused there and the pause menu is an overlay that holds nothing ([commands/netplay](../commands/netplay.md) §Rules). The one hold it does take is `REASON_NETWORK_WAIT`, while a peer's turn is late — on that machine alone, for as long as it is late, which is why the next rule matters.
+
 Nodes that must survive a hold declare `process_mode = PROCESS_MODE_ALWAYS` **at their own definition**, not in a list the clock owns:
 `RTSController` (and every HUD Control under it), `RTSCamera3D`, `ControlFeedbackSoundPlayer`, `ScenarioTriggerManager` (so the `ConditionPoller` keeps evaluating — that is how a paused beat notices the player did the thing it was waiting for), `ScenarioDialogView`, `ObjectiveView`, `ScenarioHighlight`.
+
+### A hold changes nothing but timing
+
+A match held for any number of frames, at any point, plays exactly as one never held: the replay of a match recorded through holds matches it digest for digest, and two netplay peers that stall differently stay in step. Three things the engine does through a pause would break that, and each is closed:
+
+- **`Engine.get_physics_frames()` keeps counting.** A weapon's lock-on, stealth's detection freshness, a cached path or an emission's launch frame measured in it would age through a hold. Simulation code reads `SimulationClock.physics_frame()` instead — the engine's count less every held frame — and `test_SeededRandomness` scans for the engine counters outside an acknowledged list.
+- **Pausing a navigation agent or obstacle re-registers it**, and avoidance solved after the resume differs from avoidance never interrupted — measured 2026-10-14: a hold released in the same frame it was taken moved a unit by tick 4. So `AvoidanceAgent3D` and the avoidance-obstacle component are `PROCESS_MODE_ALWAYS` (`test_AvoidanceNotPaused`).
+- **The navigation server is not paused by `SceneTree.paused`**, and with its agents kept registered it would keep stepping avoidance and moving pieces through the hold. The clock switches it off for a hold (`NavigationServer3D.set_active`), as `SceneTree.paused` already does the physics server; leaving the tree, and `SceneManager` leaving a scene, switch it back on.
+
+The `ConditionPoller` skips polling through `REASON_NETWORK_WAIT` alone: a level-triggered repeating trigger fires once per poll, and how long a network wait lasts differs per machine. Through every other hold it polls, which is what a tutorial beat needs. TODO: through a DIALOG hold the same repeat would fire a different number of times in a recording and its playback; no shipped mission has been checked for one.
+
+The rule holds for a hold taken at the start of a frame, as `OrderStream`'s is. A hold taken partway through a frame (a dialog raised by a trigger) stops only the nodes after it, which a recording and its playback do alike.
 
 **Careful in headless harnesses**: an in-tree clock pauses the WHOLE tree, GUT included. Tests either keep the clock out of the tree (orphan clocks skip the engine call and only do bookkeeping) or hold and release within one call so no frame elapses. `after_each` should `clear()`.
 

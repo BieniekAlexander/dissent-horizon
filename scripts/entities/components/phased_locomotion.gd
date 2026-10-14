@@ -166,7 +166,7 @@ func launch(
 	_lock_lost = false
 	_fall_ticks = 0
 	_excluded = a_excluded
-	_launch_frame = Engine.get_physics_frames()
+	_launch_frame = SimulationClock.physics_frame()
 	_phase_index = 0
 	_phase_ticks = 0
 	var phase: EmissionPhase = current_phase()
@@ -198,7 +198,7 @@ func begin_tick() -> Step:
 	)
 	if not (_phase_over or has_arrived):
 		return Step.CONTINUE
-	if Engine.get_physics_frames() == _launch_frame:
+	if SimulationClock.physics_frame() == _launch_frame:
 		return Step.HOLD
 	return Step.ENTERED if _enter_next_phase(has_arrived) else Step.FINISHED
 

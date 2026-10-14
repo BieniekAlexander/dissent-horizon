@@ -63,8 +63,20 @@ var tick: int = 0
 
 ## Latches on the first game_over, so whichever end-of-session verdict lands first (an
 ## authored EventWinLose, every objective completing, or the implicit elimination loss
-## below) is the one that stands.
+## below) is the one that stands. The LOCAL viewer's: under HEGEMONY it is read off the
+## per-commander verdicts, which every machine judges alike (_judge_hegemony).
 var _game_over_seen: bool = false
+
+## Every commander's verdict, judged inside the simulation for each one alike (HEGEMONY):
+## commander id -> Verdict, absent while undecided. What a viewer is told is read off it; nothing
+## here depends on who is watching. gdd/systems/commands/netplay.md §Decisions (the verdict).
+enum Verdict { UNDECIDED, WON, LOST }
+var _verdicts: Dictionary = {}
+## The match has ended for everyone (HEGEMONY: one alliance or none left standing), so nothing
+## more is judged.
+var _is_match_over: bool = false
+## The end-of-match summary has been put up: once per session, for whichever end came first.
+var _is_summary_shown: bool = false
 
 ## Arms the implicit elimination loss: set the first frame the local player owns anything,
 ## and never cleared. Until then "owns nothing" is the OPENING state, not a defeat —
@@ -90,6 +102,9 @@ var _player_has_had_base: bool = false
 ## A commander has just been removed from the match (HEGEMONY). The self-play harness reads
 ## the verdict off this and Scenario.is_eliminated.
 signal commander_eliminated(a_commander_id: int)
+## A commander's verdict has been decided (HEGEMONY): lost when its whole side is out, won or
+## lost when the match ends.
+signal verdict_reached(a_commander_id: int, a_has_won: bool)
 
 ## The match's event log: every summary and statistic of this match reads it, never the game.
 ## Null in the editor.
@@ -111,6 +126,11 @@ var recorder: ReplayRecorder = null
 ## A recording to PLAY BACK instead of a match to play: set before the scenario enters the tree,
 ## and it takes the seed and the orders from the recording. Null for a live match.
 var replay_to_play: ReplayFile = null
+## In a networked match, the commander THIS machine's player plays — its seat — set before the
+## scenario enters the tree. Every other human slot is a remote player's: a Bot with its brain
+## off, whose orders arrive over the network. -1, as in every single-machine session: the first
+## human slot is the local player. gdd/systems/commands/netplay.md §The model.
+var local_commander_id: int = -1
 
 ## For a skirmish the lobby built: the recipe it was built from (SkirmishLauncher), which the
 ## replay header records so playback regenerates the same map and slots. Empty for an authored
@@ -143,6 +163,7 @@ func _ready() -> void:
 	# reproducible if it is seeded ahead of every consumer. A playback plays its recording's seed.
 	if replay_to_play != null:
 		rng_seed = int(replay_to_play.header.get("seed", rng_seed))
+		local_commander_id = int(replay_to_play.header.get("local_commander_id", -1))
 	seed_simulation()
 	PurchaseTransaction.reset_ids()
 	# The viewed fog is a static, so a spectator session or a replay's view switch would
@@ -347,16 +368,15 @@ func is_eliminated(a_commander_id: int) -> bool:
 	return commander != null and commander.is_eliminated
 
 
-## HEGEMONY: every non-neutral commander is judged, not only the local player, because a
-## rival's removal is what the player's WIN is made of. A commander is armed the first tick
-## it owns a command centre and eliminated the first armed tick it owns none; eliminating it
-## frees its pieces (Commander.eliminate). Removal is per PLAYER, the verdict per ALLIANCE: the
-## local player loses when every commander on its side is removed — until then an eliminated
-## player keeps watching through its allies' shared vision — and wins when its side is armed and
-## every rival alliance is gone. A session with no rival never wins.
+## HEGEMONY: every non-neutral commander is judged alike, whoever this machine's player is — every
+## peer of a networked match runs this, and must reach the same state. A commander is armed the
+## first tick it owns a command centre and eliminated the first armed tick it owns none;
+## eliminating it frees its pieces (Commander.eliminate). Removal is per PLAYER, the verdict per
+## ALLIANCE (_judge_hegemony). Judging goes on until the match is over, whatever the local player's
+## verdict: in a free-for-all the others play on after one is out.
 ## gdd/systems/combat/target-acquisition.md §Alliances.
 func _check_hegemony() -> void:
-	if _game_over_seen:
+	if _is_match_over:
 		return
 	for commander: Variant in commanders:
 		var c: Commander = commander as Commander
@@ -367,31 +387,84 @@ func _check_hegemony() -> void:
 		elif _hegemony_armed.get(c.id, false):
 			c.eliminate()
 			commander_eliminated.emit(c.id)
-	var player: Commander = local_player()
-	if player == null:
-		_check_last_standing()
-		return
-	if _side_standing(player).is_empty():
-		_on_game_over(false)
-	elif _side_armed(player) and _rivals() > 0 and _rivals_standing() == 0:
-		_on_game_over(true)
+	_judge_hegemony()
+	_present_local_verdict()
 
 
-## A spectator session's HEGEMONY end: once commanders of two or more alliances have deployed
-## and only one alliance is left standing, the match is over and that alliance won. Ending it
-## records the verdict and shows the summary; it stops nothing, and the self-play harness still
-## adjudicates.
-func _check_last_standing() -> void:
-	var deployed: Dictionary = {}
+## A commander has LOST once every commander on its side is removed — until then an eliminated
+## player keeps watching through its allies' shared vision. The match is OVER once two or more
+## alliances have deployed and at most one is left standing: that alliance's commanders have WON
+## and everyone else has lost. A session with no rival never ends.
+func _judge_hegemony() -> void:
 	for commander: Variant in commanders:
 		var c: Commander = commander as Commander
-		if c != null and _hegemony_armed.get(c.id, false):
-			deployed[c.alliance] = true
-	if deployed.size() < 2:
+		if c != null and c.id != 0 and not _verdicts.has(c.id) and _side_standing(c).is_empty():
+			_decide(c.id, false)
+	var deployed: Array = commanders.filter(
+		func(c: Variant) -> bool: return c is Commander and _hegemony_armed.get(c.id, false)
+	)
+	if deployed.is_empty() or _one_alliance(deployed):
 		return
 	var standing: Array = _standing_commanders()
-	if not standing.is_empty() and _one_alliance(standing):
-		end_match((standing[0] as Commander).id)
+	if not standing.is_empty() and not _one_alliance(standing):
+		return
+	var winner: int = (standing[0] as Commander).id if not standing.is_empty() else -1
+	for commander: Variant in commanders:
+		var c: Commander = commander as Commander
+		if c != null and c.id != 0 and not _verdicts.has(c.id):
+			_decide(c.id, winner > 0 and c.is_allied_with(winner))
+	_is_match_over = true
+	if recorder != null:
+		recorder.write_autosave()
+	end_match(winner)
+
+
+func _decide(a_commander_id: int, a_has_won: bool) -> void:
+	_verdicts[a_commander_id] = Verdict.WON if a_has_won else Verdict.LOST
+	verdict_reached.emit(a_commander_id, a_has_won)
+
+
+## Commander `a_commander_id` forfeits: a networked player who went silent, removed from the match
+## as losing every command centre removes one (Commander.eliminate), and judged from there.
+## Applied by a FORFEIT order on the tick every remaining peer agreed.
+## gdd/systems/commands/netplay.md §Decisions (a silent peer).
+func forfeit(a_commander_id: int) -> void:
+	if a_commander_id < 1 or a_commander_id >= commanders.size():
+		return
+	var commander: Commander = commanders[a_commander_id]
+	if commander == null or commander.is_eliminated:
+		return
+	commander.eliminate()
+	commander_eliminated.emit(a_commander_id)
+
+
+## Commander `a_commander_id`'s verdict (HEGEMONY): UNDECIDED until its side is out or the match
+## is over.
+func verdict_of(a_commander_id: int) -> Verdict:
+	return _verdicts.get(a_commander_id, Verdict.UNDECIDED)
+
+
+func is_match_over() -> bool:
+	return _is_match_over
+
+
+## Tell the local viewer their verdict, once, the tick it is decided. A spectator has none; the
+## match's end shows them its summary (end_match). A playback is watched as a spectator is, so it
+## too waits for the match's end. Presentation only: the verdicts are already decided.
+func _present_local_verdict() -> void:
+	var player: Commander = local_player()
+	if _game_over_seen or player == null or verdict_of(player.id) == Verdict.UNDECIDED:
+		return
+	_game_over_seen = true
+	print(
+		(
+			"[Scenario] Game over — player %s"
+			% ("wins" if verdict_of(player.id) == Verdict.WON else "loses")
+		)
+	)
+	# Out while the others play on: the summary now, the match's end recorded when it comes.
+	if not _is_match_over and not is_playback():
+		_show_match_summary("Defeat")
 
 
 ## Non-neutral commanders not yet eliminated.
@@ -428,29 +501,6 @@ func _side_armed(a_commander: Commander) -> bool:
 	return false
 
 
-## Non-neutral commanders outside the local player's alliance.
-func _rivals() -> int:
-	var player: Commander = local_player()
-	var count: int = 0
-	for commander: Variant in commanders:
-		var c: Commander = commander as Commander
-		if c != null and c.id != 0 and not _is_on_player_side(player, c):
-			count += 1
-	return count
-
-
-func _rivals_standing() -> int:
-	var player: Commander = local_player()
-	var count: int = 0
-	for commander: Variant in commanders:
-		var c: Commander = commander as Commander
-		if c == null or c.id == 0 or c.is_eliminated:
-			continue
-		if not _is_on_player_side(player, c):
-			count += 1
-	return count
-
-
 func _is_on_player_side(a_player: Commander, a_commander: Commander) -> bool:
 	return a_player != null and a_player.is_allied_with(a_commander.id)
 
@@ -472,6 +522,18 @@ func _check_player_eliminated() -> void:
 	# scenario that never gives the player a base is never judged by the base rule.
 	if (_player_has_deployed and not in_play) or (_player_has_had_base and not has_base):
 		_on_game_over(false)
+
+
+## Whether this session plays a networked match (a NetMatch was added before it entered the tree).
+func is_networked() -> bool:
+	return get_node_or_null(NodePath(NetMatch.NODE_NAME)) != null
+
+
+## Whether debug mode may be switched on. Never in a networked match: spawning, deleting,
+## retuning, commanding any piece and playback speed each change one machine's simulation only.
+## gdd/systems/commands/netplay.md §Rules.
+func is_debug_permitted() -> bool:
+	return debug_allowed and not is_networked()
 
 
 ## The local human's Commander, or null in a spectator session (no human slot, so
@@ -584,6 +646,16 @@ func _missing_faction_slots() -> Array[int]:
 ## the exported build's log; the assert additionally halts a debug/editor run at the
 ## point of the mistake instead of letting a factionless commander boot.
 func _validate_player_slots() -> void:
+	assert(
+		(
+			local_commander_id < 1
+			or (
+				local_commander_id <= player_slots.size()
+				and not player_slots[local_commander_id - 1].is_bot
+			)
+		),
+		"%s: local_commander_id %d names no human slot" % [name, local_commander_id]
+	)
 	var missing: Array[int] = _missing_faction_slots()
 	if not missing.is_empty():
 		var message: String = (
@@ -701,7 +773,12 @@ func _build_commanders() -> void:
 		# the watcher gets the spectator camera and HUD (_ready). The human slot still names
 		# the local player below — the simulation reads it (the implicit elimination rule,
 		# HEGEMONY's verdict), so the playback judges the match as the recording did.
-		if slot.is_bot or is_playback():
+		# A remote player's slot is built as a playback builds every human slot: no rig, and a
+		# brain switched off (below), so debug mode can still hand the slot to it.
+		var is_remote_human: bool = (
+			not slot.is_bot and local_commander_id >= 1 and id != local_commander_id
+		)
+		if slot.is_bot or is_playback() or is_remote_human:
 			c = Bot.new()
 		else:
 			c = load("res://scenes/player.tscn").instantiate()
@@ -709,7 +786,7 @@ func _build_commanders() -> void:
 			# is: debug mode can swap the player (play_as), and every commander keeps its
 			# own exploration.
 			(c.get_node("Fog") as Fog).watching_commander_id = id
-		if not slot.is_bot and RTSController.PLAYER_COMMANDER_ID < 1:
+		if not slot.is_bot and not is_remote_human and RTSController.PLAYER_COMMANDER_ID < 1:
 			RTSController.PLAYER_COMMANDER_ID = id
 		c.id = id
 		# Apply the slot's starting resources. Set before the commander enters the
@@ -1015,7 +1092,7 @@ func alerts() -> AlertCenter:
 ## The node that receives the debug toggle, and the session's debug permission with it. First
 ## in _ready, so every HUD piece built after it reads this session's permission.
 func _create_debug_mode() -> void:
-	DebugMode.configure(debug_allowed)
+	DebugMode.configure(is_debug_permitted())
 	var debug_mode := DebugMode.new()
 	debug_mode.name = "DebugMode"
 	add_child(debug_mode)
@@ -1111,6 +1188,9 @@ func _on_game_over(a_won: bool) -> void:
 	if _game_over_seen:
 		return
 	_game_over_seen = true
+	# An authored or MISSION verdict is the local player's, and ends the session: those modes are
+	# single-player (netplay.md §Decisions, sessions).
+	_is_match_over = true
 	print("[Scenario] Game over — player %s" % ("wins" if a_won else "loses"))
 	if recorder != null:
 		recorder.write_autosave()
@@ -1131,11 +1211,13 @@ func _on_game_over(a_won: bool) -> void:
 ## End the match with `a_winner_id` the winner, or -1 for none — and its whole alliance with it:
 ## the event log records them and the summary is shown, whether or not the debug view is up.
 ## Once; a later call is ignored.
-func end_match(a_winner_id: int) -> void:
+## `a_title` heads the summary in place of the verdict (a networked match's desync).
+func end_match(a_winner_id: int, a_title: String = "") -> void:
 	if match_log == null or match_log.is_ended():
 		return
 	match_log.end(a_winner_id, alliance_of(a_winner_id))
-	_show_match_summary(_match_summary_title(a_winner_id))
+	if not _is_summary_shown:
+		_show_match_summary(a_title if a_title != "" else _match_summary_title(a_winner_id))
 
 
 ## The ids of every commander in `a_commander_id`'s alliance, itself included, ascending; empty
@@ -1169,6 +1251,10 @@ func _match_summary_title(a_winner_id: int) -> String:
 
 
 func _show_match_summary(a_title: String) -> void:
+	# No log, nothing to summarise: a scenario built bare, as the verdict tests build one.
+	if match_log == null:
+		return
+	_is_summary_shown = true
 	var layer := CanvasLayer.new()
 	layer.name = "MatchSummaryLayer"
 	layer.layer = MATCH_SUMMARY_LAYER

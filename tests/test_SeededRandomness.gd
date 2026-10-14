@@ -61,6 +61,23 @@ const _ACKNOWLEDGED_WALL_CLOCK_READS: Dictionary = {
 	"res://scripts/interface/commander/bot_scheduler.gd": "diagnostic job timing, never read back",
 	"res://scripts/replay/replay_recorder.gd": "names an autosave file",
 	"res://scripts/replay/replay_save_form.gd": "prefills a kept replay's name",
+	"res://scripts/netplay/net_match.gd": "times a silent peer; its forfeit is agreed by vote",
+}
+
+## Calls that read the ENGINE's frame counters, which keep counting through a SimulationClock
+## hold — a dialog, the pause menu, a network stall — so a timer measured in them ages on one
+## machine and not another. Simulation code measures frames with SimulationClock.physics_frame().
+## gdd/systems/scenario-scripting/dialogs-and-pause.md §A hold changes nothing but timing.
+const _ENGINE_FRAME_READS: Array[String] = [
+	"Engine.get_physics_frames", "Engine.get_process_frames"
+]
+
+## Scripts allowed to read them, each for a reason that never reaches the simulation.
+const _ACKNOWLEDGED_ENGINE_FRAME_READS: Dictionary = {
+	"res://scripts/scenario/simulation_clock.gd": "the held-aware counter is built on it",
+	"res://scripts/entities/components/status_visuals.gd": "a pulsing badge",
+	"res://scripts/interface/commander/commander.gd":
+	"a per-frame memo whose answer the frame does not change",
 }
 
 
@@ -188,6 +205,27 @@ func test_no_simulation_script_reads_the_wall_clock() -> void:
 		offenders,
 		[] as Array[String],
 		"wall-clock read(s) in simulation code — use the scenario tick, or acknowledge a UI use"
+	)
+
+
+## The same guard for the engine's frame counters, which a hold does not stop.
+func test_no_simulation_script_reads_the_engine_frame_counters() -> void:
+	var offenders: Array[String] = []
+	for path: String in _gd_scripts_under("res://scripts"):
+		if _ACKNOWLEDGED_ENGINE_FRAME_READS.has(path):
+			continue
+		var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+		var lines: PackedStringArray = file.get_as_text().split("\n")
+		file.close()
+		for i: int in lines.size():
+			var code: String = _strip_strings_and_comments(lines[i])
+			for read: String in _ENGINE_FRAME_READS:
+				if code.contains(read + "("):
+					offenders.append("%s:%d" % [path, i + 1])
+	assert_eq(
+		offenders,
+		[] as Array[String],
+		"engine frame counter read(s) in simulation code — use SimulationClock.physics_frame()"
 	)
 
 

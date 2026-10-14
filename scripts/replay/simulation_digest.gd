@@ -2,13 +2,30 @@ class_name SimulationDigest
 extends RefCounted
 
 ## A short hash of everything the simulation is currently made of — the determinism check's
-## whole instrument, shared by the self-play harness and replay. Two runs of one seed must
-## produce the same digest at the same tick; the first tick at which they differ is where the
-## divergence entered. gdd/systems/commands/recording-and-replay.md §Detecting drift.
+## whole instrument, shared by the self-play harness, replay and (PLANNED) netplay. Two runs of
+## one seed must produce the same digest at the same tick; the first tick at which they differ
+## is where the divergence entered. gdd/systems/commands/recording-and-replay.md §Detecting drift,
+## gdd/systems/commands/netplay.md §Decisions.
+##
+## COVERAGE: everything a physics tick governs, not only where pieces stand. A divergence in an
+## order queue, a cooldown, a production job or a random draw is otherwise invisible until it
+## moves a unit or changes its HP, which can be many seconds later. The list below is also the
+## first draft of the state inventory a rollback snapshot needs (netplay.md §Rollback, later):
+##   * the gameplay random stream (`SU.rng`) and every bot brain's own stream;
+##   * per commander: energy, dominion, the production queue's length, upgrades owned, whether
+##     it is eliminated;
+##   * per piece: position, velocity, HP, its command chain (each command's class, target and
+##     destination), every weapon's split, reload and ammo, its production jobs and the ticks
+##     left on them, every ability pool's charges and recharge, and its active status effects;
+##   * every other entity a commander holds (an emission in flight, say): where it is.
+## TODO: Godot's GLOBAL generator, which authored `Expression`s draw from, has no readable state,
+## so it is not covered; a draw from it that diverges shows only through what it changes.
 ##
 ## SORTED before hashing, and that is the load-bearing part: entity order within a commander
-## follows tree order, which is not something the simulation guarantees. An unsorted digest
-## would report divergence that is not there.
+## follows tree order, which is not something the simulation guarantees. Pieces are sorted by
+## `Entity.spawn_serial` — handed out in spawn order, so the same on every machine — and each
+## one's line leads with it, so a diff of two state strings names the exact piece that drifted.
+## An entity without a serial (an emission is not a piece) sorts after the pieces, by its line.
 
 ## How many hex characters of the SHA-256 a digest keeps: enough that two different states
 ## colliding is not a concern, short enough to read in a log line.
@@ -22,23 +39,127 @@ static func of(scenario: Scenario) -> String:
 ## The digest's INPUT, before hashing. A mismatched digest says only THAT two runs differ — this
 ## says WHICH entity, which is the whole of a divergence hunt.
 static func state_string(scenario: Scenario) -> String:
-	var parts: PackedStringArray = []
+	var parts: PackedStringArray = ["rng:%d" % SU.rng.state]
 	for commander: Commander in scenario.commanders:
 		if commander == null:
 			continue
-		var entities: PackedStringArray = []
-		for child: Node in commander.get_children():
-			var entity := child as Actor
-			if entity == null or entity.is_queued_for_deletion():
-				continue
-			var hp: float = entity.defense.hp if entity.defense != null else 0.0
-			var at: Vector3 = entity.global_position
-			entities.append("%s@%.3f,%.3f,%.3f#%.2f" % [entity.id, at.x, at.y, at.z, hp])
-		entities.sort()
-		parts.append(
-			(
-				"c%d:e%d:d%d:%s"
-				% [commander.id, commander.energy, commander.dominion, "|".join(entities)]
-			)
-		)
+		parts.append(_commander_part(commander))
 	return "|".join(parts)
+
+
+static func _commander_part(a_commander: Commander) -> String:
+	var serialed: Array = []
+	var unserialed: PackedStringArray = []
+	for child: Node in a_commander.get_children():
+		var entity := child as Entity
+		if entity == null or entity.is_queued_for_deletion():
+			continue
+		if entity.spawn_serial != 0:
+			serialed.append([entity.spawn_serial, _entity_line(entity)])
+		else:
+			unserialed.append(_entity_line(entity))
+	serialed.sort_custom(func(a: Array, b: Array) -> bool: return int(a[0]) < int(b[0]))
+	unserialed.sort()
+	var lines: PackedStringArray = []
+	for entry: Array in serialed:
+		lines.append(str(entry[1]))
+	lines.append_array(unserialed)
+
+	var bot_rng: String = "-"
+	var bot := a_commander as Bot
+	if bot != null and bot.brain() != null and bot.brain().rng != null:
+		bot_rng = str(bot.brain().rng.state)
+	var queued: int = (
+		a_commander.production_queue.entries.size() if a_commander.production_queue != null else 0
+	)
+	return (
+		"c%d:e%d:d%d:q%d:u%d:x%d:r%s:%s"
+		% [
+			a_commander.id,
+			a_commander.energy,
+			a_commander.dominion,
+			queued,
+			a_commander.owned_upgrades().size(),
+			1 if a_commander.is_eliminated else 0,
+			bot_rng,
+			";".join(lines),
+		]
+	)
+
+
+static func _entity_line(a_entity: Entity) -> String:
+	var at: Vector3 = a_entity.global_position
+	var line: String = (
+		"#%d %s@%.3f,%.3f,%.3f" % [a_entity.spawn_serial, a_entity.id, at.x, at.y, at.z]
+	)
+	var actor := a_entity as Actor
+	if actor == null:
+		return line
+	var hp: float = actor.defense.hp if actor.defense != null else 0.0
+	var v: Vector3 = actor.velocity
+	line += " hp%.2f v%.3f,%.3f,%.3f" % [hp, v.x, v.y, v.z]
+	line += " c[%s]" % _commands(actor)
+	line += " w[%s]" % _weapons(actor)
+	line += " p[%s]" % _production(actor)
+	line += " a[%s]" % _abilities(actor)
+	line += " s[%s]" % _effects(actor)
+	return line
+
+
+## Each command in the chain, current first: its class, the serial of its target and where it
+## is headed.
+static func _commands(a_actor: Actor) -> String:
+	if a_actor.command_receiver == null:
+		return ""
+	var out: PackedStringArray = []
+	for command: MoveCommand in a_actor.command_receiver.get_command_chain():
+		if command == null:
+			continue
+		var script: Script = command.get_script()
+		var kind: String = String(script.get_global_name()) if script != null else "?"
+		var target_serial: int = 0
+		var to: Vector3 = Vector3.ZERO
+		if command.message != null:
+			if is_instance_valid(command.message.target):
+				target_serial = command.message.target.spawn_serial
+			to = command.message.world_position
+		out.append("%s>%d@%.2f,%.2f,%.2f" % [kind, target_serial, to.x, to.y, to.z])
+	return ",".join(out)
+
+
+static func _weapons(a_actor: Actor) -> String:
+	if a_actor.weapon_inventory == null:
+		return ""
+	var out: PackedStringArray = []
+	for weapon: Weapon in a_actor.weapon_inventory.get_weapons():
+		out.append(weapon.digest_token())
+	return ",".join(out)
+
+
+static func _production(a_actor: Actor) -> String:
+	if a_actor.production == null:
+		return ""
+	return "%d/%d" % [a_actor.production.job_count(), a_actor.production.remaining_ticks()]
+
+
+static func _abilities(a_actor: Actor) -> String:
+	var abilities := a_actor.get_node_or_null("Abilities") as Abilities
+	if abilities == null:
+		return ""
+	var out: PackedStringArray = []
+	for i: int in abilities.pool_count():
+		out.append("%d:%.4f" % [abilities.pool_charges(i), abilities.pool_recharge_fraction(i)])
+	return ",".join(out)
+
+
+static func _effects(a_actor: Actor) -> String:
+	var out: PackedStringArray = []
+	for child: Node in a_actor.get_children():
+		var effect := child as StatusEffect
+		if effect == null or not effect.is_active():
+			continue
+		var script: Script = effect.get_script()
+		var kind: String = String(script.get_global_name()) if script != null else "?"
+		out.append("%s:x%d:%.4f" % [kind, effect.stacks, effect.remaining_fraction()])
+	out.sort()
+	return ",".join(out)

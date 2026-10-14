@@ -133,4 +133,6 @@ func _resume() -> void:
 	var tree: SceneTree = get_tree()
 	if tree != null:
 		tree.paused = false
+	# SimulationClock switches the navigation server off for a hold; the next scene needs it on.
+	NavigationServer3D.set_active(true)
 #endregion

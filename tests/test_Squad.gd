@@ -156,6 +156,24 @@ func test_a_member_off_the_tree_stays_a_member_but_is_neither_ordered_nor_averag
 	add_child(held)
 
 
+func test_a_member_that_takes_no_orders_is_never_ordered() -> void:
+	var a: Actor = _unit()
+	# A piece that takes no orders: what `commandable: false` builds, made here by taking the
+	# component away once the stub has used it to enter the tree.
+	var mute: Actor = _unit()
+	var orders: Orders = mute.orders
+	mute.orders = null
+	mute.remove_child(orders)
+	orders.free()
+	_squad.add_all([a, mute])
+	var policy := RecordingPolicy.new("hold")
+	_squad.policy = policy
+	_squad.tick()
+	_squad.tick()
+	assert_eq(policy.issued, [[a]], "ordered once, without the piece that cannot take one")
+	assert_true(_squad.has(mute), "still a member")
+
+
 func test_absorb_moves_every_member_across() -> void:
 	var a: Actor = _unit()
 	var b: Actor = _unit()

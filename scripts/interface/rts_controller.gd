@@ -328,10 +328,14 @@ var pending_command_name: String = ""
 ## be two orders wearing one gesture.
 var pending_selection: Array[PurchaseTransaction] = []
 
-## One WaypointIndicator node per active CommandMessage snapshot, pooled to
-## avoid per-command allocations.  All indicator nodes live under the Map node.
-var _active_indicators: Dictionary = {}  # CommandMessage -> WaypointIndicator
-var _indicator_pool: Array = []  # idle WaypointIndicator nodes
+## Every WaypointIndicator node, pooled to avoid per-frame allocations; each frame hands them out
+## in order to whatever waypoints are drawn (_update_waypoint_display). All live under the Map.
+var _indicator_pool: Array = []
+## Orders this controller has submitted and the stream has not applied yet, each with where it
+## sends each unit: {key: the order's identity, destinations: {Actor: Vector3}, queue: bool}.
+## Drawn at once, so input delay is never seen on a click; dropped when the order applies, its
+## waypoints from then on read off the units' own commands.
+var _order_previews: Array = []
 
 #region Range display
 ## Draws REACH on the ground — what the player is currently asking "how far does this go?"
@@ -3591,36 +3595,36 @@ func _submit_command(
 ) -> void:
 	var stream: OrderStream = _order_stream()
 	if stream == null:
-		var indicated: Array[CommandMessage] = OrderDispatcher.apply_command(
+		OrderDispatcher.apply_command(
 			map,
 			a_command_type,
 			selection.duplicate(),
 			CommandMessage.deep_copy(a_message),
 			a_modifiers
 		)
-		for snapshot: CommandMessage in indicated:
-			_register_indicator(snapshot)
 		return
 	var commander: Commander = _commander() if _commander() != null else a_lead.commander
-	stream.submit(
-		PlayerOrder.command(commander.id, a_command_type, selection, a_message, a_modifiers)
+	var order: PlayerOrder = PlayerOrder.command(
+		commander.id, a_command_type, selection, a_message, a_modifiers
 	)
+	_preview_order(order, a_command_type, a_message, a_modifiers)
+	stream.submit(order)
 
 
 func _order_stream() -> OrderStream:
 	return _scenario.order_stream if _scenario != null else null
 
 
-## An order this controller's player gave has been applied: show its waypoints, and refresh the
-## card for a toggle, whose state only changes now.
+## An order this controller's player gave has been applied: its preview gives way to the
+## waypoints its units now carry, and the card is refreshed for a toggle, whose state only changes
+## now. Nothing here draws a waypoint: those are read off the simulation each frame.
 func _on_order_applied(a_order: PlayerOrder, a_results: Array) -> void:
 	var commander: Commander = _commander()
 	if commander == null or a_order.commander_id != commander.id:
 		return
 	match a_order.kind:
 		PlayerOrder.Kind.COMMAND, PlayerOrder.Kind.PENDING_COMMAND:
-			for snapshot: CommandMessage in a_results:
-				_register_indicator(snapshot)
+			_drop_preview(a_order)
 		PlayerOrder.Kind.DROP:
 			_select_landed(a_results, bool(a_order.data.get("queue", false)))
 			upate_hud_buttons()
@@ -3777,14 +3781,13 @@ func assign_command_to_pending(
 	var ordered: bool = not pending_selection.is_empty()
 	var stream: OrderStream = _order_stream()
 	if ordered and stream == null:
-		for snapshot: CommandMessage in OrderDispatcher.apply_pending_command(
+		OrderDispatcher.apply_pending_command(
 			map,
 			command_type,
 			pending_selection,
 			CommandMessage.deep_copy(a_command_message),
 			a_add_to_queue
-		):
-			_register_indicator(snapshot)
+		)
 	elif ordered:
 		var owner: Commander = (pending_selection[0] as PurchaseTransaction).commander
 		var order := PlayerOrder.new(
@@ -4715,52 +4718,111 @@ func _make_indicator() -> WaypointIndicator:
 	return ind
 
 
-func _register_indicator(a_msg: CommandMessage) -> void:
+## Show waypoint indicators for the current selection. Called every frame so the line from a
+## moving unit to its first waypoint stays accurate. Two sources, both read fresh each frame:
+## every message a player's order placed in a selected unit's chain (CommandMessage.shows_waypoint),
+## and every submitted order the stream has not applied yet (_order_previews). Only this
+## player's own units: selecting another's must not show where it was sent.
+func _update_waypoint_display() -> void:
+	var used: int = 0
+	var drawn: Dictionary = {}  # CommandMessage -> true, so a shared message is drawn once
+	var own: Commander = _commander()
+	for entity: Node in selection:
+		var unit := entity as Actor
+		if unit == null or own == null or unit.commander_id != own.id:
+			continue
+		# world_position, not global_position: a garrisoned unit's line starts at its host.
+		var previous: Vector3 = unit.world_position()
+		for command: MoveCommand in unit.get_command_chain():
+			var message: CommandMessage = command.message
+			if message.shows_waypoint and not drawn.has(message):
+				drawn[message] = true
+				_show_indicator(used, message.position, previous)
+				used += 1
+			previous = message.position
+	for preview: Dictionary in _order_previews:
+		var destinations: Dictionary = preview["destinations"]
+		for unit: Variant in destinations:
+			if not is_instance_valid(unit) or not selection.has(unit):
+				continue
+			var from: Vector3 = (unit as Actor).world_position()
+			if bool(preview["queue"]):
+				for command: MoveCommand in (unit as Actor).get_command_chain():
+					from = command.message.position
+			_show_indicator(used, destinations[unit], from)
+			used += 1
+	for i: int in range(used, _indicator_pool.size()):
+		(_indicator_pool[i] as WaypointIndicator).visible = false
+
+
+## Show the pool's `a_index`-th indicator at `a_at`, its line drawn from `a_from`; grows the pool
+## when a frame draws more waypoints than it has ever drawn.
+func _show_indicator(a_index: int, a_at: Vector3, a_from: Vector3) -> void:
 	if map == null:
 		return
-	if _indicator_pool.is_empty():
+	while _indicator_pool.size() <= a_index:
 		_indicator_pool.append(_make_indicator())
-	var ind: WaypointIndicator = _indicator_pool.pop_back()
-	_active_indicators[a_msg] = ind
-	a_msg.unreferenced.connect(_on_message_unreferenced.bind(a_msg), CONNECT_ONE_SHOT)
+	var indicator: WaypointIndicator = _indicator_pool[a_index]
+	indicator.configure(a_at, a_from)
+	indicator.visible = true
 
 
-func _on_message_unreferenced(a_msg: CommandMessage) -> void:
-	var ind = _active_indicators.get(a_msg)
-	if ind == null:
+## Draw `a_order` from the moment it is given: where the dispatcher, by its own rules, will send
+## each unit — the recipients it picks (OrderDispatcher.recipients) and each one's destination
+## (its move line or its fan) — until the stream applies it. Orders without a place draw nothing.
+## gdd/systems/commands/netplay.md §Decisions (order feedback).
+func _preview_order(
+	a_order: PlayerOrder, a_command_type: Script, a_message: CommandMessage, a_modifiers: Dictionary
+) -> void:
+	if map == null or not a_command_type.requires_position():
 		return
-	ind.visible = false
-	_active_indicators.erase(a_msg)
-	_indicator_pool.append(ind)
-
-
-## Show waypoint indicators for the current selection.  Called every frame so
-## the line from a moving unit to its first waypoint stays accurate.
-func _update_waypoint_display() -> void:
-	for ind in _active_indicators.values():
-		(ind as WaypointIndicator).visible = false
-
-	if selection.is_empty() or _active_indicators.is_empty():
+	var message: CommandMessage = CommandMessage.deep_copy(a_message)
+	var units: Array = OrderDispatcher.recipients(
+		a_command_type, selection.duplicate(), message, a_modifiers
+	)
+	if units.is_empty():
 		return
+	var line: Array = a_modifiers.get("line", [])
+	var planar: Dictionary = (
+		OrderDispatcher.line_destinations(
+			units, OrderDispatcher.line_point(line, 0), OrderDispatcher.line_point(line, 2)
+		)
+		if not line.is_empty()
+		else OrderDispatcher.fanned_destinations(map, a_command_type, units, message)
+	)
+	var destinations: Dictionary = {}
+	for unit: Variant in units:
+		var xz: Vector2 = planar.get(unit, message.xz_position)
+		destinations[unit] = Vector3(xz.x, map.terrain_height_at(xz), xz.y)
+	(
+		_order_previews
+		. append(
+			{
+				"key": _order_key(a_order),
+				"destinations": destinations,
+				"queue": bool(a_modifiers.get("queue", false)),
+			}
+		)
+	)
 
-	# Walk every selected unit's chain so the union of all their active
-	# indicators is shown, not just the first representative's.
-	var configured: Dictionary = {}  # CommandMessage -> true, prevents double-configure
-	for entity in selection:
-		if not (entity is Actor):
-			continue
-		var unit := entity as Actor
-		var chain := unit.get_command_chain()
-		# world_position, not global_position: a garrisoned unit's line starts at its host.
-		var prev_pos: Vector3 = unit.world_position()
-		for cmd in chain:
-			var msg: CommandMessage = cmd.message
-			if _active_indicators.has(msg) and not configured.has(msg):
-				var ind: WaypointIndicator = _active_indicators[msg]
-				ind.configure(msg.position, prev_pos)
-				ind.visible = true
-				configured[msg] = true
-			prev_pos = msg.position
+
+## Drop the preview of `a_order`, now applied. Matched by content, not identity: in a networked
+## match the order applied is the copy decoded off the wire.
+func _drop_preview(a_order: PlayerOrder) -> void:
+	var key: String = _order_key(a_order)
+	for i: int in _order_previews.size():
+		if _order_previews[i]["key"] == key:
+			_order_previews.remove_at(i)
+			return
+
+
+## An order's identity for matching its preview: what it is and whose, in wire form, without the
+## tick it was stamped with on applying.
+static func _order_key(a_order: PlayerOrder) -> String:
+	var body: Dictionary = {
+		"kind": a_order.kind, "commander": a_order.commander_id, "data": a_order.data
+	}
+	return JSON.stringify(JSON.parse_string(JSON.stringify(body)))
 
 
 ## Ring the structures that could build the queued purchase the cursor is over — the world
@@ -4911,9 +4973,11 @@ func _setup_sanction_bar() -> void:
 		btn.pressed.connect(_on_deploy_button_pressed.bind(ability))
 		if _has_autocast(ability):
 			btn.gui_input.connect(_on_deploy_button_input.bind(btn, ability))
+		var pair: Dictionary = {"button": btn, "ability": ability, "entry": null}
+		# Tooltip first: entering the tree without one is reported as an authoring bug.
+		_refresh_deploy_tooltips(pair)
 		_sanction_bar_row.add_child(btn)
-		_deploy_buttons.append({"button": btn, "ability": ability, "entry": null})
-		_refresh_deploy_tooltips(_deploy_buttons[-1])
+		_deploy_buttons.append(pair)
 
 
 ## Whether `a_ability_id` has an automatic mode its buttons toggle.

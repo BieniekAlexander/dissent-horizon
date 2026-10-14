@@ -77,7 +77,7 @@ func _ready() -> void:
 ## Called by a detecting entity each physics frame it overlaps this unit.
 ## Stamps the current frame index; tick() uses this to drive the REVEALED state.
 func reveal() -> void:
-	_last_detected_frame = Engine.get_physics_frames()
+	_last_detected_frame = SimulationClock.physics_frame()
 
 
 ## Called when this unit attacks or is attacked. Forces the timed UNSTEALTHED
@@ -95,7 +95,7 @@ func tick() -> void:
 	var was: State = state
 	var detected: bool = (
 		_last_detected_frame >= 0
-		and Engine.get_physics_frames() - _last_detected_frame <= REVEAL_FRESH_FRAMES
+		and SimulationClock.physics_frame() - _last_detected_frame <= REVEAL_FRESH_FRAMES
 	)
 
 	# An open combat window pins the unit UNSTEALTHED until the timer elapses,
