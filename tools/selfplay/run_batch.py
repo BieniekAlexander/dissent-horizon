@@ -163,6 +163,8 @@ def main():
     parser.add_argument("--resume", action="store_true",
                         help="skip ids already present in --out")
     args = parser.parse_args()
+    # Resolved through PATHEXT, so a `godot.cmd` shim runs on Windows too.
+    args.godot = shutil.which(args.godot) or args.godot
 
     configs = load_configs(args.matches)
     if args.resume and os.path.exists(args.out):

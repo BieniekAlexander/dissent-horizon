@@ -8,13 +8,26 @@
 #   tools/build_native.sh --release  also the release library an export ships
 #
 # Needs a C++17 compiler and SCons (`pip install scons`; on macOS also the Xcode command-line
-# tools, `xcode-select --install`). The engine API it builds against is project.godot's engine
-# version, so bumping Godot needs no edit here — only a godot-cpp that supports it.
+# tools, `xcode-select --install`; on Windows MSVC, run from Git Bash or through
+# tools/build_native.ps1). The engine API it builds against is project.godot's engine version, so bumping Godot needs no edit here — only a godot-cpp that supports it.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-if ! command -v scons >/dev/null 2>&1; then
+# `scons` when its launcher is on PATH; otherwise the module, since a `pip install --user` (the
+# usual install on Windows) leaves the launcher in a Scripts directory that is often not on PATH.
+scons=()
+if command -v scons >/dev/null 2>&1; then
+  scons=(scons)
+else
+  for py in python3 python py; do
+    if command -v "$py" >/dev/null 2>&1 && "$py" -c 'import SCons' >/dev/null 2>&1; then
+      scons=("$py" -m SCons)
+      break
+    fi
+  done
+fi
+if [ ${#scons[@]} -eq 0 ]; then
   echo "build_native: SCons not found — install it with 'pip install scons'" >&2
   exit 1
 fi
@@ -29,7 +42,7 @@ if [ -z "$api_version" ]; then
   exit 1
 fi
 
-jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)"
+jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo "${NUMBER_OF_PROCESSORS:-2}")"
 targets=(template_debug)
 if [ "${1:-}" = "--release" ]; then
   targets+=(template_release)
@@ -52,6 +65,6 @@ fi
 for target in "${targets[@]}"; do
   # The profile limits godot-cpp to the engine classes native/src uses, which is most of
   # what a first build costs; a class used without being listed there fails to compile.
-  scons -C "$ROOT/native" -j "$jobs" target="$target" api_version="$api_version" \
+  "${scons[@]}" -C "$ROOT/native" -j "$jobs" target="$target" api_version="$api_version" \
     build_profile="$ROOT/native/build_profile.json" ${sdk_args[@]+"${sdk_args[@]}"}
 done

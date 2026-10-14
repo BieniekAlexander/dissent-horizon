@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import statistics
 import subprocess
 import sys
@@ -246,6 +247,9 @@ def main(argv: Sequence[str]) -> int:
     parser.add_argument("--jobs", type=int, default=DEFAULT_JOBS, help="processes at once")
     parser.add_argument("--godot", default=os.environ.get("GODOT", "godot"), help="binary")
     args = parser.parse_args(argv)
+    # Resolved through PATHEXT, so the `godot.cmd` shim tools/install_godot.ps1 installs runs on
+    # Windows: subprocess launches a bare name there only if it is an .exe.
+    args.godot = shutil.which(args.godot) or args.godot
 
     files: list[str] = discover(REPO_ROOT, args.patterns)
     if not files:
