@@ -117,6 +117,7 @@ func test_a_unit_consumed_mid_occupy_tears_down_cleanly() -> void:
 	var captive: Actor = _entity(SOLDIER_PATH, 2)
 	captive.update_commands(Occupy.new(_message_for(transport)))
 	captive.current_command().get_updated_state(captive)
+	captive.current_command().apply_state(captive)
 	var hold := Garrison.new()
 	hold.sentence_length = 1.0
 	hold.bunker = false  # a prison, like the Compound
@@ -134,6 +135,7 @@ func test_a_replaced_occupy_releases_the_exceptions() -> void:
 	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	soldier.update_commands(Occupy.new(_message_for(transport)))
 	soldier.current_command().get_updated_state(soldier)
+	soldier.current_command().apply_state(soldier)
 	assert_true(soldier.get_collision_exceptions().has(transport), "the approach exempts the host")
 	soldier.update_commands(null)
 	assert_false(soldier.get_collision_exceptions().has(transport), "released with the order")
@@ -149,6 +151,7 @@ func test_a_displaced_occupy_dropped_from_the_queue_releases_the_exceptions() ->
 	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	soldier.update_commands(Occupy.new(_message_for(transport)))
 	soldier.current_command().get_updated_state(soldier)
+	soldier.current_command().apply_state(soldier)
 	soldier.update_commands(
 		MoveCommand.new(CommandMessage.new(null, null, null, Vector3.ONE)), false, true
 	)

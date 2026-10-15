@@ -94,21 +94,25 @@ var _occupant_ordered: bool = false
 
 
 #region State updates
-## Hands the Occupy out on the first tick — not at construction — so a QUEUED Embark does
-## not order the passenger aboard while the host is still busy with something else. The
-## occupant's own orders are REPLACED, matching a right-click: being called into a
-## transport is an order like any other.
-func get_updated_state(a_actor: Actor) -> Variant:
+## Finished once the passenger is aboard or gone.
+func get_updated_state(_a_actor: Actor) -> Variant:
 	var occupant := message.target as Actor
 	# is_instance_valid() still reports true for a unit that has GARRISONED — entering a
 	# garrison orphans the node without freeing it — so tree membership is what says the
 	# order is finished. The dead case reads the same way and wants the same answer.
 	if occupant == null or not is_instance_valid(occupant) or not occupant.is_inside_tree():
 		return null
+	return self
+
+
+## Hands the Occupy out on the first tick — not at construction — so a QUEUED Embark does
+## not order the passenger aboard while the host is still busy with something else. The
+## occupant's own orders are REPLACED, matching a right-click: being called into a
+## transport is an order like any other.
+func apply_state(a_actor: Actor) -> void:
 	if not _occupant_ordered:
 		_occupant_ordered = true
-		_order_occupant(a_actor, occupant)
-	return self
+		_order_occupant(a_actor, message.target as Actor)
 
 
 ## The passenger it called in. The host side of the same exemption Occupy states: the two are

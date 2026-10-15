@@ -141,6 +141,7 @@ func test_the_first_tick_hands_the_passenger_an_occupy() -> void:
 	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	var command := Embark.new(_message_for(soldier))
 	assert_eq(command.get_updated_state(transport), command, "and the order carries on")
+	command.apply_state(transport)
 	var handed: MoveCommand = soldier.current_command()
 	assert_true(handed is Occupy, "the passenger was ordered aboard")
 	assert_eq(handed.message.target, transport, "aimed back at the host that called it")
@@ -153,8 +154,10 @@ func test_the_passenger_is_not_re_ordered_every_tick() -> void:
 	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	var command := Embark.new(_message_for(soldier))
 	command.get_updated_state(transport)
+	command.apply_state(transport)
 	soldier.update_commands(Stop.new(_message_for(null)))
 	command.get_updated_state(transport)
+	command.apply_state(transport)
 	assert_true(soldier.current_command() is Stop, "the player's later order stands")
 
 
@@ -165,6 +168,7 @@ func test_the_order_ends_once_the_passenger_is_aboard() -> void:
 	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	var command := Embark.new(_message_for(soldier))
 	command.get_updated_state(transport)
+	command.apply_state(transport)
 	transport.garrison.garrison(soldier)
 	assert_true(is_instance_valid(soldier), "still alive, just out of the world")
 	assert_null(command.get_updated_state(transport))
@@ -177,6 +181,7 @@ func test_an_immobile_host_hands_the_order_out_and_stays_put() -> void:
 	var soldier: Actor = _entity(SOLDIER_PATH, 1)
 	var command := Embark.new(_message_for(soldier))
 	command.get_updated_state(bunker)
+	command.apply_state(bunker)
 	assert_true(soldier.current_command() is Occupy)
 	assert_false(command.should_move(bunker))
 
