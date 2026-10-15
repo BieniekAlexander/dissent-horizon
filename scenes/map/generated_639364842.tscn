@@ -74,10 +74,6 @@ shape = SubResource("HeightMapShape3D_qu8at")
 material = SubResource("ShaderMaterial_hj6b2")
 mesh = SubResource("ArrayMesh_smaq7")
 
-[node name="GeneratedMesh" type="MeshInstance3D" parent="NavigationRegion/Body/HeightmapMeshGenerator" unique_id=15193334]
-material_override = SubResource("ShaderMaterial_hj6b2")
-mesh = SubResource("ArrayMesh_smaq7")
-
 [node name="StartPoint1" type="Marker3D" parent="." unique_id=1611176909 groups=["start_position"] instance=ExtResource("6_cgdyv")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.5, 6.3809204, -40.5)
 script = ExtResource("7_5wdca")

@@ -101,10 +101,53 @@ func test_packing_restores_the_node_to_its_scenario() -> void:
 	scenario.name = "Scenario"
 	add_child_autofree(scenario)
 	var map: Map = _built()
+	var authored: Array[Node] = map.get_children()
 	GeneratedMapWriter.adopt(scenario, map)
 	assert_eq(map.name, StringName(GeneratedMapWriter.MAP_NODE_NAME))
 	assert_eq(map.owner, scenario)
 	assert_eq(GeneratedMapWriter.pack(map, _SCENE_PATH), OK)
 	assert_eq(map.owner, scenario, "still the scenario's after being packed")
-	for child: Node in map.get_children():
-		assert_eq(child.owner, scenario, "and so is everything under it")
+	for child: Node in authored:
+		assert_eq(child.owner, scenario, "and so is everything built under it")
+
+
+## What the map derives on entering the tree — the terrain's GeneratedMesh, the Decoration and
+## the props under it — is rebuilt at every load. Owning it would let the next save of the
+## Scenario write a second copy, drawn beside the one load makes.
+func test_derived_nodes_stay_unowned_through_adopt_and_pack() -> void:
+	var scenario := Node3D.new()
+	scenario.name = "Scenario"
+	add_child_autofree(scenario)
+	var map: Map = _built()
+	GeneratedMapWriter.adopt(scenario, map)
+	var derived: Array[Node] = [_generated_mesh(map), map.decorator]
+	derived.append_array(map.decorator.get_children())
+	assert_gt(map.decorator.get_child_count(), 0, "the fixture map grows props to test")
+	assert_eq(GeneratedMapWriter.pack(map, _SCENE_PATH), OK)
+	for node: Node in derived:
+		assert_null(node.owner, "%s is derived, so no scene owns it" % node.name)
+	var state: SceneState = (load(_SCENE_PATH) as PackedScene).get_state()
+	for i: int in state.get_node_count():
+		assert_false(
+			String(state.get_node_name(i)) in ["GeneratedMesh", "Decoration"],
+			"%s was packed into the map scene" % state.get_node_name(i)
+		)
+
+
+## The rule itself, against a hand-made derived node: unowned stays unowned, and so does
+## everything under it.
+func test_an_unowned_subtree_stays_unowned_when_packed() -> void:
+	var map: Map = _built()
+	var derived := Node3D.new()
+	derived.name = "Derived"
+	map.add_child(derived)
+	var inner := Node3D.new()
+	derived.add_child(inner)
+	assert_eq(GeneratedMapWriter.pack(map, _SCENE_PATH), OK)
+	assert_null(derived.owner)
+	assert_null(inner.owner)
+
+
+func _generated_mesh(a_map: Map) -> Node:
+	var generator: Node = a_map.terrain_body.get_node("HeightmapMeshGenerator")
+	return generator.get_node("GeneratedMesh")

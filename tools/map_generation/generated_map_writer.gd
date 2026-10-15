@@ -167,10 +167,14 @@ static func pack(a_map: Map, a_scene_path: String) -> Error:
 	return error
 
 
-## Give every descendant of `a_node` the same owner, which is what decides whether a node is
+## Move every OWNED descendant of `a_node` to `a_owner`, which is what decides whether a node is
 ## saved with a scene: the Map owns its own when packed alone, the Scenario owns it in a scene.
+## An unowned node is derived at load (the terrain's GeneratedMesh, the Decoration) and stays
+## unowned, subtree and all: owning it would save a second copy beside the one load rebuilds.
 static func _own_subtree(a_node: Node, a_owner: Node) -> void:
 	for child: Node in a_node.get_children():
+		if child.owner == null:
+			continue
 		# An instanced scene keeps its own internals; only its root is owned here.
 		child.owner = a_owner
 		if child.scene_file_path.is_empty():
