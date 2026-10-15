@@ -132,3 +132,15 @@ func test_play_hands_every_peer_the_same_match_and_forms_the_mesh() -> void:
 
 func _all_meshed(a_links: Array) -> bool:
 	return a_links.all(func(l: LobbyLink) -> bool: return l.transport.is_connected_to_all())
+
+
+## At Play the host closes its lobby first, so the joiner's own close meets a server peer that
+## is already gone — which must not try to disconnect it again.
+func test_a_joiner_closes_cleanly_after_the_host_has_gone() -> void:
+	var host: LobbyLink = _host()
+	var joiner: LobbyLink = _join(host)
+	assert_true(await _until(_seated.bind(joiner)))
+	host.close()
+	assert_true(await _until(func() -> bool: return joiner.refusal != ""))
+	joiner.close()
+	assert_engine_error_count(0)

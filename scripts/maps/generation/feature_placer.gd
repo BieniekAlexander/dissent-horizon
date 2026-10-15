@@ -197,7 +197,7 @@ func _band_origin(a_plan: FeaturePlan, a_dims: Vector2i) -> Vector2i:
 	var low: float = _params.shelter_start_band_min_cells
 	var high: float = maxf(low, _params.shelter_start_band_max_cells)
 	var radius: float = sqrt(_rng.randf_range(low * low, high * high))
-	var center: Vector2 = start + Vector2.from_angle(_rng.randf() * TAU) * radius
+	var center: Vector2 = start + DMath.from_angle(_rng.randf() * TAU) * radius
 	var origin := Vector2i((center - Vector2(a_dims) * 0.5).round())
 	return origin.clamp(Vector2i.ZERO, Vector2i(_grid.width, _grid.depth) - a_dims)
 
@@ -506,7 +506,5 @@ func _commit(a_feature: MapFeature) -> void:
 		if not _cluster_rects.has(a_feature.kind):
 			_cluster_rects[a_feature.kind] = []
 		for placement: Dictionary in a_feature.placements:
-			_cluster_rects[a_feature.kind].append(
-				MapFeature.placement_rect(placement)
-			)
+			_cluster_rects[a_feature.kind].append(MapFeature.placement_rect(placement))
 #endregion

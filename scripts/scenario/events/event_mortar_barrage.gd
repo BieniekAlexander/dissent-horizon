@@ -88,7 +88,4 @@ func _launch_shell(
 ## spread and ScenarioExpression; this was a third site it missed.
 static func _launch_offset() -> Vector2:
 	var bearing: float = SU.rng.randf() * TAU
-	return (
-		Vector2(cos(bearing), sin(bearing))
-		* (LAUNCH_SPREAD_MIN + LAUNCH_SPREAD_RANGE * SU.rng.randf())
-	)
+	return DMath.from_angle(bearing) * (LAUNCH_SPREAD_MIN + LAUNCH_SPREAD_RANGE * SU.rng.randf())

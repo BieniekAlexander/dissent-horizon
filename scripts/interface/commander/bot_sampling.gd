@@ -70,7 +70,7 @@ static func _weights(
 	var scale: float = a_temperature * best
 	var weights: PackedFloat64Array = PackedFloat64Array()
 	for score: Variant in a_scores:
-		weights.append(exp((float(score) - best) / scale))
+		weights.append(DMath.exp((float(score) - best) / scale))
 	return weights
 
 

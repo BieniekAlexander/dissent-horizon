@@ -100,3 +100,18 @@ func test_a_resource_change_changes_the_digest() -> void:
 	var before: String = SimulationDigest.of(_scenario)
 	_commander.energy += 5
 	assert_ne(SimulationDigest.of(_scenario), before)
+
+
+## Numbers are written by arithmetic, not by the platform's "%.3f", which rounds an exact tie to
+## even on one platform and away from zero on another.
+func test_a_number_on_an_exact_tie_rounds_away_from_zero_everywhere() -> void:
+	assert_eq(SimulationDigest.fixed(-39.5625, 3), "-39.563")
+	assert_eq(SimulationDigest.fixed(39.5625, 3), "39.563")
+
+
+func test_numbers_keep_their_places_and_sign() -> void:
+	assert_eq(SimulationDigest.fixed(0.05, 2), "0.05")
+	assert_eq(SimulationDigest.fixed(-0.25, 1), "-0.3")
+	assert_eq(SimulationDigest.fixed(-0.0001, 3), "0.000", "a value that rounds to nothing")
+	assert_eq(SimulationDigest.fixed(12.0, 0), "12")
+	assert_eq(SimulationDigest.fixed_vector(Vector3(1.0, -2.5, 0.125), 2), "1.00,-2.50,0.13")

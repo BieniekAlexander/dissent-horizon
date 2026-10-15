@@ -34,9 +34,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 ## `p_commander_id_context` is the owning commander's id — available to EventCommandTarget
 ## via active_commander_id() while the call is in progress.
 func issue_commands_to(
-	a_units: Array[Actor],
-	a_manager: ScenarioTriggerManager,
-	a_p_commander_id_context: int = -1
+	a_units: Array[Actor], a_manager: ScenarioTriggerManager, a_p_commander_id_context: int = -1
 ) -> void:
 	_commander_id_context = a_p_commander_id_context
 	var event_commands: Array[EventCommand] = _event_commands()
@@ -116,9 +114,7 @@ func _aggro_shape_override() -> CollisionShape3D:
 ## post rather than every unit converging on one shared point. Returns all-zero offsets for
 ## a single unit or when the chain has no positional post to anchor on.
 func _formation_offsets(
-	a_units: Array[Actor],
-	a_manager: ScenarioTriggerManager,
-	a_event_commands: Array[EventCommand]
+	a_units: Array[Actor], a_manager: ScenarioTriggerManager, a_event_commands: Array[EventCommand]
 ) -> Array[Vector3]:
 	var offsets: Array[Vector3] = []
 	var anchor: EventCommandPoint = null

@@ -111,7 +111,9 @@ func footprint_dimensions() -> Vector2i:
 func set_quarter_turns(a_turns: int) -> void:
 	quarter_turns = posmod(a_turns, 4)
 	var root: Node3D = get_parent() as Node3D
-	if root != null:
+	if root is Entity:
+		(root as Entity).yaw = yaw_of(quarter_turns)
+	elif root != null:
 		root.rotation.y = yaw_of(quarter_turns)
 
 

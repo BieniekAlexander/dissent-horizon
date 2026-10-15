@@ -63,7 +63,9 @@ static func from_collision_shape(node: CollisionShape3D) -> HighlightShape:
 	var xform: Transform3D = node.global_transform
 	var center_xz: Vector2 = Vector2(xform.origin.x, xform.origin.z)
 	var scale: Vector3 = xform.basis.get_scale()
-	var yaw: float = xform.basis.get_euler().y
+	# Basis.get_euler would decompose with the platform's trigonometry; a yaw-only basis's Z axis
+	# is (sin, 0, cos) of its yaw.
+	var yaw: float = DMath.atan2(xform.basis.z.x, xform.basis.z.z)
 	var shape: Shape3D = node.shape
 	if shape is BoxShape3D:
 		var half: Vector3 = (shape as BoxShape3D).size * 0.5
@@ -104,7 +106,7 @@ func outline(a_segments: int = 32) -> Array[Vector2]:
 		return points
 	for i: int in a_segments:
 		var angle: float = TAU * float(i) / float(a_segments)
-		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
+		points.append(center + DMath.from_angle(angle) * radius)
 	return points
 
 
@@ -133,7 +135,7 @@ func perimeter_points(a_spacing: float) -> Array[Vector2]:
 ## (cos, 0, -sin). Mapping that onto a Vector2 whose y component IS z flips the sense of
 ## the rotation, so a rect authored at +30° would paint mirrored about its own axis.
 func _local_to_world_xz(a_local: Vector2) -> Vector2:
-	var c: float = cos(rotation_y)
-	var s: float = sin(rotation_y)
+	var c: float = DMath.cos(rotation_y)
+	var s: float = DMath.sin(rotation_y)
 	return Vector2(a_local.x * c + a_local.y * s, -a_local.x * s + a_local.y * c)
 #endregion

@@ -368,7 +368,7 @@ func _draw_ring() -> Array[MapStart]:
 			base_angle
 			+ spacing * (i + _rng.randf_range(-1.0, 1.0) * _params.start_angle_jitter_fraction)
 		)
-		var bearing: Vector2 = Vector2.from_angle(angle)
+		var bearing: Vector2 = DMath.from_angle(angle)
 		var reach: float = _rng.randf_range(_min_reach(), maxf(_min_reach(), _max_reach(bearing)))
 		var point: Vector2 = _area.to_world(bearing * _area.half * reach)
 		var start := MapStart.at(point, i / _params.starts_per_alliance)
@@ -665,7 +665,7 @@ static func building_weights(
 	)
 	var weights := PackedFloat32Array()
 	for piece: MapPiece in pool:
-		weights.append(piece.weight * pow(maxf(piece.capacity, 1.0), bias * t))
+		weights.append(piece.weight * DMath.pow(maxf(piece.capacity, 1.0), bias * t))
 	return weights
 
 
@@ -1003,7 +1003,7 @@ func _obstacle_rise(a_corner: Vector2i, a_width: int, a_rise: float, a_roughness
 		_params.occlusion_allowance
 		+ (
 			_walk_distance[a_corner.y * a_width + a_corner.x]
-			* tan(deg_to_rad(TerrainGrid.MIN_VIEW_PITCH_DEGREES))
+			* DMath.tan(deg_to_rad(TerrainGrid.MIN_VIEW_PITCH_DEGREES))
 		)
 	)
 	var top: float = minf(a_rise, cap)

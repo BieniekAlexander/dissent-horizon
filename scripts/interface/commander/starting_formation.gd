@@ -127,10 +127,10 @@ static func world_points(
 	half_extents: Vector2 = Vector2.ZERO
 ) -> Array[Vector2]:
 	var heading: Vector2 = heading_toward(structure_xz, center)
-	var turn: float = AUTHORED_FACING.angle_to(heading)
+	var turn: float = DMath.angle_to(AUTHORED_FACING, heading)
 	var origin: Vector2 = anchor(structure_xz, center, clearance, half_extents)
 	var points: Array[Vector2] = []
 	for offset: Vector2 in offsets:
-		points.append(origin + offset.rotated(turn))
+		points.append(origin + DMath.rotated(offset, turn))
 	return points
 #endregion

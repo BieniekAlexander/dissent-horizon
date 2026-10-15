@@ -548,8 +548,8 @@ static func fanned_destinations(
 	destinations.sort_custom(
 		func(a: Vector2, b: Vector2) -> bool:
 			return (
-				atan2(a.x - destination_centroid.x, a.y - destination_centroid.y)
-				< atan2(b.x - destination_centroid.x, b.y - destination_centroid.y)
+				DMath.atan2(a.x - destination_centroid.x, a.y - destination_centroid.y)
+				< DMath.atan2(b.x - destination_centroid.x, b.y - destination_centroid.y)
 			)
 	)
 	var sorted_capable: Array = capable.duplicate()
@@ -558,8 +558,8 @@ static func fanned_destinations(
 			var a_xz: Vector2 = VU.in_xz((a as Entity).global_position)
 			var b_xz: Vector2 = VU.in_xz((b as Entity).global_position)
 			return (
-				atan2(a_xz.x - selection_centroid.x, a_xz.y - selection_centroid.y)
-				< atan2(b_xz.x - selection_centroid.x, b_xz.y - selection_centroid.y)
+				DMath.atan2(a_xz.x - selection_centroid.x, a_xz.y - selection_centroid.y)
+				< DMath.atan2(b_xz.x - selection_centroid.x, b_xz.y - selection_centroid.y)
 			)
 	)
 	# If scatter found fewer points than units, the rest are absent and use the raw point.

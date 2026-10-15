@@ -6,6 +6,8 @@ extends Node
 ## `--ticks` writes what it saw to `--out` and quits. Prefixed `_`: a harness, never collected.
 ##
 ## Arguments, after `--`: --role=host|join  --port=<lobby port>  --out=<json path>  --ticks=<n>
+## and optionally --address=<host's address> (a joiner dials it; a host given one listens on every
+## interface, for a run across two machines) and --give-up=<seconds>.
 ##
 ## What it writes: {role, error, tick, digests: [[tick, digest]...], orders: [order...],
 ## desync_tick}. `error` is "" unless the run gave up.
@@ -16,8 +18,10 @@ const RECIPE_SEED: int = 20261014
 const DELAY_TICKS: int = 3
 ## How long a joiner waits before dialling again when the host is not up yet.
 const JOIN_RETRY_SECONDS: float = 0.5
-## How long the whole run may take before it gives up and says so.
+## How long the whole run may take before it gives up and says so, unless --give-up says.
 const GIVE_UP_SECONDS: float = 120.0
+## What a host given an --address listens on: every interface.
+const ANY_INTERFACE: String = "*"
 ## The tick each side gives its order on, and where the host's and joiner's armies are sent.
 const ORDER_TICK: int = 150
 const ORDER_TARGETS: Dictionary = {"host": Vector3(6.0, 0.0, 6.0), "join": Vector3(-6.0, 0.0, -6.0)}
@@ -26,6 +30,8 @@ var _role: String = ""
 var _port: int = 0
 var _out: String = ""
 var _ticks: int = 0
+var _address: String = LOCALHOST
+var _give_up_seconds: float = GIVE_UP_SECONDS
 var _link: LobbyLink = null
 var _thread: Thread = null
 var _launch: Dictionary = {}
@@ -50,10 +56,14 @@ func _ready() -> void:
 					_out = pair[1]
 				"ticks":
 					_ticks = int(pair[1])
-	_give_up_at = Time.get_ticks_msec() + int(GIVE_UP_SECONDS * 1000.0)
+				"address":
+					_address = pair[1]
+				"give-up":
+					_give_up_seconds = float(pair[1])
+	_give_up_at = Time.get_ticks_msec() + int(_give_up_seconds * 1000.0)
 	if _role == "host":
 		_link = LobbyLink.new()
-		if _link.host(_port, LOCALHOST) != OK:
+		if _link.host(_port, LOCALHOST if _address == LOCALHOST else ANY_INTERFACE) != OK:
 			_finish("could not host on port %d" % _port)
 			return
 		_link.setup.set_player_count(2)
@@ -116,7 +126,7 @@ func _join() -> void:
 		_link.close()
 	_link = LobbyLink.new()
 	_link.started.connect(_on_started)
-	_link.join(LOCALHOST, _port)
+	_link.join(_address, _port)
 	_join_again_at = Time.get_ticks_msec() + int(JOIN_RETRY_SECONDS * 1000.0)
 
 

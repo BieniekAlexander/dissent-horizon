@@ -95,8 +95,10 @@ func arm(a_from: Actor, a_target: Entity) -> void:
 ## `SU.rng`, the one seeded gameplay generator, so a scenario replays the same spread (see
 ## gdd/systems/ai/selfplay-harness.md §Determinism).
 func aim_error(a_velocity: Vector3) -> Vector3:
-	return a_velocity.rotated(
-		Vector3.UP, SU.rng.randf_range(-HITSCAN_MAX_ERROR_ANGLE, HITSCAN_MAX_ERROR_ANGLE)
+	return DMath.rotated_3d(
+		a_velocity,
+		Vector3.UP,
+		SU.rng.randf_range(-HITSCAN_MAX_ERROR_ANGLE, HITSCAN_MAX_ERROR_ANGLE)
 	)
 
 

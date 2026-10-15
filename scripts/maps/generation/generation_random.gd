@@ -21,8 +21,8 @@ static func skew_normal(
 	var delta: float = skew / sqrt(1.0 + skew * skew)
 	var value: float = location
 	for _i: int in _BOUNDED_REDRAWS:
-		var u0: float = rng.randfn()
-		var v: float = rng.randfn()
+		var u0: float = DMath.randfn(rng, 0.0, 1.0)
+		var v: float = DMath.randfn(rng, 0.0, 1.0)
 		value = location + scale * (delta * absf(u0) + sqrt(1.0 - delta * delta) * v)
 		if value >= low and value <= high:
 			return value
@@ -32,16 +32,16 @@ static func skew_normal(
 ## A Gamma(shape, 1) draw — Marsaglia and Tsang, with the shape < 1 boost.
 static func gamma(rng: RandomNumberGenerator, shape: float) -> float:
 	if shape < 1.0:
-		return gamma(rng, shape + _GAMMA_BOOST) * pow(rng.randf(), 1.0 / shape)
+		return gamma(rng, shape + _GAMMA_BOOST) * DMath.pow(rng.randf(), 1.0 / shape)
 	var d: float = shape - 1.0 / 3.0
 	var c: float = 1.0 / sqrt(9.0 * d)
 	while true:
-		var x: float = rng.randfn()
-		var v: float = pow(1.0 + c * x, 3.0)
+		var x: float = DMath.randfn(rng, 0.0, 1.0)
+		var v: float = DMath.pow(1.0 + c * x, 3.0)
 		if v <= 0.0:
 			continue
 		var u: float = rng.randf()
-		if log(maxf(u, 1e-12)) < 0.5 * x * x + d - d * v + d * log(v):
+		if DMath.log(maxf(u, 1e-12)) < 0.5 * x * x + d - d * v + d * DMath.log(v):
 			return d * v
 	return d
 

@@ -44,13 +44,14 @@ func perturbed(phase: EmissionPhase, elapsed_seconds: float, velocity: Vector3) 
 	var up_hint: Vector3 = Vector3.FORWARD if absf(forward.dot(Vector3.UP)) > 0.999 else Vector3.UP
 	var right: Vector3 = forward.cross(up_hint).normalized()
 	var up: Vector3 = right.cross(forward).normalized()
-	return velocity.rotated(up, amplitude * _wave(angle, _phases[0], _phases[1])).rotated(
-		right, amplitude * _wave(angle, _phases[2], _phases[3])
+	var yawed: Vector3 = DMath.rotated_3d(
+		velocity, up, amplitude * _wave(angle, _phases[0], _phases[1])
 	)
+	return DMath.rotated_3d(yawed, right, amplitude * _wave(angle, _phases[2], _phases[3]))
 
 
 static func _wave(angle: float, first_phase: float, second_phase: float) -> float:
 	return (
-		FIRST_WAVE_SHARE * sin(angle + first_phase)
-		+ SECOND_WAVE_SHARE * sin(angle * SECOND_WAVE_RATIO + second_phase)
+		FIRST_WAVE_SHARE * DMath.sin(angle + first_phase)
+		+ SECOND_WAVE_SHARE * DMath.sin(angle * SECOND_WAVE_RATIO + second_phase)
 	)

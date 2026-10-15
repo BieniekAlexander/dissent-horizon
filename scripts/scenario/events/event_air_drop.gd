@@ -92,10 +92,10 @@ func _launch_transport(
 	)
 	# Set outright rather than through Movement.face_toward, which turns at the airframe's
 	# turn_rate and would take the same second and a half a mid-air heading change does.
-	# rotation.y IS the facing (see Movement.get_facing): +Z is the model's front.
+	# Its yaw IS the facing (Entity.yaw, Movement.get_facing): +Z is the model's front.
 	var run_in: Vector2 = a_drop_xz - a_entry_xz
 	if not run_in.is_zero_approx():
-		transport.rotation.y = atan2(run_in.x, run_in.y)
+		transport.yaw = DMath.atan2(run_in.x, run_in.y)
 	return transport
 
 

@@ -112,8 +112,11 @@ func close() -> void:
 	var peers: Array = _connection.get_peers()
 	if _server != null and not peers.has(_server):
 		peers.append(_server)
+	# A peer already gone (the host closed its side first, as it does at Play) has no ENet peer
+	# behind it, and disconnecting it again raises an engine error.
 	for peer: ENetPacketPeer in peers:
-		peer.peer_disconnect_now()
+		if peer.is_active():
+			peer.peer_disconnect_now()
 	_connection.flush()
 	_connection.destroy()
 	_connection = null

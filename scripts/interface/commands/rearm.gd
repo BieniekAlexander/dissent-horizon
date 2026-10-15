@@ -84,9 +84,7 @@ static func requires_position() -> bool:
 ## ordered to a busy airfield flies over and waits for a pad — the same rule Occupy uses
 ## for a full garrison. Having ammo is not checked either, so a player can top a unit up
 ## before it is dry, which is most of what a manual rearm order is for.
-static func meets_precondition(
-	actor: Actor, message: CommandMessage
-) -> PreconditionFailureCause:
+static func meets_precondition(actor: Actor, message: CommandMessage) -> PreconditionFailureCause:
 	if actor == null or actor.docking == null or actor.aerial == null:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	if actor.weapon_inventory == null or not actor.weapon_inventory.has_charged_weapons():
@@ -422,7 +420,7 @@ func _is_established_on_final(a_actor: Actor) -> bool:
 	var facing: Vector2 = VU.in_xz(a_actor.movement.get_facing())
 	if facing.is_zero_approx():
 		return false
-	return facing.normalized().dot(along) >= cos(deg_to_rad(FINAL_ARC_DEGREES))
+	return facing.normalized().dot(along) >= DMath.cos(deg_to_rad(FINAL_ARC_DEGREES))
 
 
 ## Distance to where the descent is aimed — the runway, not the pad. Measuring to the pad

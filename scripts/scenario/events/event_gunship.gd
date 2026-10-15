@@ -74,7 +74,7 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	# at cruise speed with a finite turn rate.
 	var run_in: Vector2 = station_xz - entry_xz
 	if not run_in.is_zero_approx():
-		gunship.rotation.y = atan2(run_in.x, run_in.y)
+		gunship.yaw = DMath.atan2(run_in.x, run_in.y)
 	var station := Vector3(station_xz.x, map.terrain_height_at(station_xz), station_xz.y)
 	Sortie.launch(gunship, map, entry, station, station_seconds)
 #endregion

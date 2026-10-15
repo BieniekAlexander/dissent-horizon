@@ -11,8 +11,9 @@ Scoped 2026-10-12. **Built: the widened digest, the input buffer, the wire forma
 transport interface with a loopback for tests (2026-10-13); the lockstep loop, the ENet transport,
 the handshake and the ready barrier, the Multiplayer lobby, the per-player verdict, and desync
 detection (2026-10-14). A networked skirmish can be hosted, joined and played, and two processes
-on one machine play it in step (`test_TwoProcessNetplay`); two real machines over a real network,
-and two platforms, have not been tried.** Players on different machines play one match by
+on one machine play it in step (`test_TwoProcessNetplay`). Two machines over Wi-Fi — a Mac
+hosting, a Windows PC joining — played 900 ticks in step on 2026-10-14 (`tests/_netplay_peer`
+with `--address`, the platform refusal waived by hand for the run).** Players on different machines play one match by
 sending each other their orders, and every machine runs the whole simulation. The direction is
 Alex's (2026-10-11): **deterministic lockstep now, rollback in the long term**, and lockstep is
 built in rollback's shape so the step from one to the other adds to it rather than replacing it.
@@ -183,8 +184,27 @@ Decided 2026-10-13 (T-107). PLANNED, except where a decision names the code that
     `test_NetMatch` (the readout, then the forfeit, in a real scenario).
 - **Platforms:** the handshake refuses a different OS or CPU architecture (built,
   `NetSession.platform`). Mixed platforms are a
-  required goal, not an option: TODO measure one seed across platforms
-  ([recording-and-replay](recording-and-replay.md) §Detecting drift), then lift the refusal.
+  required goal, not an option, and the refusal stays until they compute the same match.
+  - Measured 2026-10-14, macOS/arm64 against Windows/x86_64, one recipe, both slots bots
+    (`tools/netplay/determinism_probe.tscn`, compared by `compare_determinism.py`). Map
+    generation agreed (same `MapDigest`) and every piece's position and velocity agreed to the
+    bit until tick 357, where the Colonial bot ordered a Build on one machine and a Move on the
+    other. The cause is the C maths library: GDScript's `exp`, `log`, `pow`, `sin`, `cos`, `tan`,
+    `atan`, `atan2`, `acos`, `tanh` (and `Vector2.angle`, which is `atan2`) return different bits
+    on the two platforms, while `sqrt`, `fmod` and `+ - * /` — which IEEE requires to round
+    exactly — agree. About 70 calls in 30 simulation scripts use them, map generation included
+    (this seed happened to agree; another may not, and `MapDigest` refuses such a match).
+  - Decided by Alex 2026-10-14: a deterministic maths module in the native library. Built the
+    same day: simulation code calls `DMath` instead of the builtins and the engine methods built
+    on them ([native-code](../authoring/native-code.md) §Maths that rounds the same everywhere).
+    With a piece's facing held as `Entity.yaw` and digests rounded by arithmetic, the same
+    recipe — a five-minute HARD bot match, Colonial against Anarchical — agreed on both platforms
+    to the bit for all 9000 ticks: every digest, and every piece's position and velocity
+    (2026-10-14).
+  - TODO (Alex): when to lift the refusal. One five-minute match is a sample: a wider
+    measurement — more seeds, each faction on each side, matches played to a verdict — would
+    cover what this one never reached (late tiers, aircraft, superweapons), and native-code.md
+    keeps one open TODO on engine transform maths.
 - **The digest covers everything a physics tick governs**, not only positions, HP and resources:
   the RNG state, each actor's current command and queue, production and research progress,
   cooldowns, and any other per-tick simulation state. Still built once a second. Entities are

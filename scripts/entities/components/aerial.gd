@@ -915,9 +915,9 @@ func set_anchor(a_pos: Vector3) -> void:
 	# flying straight ahead costs nothing now and leaves a single, natural turn onto the
 	# circle later. So seed the clock to put the first ideal point directly in front.
 	if offset.length() >= orbit_radius * ORBIT_ENTRY_CENTRED_FRACTION:
-		_orbit_angle = atan2(offset.y, offset.x)
+		_orbit_angle = DMath.atan2(offset.y, offset.x)
 	elif not heading.is_zero_approx():
-		_orbit_angle = atan2(heading.y, heading.x)
+		_orbit_angle = DMath.atan2(heading.y, heading.x)
 	# Stationary on the anchor: no bearing and no heading to prefer — keep the current angle.
 
 
@@ -954,14 +954,14 @@ func compute_orbit_velocity() -> Vector3:
 	# to the orbit clock — which set_anchor() seeded from the unit's heading precisely for
 	# this tick, so it sets off the way it is already pointing.
 	var outward: Vector2 = (
-		offset / radius_now if radius_now > 1e-3 else Vector2(cos(_orbit_angle), sin(_orbit_angle))
+		offset / radius_now if radius_now > 1e-3 else DMath.from_angle(_orbit_angle)
 	)
 	var tangent: Vector2 = Vector2(-outward.y, outward.x)  # +90 deg: the CCW orbit direction
 	var radial_weight: float = clampf((orbit_radius - radius_now) / orbit_radius, -1.0, 1.0)
 	var dir: Vector2 = outward * radial_weight + tangent * sqrt(1.0 - radial_weight * radial_weight)
 	# Keep the clock in step with where the unit actually is, so anything reading it (and the
 	# centre fallback above) stays meaningful.
-	_orbit_angle = atan2(outward.y, outward.x)
+	_orbit_angle = DMath.atan2(outward.y, outward.x)
 	return VU.from_xz(dir) * orbit_speed
 
 
@@ -1054,7 +1054,7 @@ func _apply_flying_attitude(a_descent_rate: float, a_horizontal_speed: float, a_
 	var host: Node3D = _host()
 	var yaw_rate: float = 0.0
 	if host != null:
-		var yaw: float = host.rotation.y
+		var yaw: float = VU.yaw_of(host)
 		if not is_nan(_prev_flying_yaw) and a_dt > 0.0:
 			yaw_rate = angle_difference(_prev_flying_yaw, yaw) / a_dt
 		_prev_flying_yaw = yaw
@@ -1063,17 +1063,35 @@ func _apply_flying_attitude(a_descent_rate: float, a_horizontal_speed: float, a_
 		return
 
 	# +rotation.x tips the +Z nose toward the ground, so a positive descent noses down.
-	var target_pitch: float = atan2(maxf(a_descent_rate, 0.0), maxf(a_horizontal_speed, 1e-3))
+	var target_pitch: float = DMath.atan2(maxf(a_descent_rate, 0.0), maxf(a_horizontal_speed, 1e-3))
 
 	# Coordinated turn: tan(bank) = v * yaw_rate / g. A positive (left-hand) yaw rate needs
 	# the left wing down; +rotation.z lifts the +X (right) side, so the sign lines up
 	# directly. Clamped so a hard course reversal doesn't roll past vertical.
 	var target_roll: float = clampf(
-		atan(a_horizontal_speed * yaw_rate / FLYING_BANK_GRAVITY), -FLYING_MAX_BANK, FLYING_MAX_BANK
+		DMath.atan(a_horizontal_speed * yaw_rate / FLYING_BANK_GRAVITY),
+		-FLYING_MAX_BANK,
+		FLYING_MAX_BANK
 	)
 
-	attitude.rotation.x = lerpf(attitude.rotation.x, target_pitch, FLYING_ATTITUDE_RESPONSE)
-	attitude.rotation.z = lerpf(attitude.rotation.z, target_roll, FLYING_ATTITUDE_RESPONSE)
+	var pose: Vector3 = _pose_of(attitude)
+	pose.x = lerpf(pose.x, target_pitch, FLYING_ATTITUDE_RESPONSE)
+	pose.z = lerpf(pose.z, target_roll, FLYING_ATTITUDE_RESPONSE)
+	_set_pose(attitude, pose)
+
+
+## The model's pitch (x) and roll (z), with its yaw: MeshVisual.attitude, which is written with
+## DMath so a turret under the model is placed the same on every platform. A bare node (a test
+## rig) is its own rotation.
+static func _pose_of(a_node: Node3D) -> Vector3:
+	return (a_node as MeshVisual).attitude if a_node is MeshVisual else a_node.rotation
+
+
+static func _set_pose(a_node: Node3D, a_pose: Vector3) -> void:
+	if a_node is MeshVisual:
+		(a_node as MeshVisual).attitude = a_pose
+	else:
+		a_node.rotation = a_pose
 
 
 ## The node that carries PITCH and ROLL — the MeshVisual, i.e. the art and nothing else.
@@ -1097,12 +1115,12 @@ func _apply_hover_tilt(a_vertical_velocity: float) -> void:
 	var attitude: Node3D = _attitude_node()
 	if attitude == null:
 		return
-	attitude.rotation.x = clampf(
-		-a_vertical_velocity * HOVER_TILT_FACTOR, -HOVER_MAX_TILT, HOVER_MAX_TILT
-	)
+	var pose: Vector3 = _pose_of(attitude)
+	pose.x = clampf(-a_vertical_velocity * HOVER_TILT_FACTOR, -HOVER_MAX_TILT, HOVER_MAX_TILT)
 	# No lateral banking during a straight-down landing/takeoff — settle any
 	# residual roll carried in from cruise.
-	attitude.rotation.z = lerpf(attitude.rotation.z, 0.0, HOVER_BANK_RESPONSE)
+	pose.z = lerpf(pose.z, 0.0, HOVER_BANK_RESPONSE)
+	_set_pose(attitude, pose)
 
 
 ## Give an AIRBORNE HOVERING unit a helicopter attitude: lean the airframe INTO its
@@ -1141,8 +1159,10 @@ func _apply_hover_bank() -> void:
 	# +rotation.x tips the +Z nose toward the ground, so accelerating forward noses down.
 	# +rotation.z LIFTS the +X (right) side, so accelerating rightward takes the opposite
 	# sign to drop that side — banking into the turn rather than away from it.
-	attitude.rotation.x = lerpf(attitude.rotation.x, lean.x, HOVER_BANK_RESPONSE)
-	attitude.rotation.z = lerpf(attitude.rotation.z, -lean.y, HOVER_BANK_RESPONSE)
+	var pose: Vector3 = _pose_of(attitude)
+	pose.x = lerpf(pose.x, lean.x, HOVER_BANK_RESPONSE)
+	pose.z = lerpf(pose.z, -lean.y, HOVER_BANK_RESPONSE)
+	_set_pose(attitude, pose)
 
 
 ## Ease the model's pitch and roll back to level. Used while grounded so a unit that
@@ -1151,8 +1171,10 @@ func _level_body() -> void:
 	var attitude: Node3D = _attitude_node()
 	if attitude == null:
 		return
-	attitude.rotation.x = lerpf(attitude.rotation.x, 0.0, HOVER_BANK_RESPONSE)
-	attitude.rotation.z = lerpf(attitude.rotation.z, 0.0, HOVER_BANK_RESPONSE)
+	var pose: Vector3 = _pose_of(attitude)
+	pose.x = lerpf(pose.x, 0.0, HOVER_BANK_RESPONSE)
+	pose.z = lerpf(pose.z, 0.0, HOVER_BANK_RESPONSE)
+	_set_pose(attitude, pose)
 
 
 #endregion

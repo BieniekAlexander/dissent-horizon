@@ -949,6 +949,8 @@ work rather than deriving something.
 
 **A hold changes nothing but timing**: simulation code measures frames with `SimulationClock.physics_frame()`, never `Engine.get_physics_frames()` (which counts through a pause; `test_SeededRandomness` scans for it), and navigation agents and obstacles are never paused. A dialog, the pause menu or a network stall must not change the match. → [`gdd/systems/scenario-scripting/dialogs-and-pause.md`](gdd/systems/scenario-scripting/dialogs-and-pause.md) §A hold changes nothing but timing
 
+**Simulation maths goes through `DMath`, never GDScript's `sin`/`exp`/`atan2`/`pow` and kin**, nor the engine methods built on them (`Vector2.rotated`, `angle_to`, `randfn`, `global_rotation`), and a node the game turns is turned through DMath — a piece by `Entity.yaw`, its model by `MeshVisual.attitude`, a turret by `VU.with_yaw` — never `rotation`: the platform's maths library rounds differently on each platform, and a networked match between two platforms drifts on the first differing bit. `test_DMath` scans for them. → [`gdd/systems/authoring/native-code.md`](gdd/systems/authoring/native-code.md) §Maths that rounds the same everywhere
+
 **`Map.CELL_SIZE` const**: fog, NavManager, and coordinate helpers all derive from this. It's `1.0` and encoded as Map's scale. Don't add a separate `cell_size` export that could diverge.
 
 **`get_node_or_null` for optional components**: the `@onready` optional-component pattern is intentional. Don't change optional components to hard `$` references without checking all call sites gate on null. See `gdd/systems/authoring/get-node-or-null-audit.md` for verdicts on each occurrence.

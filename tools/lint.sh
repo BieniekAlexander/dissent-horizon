@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Lint every hand-written GDScript file against gdlintrc, and enforce TAB indentation.
 #
-# Requires gdtoolkit 4.x. Installed here with pipx (a plain `pip install --user` is refused
-# by PEP 668 on this machine):   pipx install "gdtoolkit==4.*"
+# Requires gdtoolkit 4.x and clang-format (tools/requirements-lint.txt). Installed here with pipx
+# (a plain `pip install --user` is refused by PEP 668 on this machine):
+#   pipx install "gdtoolkit==4.*" && pipx install clang-format==17.0.6
 #
 # addons/ is excluded: it is vendored third-party code and its style is not ours to
 # enforce. scripts/generated/ is excluded because it is generated — the generator's
@@ -66,12 +67,18 @@ PY
 
 # --- Native code -----------------------------------------------------------------------
 # The C++ under native/src follows godot-cpp's own clang-format style (native/.clang-format is
-# its copy), Godot's C++ conventions rather than the GDScript ones. To format:
-# clang-format -i native/src/*.cpp native/src/*.h
+# its copy), Godot's C++ conventions rather than the GDScript ones. clang-format is a pinned
+# dependency (tools/requirements-lint.txt): a missing one fails the lint rather than skipping
+# it. native/src/dmath/musl/ is vendored and kept as musl wrote it. To format:
+# clang-format -i <the files below>
+NATIVE=()
+while IFS= read -r f; do NATIVE+=("$f"); done \
+  < <(find native/src \( -name '*.cpp' -o -name '*.h' \) -not -path 'native/src/dmath/musl/*' | sort)
 if command -v clang-format >/dev/null 2>&1; then
-  clang-format --dry-run --Werror native/src/*.cpp native/src/*.h || status=1
+  clang-format --dry-run --Werror "${NATIVE[@]}" || status=1
 else
-  echo "lint: clang-format not found — native/src was not checked" >&2
+  echo "lint: clang-format not found — install tools/requirements-lint.txt" >&2
+  status=1
 fi
 
 exit $status

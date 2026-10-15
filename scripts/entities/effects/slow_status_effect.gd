@@ -32,4 +32,4 @@ func _on_remove() -> void:
 func _apply_factor(a_count: int) -> void:
 	if a_count == 0 or _entity == null or _entity.movement == null or slow_multiplier <= 0.0:
 		return
-	_entity.movement.speed *= pow(slow_multiplier, a_count)
+	_entity.movement.speed *= DMath.pow(slow_multiplier, a_count)

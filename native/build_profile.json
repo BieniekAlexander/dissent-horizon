@@ -8,6 +8,7 @@
 		"SphereShape3D",
 		"CapsuleShape3D",
 		"BoxShape3D",
-		"ArrayMesh"
+		"ArrayMesh",
+		"RandomNumberGenerator"
 	]
 }
