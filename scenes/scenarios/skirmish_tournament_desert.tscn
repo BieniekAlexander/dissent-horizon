@@ -81,7 +81,6 @@ mesh = SubResource("ArrayMesh_hl7m5")
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1837151408]
 transform = Transform3D(0.766, 0.369, -0.527, 0, 0.819, 0.574, 0.643, -0.44, 0.628, 0, 40, 0)
 light_energy = 1.1
-shadow_enabled = true
 
 [node name="StartPoint2" parent="." unique_id=1418105449 instance=ExtResource("start_point")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 41)

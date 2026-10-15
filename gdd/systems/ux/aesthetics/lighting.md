@@ -17,10 +17,10 @@ options not taken yet. Placeholder values throughout.
   hemispheric ambient (sky-blue from above, warm earth from below) at one sample's cost. Filmic
   tonemapping. The background is a dark neutral, not the project's purple clear colour.
 - **A key/fill sun rig** (`scenes/environment/default_lighting.tscn`), added by
-  `Scenario._ensure_lighting` to any scenario that authors no `DirectionalLight3D`. The key casts
-  shadows and comes from the upper left of the screen at 50° — the illustration convention, so
-  shadows fall down-right. The fill is a weak, cool, shadowless light from
-  the opposite side so shadowed faces keep their form.
+  `Scenario._ensure_lighting` to any scenario that authors no `DirectionalLight3D`. The key comes
+  from the upper left of the screen at 50° — the illustration convention, so shading falls
+  down-right. The fill is a weak, cool light from the opposite side so faces turned from the key
+  keep their form. No light casts shadows (§Sun shadows, deferred).
 - **Terrain cues that do lighting's job cheaply** — cavity shading from a mipmapped height
   texture, hypsometric tint, height-field normals: [terrain-readability](terrain-readability.md).
 
@@ -50,16 +50,24 @@ normals pointed down. Maps still carry no lighting by design: lighting belongs t
   ([Godot: lights and shadows](https://docs.godotengine.org/en/stable/tutorials/3d/lights_and_shadows.html),
   [blend-splits cost](https://github.com/godotengine/godot-proposals/discussions/9811)).
 
-## Options not taken yet
+## Sun shadows, deferred
 
-- TODO — **what the sun's shadows are worth**, Alex's call (raised 2026-10-15). Measured on an
-  i5-1245U's Iris Xe, skirmish.tscn at its opening camera, 1600×900, Forward+, three interleaved
-  runs each: the shipped rig (two shadow splits) draws a frame in 18.9 ms of GPU time and
-  936k primitives; one split (`SHADOW_ORTHOGONAL`) in 17.7 ms and 683k; no shadows in 15.6 ms
-  and 339k. The shadow pass is two thirds of the primitives and about 3.3 ms of the frame.
-  Shortening `directional_shadow_max_distance` to 60 changed nothing at this camera height. The
-  options: keep both splits; one split; blob shadows under units (below) with no sun shadows.
-  The Mobile renderer was no faster here once the terrain stopped drawing twice.
+**No light casts shadows** (Alex, 2026-10-15): `shadow_enabled` is off on the default rig's key
+sun and on every scenario's own sun (blue_hole, skirmish_tournament_desert and the two
+mesh-terrain test scenarios). Their other shadow settings stay as they were, so turning one back
+on is a single property.
+
+**TODO — revisit what the sun's shadows are worth.** Measured on an i5-1245U's Iris Xe,
+skirmish.tscn at its opening camera, 1600×900, Forward+, three interleaved runs each: two shadow
+splits (as shipped until then) drew a frame in 18.9 ms of GPU time and 936k primitives; one split
+(`SHADOW_ORTHOGONAL`) in 17.7 ms and 683k; no shadows in 15.6 ms and 339k. The shadow pass was
+two thirds of the primitives and about 3.3 ms of the frame; shortening
+`directional_shadow_max_distance` to 60 changed nothing at that camera height. The options, when
+this is revisited: one split; both splits as a quality setting; blob shadows under units (below)
+in place of sun shadows; or shadows baked into the terrain's shading. The Mobile renderer was no
+faster once the terrain stopped drawing twice.
+
+## Options not taken yet
 
 - TODO: **blob shadows** under units — a decal or soft disc instead of real shadows, the classic
   RTS fallback if a large army's shadow pass costs too much. Not needed until measured.
