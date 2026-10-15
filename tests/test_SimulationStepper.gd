@@ -217,3 +217,28 @@ func test_a_decided_target_killed_before_the_act_is_dropped() -> void:
 	_stepper.step(DELTA)
 	assert_null(shooter.current_command(), "no attack on a target already dead")
 	assert_true(enemy.is_queued_for_deletion())
+
+
+## An attack-move's scan for something to fight is decided too: the swap to an Attack happens
+## the same tick when the target holds, and not at all when an earlier piece killed it first.
+func test_an_attack_move_swaps_to_what_it_decided_on() -> void:
+	Fog._fogs_by_commander.clear()
+	var enemy := _enlisted_piece(FakePieces.BUILDER, _commander(FOE), Vector3(3, 0, 0), 1)
+	var shooter := _enlisted_piece(FakePieces.SOLDIER, _commander(OWN), Vector3.ZERO, 2)
+	shooter.update_commands(AttackMove.new(CommandMessage.new(null, null, null, Vector3(0, 0, 3))))
+	await wait_physics_frames(2)
+	_stepper.step(DELTA)
+	assert_true(shooter.current_command() is Attack)
+	assert_same(shooter.current_command().message.target, enemy)
+
+
+func test_an_attack_move_drops_a_decided_target_killed_before_it_acts() -> void:
+	Fog._fogs_by_commander.clear()
+	var killer := _enlisted(1)
+	var enemy := _enlisted_piece(FakePieces.BUILDER, _commander(FOE), Vector3(3, 0, 0), 2)
+	var shooter := _enlisted_piece(FakePieces.SOLDIER, _commander(OWN), Vector3.ZERO, 3)
+	shooter.update_commands(AttackMove.new(CommandMessage.new(null, null, null, Vector3(0, 0, 3))))
+	_recorder(killer).action = func() -> void: enemy.defense.hp = 0.0
+	await wait_physics_frames(2)
+	_stepper.step(DELTA)
+	assert_true(shooter.current_command() is AttackMove, "it carries on with the move")

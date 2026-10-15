@@ -1290,28 +1290,36 @@ func _update_state() -> void:
 var _decided_aggro: MoveCommand = null
 
 
-## The decide phase of this actor's tick: what an idle piece would attack. Reads only.
+## The decide phase of this actor's tick: what an idle piece would attack, and its current
+## command's own decisions (MoveCommand.decide). Reads only.
 func simulation_decide() -> void:
 	_decided_aggro = null
 	if is_planned or orders == null or (defense != null and defense.hp <= 0):
 		return
 	if is_built and command_receiver.is_idle() and can_use_weapons():
 		_decided_aggro = get_aggro_near_position()
+	var current: MoveCommand = current_command()
+	if current != null:
+		current.decide(self)
 
 
 ## The attack decided this tick, if its target is still one to start on now; once only.
 func take_decided_aggro() -> MoveCommand:
 	var decided: MoveCommand = _decided_aggro
 	_decided_aggro = null
-	if decided == null:
-		return null
-	var target: Variant = decided.message.target
+	return decided if decided_attack_holds(decided) else null
+
+
+## Whether `a_attack`, decided against the world as the last tick left it, still holds now:
+## its target is in play, alive and hostile. False for null.
+func decided_attack_holds(a_attack: MoveCommand) -> bool:
+	if a_attack == null:
+		return false
+	var target: Variant = a_attack.message.target
 	if not is_instance_valid(target) or not (target as Entity).is_inside_tree():
-		return null
+		return false
 	var entity := target as Entity
-	if entity.defense == null or entity.defense.hp <= 0 or not is_enemy_of(entity):
-		return null
-	return decided
+	return entity.defense != null and entity.defense.hp > 0 and is_enemy_of(entity)
 
 
 ## One tick of this actor (SimulationStepper). A PLANNED structure runs none of it: nothing to

@@ -249,6 +249,15 @@ var _swap_cooldown: float = 0.0
 
 
 #region State updates
+## The decide phase of this command's tick (gdd/systems/commands/the-simulation-step.md §The
+## decide pass): work that only READS, done for every piece before any piece acts, for
+## get_updated_state or can_act to apply in the act phase. Writes nothing but this command's
+## own decision fields. Run for the command a piece holds when the tick starts; a command that
+## becomes current mid-tick has not decided, and works the tick out live.
+func decide(_a_commandable: Actor) -> void:
+	pass
+
+
 ## Potentially return a new command based on a state check. A plain MoveCommand
 ## never reactively retargets on its own — it always returns self. Aggro-based
 ## retargeting (chasing down a nearby enemy) is opt-in per subclass (see
