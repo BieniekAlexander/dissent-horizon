@@ -123,7 +123,7 @@ func _own_weapon_can_fire(a_actor: Actor) -> bool:
 	if weapon == null or not a_actor.can_use_weapons():
 		return false
 	var is_held: bool = (
-		SU.is_in_attack_range(weapon, a_actor, message.target)
+		_is_in_range(a_actor, weapon)
 		and _dive_contact_made(a_actor, weapon)
 		and _is_aimed_at_target(a_actor)
 	)
@@ -266,18 +266,75 @@ func requires_ammo() -> bool:
 
 
 #region State updates
+## Decided before any piece acts this tick (decide): whether to keep the attack at all, and,
+## for the weapon it would fire, whether the target is in its range and the line of fire is
+## clear. The act phase aims, turns and fires on them; aiming itself is checked live there,
+## since the body turns in the act phase and a unit fires the tick it lines up.
+var _decided_keep: bool = false
+var _decided_weapon: Weapon = null
+var _decided_in_range: bool = false
+var _decided_obstructed: bool = false
+
+
+func decide(a_actor: Actor) -> void:
+	_decided_round = SimulationStepper.current_round()
+	_decided_keep = _is_still_wanted(a_actor)
+	_decided_weapon = _weapon_for(a_actor) if _decided_keep else null
+	if _decided_weapon != null:
+		_decided_in_range = SU.is_in_attack_range(_decided_weapon, a_actor, message.target)
+		_decided_obstructed = _obstruction_on_line(a_actor, message.target)
+
+
+## Whether `a_weapon` reaches the target: as decided this tick for the weapon it decided on,
+## live otherwise.
+func _is_in_range(a_actor: Actor, a_weapon: Weapon) -> bool:
+	if has_decided() and a_weapon == _decided_weapon:
+		return _decided_in_range
+	return SU.is_in_attack_range(a_weapon, a_actor, message.target)
+
+
+## Whether something stands on the line of fire: as decided this tick, live otherwise.
+func _is_obstructed(a_actor: Actor) -> bool:
+	if has_decided() and _decided_weapon != null:
+		return _decided_obstructed
+	return _obstruction_on_line(a_actor, message.target)
+
+
 func get_updated_state(a_actor: Actor) -> Variant:
 	## Potentially return a new command based on a state check.
-	if not is_instance_valid(message.target):
+	var is_wanted: bool = (
+		_decided_keep and _target_in_play() if has_decided() else _is_still_wanted(a_actor)
+	)
+	if not is_wanted:
 		return null
+	# While this attack is live, a FLYING actor dives onto a ground target (and climbs
+	# back to cruise altitude once this stops being requested, when the command ends).
+	# Requested every tick because Aerial.request_dive self-clears.
+	_update_flying_dive(a_actor)
+	_update_facing(a_actor)
+	return self
+
+
+## Whether the target still exists in the world: the part of _is_still_wanted that an earlier
+## piece acting this tick can change.
+func _target_in_play() -> bool:
+	return is_instance_valid(message.target) and message.target.is_inside_tree()
+
+
+## Whether this attack is still worth pursuing: the target is in the world, has not slipped
+## from sight, and is within the leash. Reads only (but for _target_was_seen, this command's
+## own), so the decide phase runs it.
+func _is_still_wanted(a_actor: Actor) -> bool:
+	if not is_instance_valid(message.target):
+		return false
 	# A target that is alive but no longer in the scene tree (e.g. it just entered a
 	# Garrison, which orphans the node without freeing it) is unreachable. is_instance_valid()
 	# still reports true for an orphaned node, so check tree membership explicitly — otherwise
 	# reading message.target.global_position below warns and returns an identity transform.
 	if not message.target.is_inside_tree():
-		return null
+		return false
 	if _target_lost_from_sight(a_actor):
-		return null
+		return false
 	# A non-persistent attack (aggro / attack-move / defend) stops being pursued once the
 	# target leaves the actor's leash. A persistent (player-issued) attack normally pursues
 	# to completion — but only if the actor can MOVE to chase. A stationary attacker (e.g. a
@@ -288,14 +345,7 @@ func get_updated_state(a_actor: Actor) -> Variant:
 	# See CommandMessage.persist.
 	# A piece fighting from its orbit cannot chase either: moving never closes its range.
 	var can_chase: bool = a_actor.can_move() and not a_actor.fights_from_orbit()
-	if (not message.persist or not can_chase) and not _target_within_leash(a_actor):
-		return null
-	# While this attack is live, a FLYING actor dives onto a ground target (and climbs
-	# back to cruise altitude once this stops being requested — i.e. when the command ends
-	# above). Requested every tick because Aerial.request_dive self-clears.
-	_update_flying_dive(a_actor)
-	_update_facing(a_actor)
-	return self
+	return not ((not message.persist or not can_chase) and not _target_within_leash(a_actor))
 
 
 ## Whether the target has been seen during this attack. Per-command state because "lost
@@ -435,10 +485,7 @@ func should_move(a_actor: Actor) -> bool:
 		return false
 	if a_actor.movement != null and not a_actor.movement.can_hold_still():
 		return true
-	return (
-		not SU.is_in_attack_range(weapon, a_actor, message.target)
-		or _obstruction_on_line(a_actor, message.target)
-	)
+	return not _is_in_range(a_actor, weapon) or _is_obstructed(a_actor)
 
 
 func releases_hold_fire() -> bool:
@@ -462,7 +509,7 @@ func acting_action(_a_actor: Actor) -> ActionTracker.Action:
 func can_act(a_actor: Actor) -> bool:
 	if not _target_attackable(message) or message.target == a_actor:
 		return false
-	if _obstruction_on_line(a_actor, message.target):
+	if _is_obstructed(a_actor):
 		return false
 	# Act when either the actor's own weapon or — for a bunker — any garrisoned
 	# unit's weapon is loaded and in range. A weaponless bunker has no own weapon,

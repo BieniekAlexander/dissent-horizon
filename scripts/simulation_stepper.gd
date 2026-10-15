@@ -19,6 +19,23 @@ extends Node
 ## and blackboard read what the pieces did.
 const STEP_PRIORITY: int = 50
 
+## The decide round: one per tick, and one per entity stepping itself outside a scenario. A
+## decision is stamped with the round that made it and counts only in that round, so none is
+## ever read on a later tick. Static because the commands holding decisions have no path to
+## their stepper; it only ever grows, so no stamp can match a later round.
+static var _round: int = 0
+
+
+## Start a new decide round.
+static func begin_round() -> void:
+	_round += 1
+
+
+## The round now running, which a decision made this tick is stamped with.
+static func current_round() -> int:
+	return _round
+
+
 ## Every entity that has entered play, in serial order. Appending keeps it sorted, since serials
 ## only grow; freed entities are dropped as each tick snapshots it. UNTYPED: an entity can be
 ## freed outright mid-tick, and a freed object fails a typed read.
@@ -58,6 +75,7 @@ func _physics_process(a_delta: float) -> void:
 ## decides, then every entity acts, then every death the tick dealt resolves. Public so a test
 ## can drive it.
 func step(a_delta: float) -> void:
+	begin_round()
 	var stepping: Array = []
 	var kept: Array = []
 	for item: Variant in _entities:

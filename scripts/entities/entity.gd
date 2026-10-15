@@ -949,6 +949,7 @@ func _physics_process(a_delta: float) -> void:
 		return
 	invalidate_step_list()
 	prepare_step()
+	SimulationStepper.begin_round()
 	decide_simulation()
 	step_simulation(a_delta)
 	resolve_death()

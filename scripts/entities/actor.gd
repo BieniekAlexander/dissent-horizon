@@ -1288,12 +1288,15 @@ func _update_state() -> void:
 ## or null. Decided against the world as the last tick left it (simulation_decide) and taken
 ## by Orders.tick in the act phase, which checks it still holds. Never outlives its tick.
 var _decided_aggro: MoveCommand = null
+## The decide round `_decided_aggro` belongs to (SimulationStepper.current_round).
+var _decided_aggro_round: int = -1
 
 
 ## The decide phase of this actor's tick: what an idle piece would attack, and its current
 ## command's own decisions (MoveCommand.decide). Reads only.
 func simulation_decide() -> void:
 	_decided_aggro = null
+	_decided_aggro_round = SimulationStepper.current_round()
 	if is_planned or orders == null or (defense != null and defense.hp <= 0):
 		return
 	if is_built and command_receiver.is_idle() and can_use_weapons():
@@ -1307,6 +1310,8 @@ func simulation_decide() -> void:
 func take_decided_aggro() -> MoveCommand:
 	var decided: MoveCommand = _decided_aggro
 	_decided_aggro = null
+	if _decided_aggro_round != SimulationStepper.current_round():
+		return null
 	return decided if decided_attack_holds(decided) else null
 
 

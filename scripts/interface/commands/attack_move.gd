@@ -26,20 +26,18 @@ func releases_hold_fire() -> bool:
 #region State updates
 ## What this tick's scan found, decided before any piece acted; read once by get_updated_state.
 var _decided_aggro: MoveCommand = null
-var _has_decided: bool = false
 
 
 func decide(a_actor: Actor) -> void:
+	_decided_round = SimulationStepper.current_round()
 	_decided_aggro = a_actor.get_aggro_near_position(null, null, message.target_priority)
-	_has_decided = true
 
 
 func get_updated_state(a_actor: Actor) -> Variant:
 	var aggro_command: MoveCommand = null
-	if _has_decided:
+	if has_decided():
 		if a_actor.decided_attack_holds(_decided_aggro):
 			aggro_command = _decided_aggro
-		_has_decided = false
 		_decided_aggro = null
 	else:
 		aggro_command = a_actor.get_aggro_near_position(null, null, message.target_priority)

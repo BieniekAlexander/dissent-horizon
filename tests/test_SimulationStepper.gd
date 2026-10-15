@@ -242,3 +242,15 @@ func test_an_attack_move_drops_a_decided_target_killed_before_it_acts() -> void:
 	await wait_physics_frames(2)
 	_stepper.step(DELTA)
 	assert_true(shooter.current_command() is AttackMove, "it carries on with the move")
+
+
+## A decision counts only in the round that made it: one left over is never read a tick late.
+func test_a_decision_is_never_read_on_a_later_tick() -> void:
+	Fog._fogs_by_commander.clear()
+	_enlisted_piece(FakePieces.BUILDER, _commander(FOE), Vector3(3, 0, 0), 1)
+	var shooter := _enlisted_piece(FakePieces.SOLDIER, _commander(OWN), Vector3.ZERO, 2)
+	await wait_physics_frames(2)
+	SimulationStepper.begin_round()
+	shooter.simulation_decide()
+	SimulationStepper.begin_round()
+	assert_null(shooter.take_decided_aggro(), "last tick's pick is not this tick's")

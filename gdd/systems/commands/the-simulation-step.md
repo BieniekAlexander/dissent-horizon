@@ -61,11 +61,15 @@ writes nothing but itself; the act phase checks it still holds before applying i
   live. `AttackMove`'s scan for something to fight is the first: decided, then swapped to in
   `get_updated_state` only if `Actor.decided_attack_holds`. The base `MoveCommand` destination
   swap is planned in decide (`swap_trades`, pure) and each trade applied only if both units
-  still hold the order and the destinations it was planned from.
+  still hold the order and the destinations it was planned from. `Attack` decides whether to keep
+  the attack (sight, leash) and, for the weapon it would fire, range and line of fire;
+  `FocusFire` decides its weapon's reach. Both aim, turn and fire in the act phase, with the aim
+  itself checked live there, so a unit still fires the tick it lines up.
+- **A decision counts only in the round that made it** (`SimulationStepper.current_round`, one
+  per tick): a command or piece whose decision is from an earlier round works the tick out live,
+  so nothing decided is ever read a tick late.
 - PLANNED — the commands whose "read" methods write today, and so must be split into a decided
   half and an applied half before more of their tick can move (audited 2026-10-15):
-  - `Attack` and `FocusFire`: `get_updated_state` aims, stops and turns the unit; `can_act`
-    holds the weapon's lock;
   - `Deploy` and `Undeploy`: `can_act` advances the deploy state machine;
   - `Occupy` and `Flush`: collision exceptions, avoidance layers and the host's pending list;
   - `Embark` (orders another unit), `Rearm` (claims a pad), `Evacuate` (lands the host),
@@ -134,7 +138,7 @@ the serial order, and deaths in their own step.
   keeps its node for every read and gains the serial a snapshot writes, so no command's code
   changes and none is touched twice.
 - **Replays recorded before a change to how a match plays are refused by build number**
-  (`application/config/version`; 0.2.0 with the stepper, 0.3.0 with the decide pass, 0.4.0 with AttackMove deciding, 0.5.0 with the destination swap), bumped by hand at each such
+  (`application/config/version`; 0.2.0 with the stepper, 0.3.0 with the decide pass, 0.4.0 with AttackMove deciding, 0.5.0 with the destination swap, 0.6.0 with Attack and FocusFire deciding), bumped by hand at each such
   change. TODO: the version stamp hashes no simulation
   script, so any change to how a match plays relies on someone bumping the number. Adding the
   scripts to `ReplayFile.VERSIONED_PATHS` would refuse replays on every refactor, which is its own

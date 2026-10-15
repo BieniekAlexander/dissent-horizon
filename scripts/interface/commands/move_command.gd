@@ -247,7 +247,8 @@ var _swap_cooldown: float = 0.0
 ## The trades decided this tick (decide), for get_updated_state to apply: each
 ## [sibling Actor, its command, my destination before, its destination before].
 var _decided_swaps: Array = []
-var _has_decided_swaps: bool = false
+## The decide round this command last decided in (SimulationStepper.current_round).
+var _decided_round: int = -1
 
 #endregion
 
@@ -259,8 +260,13 @@ var _has_decided_swaps: bool = false
 ## own decision fields. Run for the command a piece holds when the tick starts; a command that
 ## becomes current mid-tick has not decided, and works the tick out live.
 func decide(a_commandable: Actor) -> void:
-	_has_decided_swaps = true
+	_decided_round = SimulationStepper.current_round()
 	_decided_swaps = _plan_destination_swaps(a_commandable) if _is_swap_due() else []
+
+
+## Whether this command decided in the round now running — so its decisions are this tick's.
+func has_decided() -> bool:
+	return _decided_round == SimulationStepper.current_round()
 
 
 ## Potentially return a new command based on a state check. A plain MoveCommand
@@ -268,8 +274,7 @@ func decide(a_commandable: Actor) -> void:
 ## retargeting (chasing down a nearby enemy) is opt-in per subclass (see
 ## AttackMove, Patrol, Defend), not a base-class behavior every command inherits.
 func get_updated_state(a_commandable: Actor) -> Variant:
-	if _has_decided_swaps:
-		_has_decided_swaps = false
+	if has_decided():
 		_apply_destination_swaps(a_commandable, _decided_swaps)
 		_decided_swaps = []
 	elif _is_swap_due():

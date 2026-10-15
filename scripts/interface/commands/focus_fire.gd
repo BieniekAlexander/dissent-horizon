@@ -105,6 +105,29 @@ func releases_hold_fire() -> bool:
 	return true
 
 
+## Decided before any piece acts this tick (decide): whether the weapon it would fire reaches
+## the point. The act phase aims, turns and fires on it.
+var _decided_weapon: Weapon = null
+var _decided_in_reach: bool = false
+
+
+func decide(a_actor: Actor) -> void:
+	_decided_round = SimulationStepper.current_round()
+	_decided_weapon = ground_weapon_of(a_actor)
+	if _decided_weapon != null:
+		_decided_in_reach = within_reach(
+			reach_hull(a_actor, _decided_weapon), _aim_xz(), _decided_weapon.ground_reach()
+		)
+
+
+## Whether `a_weapon` reaches the point: as decided this tick for the weapon it decided on,
+## live otherwise.
+func _is_in_reach(a_actor: Actor, a_weapon: Weapon) -> bool:
+	if has_decided() and a_weapon == _decided_weapon:
+		return _decided_in_reach
+	return within_reach(reach_hull(a_actor, a_weapon), _aim_xz(), a_weapon.ground_reach())
+
+
 func get_updated_state(a_actor: Actor) -> Variant:
 	var weapon: Weapon = ground_weapon_of(a_actor)
 	if weapon == null:
@@ -137,7 +160,7 @@ func should_move(a_actor: Actor) -> bool:
 	# it flies at the point, fires as it goes, and comes around. See Attack.should_move.
 	if a_actor.movement != null and not a_actor.movement.can_hold_still():
 		return true
-	return not within_reach(reach_hull(a_actor, weapon), _aim_xz(), weapon.ground_reach())
+	return not _is_in_reach(a_actor, weapon)
 
 
 ## What `weapon`'s reach is measured from: the actor's footprint, or for a weapon measuring
@@ -167,7 +190,7 @@ func can_act(a_actor: Actor) -> bool:
 		return false
 	# Held whether or not the weapon is loaded, as in Attack, so an attack startup survives a reload.
 	var is_held: bool = (
-		within_reach(reach_hull(a_actor, weapon), _aim_xz(), weapon.ground_reach())
+		_is_in_reach(a_actor, weapon)
 		and _is_aimed_at_point(a_actor)
 	)
 	if is_held:
