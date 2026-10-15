@@ -254,3 +254,28 @@ func test_a_decision_is_never_read_on_a_later_tick() -> void:
 	shooter.simulation_decide()
 	SimulationStepper.begin_round()
 	assert_null(shooter.take_decided_aggro(), "last tick's pick is not this tick's")
+
+
+## A defender's scan around its post is decided too, and leashed to the area it guards.
+func test_a_defender_engages_what_it_decided_on_and_leashes_it() -> void:
+	Fog._fogs_by_commander.clear()
+	var enemy := _enlisted_piece(FakePieces.BUILDER, _commander(FOE), Vector3(3, 0, 0), 1)
+	var guard := _enlisted_piece(FakePieces.SOLDIER, _commander(OWN), Vector3.ZERO, 2)
+	guard.update_commands(Defend.new(CommandMessage.new(null, null, null, Vector3.ZERO)))
+	await wait_physics_frames(2)
+	_stepper.step(DELTA)
+	assert_true(guard.current_command() is Attack)
+	assert_same(guard.current_command().message.target, enemy)
+	assert_not_null(guard.current_command().message.aggro_shape, "leashed to the defended area")
+
+
+func test_a_defender_drops_a_decided_target_killed_before_it_acts() -> void:
+	Fog._fogs_by_commander.clear()
+	var killer := _enlisted(1)
+	var enemy := _enlisted_piece(FakePieces.BUILDER, _commander(FOE), Vector3(3, 0, 0), 2)
+	var guard := _enlisted_piece(FakePieces.SOLDIER, _commander(OWN), Vector3.ZERO, 3)
+	guard.update_commands(Defend.new(CommandMessage.new(null, null, null, Vector3.ZERO)))
+	_recorder(killer).action = func() -> void: enemy.defense.hp = 0.0
+	await wait_physics_frames(2)
+	_stepper.step(DELTA)
+	assert_true(guard.current_command() is Defend, "it stays on guard")

@@ -272,6 +272,29 @@ func has_decided() -> bool:
 	return _decided_round == SimulationStepper.current_round()
 
 
+## An aggro scan's result, decided this tick for get_updated_state to take once. For the
+## commands that switch to an Attack on what they find (AttackMove, Patrol, Defend).
+var _decided_aggro: MoveCommand = null
+
+
+## Decide `a_scan` (actor -> MoveCommand or null) now, against the world as the last tick left
+## it.
+func _decide_aggro(a_actor: Actor, a_scan: Callable) -> void:
+	_decided_round = SimulationStepper.current_round()
+	_decided_aggro = a_scan.call(a_actor)
+
+
+## What to switch to this tick: the attack decided this tick if it still holds
+## (Actor.decided_attack_holds), else nothing — or, when this command did not decide this
+## tick, `a_scan` run now.
+func _take_aggro(a_actor: Actor, a_scan: Callable) -> MoveCommand:
+	if not has_decided():
+		return a_scan.call(a_actor)
+	var decided: MoveCommand = _decided_aggro
+	_decided_aggro = null
+	return decided if a_actor.decided_attack_holds(decided) else null
+
+
 ## Potentially return a new command based on a state check. A plain MoveCommand
 ## never reactively retargets on its own — it always returns self. Aggro-based
 ## retargeting (chasing down a nearby enemy) is opt-in per subclass (see

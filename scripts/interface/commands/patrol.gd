@@ -43,8 +43,17 @@ static func for_actor(actor: Actor, message: CommandMessage) -> Patrol:
 
 
 #region State updates
+func decide(a_actor: Actor) -> void:
+	_decide_aggro(a_actor, _scan)
+
+
+## Something to fight near the patroller, at this order's minimum target priority.
+func _scan(a_actor: Actor) -> MoveCommand:
+	return a_actor.get_aggro_near_position(null, null, message.target_priority)
+
+
 func get_updated_state(a_actor: Actor) -> Variant:
-	var aggro: MoveCommand = a_actor.get_aggro_near_position(null, null, message.target_priority)
+	var aggro: MoveCommand = _take_aggro(a_actor, _scan)
 	return aggro if aggro != null else self
 
 

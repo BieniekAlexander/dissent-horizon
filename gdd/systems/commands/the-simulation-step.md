@@ -58,8 +58,9 @@ writes nothing but itself; the act phase checks it still holds before applying i
   tick.
 - **A command decides through `MoveCommand.decide`**, run for the command each piece holds when
   the tick starts; one that becomes current mid-tick has not decided and works its tick out
-  live. `AttackMove`'s scan for something to fight is the first: decided, then swapped to in
-  `get_updated_state` only if `Actor.decided_attack_holds`. The base `MoveCommand` destination
+  live. The aggro scans of `AttackMove`, `Patrol` and `Defend` are decided
+  (`MoveCommand._decide_aggro`) and swapped to in `get_updated_state` only if
+  `Actor.decided_attack_holds` (`_take_aggro`). The base `MoveCommand` destination
   swap is planned in decide (`swap_trades`, pure) and each trade applied only if both units
   still hold the order and the destinations it was planned from. `Attack` decides whether to keep
   the attack (sight, leash) and, for the weapon it would fire, range and line of fire;
@@ -143,7 +144,7 @@ the serial order, and deaths in their own step.
   keeps its node for every read and gains the serial a snapshot writes, so no command's code
   changes and none is touched twice.
 - **Replays recorded before a change to how a match plays are refused by build number**
-  (`application/config/version`; 0.2.0 with the stepper, 0.3.0 with the decide pass, 0.4.0 with AttackMove deciding, 0.5.0 with the destination swap, 0.6.0 with Attack and FocusFire deciding), bumped by hand at each such
+  (`application/config/version`; 0.2.0 with the stepper, 0.3.0 with the decide pass, 0.4.0 with AttackMove deciding, 0.5.0 with the destination swap, 0.6.0 with Attack and FocusFire deciding, 0.7.0 with Patrol and Defend deciding), bumped by hand at each such
   change. TODO: the version stamp hashes no simulation
   script, so any change to how a match plays relies on someone bumping the number. Adding the
   scripts to `ReplayFile.VERSIONED_PATHS` would refuse replays on every refactor, which is its own
