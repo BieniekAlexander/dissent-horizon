@@ -15,7 +15,7 @@ var _join_lobby: SkirmishLobby
 
 
 func before_each() -> void:
-	var host_link := LobbyLink.new("build", "os/arch")
+	var host_link := LobbyLink.new("build")
 	assert_eq(host_link.host(0, LOCALHOST), OK)
 	host_link.setup.set_player_count(3)
 	host_link.setup.set_team(0, 1)
@@ -23,7 +23,7 @@ func before_each() -> void:
 	_host_lobby = SkirmishLobby.new()
 	add_child_autofree(_host_lobby)
 	_host_lobby.attach(host_link)
-	var join_link := LobbyLink.new("build", "os/arch")
+	var join_link := LobbyLink.new("build")
 	_join_lobby = SkirmishLobby.new()
 	add_child_autofree(_join_lobby)
 	_join_lobby.attach(join_link)

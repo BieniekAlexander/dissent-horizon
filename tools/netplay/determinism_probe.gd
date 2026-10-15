@@ -65,7 +65,7 @@ func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(_out)
 	_started_msec = Time.get_ticks_msec()
 	_summary = {
-		"platform": NetSession.platform(),
+		"platform": "%s/%s" % [OS.get_name(), Engine.get_architecture_name()],
 		"engine": Engine.get_version_info().get("string", ""),
 		"build": ReplayFile.current_version(),
 		"recipe_seed": _recipe_seed,

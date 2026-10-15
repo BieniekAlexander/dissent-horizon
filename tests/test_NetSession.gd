@@ -2,33 +2,25 @@ extends GutTest
 
 ## The handshake and the ready barrier, over the loopback network: every peer learns the host's
 ## match, the match is ready only once every peer has loaded the same map, and a peer on another
-## build or platform, a different map or a missing seat refuses it.
+## build, a different map or a missing seat refuses it.
 ## gdd/systems/commands/netplay.md §What lockstep builds that rollback keeps (session setup).
 
 const BUILD: String = "build-a"
-const PLATFORM: String = "os/arch"
 const MAP: String = "map-a"
 const RECIPE: Dictionary = {"map_seed": 5, "rng_seed": 9}
 const DELAY_SECONDS: float = 0.1
 
 
-## Sessions for peers 1..`a_count` on `a_network`, peer 1 the host. `a_builds` and `a_platforms`
-## override a peer's (by id).
+## Sessions for peers 1..`a_count` on `a_network`, peer 1 the host. `a_builds` overrides a peer's
+## build (by id).
 func _sessions(
-	a_network: LoopbackNetwork,
-	a_count: int,
-	a_builds: Dictionary = {},
-	a_platforms: Dictionary = {}
+	a_network: LoopbackNetwork, a_count: int, a_builds: Dictionary = {}
 ) -> Array[NetSession]:
 	for id: int in range(1, a_count + 1):
 		a_network.endpoint(id)
 	var out: Array[NetSession] = []
 	for id: int in range(1, a_count + 1):
-		out.append(
-			NetSession.new(
-				a_network.endpoint(id), 1, a_builds.get(id, BUILD), a_platforms.get(id, PLATFORM)
-			)
-		)
+		out.append(NetSession.new(a_network.endpoint(id), 1, a_builds.get(id, BUILD)))
 	return out
 
 
@@ -94,13 +86,6 @@ func test_another_build_is_refused() -> void:
 	_exchange(network, sessions)
 	assert_string_contains(sessions[0].refusal(), "another version")
 	assert_string_contains(sessions[1].refusal(), "another version")
-
-
-func test_another_platform_is_refused() -> void:
-	var network := LoopbackNetwork.new()
-	var sessions: Array[NetSession] = _sessions(network, 2, {}, {2: "other/arch"})
-	_exchange(network, sessions)
-	assert_string_contains(sessions[0].refusal(), "platforms")
 
 
 func test_a_different_map_is_refused() -> void:
