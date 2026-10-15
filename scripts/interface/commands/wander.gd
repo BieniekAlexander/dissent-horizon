@@ -66,16 +66,19 @@ func _init(a_message: CommandMessage) -> void:
 
 
 #region State updates
-## Tick the pick timer and retarget when it elapses. Always returns self — this
-## command is deliberately unfinishable.
-func get_updated_state(a_actor: Actor) -> Variant:
+## Always returns self — this command is deliberately unfinishable.
+func get_updated_state(_a_actor: Actor) -> Variant:
+	return self
+
+
+## Tick the pick timer and retarget when it elapses.
+func apply_state(a_actor: Actor) -> void:
 	if not a_actor.can_move():
-		return self
+		return
 	_cooldown -= 1.0 / TimeUtils.ticks_per_second()
 	if _cooldown <= 0.0:
 		_cooldown = INTERVAL
 		_retarget(a_actor)
-	return self
 
 
 ## Draw a new destination on the navmesh within RADIUS of the anchor and steer

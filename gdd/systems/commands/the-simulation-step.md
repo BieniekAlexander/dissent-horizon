@@ -68,14 +68,19 @@ writes nothing but itself; the act phase checks it still holds before applying i
 - **A decision counts only in the round that made it** (`SimulationStepper.current_round`, one
   per tick): a command or piece whose decision is from an earlier round works the tick out live,
   so nothing decided is ever read a tick late.
-- PLANNED — the commands whose "read" methods write today, and so must be split into a decided
-  half and an applied half before more of their tick can move (audited 2026-10-15):
-  - `Deploy` and `Undeploy`: `can_act` advances the deploy state machine;
-  - `Occupy` and `Flush`: collision exceptions, avoidance layers and the host's pending list;
-  - `Embark` (orders another unit), `Rearm` (claims a pad), `Evacuate` (lands the host),
-    `Wander` (draws from `SU.rng`), `Build` (caches a preview node on the commander).
-  The rest — Assemble, Defend, Interact, Patrol, Plant, Repair, Spot, TaskShelter, and the
-  commands that only inherit the base swap — read only, apart from fields of their own.
+- **A command's reads are reads; its writes are `apply_state`.** `get_updated_state`, `can_act`
+  and `should_move` only read (apart from the command's own fields), so any of them can move
+  into decide. What a command changes in the world each tick is `MoveCommand.apply_state`, which
+  the receiver runs once, after `get_updated_state` keeps the command and before `can_act` — the
+  same point in the tick those writes held when they lived in the reads, so moving them changed
+  no match (the probe agreed to the bit with the build before, each time). The commands that
+  wrote from their reads, audited 2026-10-15, all moved: the base destination swap, `Attack`,
+  `FocusFire`, `Deploy`, `Undeploy`, `Occupy` (and `Flush`), `Embark`, `Rearm`, `Evacuate` and
+  `Wander`. `fulfill_action` is still the act it always was.
+- TODO: `Build`'s reads fill the commander's preview-instance cache on first use
+  (`Commander.get_build_preview_instance`) — a memo of derived data, harmless serially and
+  normally filled already by the order's precondition check, but a race once decide runs on
+  threads. Warm it when the order is given.
 - INVARIANT: a `simulation_decide` writes only its own piece's decision fields. Nothing in the
   language can stop it writing more, and a write there is seen by every piece deciding after it,
   which is the same-tick order dependence the pass exists to remove — and, once decide runs on
