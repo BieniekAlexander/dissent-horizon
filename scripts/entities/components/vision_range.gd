@@ -43,12 +43,13 @@ func orbit_origin() -> Variant:
 func _ready() -> void:
 	# A BODY vision rides on its piece as any child does; only an ORBIT one is placed by hand.
 	top_level = origin == Origin.ORBIT
-	set_physics_process(origin == Origin.ORBIT)
 
 
 ## Framework-imposed: the shape is re-stood at the orbit's centre every tick, since the anchor
 ## moves (a Sortie takes station, an Attack re-centres it) without telling anyone.
-func _physics_process(_a_delta: float) -> void:
+func simulation_step(_a_delta: float) -> void:
+	if origin != Origin.ORBIT:
+		return
 	var at: Variant = orbit_origin()
 	if at is Vector3:
 		global_position = at

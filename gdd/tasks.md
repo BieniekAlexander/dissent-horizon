@@ -223,9 +223,14 @@ Decided (Alex, 2026-10-11): peer-to-peer deterministic lockstep over the existin
 > **Not done:** a DROP's selection and a toggle's card refresh still fire from the apply (fine for lockstep, a TODO before rollback); a bot taking a forfeited slot (team games); a three-way network split can fence at different ticks. Joiners' round trips to each other are not measured for the input delay. Cross-platform determinism is measured on one match only (note §Decisions, platforms).
 > **2026-10-14, later:** a Mac and a Windows PC played a networked match over Wi-Fi in step (900 ticks). Cross-platform determinism: the platforms' maths libraries differ in the last bit, so simulation code now calls a native `DMath` (Alex's choice); with that, a piece's facing held as `Entity.yaw`, and digests rounded by arithmetic, a five-minute bot match agreed to the bit on both platforms for all 9000 ticks (authoring/native-code.md §Maths that rounds the same everywhere). The platform refusal was removed 2026-10-15 at Alex's request.
 
-### T-110 · The simulation step: decide in parallel, act in serial order #effort/high #scoped
+### T-110 · The simulation step: decide in parallel, act in serial order #effort/high #scoped #shelved
 Scoped 2026-10-15; every scoping decision is Alex's and is recorded in the note. One stepper drives the tick in spawn-serial order: a decide phase that reads only last tick's state, then an act phase applying intents serially with re-validation. Built in stages — the serial stepper, then decide/act still serial, then worker threads (deferred until the first two are measured). Rollback groundwork first, tick cost second. T-109 is reserved for the replay-fixture item stashed on 2026-10-15.
 → [commands/the-simulation-step](systems/commands/the-simulation-step.md)
+
+> [!check] Status — 2026-10-15
+> Stage 1 built: `SimulationStepper` steps every entity in spawn-serial order, emissions numbered too, deaths in their own step after everything has stepped; per-piece ticks are `simulation_step`. Build number set to 0.1.0, so older replays are refused. Gate: two 9000-tick determinism-probe runs agreed to the bit on Windows.
+> Tests: 4537 passing, plus `test_SimulationStepper` (9).
+> **Not done:** the gate on macOS/arm64; stage 2 (decide/act, the spatial index, references by serial) and stage 3 (threads) — not started.
 
 ### T-038 · Move-line drag: the follow-ups #effort/medium #unscoped #shelved
 Built for the unarmed right click only. Left: the minimap, armed orders, navmesh snapping of slots, recording issued destinations in the replay (T-037).

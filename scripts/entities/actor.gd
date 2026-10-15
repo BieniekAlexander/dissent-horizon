@@ -488,8 +488,6 @@ func commit_construction(a_map: Map, a_world_center: Vector2) -> void:
 	if commander != null:
 		commander.add_structure(self)
 
-	# Per-tick logic (production, aggro, death checks) was off while planned.
-	set_physics_process(true)
 	begin_construction()
 	if defense != null:
 		defense.hp = defense.hp_max * INITIAL_HEALTH_FACTOR
@@ -920,7 +918,7 @@ func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
 const STAGGER_SECONDS: int = 3
 
 ## Remaining stagger duration in physics ticks; 0 when not staggered. Refreshed to full
-## in receive_damage, counted down each tick in _physics_process.
+## in receive_damage, counted down each tick in simulation_step.
 var _stagger_ticks: int = 0
 
 
@@ -1047,12 +1045,6 @@ func _ready() -> void:
 	# no-op for them; units are always built.
 	build_progress_changed.connect(_on_build_progress_changed)
 	_apply_construction_visuals()
-
-	# A planned structure runs no per-tick logic: nothing to produce (the queue holds
-	# its orders until it's built), nothing to shoot, nothing to die. commit_construction
-	# switches this back on when the builder lays it down.
-	if is_planned:
-		set_physics_process(false)
 
 	# Wire Movement → physics handler for any entity carrying one. Wired on the COMPONENT,
 	# live or not, so a two-form piece that starts deployed is ready the moment it undeploys;
@@ -1234,7 +1226,7 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 		move_and_slide()
 
 	# Snap Y to terrain after each move so height tracks the final XZ this tick,
-	# not the XZ from before the move (which is what _physics_process saw).
+	# not the XZ from before the move (which is what simulation_step saw).
 	if map != null:
 		_snap_height_to_terrain()
 
@@ -1248,10 +1240,6 @@ func _snap_height_to_terrain() -> void:
 
 
 func _update_state() -> void:
-	if defense != null and defense.hp <= 0:
-		_on_death()
-		return
-
 	# Before anything else this tick: an aircraft with nothing left to fire stands down the
 	# order that assumed it would shoot, and then — only if that leaves it with nothing else
 	# worth doing — takes itself home. Ahead of the idle-aggro check on purpose, so a dry
@@ -1296,8 +1284,11 @@ func _update_state() -> void:
 		stealth.tick()
 
 
-func _physics_process(_a_delta: float) -> void:
-	if Engine.is_editor_hint():
+## One tick of this actor (SimulationStepper). A PLANNED structure runs none of it: nothing to
+## produce (the queue holds its orders until it is built), nothing to shoot. A piece this tick
+## has already killed does not act; it dies in the stepper's death step (resolve_death).
+func simulation_step(_a_delta: float) -> void:
+	if is_planned or (defense != null and defense.hp <= 0):
 		return
 	if _stagger_ticks > 0:
 		_stagger_ticks -= 1
@@ -1453,6 +1444,16 @@ func _run_over_overlapping_units() -> void:
 
 
 #endregion
+
+
+## Deaths resolve after every entity has stepped, in serial order, so a death lands on the tick
+## that dealt it whatever order the pieces involved act in. Not for a PLANNED structure, which
+## cannot be damaged, nor for one already torn down this tick (Entity.kill).
+func resolve_death() -> void:
+	if is_planned or is_queued_for_deletion():
+		return
+	if defense != null and defense.hp <= 0:
+		_on_death()
 
 
 ## A two-form piece is one of its commander's structures exactly while it is deployed. A

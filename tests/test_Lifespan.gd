@@ -23,7 +23,7 @@ func _beacon() -> Entity:
 ## Drive the component's own tick `a_ticks` times, as the physics server would.
 func _tick(a_lifespan: Lifespan, a_ticks: int) -> void:
 	for _i: int in a_ticks:
-		a_lifespan._physics_process(1.0 / TimeUtils.ticks_per_second())
+		a_lifespan.simulation_step(1.0 / TimeUtils.ticks_per_second())
 
 
 func test_a_negative_duration_attaches_nothing() -> void:
@@ -75,5 +75,6 @@ func test_it_expires_once() -> void:
 	add_child_autofree(beacon)
 	watch_signals(beacon)
 	var lifespan := Lifespan.attach(beacon, SOME_SECONDS)
-	_tick(lifespan, TimeUtils.ticks_from_seconds(SOME_SECONDS))
-	assert_false(lifespan.is_physics_processing(), "it stops counting once spent")
+	var ticks: int = TimeUtils.ticks_from_seconds(SOME_SECONDS)
+	_tick(lifespan, ticks + 3)
+	assert_eq(lifespan._ticks_alive, ticks, "it stops counting once spent")

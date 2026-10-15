@@ -62,7 +62,7 @@ func _ready() -> void:
 
 ## Ride along with the carrier, and advance stealth — a beacon is not a Actor, so
 ## nothing else ticks its Stealth.
-func _physics_process(_a_delta: float) -> void:
+func simulation_step(_a_delta: float) -> void:
 	var carrier: Entity = carrier()
 	if carrier != null:
 		host().global_position = carrier.global_position

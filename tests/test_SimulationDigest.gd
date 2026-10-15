@@ -39,7 +39,7 @@ func _unit(a_commander: Commander, a_at: Vector3, a_options: Dictionary = {}) ->
 	a_commander.add_child(piece)
 	piece.set_physics_process(false)
 	piece.global_position = a_at
-	piece.spawn_serial = _scenario.register_piece(piece)
+	piece.spawn_serial = _scenario.register_entity(piece)
 	return piece
 
 

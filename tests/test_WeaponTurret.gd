@@ -93,7 +93,7 @@ func _gun(a_piece: Actor) -> Weapon:
 ## Run the weapon's own per-tick update `a_ticks` times, without the rest of the physics loop.
 func _idle(a_weapon: Weapon, a_ticks: int) -> void:
 	for i in a_ticks:
-		a_weapon._physics_process(1.0 / TimeUtils.ticks_per_second())
+		a_weapon.simulation_step(1.0 / TimeUtils.ticks_per_second())
 
 
 func _deg(a_radians: float) -> float:

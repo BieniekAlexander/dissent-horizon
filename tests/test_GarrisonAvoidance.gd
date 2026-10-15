@@ -123,7 +123,7 @@ func test_a_unit_consumed_mid_occupy_tears_down_cleanly() -> void:
 	add_child_autofree(hold)
 	captive.get_parent().remove_child(captive)
 	hold.garrison(captive)
-	hold._physics_process(2.0)
+	hold.simulation_step(2.0)
 	assert_false(is_instance_valid(captive), "the sentence consumed it")
 	assert_eq(transport.movement._saved_avoidance_layers, 0, "and the host is back in avoidance")
 

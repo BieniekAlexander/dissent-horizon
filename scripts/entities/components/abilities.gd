@@ -91,7 +91,7 @@ func _rebuild() -> void:
 		remove_from_group(ALERTING_GROUP)
 
 
-func _physics_process(_a_delta: float) -> void:
+func simulation_step(_a_delta: float) -> void:
 	for i: int in _charges.size():
 		var pool: Dictionary = groups[i]
 		if _charges[i] >= _max_charges(pool) or _is_held(i):

@@ -7,8 +7,8 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
-**PLANNED, all of it** — scoped 2026-10-15 ([`gdd/tasks.md`](../../tasks.md) T-110), decisions
-Alex's. Nothing here is built.
+Scoped 2026-10-15 ([`gdd/tasks.md`](../../tasks.md) T-110), decisions Alex's. **Built: stage 1,
+the serial stepper (2026-10-15). PLANNED: stages 2 and 3, the decide/act split and threads.**
 
 One tick of the simulation becomes a single step that the scenario drives, in two phases:
 **decide**, where every piece reads the world as the previous tick left it and writes down what it
@@ -24,14 +24,28 @@ Two things motivate it, and the second outranks the first:
   cheap enough to re-run several times in one frame. Each stage below is rollback groundwork
   whether or not threading pays.
 
-## How a tick runs today, and what it costs this design
+## The serial stepper
 
-Read this as the list of things the design has to replace, not as documentation of the current
-code.
+Built. `SimulationStepper`, made with the `Scenario`, steps every entity in play in spawn-serial
+order once a tick, then resolves the tick's deaths in the same order. Every entity takes a serial
+on entering a scenario — emissions too, though only pieces are looked up by one, since only pieces
+are named by orders. An entity steps the nodes under it that define `simulation_step`, in tree
+order; nothing in a scenario does simulation work in `_physics_process`
+(`tests/test_SimulationStepper.gd` scans for it). Outside a scenario — a test fixture, a preview
+tool — an entity steps itself.
 
-- **Order between pieces is scene-tree order**: pieces are children of their commander, so they
-  run grouped by commander, and a capture reparents a piece and moves it in that order. The shared
-  random stream (`SU.rng` — aim error, emission jitter, wander) is drawn in that order.
+- **The stepper runs after every priority-0 system** — the tick count, triggers, tactics, bots,
+  fog — and before `Commander`, so orders those issue land before any piece acts on them.
+- **A tick steps what was in play when it started.** An entity or node that arrives mid-tick is
+  first stepped on the next one, as the engine's own process list behaves.
+- **A piece at zero HP does not act**; it dies in the death step of the tick that dealt the damage,
+  whichever of the pieces involved stepped first. A death that cannot wait (a flush, a crush)
+  still happens at once through `Entity.kill`.
+- **A node switched off with `PROCESS_MODE_DISABLED` is not stepped**, as the engine would not
+  process it — how a test freezes one component.
+
+## What the remaining stages replace
+
 - **A piece writes other pieces directly and at once**: damage, crush, capture, garrisoning,
   building, status effects, claims on pads, runways and beacons. Whoever runs first wins.
 - **A piece dies on its own next update**, which falls this tick or the next by tree order.
@@ -42,11 +56,11 @@ code.
   buffer, so those queries cannot run concurrently.
 - **Pieces hold each other as node references** (`CommandMessage.target`, garrison lists, claims,
   `Payload.from`), never by serial; `FrostField` keys by instance id, which differs per machine.
-- **Emissions have no spawn serial.**
 
 ## Decisions
 
-Decided by Alex, 2026-10-15.
+Decided by Alex, 2026-10-15. PLANNED, except the three stage 1 built: one stepper, emissions in
+the serial order, and deaths in their own step.
 
 - **What decide sees: last tick's state, re-validated at apply.** Every read in the decide phase is
   of the state the previous tick left. The act phase checks each intent's precondition against the
@@ -56,18 +70,16 @@ Decided by Alex, 2026-10-15.
 - **Conflicts: the lowest spawn serial wins**, which is simply what applying in serial order with
   re-validation does. Additive effects — damage, income, healing — do not conflict; they sum. A
   kind of conflict that reads badly can get its own rule later.
-- **One stepper, in spawn-serial order.** The scenario steps every actor itself, sorted by
-  `spawn_serial`, and per-piece `_physics_process` goes away for simulation work. This replaces
-  netplay's "update order by serial" TODO, and it is the one place the two phases live.
+- **One stepper, in spawn-serial order** — built (§The serial stepper). It is the one place the
+  two phases will live.
 - **The decide/act line follows the profile, not the class list.** The hot read-only work moves
   into decide — target acquisition, range and line-of-fire checks, path progress — and
   `fulfill_action` stays in act much as it is today. A command migrates further when it is next
   touched, rather than every command being rewritten at once.
-- **Emissions join the serial order**: they get spawn serials and the stepper steps them. Rollback
-  must snapshot them anyway, and their impacts write damage.
-- **Deaths resolve in a step of their own, after act**, in serial order: teardown, refunds,
-  freeing the footprint and the death triggers all happen there, so a death lands on the same tick
-  whatever the order of the pieces involved.
+- **Emissions join the serial order** — built. Rollback must snapshot them anyway, and their
+  impacts write damage.
+- **Deaths resolve in a step of their own**, after every entity has stepped — built. Under stage 2
+  that step follows act.
 - **Spatial queries in decide read our own index**, built once at the start of the tick from last
   tick's positions and read-only thereafter. It grows from the existing spatial partition grid,
   and hurtbox-exact range checks are ported onto it. Neither queueing queries to the main thread
@@ -83,9 +95,9 @@ Decided by Alex, 2026-10-15.
   another piece: command messages, garrison lists, claims, payload sources, followed units. A
   rollback snapshot cannot hold a node reference, so doing it now avoids touching every command
   twice.
-- **Replays recorded before this change are refused by build number.** The project sets no
-  `application/config/version` today; it gets one when the stepper lands, and it is bumped again
-  at each stage that changes how a match plays. TODO: the version stamp hashes no simulation
+- **Replays recorded before a change to how a match plays are refused by build number**
+  (`application/config/version`, set to 0.1.0 with the stepper), bumped by hand at each such
+  change. TODO: the version stamp hashes no simulation
   script, so any change to how a match plays relies on someone bumping the number. Adding the
   scripts to `ReplayFile.VERSIONED_PATHS` would refuse replays on every refactor, which is its own
   decision.
@@ -96,8 +108,10 @@ Each stage is gated on the determinism probe (`tools/netplay/determinism_probe`)
 bit between two runs of the same build, and is measured by simulated minute on the probe's recipe
 (seed 20261014, two bots, 9000 ticks) on both development machines.
 
-1. **The serial stepper.** One loop in spawn-serial order, emissions given serials, deaths in their
-   own step. No threads. Matches play differently from here on.
+1. **The serial stepper.** Built 2026-10-15. Two 9000-tick runs agreed to the bit — every digest
+   and every sampled float — on Windows/x86_64; the match differs from the tree-ordered one from
+   tick 1, as expected. Wall time was unchanged within this laptop's run-to-run noise (213–293 s
+   against 282 s), which stage 1 never aimed to move. TODO: the same check on macOS/arm64.
 2. **Decide and act, still serial.** The intent records, re-validation at apply, the spatial index,
    path requests as intents, references by serial.
 3. **Worker threads for decide.** TODO: deferred by Alex (2026-10-15) until the first two stages

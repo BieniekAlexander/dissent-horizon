@@ -220,7 +220,7 @@ structure (a captured one, a scenario event) agrees without each having to remem
 
 A blueprint is **the structure itself in a PLANNED state** (`Entity.is_planned`), not a decorative ghost — which is what lets the player select it and queue units at a building that hasn't been started. Issuing a build order creates ONE (`Build.plan_structure`), shared by every builder in the order via `CommandMessage.planned_structure`.
 
-What it has: ownership + team tint, its `Selectable`, its `Production`, and 0.2 opacity. What it does NOT have until placement: grid cells, collision (`refresh_movement_collision` / `_apply_targetable_layers` bail out on `is_planned`), line of sight, infrastructure upkeep, a place in the commander's `structure_type_map`, and `_physics_process`. It is invisible to every commander but its owner (`fog.gd`, `Commander.visible_foreign_structures`).
+What it has: ownership + team tint, its `Selectable`, its `Production`, and 0.2 opacity. What it does NOT have until placement: grid cells, collision (`refresh_movement_collision` / `_apply_targetable_layers` bail out on `is_planned`), line of sight, infrastructure upkeep, a place in the commander's `structure_type_map`, and per-tick logic (`Actor.simulation_step` returns at once). It is invisible to every commander but its owner (`fog.gd`, `Commander.visible_foreign_structures`).
 
 `Actor.commit_construction` is the transition: the builder arriving turns that same node into the real structure (`Build._place_structure`) — nothing is re-instantiated, so a selection or queued order survives placement.
 

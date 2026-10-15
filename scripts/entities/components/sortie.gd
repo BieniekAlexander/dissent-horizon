@@ -91,7 +91,7 @@ func _admits(a_order: MoveCommand) -> bool:
 
 #region Tick
 ## Framework-imposed per-tick state: the phase and the station clock.
-func _physics_process(_a_delta: float) -> void:
+func simulation_step(_a_delta: float) -> void:
 	var aircraft := get_parent() as Actor
 	if aircraft == null:
 		return

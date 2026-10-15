@@ -22,7 +22,7 @@ weapon.
 ## The ammo half: `Weapon.charged`
 
 
-`charged` (a bool on `Weapon`) means "this clip is refilled from outside, never by the passage of time". `Weapon._physics_process` simply does not run the reload countdown for one, so `is_ready()` stays false once the clip is spent and `Attack._own_weapon_can_fire` fails — the attack command stays live and the unit holds, which is what gives the auto-rearm below something to notice.
+`charged` (a bool on `Weapon`) means "this clip is refilled from outside, never by the passage of time". `Weapon.simulation_step` simply does not run the reload countdown for one, so `is_ready()` stays false once the clip is spent and `Attack._own_weapon_can_fire` fails — the attack command stays live and the unit holds, which is what gives the auto-rearm below something to notice.
 
 **The rate is the SAME `reload_time` an ordinary weapon uses, meaning the same thing: ticks for a full clip.** So both kinds of weapon are balanced against one number, and setting `charged` changes WHERE the reload happens rather than how long it takes. What being charged actually costs is the flight home, which is the mechanic. `_validate_property` therefore stops pinning `reload_time` to `split_time` for a single-round clip when `charged` is set — that pin would make such an aircraft rearm instantly.
 
@@ -47,7 +47,7 @@ nothing to shoot at has to STAY ready.
 An ordinary weapon survived an unclamped countdown by accident: its reload branch resets
 `_split_timer = 0` every `reload_time` ticks, so it recovered on its own within a clip and
 the fault showed only as an occasional delay before opening fire. **A CHARGED weapon never
-reaches that branch** — `_physics_process` returns two lines above it, because a charged
+reaches that branch** — `simulation_step` returns two lines above it, because a charged
 clip must not refill on a timer — so its timer went negative once and never came back. The
 Drake sat holding four rockets it could not fire: full clip, no projectile, no ammo spent,
 and nothing anywhere reporting a problem. It looked like a targeting bug, or like the bot

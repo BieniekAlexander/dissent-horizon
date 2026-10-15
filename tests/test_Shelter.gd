@@ -64,9 +64,9 @@ func test_shelter_counts_down_and_resets_after_producing():
 	var host := _stub_host()
 	var s := _shelter_on(host, 2.0)
 	assert_almost_eq(s._remaining, 2.0, 0.001, "starts at the full interval")
-	s._physics_process(1.0)
+	s.simulation_step(1.0)
 	assert_almost_eq(s._remaining, 1.0, 0.001, "counts down")
-	s._physics_process(1.5)  # overshoot
+	s.simulation_step(1.5)  # overshoot
 	assert_almost_eq(s._remaining, 2.0, 0.001, "resets to the interval after producing")
 
 
@@ -74,11 +74,11 @@ func test_shelter_timer_parks_at_capacity():
 	var host := _stub_host()
 	var s := _shelter_on(host, 10.0, 2)
 	s.register(_stub_resident())
-	s._physics_process(1.0)
+	s.simulation_step(1.0)
 	assert_almost_eq(s._remaining, 9.0, 0.001, "still ticking below capacity")
 	s.register(_stub_resident())
 	assert_true(s.is_full())
-	s._physics_process(5.0)
+	s.simulation_step(5.0)
 	assert_almost_eq(s._remaining, 9.0, 0.001, "timer holds while at capacity")
 
 
@@ -87,11 +87,11 @@ func test_shelter_resumes_when_a_resident_leaves():
 	var s := _shelter_on(host, 10.0, 1)
 	var resident := _stub_resident()
 	s.register(resident)
-	s._physics_process(1.0)
+	s.simulation_step(1.0)
 	assert_almost_eq(s._remaining, 10.0, 0.001, "parked")
 	s.unregister(resident)
 	assert_eq(s.resident_count(), 0)
-	s._physics_process(1.0)
+	s.simulation_step(1.0)
 	assert_almost_eq(s._remaining, 9.0, 0.001, "ticking again once a slot frees up")
 
 

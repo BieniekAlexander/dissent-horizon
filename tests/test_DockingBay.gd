@@ -410,7 +410,7 @@ func test_taxiing_walks_the_aircraft_along_its_path_and_stops() -> void:
 	for _i: int in 2000:
 		if arrived[0]:
 			break
-		plane.aerial._physics_process(0.0)
+		plane.aerial.simulation_step(0.0)
 	assert_true(arrived[0], "it reached the end of the path")
 	assert_almost_eq(
 		VU.in_xz(plane.global_position).length(),
@@ -428,7 +428,7 @@ func test_taxiing_leaves_the_height_alone() -> void:
 	plane.global_position = Vector3(5.0, 2.5, 0.0)
 	plane.aerial.park_on_deck(0.0)
 	plane.aerial.taxi_along([Vector3(0.0, 0.0, 0.0)], Callable())
-	plane.aerial._physics_process(0.0)
+	plane.aerial.simulation_step(0.0)
 	assert_almost_eq(plane.global_position.y, 2.5, 0.0001)
 
 
@@ -701,7 +701,7 @@ func test_a_taxiing_unit_turns_before_it_moves() -> void:
 	plane.movement.face_toward(Vector3(0.0, 0.0, 10.0))
 	plane.aerial.taxi_along([Vector3(0.0, 0.0, -10.0)], Callable())
 
-	plane.aerial._physics_process(0.0)
+	plane.aerial.simulation_step(0.0)
 	assert_almost_eq(
 		plane.global_position.length(),
 		0.0,
@@ -710,7 +710,7 @@ func test_a_taxiing_unit_turns_before_it_moves() -> void:
 	)
 
 	for _i: int in 400:
-		plane.aerial._physics_process(0.0)
+		plane.aerial.simulation_step(0.0)
 		if plane.global_position.length() > 0.01:
 			break
 	assert_gt(plane.global_position.length(), 0.01, "and once pointed, it rolls")
@@ -767,7 +767,7 @@ func test_the_strip_is_released_once_the_departing_aircraft_is_airborne() -> voi
 	plane.aerial.park_on_deck(0.0)
 	plane.aerial.take_off()
 	for _i: int in 2000:
-		plane.aerial._physics_process(0.0)
+		plane.aerial.simulation_step(0.0)
 		if plane.aerial.is_airborne():
 			break
 	plane.docking.release_runway()
@@ -857,7 +857,7 @@ func test_the_last_leg_of_a_departure_opens_up_to_flight_speed() -> void:
 
 	var fastest: float = 0.0
 	for _i: int in 4000:
-		plane.aerial._physics_process(0.0)
+		plane.aerial.simulation_step(0.0)
 		fastest = maxf(fastest, VU.in_xz(plane.movement._current_velocity).length())
 		if not plane.aerial.is_taxiing():
 			break

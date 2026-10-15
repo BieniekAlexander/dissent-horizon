@@ -1,0 +1,167 @@
+extends GutTest
+
+## SimulationStepper: every entity in a scenario steps in spawn-serial order, whatever order the
+## scene tree holds it in; a tick steps what was in play when it started; and the tick's deaths
+## resolve after every entity has stepped. gdd/systems/commands/the-simulation-step.md.
+##
+## Run with:
+##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_SimulationStepper.gd -gexit
+
+const DELTA: float = 1.0 / 30.0
+
+
+## A component that writes its entity's serial into a shared log each time it is stepped, and
+## runs an optional action after.
+class Recorder:
+	extends Node
+	var log: Array[int] = []
+	var action: Callable = Callable()
+
+	func simulation_step(_a_delta: float) -> void:
+		log.append((get_parent() as Entity).spawn_serial)
+		if action.is_valid():
+			action.call()
+
+
+var _stepper: SimulationStepper = null
+var _log: Array[int] = []
+
+
+func before_each() -> void:
+	_stepper = SimulationStepper.new()
+	add_child_autofree(_stepper)
+	_stepper.set_physics_process(false)
+	_log = []
+
+
+## A unit numbered `a_serial` and handed to the stepper, as Scenario.register_entity does, with
+## a Recorder that writes to the shared log.
+func _enlisted(a_serial: int) -> Actor:
+	var unit: Actor = FakePieces.unit()
+	add_child_autofree(unit)
+	unit.set_physics_process(false)
+	unit.spawn_serial = a_serial
+	_stepper.enlist(unit)
+	var recorder := Recorder.new()
+	recorder.name = "Recorder"
+	recorder.log = _log
+	unit.add_child(recorder)
+	return unit
+
+
+func _recorder(a_unit: Actor) -> Recorder:
+	return a_unit.get_node("Recorder") as Recorder
+
+
+func test_entities_step_in_serial_order_not_tree_order() -> void:
+	var first := _enlisted(1)
+	var second := _enlisted(2)
+	var third := _enlisted(3)
+	# Tree order is now 3, 1, 2; serial order is unchanged.
+	move_child(third, 0)
+	_stepper.step(DELTA)
+	assert_eq(_log, [1, 2, 3])
+	assert_true(first.is_inside_tree() and second.is_inside_tree())
+
+
+func test_an_entity_enlisted_mid_tick_first_steps_on_the_next() -> void:
+	var spawner := _enlisted(1)
+	var spawned: Array[Actor] = []
+	_recorder(spawner).action = func() -> void:
+		if spawned.is_empty():
+			spawned.append(_enlisted(2))
+	_stepper.step(DELTA)
+	assert_eq(_log, [1], "the spawn waits for the next tick")
+	_stepper.step(DELTA)
+	assert_eq(_log, [1, 1, 2])
+
+
+func test_a_node_added_mid_tick_first_steps_on_the_next() -> void:
+	var host := _enlisted(1)
+	var other := _enlisted(2)
+	var late := Recorder.new()
+	late.log = _log
+	_recorder(host).action = func() -> void:
+		if late.get_parent() == null:
+			other.add_child(late)
+	_stepper.step(DELTA)
+	assert_eq(_log, [1, 2], "the added node waits for the next tick")
+	_stepper.step(DELTA)
+	assert_eq(_log, [1, 2, 1, 2, 2])
+
+
+func test_an_entity_out_of_the_tree_is_skipped_and_resumes_on_return() -> void:
+	var first := _enlisted(1)
+	var second := _enlisted(2)
+	remove_child(first)
+	_stepper.step(DELTA)
+	assert_eq(_log, [2])
+	add_child(first)
+	_stepper.step(DELTA)
+	assert_eq(_log, [2, 1, 2], "it keeps its place in serial order")
+	assert_true(second.is_inside_tree())
+
+
+func test_a_freed_entity_drops_out() -> void:
+	var first := _enlisted(1)
+	_enlisted(2)
+	first.free()
+	_stepper.step(DELTA)
+	assert_eq(_log, [2])
+
+
+func test_a_piece_killed_by_an_earlier_serial_does_not_act_and_dies_that_tick() -> void:
+	var killer := _enlisted(1)
+	var victim := _enlisted(2)
+	_recorder(killer).action = func() -> void: victim.defense.hp = 0.0
+	_stepper.step(DELTA)
+	assert_true(victim.is_queued_for_deletion(), "the death resolves on the tick that dealt it")
+
+
+func test_a_piece_killed_by_a_later_serial_dies_the_same_tick() -> void:
+	var victim := _enlisted(1)
+	var killer := _enlisted(2)
+	_recorder(killer).action = func() -> void: victim.defense.hp = 0.0
+	_stepper.step(DELTA)
+	assert_true(victim.is_queued_for_deletion(), "not a tick later, as tree order once made it")
+
+
+func test_a_dying_piece_does_not_take_its_own_tick() -> void:
+	var victim := _enlisted(1)
+	victim.defense.hp = 0.0
+	# Actor.simulation_step's first act on a live piece is to count down its stagger.
+	victim._stagger_ticks = 5
+	_stepper.step(DELTA)
+	assert_eq(victim._stagger_ticks, 5, "a piece at zero HP skips its own step")
+	assert_true(victim.is_queued_for_deletion())
+
+
+## The scripts under scripts/entities/ allowed a `_physics_process`: Entity's own fallback (it
+## steps itself outside a scenario), and presentation that never changes the simulation.
+const PHYSICS_PROCESS_ALLOWED: Array[String] = [
+	"res://scripts/entities/entity.gd",
+	"res://scripts/entities/animation/animation_rig.gd",
+]
+
+
+## A piece's per-tick simulation work runs through the stepper, in serial order. A component
+## that ticks in `_physics_process` instead runs in tree order, outside it, and nothing else
+## would say so.
+func test_no_entity_script_ticks_outside_the_stepper() -> void:
+	var offenders: Array[String] = []
+	for path: String in _scripts_under("res://scripts/entities"):
+		if path in PHYSICS_PROCESS_ALLOWED:
+			continue
+		if FileAccess.get_file_as_string(path).contains("func _physics_process("):
+			offenders.append(path)
+	assert_eq(offenders, [] as Array[String], "define simulation_step instead")
+
+
+func _scripts_under(a_root: String) -> Array[String]:
+	var out: Array[String] = []
+	for entry: String in DirAccess.get_directories_at(a_root):
+		out.append_array(_scripts_under(a_root.path_join(entry)))
+	for entry: String in DirAccess.get_files_at(a_root):
+		if entry.ends_with(".gd"):
+			out.append(a_root.path_join(entry))
+	return out

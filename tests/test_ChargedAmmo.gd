@@ -54,7 +54,7 @@ func test_a_charged_weapon_stays_ready_while_it_waits_for_a_target() -> void:
 	var w := _weapon(true, 4, 600)
 	assert_true(w.is_ready(), "a full charged weapon starts ready")
 	for i: int in 50:
-		w._physics_process(0.0)
+		w.simulation_step(0.0)
 	assert_eq(w.ammo(), 4, "it has fired nothing, so it still holds four rounds")
 	assert_true(w.is_ready(), "and it is still ready — idling past its cadence must not disarm it")
 
@@ -64,7 +64,7 @@ func test_a_charged_weapon_stays_ready_while_it_waits_for_a_target() -> void:
 func test_an_ordinary_weapon_stays_ready_while_it_waits_for_a_target() -> void:
 	var w := _weapon(false, 4, 600)
 	for i: int in 50:
-		w._physics_process(0.0)
+		w.simulation_step(0.0)
 	assert_true(w.is_ready(), "no target for fifty ticks does not empty a rifle")
 
 
@@ -75,9 +75,9 @@ func test_firing_still_holds_the_weapon_for_its_split_time() -> void:
 	w.consume_round()
 	assert_false(w.is_ready(), "the tick after a shot it is reloading")
 	for i: int in 4:
-		w._physics_process(0.0)
+		w.simulation_step(0.0)
 	assert_false(w.is_ready(), "still, one tick short of the cadence")
-	w._physics_process(0.0)
+	w.simulation_step(0.0)
 	assert_true(w.is_ready(), "and ready again exactly on split_time_ticks")
 	assert_eq(w.ammo(), 3, "having spent one of its four rounds")
 
@@ -89,7 +89,7 @@ func test_a_charged_weapon_does_not_refill_itself() -> void:
 	assert_eq(w.ammo(), 0, "four shots empty a four-round clip")
 	# Far longer than reload_time_ticks: an ordinary weapon would have refilled several times.
 	for i in 300:
-		w._physics_process(0.0)
+		w.simulation_step(0.0)
 	assert_eq(w.ammo(), 0, "time alone never reloads a charged weapon")
 	assert_false(w.is_ready(), "and it cannot fire while dry")
 
@@ -97,13 +97,13 @@ func test_a_charged_weapon_does_not_refill_itself() -> void:
 func test_an_ordinary_weapon_still_refills_on_its_timer() -> void:
 	# The regression guard for the whole change: charged ammo must be strictly opt-in.
 	var w := _weapon(false, 4, 10)
-	w._physics_process(0.0)
+	w.simulation_step(0.0)
 	assert_eq(w.ammo(), 4, "an ordinary weapon fills on its first tick")
 	for i in 4:
 		w.consume_round()
 	assert_eq(w.ammo(), 0, "and empties when fired")
 	for i in 12:
-		w._physics_process(0.0)
+		w.simulation_step(0.0)
 	assert_eq(w.ammo(), 4, "then reloads itself on reload_time_ticks, with no help")
 
 

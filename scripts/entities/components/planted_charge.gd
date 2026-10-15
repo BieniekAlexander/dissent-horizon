@@ -113,7 +113,7 @@ func is_resolved() -> bool:
 ## Ride along with the carrier. One off the tree (garrisoned) carries it nowhere: the charge
 ## waits where it last was. A planter freed without a death of its own (killed inside a
 ## transport) takes its charge with it, as a death does.
-func _physics_process(_a_delta: float) -> void:
+func simulation_step(_a_delta: float) -> void:
 	if not _is_resolved and _planter != null and not is_instance_valid(_planter):
 		remove()
 		return

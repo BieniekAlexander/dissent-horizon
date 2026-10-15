@@ -435,7 +435,7 @@ func test_an_aircraft_cannot_fire_while_climbing_out() -> void:
 	assert_false(plane.can_use_weapons(), "still on its way up")
 
 	for _i: int in 2000:
-		plane.aerial._physics_process(0.0)
+		plane.aerial.simulation_step(0.0)
 		if plane.aerial.is_airborne():
 			break
 	assert_true(plane.can_use_weapons(), "and free to fight once it is up")
@@ -449,7 +449,7 @@ func test_a_landed_gunship_cannot_fire() -> void:
 	assert_true(heli.can_use_weapons())
 	heli.aerial.land(Callable())
 	for _i: int in 2000:
-		heli.aerial._physics_process(0.0)
+		heli.aerial.simulation_step(0.0)
 		if not heli.aerial.is_airborne():
 			break
 	assert_false(heli.aerial.is_airborne(), "it is on the ground")

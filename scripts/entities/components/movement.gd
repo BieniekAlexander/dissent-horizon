@@ -205,8 +205,8 @@ func _ready() -> void:
 
 ## A unit under a canopy is doing exactly one thing: falling. Everything about flight is
 ## Aerial's, which ticks after this in tree order.
-func _physics_process(_a_delta: float) -> void:
-	if _is_parachuting:
+func simulation_step(_a_delta: float) -> void:
+	if is_active and _is_parachuting:
 		_tick_parachute()
 
 
@@ -535,7 +535,6 @@ func set_active(a_active: bool, a_commander_id: int) -> void:
 	if a_active == is_active:
 		return
 	is_active = a_active
-	set_physics_process(a_active)
 	_current_velocity = Vector3.ZERO
 	if avoidance_obstacle != null:
 		avoidance_obstacle.avoidance_enabled = a_active
@@ -594,7 +593,7 @@ const AVOIDANCE_PRIORITY_STANDING: float = 0.5
 
 
 ## Rank this unit in same-team RVO: ENGAGED above TRAVELLING above STANDING. Called every
-## tick from Actor._physics_process, which says whether the current order is holding
+## tick from Actor.simulation_step, which says whether the current order is holding
 ## ground (MoveCommand.holds_ground).
 ##
 ## Why it works this way:

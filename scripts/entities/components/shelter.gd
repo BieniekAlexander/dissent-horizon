@@ -82,7 +82,7 @@ func _ready() -> void:
 	_remaining = spawn_interval
 
 
-func _physics_process(a_delta: float) -> void:
+func simulation_step(a_delta: float) -> void:
 	_prune()
 	var host: Entity = _host()
 	# Scene-placed structures self-initialize deferred, so `map` is null for the

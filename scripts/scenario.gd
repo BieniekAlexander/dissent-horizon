@@ -142,8 +142,18 @@ var skirmish_recipe: Dictionary = {}
 ## included, which is why it is a lookup rather than a scan of the "piece" group; entries for
 ## freed pieces stay and read as null. UNTYPED values: a freed piece fails a typed lookup.
 var _pieces_by_serial: Dictionary = {}
-## The serial the next piece entering play takes; serials start at 1, so 0 means "none".
+## The serial the next entity entering play takes; serials start at 1, so 0 means "none".
 var _next_spawn_serial: int = 1
+## Steps every entity in serial order (gdd/systems/commands/the-simulation-step.md). Made with
+## the scenario rather than in _ready, because the pieces placed in a scenario's scene are ready
+## — and take their serials — before the scenario is.
+var stepper: SimulationStepper = null
+
+
+func _init() -> void:
+	stepper = SimulationStepper.new()
+	add_child(stepper, false, Node.INTERNAL_MODE_FRONT)
+
 
 ## Built in _ready() from player_slots: id 0 = neutral Commander, then one Commander
 ## per slot (ids 1..N) — the human rig (scenes/player.tscn) for a non-bot slot, a Bot
@@ -1304,14 +1314,18 @@ static func of(a_node: Node) -> Scenario:
 	return a_node.get_tree().current_scene as Scenario if a_node.is_inside_tree() else null
 
 
-## Give `a_piece` the next spawn serial and remember it by that serial. Called once per piece,
-## as it first enters the tree, so tree order (scene-placed pieces) and spawn order (everything
-## later) fix the numbering, the same on every run of a seed.
+## Give `a_entity` the next spawn serial and hand it to the stepper. Called once per entity, as
+## it first enters the tree, so tree order (scene-placed pieces) and spawn order (everything
+## later) fix the numbering, the same on every run of a seed. Only pieces are remembered by
+## serial: an order names a piece, never an emission.
 ## gdd/systems/commands/recording-and-replay.md §The order stream.
-func register_piece(a_piece: Entity) -> int:
+func register_entity(a_entity: Entity) -> int:
 	var serial: int = _next_spawn_serial
 	_next_spawn_serial += 1
-	_pieces_by_serial[serial] = a_piece
+	if a_entity.is_in_group("piece"):
+		_pieces_by_serial[serial] = a_entity
+	a_entity.spawn_serial = serial
+	stepper.enlist(a_entity)
 	return serial
 
 

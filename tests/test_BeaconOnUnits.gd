@@ -106,7 +106,7 @@ func test_an_attached_beacon_moves_with_its_carrier() -> void:
 	var beacon := _beacon(OWN, Vector2(0, 0))
 	assert_true(beacon.attach_to(tank))
 	tank.global_position = _at(Vector2(14, 10))
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	assert_almost_eq(beacon.host().global_position.x, 14.0, 0.001)
 	assert_eq(beacon.carrier(), tank)
 
@@ -124,7 +124,7 @@ func test_a_beacon_outlives_its_carrier_where_it_last_was() -> void:
 	var beacon := _beacon(OWN, Vector2(0, 0))
 	beacon.attach_to(tank)
 	tank.free()
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	assert_null(beacon.carrier())
 	assert_false(beacon.is_leaving(), "a carrier's death leaves a point beacon behind")
 	assert_almost_eq(beacon.host().global_position.x, 10.0, 0.001)
@@ -273,10 +273,10 @@ func test_a_beacon_is_stealthed_until_detected() -> void:
 	var beacon := _beacon(FOE, Vector2(0, 0))
 	var stealth: Stealth = beacon.host().stealth
 	assert_not_null(stealth, "a beacon carries stealth")
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	assert_eq(stealth.state, Stealth.State.STEALTHED)
 	stealth.reveal()
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	assert_eq(stealth.state, Stealth.State.REVEALED)
 
 
@@ -298,7 +298,7 @@ func test_a_detector_can_find_a_beacon() -> void:
 
 func test_an_enemy_beacon_is_not_drawn_while_stealthed() -> void:
 	var beacon := _beacon(FOE, Vector2(0, 0))
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	beacon._process(0.0)
 	var visual := beacon.host().get_node("MeshVisual") as Node3D
 	assert_eq(RTSController.PLAYER_COMMANDER_ID, OWN, "fixture: the local player is OWN")
@@ -307,7 +307,7 @@ func test_an_enemy_beacon_is_not_drawn_while_stealthed() -> void:
 
 func test_your_own_beacon_is_always_drawn() -> void:
 	var beacon := _beacon(OWN, Vector2(0, 0))
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	beacon._process(0.0)
 	assert_true((beacon.host().get_node("MeshVisual") as Node3D).visible)
 
@@ -318,7 +318,7 @@ func test_the_used_marker_shows_only_to_the_owners_side() -> void:
 	for beacon: Beacon in [mine, theirs]:
 		beacon.mark_used()
 		beacon.host().stealth.reveal()
-		beacon._physics_process(0.0)
+		beacon.simulation_step(0.0)
 		beacon._process(0.0)
 	assert_true(mine.host().get_node("MeshVisual/UsedMarker").visible)
 	assert_false(

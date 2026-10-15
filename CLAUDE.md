@@ -513,7 +513,7 @@ Entity (CharacterBody3D)           — type enum, @export default_commander_id, 
   @onready vision_range_shape: CollisionShape3D
   @onready aggro_shape_ground / aggro_shape_air: CollisionShape3D   — derived from reach (RangeShapes)
 
-  └── Actor (Entity)         — HP bar, aggro logic, _physics_process
+  └── Actor (Entity)         — HP bar, aggro logic, simulation_step
     @onready orders: Orders            — the order-taking component (command queue, rally, routing);
                                          null on `commandable: false`, and every order is then a no-op
     command_receiver: CommandReceiver  — Orders.receiver (RefCounted, not a Node)
@@ -568,8 +568,9 @@ applied by `OrderDispatcher` at the start of the next tick** — never by UI cod
 directly, or a replay of the match drifts. Pieces in an order are named by `Entity.spawn_serial`.
 → [`gdd/systems/commands/recording-and-replay.md`](gdd/systems/commands/recording-and-replay.md)
 
-The simulation step — PLANNED: one stepper in spawn-serial order, a decide phase threads can share,
-a serial act phase, and references between pieces held as serials for rollback.
+The simulation step — one stepper steps every entity in spawn-serial order, so per-tick simulation
+work is `simulation_step`, never `_physics_process`. PLANNED: a decide phase threads can share, a
+serial act phase, and references between pieces held as serials for rollback.
 → [`gdd/systems/commands/the-simulation-step.md`](gdd/systems/commands/the-simulation-step.md)
 
 Netplay — the same order stream exchanged between machines: lockstep now, built to carry forward to rollback.
@@ -869,7 +870,7 @@ entity.is_in_group("unit")        # unit-flavored (not "is Unit")
 
 Units snap to terrain Y every physics tick in two places:
 1. `Actor._on_velocity_computed()` — after `move_and_slide()`, snaps to `map.terrain_height_at(xz)`
-2. `Actor._physics_process()` — unconditional snap at the end of each tick
+2. `Actor.simulation_step()` — unconditional snap at the end of each tick
 
 Velocity sent to `NavigationAgent3D` is XZ-only (Y zeroed) to keep RVO avoidance stable. Terrain tracking is handled separately.
 

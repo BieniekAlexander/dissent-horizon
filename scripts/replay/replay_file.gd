@@ -162,8 +162,10 @@ func length_ticks() -> int:
 ## This build's version stamp: the build number, the engine, and a hash of everything
 ## VERSIONED_PATHS holds. Computed once per session: it walks every piece scene.
 ##
-## TODO: the project sets no build number (`application/config/version`), so the first part is
-## empty today and the content hash does all the work.
+## The build number (`application/config/version`) is bumped by hand with any change to how a
+## match plays: the content hash covers generated data and piece scenes, not simulation scripts.
+## TODO: nothing catches a forgotten bump — see gdd/systems/commands/the-simulation-step.md
+## §Decisions, replays.
 static func current_version() -> String:
 	if _current_version.is_empty():
 		var build: String = str(ProjectSettings.get_setting("application/config/version", ""))

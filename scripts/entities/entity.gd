@@ -251,7 +251,7 @@ var pc_set: Set = Set.new()
 var is_planned: bool = false
 
 ## This piece's spawn serial: the number it took on first entering play, the same on every run
-## of a seed — how a recorded order names it (Scenario.register_piece). 0 until then, and for
+## of a seed — how a recorded order names it (Scenario.register_entity). 0 until then, and for
 ## good on anything that never enters play in a scenario (a build preview, a test fixture).
 var spawn_serial: int = 0
 
@@ -856,14 +856,87 @@ func _take_yaw_from_basis() -> void:
 	_yaw = DMath.atan2(given.z.x, given.z.z)
 
 
-## Number this piece on its first entry into a scenario. Only pieces are numbered: an emission
-## is never named by an order.
+## Number this entity on its first entry into a scenario, and hand its stepping to the
+## scenario's SimulationStepper, which steps every entity in serial order. Emissions are numbered
+## too: they act in that order like any piece, though no order ever names one.
 func _take_spawn_serial() -> void:
-	if spawn_serial != 0 or not is_in_group("piece") or Engine.is_editor_hint():
+	if spawn_serial != 0 or Engine.is_editor_hint():
 		return
 	var scenario: Scenario = Scenario.of(self)
 	if scenario != null:
-		spawn_serial = scenario.register_piece(self)
+		spawn_serial = scenario.register_entity(self)
+		set_physics_process(false)
+
+
+#region Simulation step
+## The nodes this entity steps each tick, in tree order: itself and every node under it that
+## defines `simulation_step`, down to (not into) any entity nested beneath it. Kept between ticks
+## — rebuilding it is a subtree walk per entity per tick — and rebuilt when its subtree changes.
+## UNTYPED: a node can be freed outright mid-tick, and a freed object fails a typed read.
+var _step_list: Array = []
+var _is_step_list_stale: bool = true
+
+
+## The nearest entity at or above `a_node`, or null when it belongs to none.
+static func owning(a_node: Node) -> Entity:
+	var node: Node = a_node
+	while node != null and not node is Entity:
+		node = node.get_parent()
+	return node as Entity
+
+
+## A node joined or left this entity's subtree.
+func invalidate_step_list() -> void:
+	_is_step_list_stale = true
+
+
+## Fix what this tick steps, before any entity steps: a node added mid-tick waits for the next.
+func prepare_step() -> void:
+	if not _is_step_list_stale:
+		return
+	_step_list.clear()
+	_collect_stepped(self)
+	_is_step_list_stale = false
+
+
+func _collect_stepped(a_node: Node) -> void:
+	if a_node.has_method(&"simulation_step"):
+		_step_list.append(a_node)
+	for child: Node in a_node.get_children():
+		if not child is Entity:
+			_collect_stepped(child)
+
+
+## One tick of everything this entity does, in tree order — the order the engine processed the
+## same nodes in when each ran its own `_physics_process`. A node whose process mode is off
+## (`PROCESS_MODE_DISABLED`) is skipped, as the engine would skip it.
+func step_simulation(a_delta: float) -> void:
+	for item: Variant in _step_list:
+		if not is_instance_valid(item):
+			continue
+		var node: Node = item
+		if node.is_inside_tree() and node.can_process():
+			node.call(&"simulation_step", a_delta)
+
+
+## End the entity's life if this tick's damage did; after every entity has stepped. A piece
+## that can die (Actor) overrides it.
+func resolve_death() -> void:
+	pass
+
+
+## Framework-imposed: outside a scenario — a test fixture, a preview tool — nothing steps this
+## entity, so it steps itself. In a scenario the stepper does, and this is switched off.
+func _physics_process(a_delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
+	invalidate_step_list()
+	prepare_step()
+	step_simulation(a_delta)
+	resolve_death()
+
+
+#endregion
 
 
 func _validate() -> void:

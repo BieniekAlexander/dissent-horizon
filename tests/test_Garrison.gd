@@ -303,7 +303,7 @@ func test_a_servant_let_out_of_a_compound_leaves_the_prisoners_serving():
 	var captive: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(captive)
 	hold.garrison(servant)
-	hold._physics_process(1.0)
+	hold.simulation_step(1.0)
 	hold.evacuate_by_order(null)
 	assert_true(servant.is_inside_tree(), "released before its sentence ended, back in the game")
 	assert_eq(hold.occupants(), [captive] as Array[Actor])
@@ -458,8 +458,8 @@ func test_a_deposit_takes_the_servants_riding_along_and_sentences_them():
 		"a Servant serves a sentence like a prisoner"
 	)
 	# Its turn comes after the prisoner's: one term, then a tick to start its own, then that.
-	hold._physics_process(hold.sentence_length + 1.0)
-	hold._physics_process(hold.sentence_length + 1.0)
+	hold.simulation_step(hold.sentence_length + 1.0)
+	hold.simulation_step(hold.sentence_length + 1.0)
 	assert_false(is_instance_valid(servant), "and is consumed at the end of it")
 
 
@@ -483,7 +483,7 @@ func test_a_finished_sentence_consumes_the_captive():
 	hold.sentence_length = 1.0
 	var captive: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(captive)
-	hold._physics_process(1.5)
+	hold.simulation_step(1.5)
 	assert_eq(hold.garrisoned_count(), 0, "the term is up — the captive leaves the hold")
 	assert_false(is_instance_valid(captive), "and is consumed, not returned to the world")
 
@@ -494,7 +494,7 @@ func test_a_sentence_not_yet_finished_survives_a_tick():
 	hold.sentence_length = 10.0
 	var captive: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(captive)
-	hold._physics_process(1.0)
+	hold.simulation_step(1.0)
 	assert_eq(hold.garrisoned_count(), 1, "nine seconds still to serve")
 	assert_true(is_instance_valid(captive))
 
@@ -515,15 +515,15 @@ func test_captives_serve_one_at_a_time_in_arrival_order():
 	var second: Actor = _entity(TERRESTRIAL, 0)
 	hold.garrison(first)
 	hold.garrison(second)
-	hold._physics_process(4.0)
+	hold.simulation_step(4.0)
 	assert_almost_eq(hold._sentence_remaining[first], 6.0, 0.001, "the first serves")
 	assert_almost_eq(hold._sentence_remaining[second], 10.0, 0.001, "the second waits, untouched")
-	hold._physics_process(7.0)
+	hold.simulation_step(7.0)
 	assert_false(is_instance_valid(first), "the first is consumed at the end of its term")
 	assert_almost_eq(
 		hold._sentence_remaining[second], 10.0, 0.001, "the next term starts on the next tick"
 	)
-	hold._physics_process(1.0)
+	hold.simulation_step(1.0)
 	assert_almost_eq(hold._sentence_remaining[second], 9.0, 0.001, "and then it serves")
 
 

@@ -109,7 +109,7 @@ func _ready() -> void:
 	_current_position = _body().global_position
 
 
-func _physics_process(_a_delta: float) -> void:
+func simulation_step(_a_delta: float) -> void:
 	_previous_position = _current_position
 	_current_position = _body().global_position
 	match begin_tick():

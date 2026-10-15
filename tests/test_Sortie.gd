@@ -40,7 +40,7 @@ func _launch(a_at: Vector3 = HOME) -> Array:
 	aircraft.global_position = a_at
 	var sortie: Sortie = Sortie.launch(aircraft, _map, HOME, STATION, STATION_SECONDS)
 	# Ticked by hand, one call per physics tick.
-	sortie.set_physics_process(false)
+	sortie.process_mode = Node.PROCESS_MODE_DISABLED
 	return [aircraft, sortie]
 
 
@@ -48,7 +48,7 @@ func _launch(a_at: Vector3 = HOME) -> Array:
 func _on_station() -> Array:
 	var flown: Array = _launch()
 	flown[0].global_position = STATION
-	flown[1]._physics_process(0.0)
+	flown[1].simulation_step(0.0)
 	return flown
 
 
@@ -78,7 +78,7 @@ func test_in_transit_it_takes_no_order_at_all() -> void:
 func test_a_cleared_leg_is_flown_again() -> void:
 	var flown: Array = _launch()
 	flown[0].update_commands(null)
-	flown[1]._physics_process(0.0)
+	flown[1].simulation_step(0.0)
 	assert_true(flown[0].current_command() is SortieLeg)
 
 
@@ -100,7 +100,7 @@ func test_on_station_it_takes_an_attack_but_never_a_move() -> void:
 func test_idle_on_station_it_circles_the_station() -> void:
 	var flown: Array = _on_station()
 	flown[0].aerial.set_anchor(Vector3(12.0, 0.0, 3.0))
-	flown[1]._physics_process(0.0)
+	flown[1].simulation_step(0.0)
 	assert_eq(flown[0].aerial.anchor(), STATION)
 
 
@@ -108,7 +108,7 @@ func test_when_its_time_is_up_it_goes_home_cold() -> void:
 	var flown: Array = _on_station()
 	flown[0].update_commands(_attack_order())
 	for _i: int in TimeUtils.ticks_from_seconds(STATION_SECONDS):
-		flown[1]._physics_process(0.0)
+		flown[1].simulation_step(0.0)
 	assert_eq(flown[1].phase, Sortie.Phase.OUTBOUND)
 	assert_false(flown[0].can_use_weapons())
 	var leg: MoveCommand = flown[0].current_command()
@@ -119,10 +119,10 @@ func test_when_its_time_is_up_it_goes_home_cold() -> void:
 func test_off_the_board_it_is_gone() -> void:
 	var flown: Array = _on_station()
 	flown[1].phase = Sortie.Phase.OUTBOUND
-	flown[1]._physics_process(0.0)
+	flown[1].simulation_step(0.0)
 	assert_false(flown[0].is_queued_for_deletion(), "still over the board")
 	flown[0].global_position = HOME + Vector3(-1.0, 0.0, 0.0)
-	flown[1]._physics_process(0.0)
+	flown[1].simulation_step(0.0)
 	assert_true(flown[0].is_queued_for_deletion())
 
 
