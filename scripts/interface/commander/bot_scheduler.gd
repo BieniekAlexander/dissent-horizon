@@ -20,6 +20,8 @@ extends Node
 
 ## The group the scheduler joins so a brain can find it.
 const GROUP: StringName = &"bot_scheduler"
+## The host's note of a scheduler made this frame and not yet in the tree (find_or_create).
+const PENDING_META: StringName = &"_bot_scheduler_pending"
 
 ## Work units the AI may spend per physics tick, across every bot.
 ##
@@ -44,12 +46,17 @@ static func find_or_create(a_node: Node, a_host: Node) -> BotScheduler:
 	)
 	if found != null:
 		return found as BotScheduler
+	# Until the deferred add below lands, the tree's group lookup cannot see the new scheduler
+	# — group membership only reaches the tree on entering it — so the host remembers it, and
+	# a second brain registering in the same frame shares it instead of making its own.
+	var pending: Variant = a_host.get_meta(PENDING_META) if a_host.has_meta(PENDING_META) else null
+	if is_instance_valid(pending):
+		return pending as BotScheduler
 	var scheduler := BotScheduler.new()
 	scheduler.name = "BotScheduler"
-	a_host.add_child.call_deferred(scheduler)
-	# Joined now rather than on entering the tree, so a second brain registering in the same
-	# frame finds this one instead of making another.
 	scheduler.add_to_group(GROUP)
+	a_host.set_meta(PENDING_META, scheduler)
+	a_host.add_child.call_deferred(scheduler)
 	return scheduler
 
 
