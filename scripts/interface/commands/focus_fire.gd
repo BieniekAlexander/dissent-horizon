@@ -129,9 +129,13 @@ func _is_in_reach(a_actor: Actor, a_weapon: Weapon) -> bool:
 
 
 func get_updated_state(a_actor: Actor) -> Variant:
+	return self if ground_weapon_of(a_actor) != null else null
+
+
+func apply_state(a_actor: Actor) -> void:
 	var weapon: Weapon = ground_weapon_of(a_actor)
 	if weapon == null:
-		return null
+		return
 	# A turret weapon swings itself onto the point every tick, as in Attack._update_facing.
 	if weapon.turret:
 		weapon.aim_turret_toward(a_actor, _aim())
@@ -142,7 +146,6 @@ func get_updated_state(a_actor: Actor) -> Variant:
 		a_actor.movement.stop()
 		if not weapon.turret:
 			a_actor.movement.face_toward(_aim())
-	return self
 
 
 ## Arriving is the SETUP, not the point: the actor walks into range in order to shoot from

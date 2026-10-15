@@ -305,14 +305,15 @@ func get_updated_state(a_actor: Actor) -> Variant:
 	var is_wanted: bool = (
 		_decided_keep and _target_in_play() if has_decided() else _is_still_wanted(a_actor)
 	)
-	if not is_wanted:
-		return null
-	# While this attack is live, a FLYING actor dives onto a ground target (and climbs
-	# back to cruise altitude once this stops being requested, when the command ends).
-	# Requested every tick because Aerial.request_dive self-clears.
+	return self if is_wanted else null
+
+
+## While this attack is live, a FLYING actor dives onto a ground target (and climbs back to
+## cruise altitude once this stops being requested, when the command ends) — requested every
+## tick, because Aerial.request_dive self-clears — and the actor aims.
+func apply_state(a_actor: Actor) -> void:
 	_update_flying_dive(a_actor)
 	_update_facing(a_actor)
-	return self
 
 
 ## Whether the target still exists in the world: the part of _is_still_wanted that an earlier

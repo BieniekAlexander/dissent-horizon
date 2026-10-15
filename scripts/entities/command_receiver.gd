@@ -329,12 +329,15 @@ func _run_tick() -> ActionTracker.Action:
 		# so it keeps the action going — Build handing over to Assemble is still building.
 		update_commands(new_commands, true, true)
 		return owner.action_tracker.current_action()
-	elif _command.can_act(owner):
-		var action: ActionTracker.Action = _command.acting_action(owner)
-		return action if _act_on_command() else ActionTracker.Action.IDLE
-	elif owner.can_move() and _command.should_move(owner):
-		_drive_movement()
-		return ActionTracker.Action.MOVING
+	else:
+		# Kept: what the command changes in the world this tick, before asking it anything.
+		_command.apply_state(owner)
+		if _command.can_act(owner):
+			var action: ActionTracker.Action = _command.acting_action(owner)
+			return action if _act_on_command() else ActionTracker.Action.IDLE
+		if owner.can_move() and _command.should_move(owner):
+			_drive_movement()
+			return ActionTracker.Action.MOVING
 	# Holding an order that neither acts nor drives it: an actor that cannot stop keeps flying
 	# its circuit.
 	if _command != null and owner.locomotion != null and not owner.locomotion.can_hold_still():

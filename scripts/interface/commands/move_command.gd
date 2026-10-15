@@ -249,6 +249,9 @@ var _swap_cooldown: float = 0.0
 var _decided_swaps: Array = []
 ## The decide round this command last decided in (SimulationStepper.current_round).
 var _decided_round: int = -1
+## Set by this class's own get_updated_state, so apply_state swaps destinations only for a
+## command that runs it — one that overrides get_updated_state without super never swapped.
+var _is_swap_requested: bool = false
 
 #endregion
 
@@ -273,13 +276,24 @@ func has_decided() -> bool:
 ## never reactively retargets on its own — it always returns self. Aggro-based
 ## retargeting (chasing down a nearby enemy) is opt-in per subclass (see
 ## AttackMove, Patrol, Defend), not a base-class behavior every command inherits.
-func get_updated_state(a_commandable: Actor) -> Variant:
+func get_updated_state(_a_commandable: Actor) -> Variant:
+	_is_swap_requested = true
+	return self
+
+
+## The act-phase half of the command's tick: what it changes in the world, run once a tick
+## after get_updated_state has kept it and before can_act. get_updated_state, can_act and
+## should_move only READ (gdd/systems/commands/the-simulation-step.md §The decide pass); a
+## command's writes live here, or in fulfill_action. The base trades destinations.
+func apply_state(a_commandable: Actor) -> void:
+	if not _is_swap_requested:
+		return
+	_is_swap_requested = false
 	if has_decided():
 		_apply_destination_swaps(a_commandable, _decided_swaps)
 		_decided_swaps = []
 	elif _is_swap_due():
 		_apply_destination_swaps(a_commandable, _plan_destination_swaps(a_commandable))
-	return self
 
 
 ## Count the swap check down a tick; true once a second, when it is due.
