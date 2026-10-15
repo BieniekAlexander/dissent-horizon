@@ -65,6 +65,11 @@ static func multiplier() -> float:
 	return Engine.time_scale
 
 
+## The project's steps-per-frame cap, which every speed but uncapped runs with.
+static func default_steps_per_frame() -> int:
+	return _default_steps()
+
+
 static func is_uncapped() -> bool:
 	return multiplier() > MAX_MULTIPLIER
 

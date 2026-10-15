@@ -181,6 +181,7 @@ func _ready() -> void:
 	Fog.active_commander_id = -1
 	Fog.set_view_lifted(false)
 	_create_debug_mode()
+	_create_catch_up_governor()
 	_ensure_lighting()
 	if map == null:
 		push_error(
@@ -1106,6 +1107,14 @@ func _create_debug_mode() -> void:
 	var debug_mode := DebugMode.new()
 	debug_mode.name = "DebugMode"
 	add_child(debug_mode)
+
+
+## The node that turns the engine's catch-up off while the simulation cannot keep real time.
+## After _create_debug_mode, whose permission decides whether it shows an overlay.
+func _create_catch_up_governor() -> void:
+	var governor := CatchUpGovernor.new()
+	governor.name = "CatchUpGovernor"
+	add_child(governor)
 
 
 ## Create the bot debug overlay (one per session). It self-gates on DebugMode.is_active()
