@@ -737,9 +737,7 @@ func evacuate_by_order(a_map: Map) -> void:
 		return
 	var kept: Array[Actor] = []
 	kept.assign(
-		_garrisoned.filter(
-			func(a_unit: Actor) -> bool: return not can_release_occupant(a_unit)
-		)
+		_garrisoned.filter(func(a_unit: Actor) -> bool: return not can_release_occupant(a_unit))
 	)
 	if kept.is_empty():
 		evacuate(a_map)
@@ -750,9 +748,7 @@ func evacuate_by_order(a_map: Map) -> void:
 			kept_sentences[unit] = _sentence_remaining[unit]
 	# evacuate() turns out whatever _garrisoned holds, so it is handed only the released and
 	# the kept are put back after: one placement pass, spreading the released together.
-	_garrisoned.assign(
-		_garrisoned.filter(func(a_unit: Actor) -> bool: return not (a_unit in kept))
-	)
+	_garrisoned.assign(_garrisoned.filter(func(a_unit: Actor) -> bool: return not (a_unit in kept)))
 	evacuate(a_map)
 	_garrisoned = kept
 	_sentence_remaining = kept_sentences
@@ -1058,7 +1054,7 @@ static func _spread_points(
 		# Fan any shortfall out on a ring, sized by that specific unit's radius.
 		var r: float = point_radii[leftover_index] if leftover_index < point_radii.size() else 0.5
 		var ring_radius: float = 2.0 * r * (1.0 + float(leftover_index) / float(maxi(count, 1)))
-		points.append(center + Vector2(cos(angle), sin(angle)) * ring_radius)
+		points.append(center + DMath.from_angle(angle) * ring_radius)
 
 	return points
 

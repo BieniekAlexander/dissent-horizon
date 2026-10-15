@@ -483,7 +483,7 @@ func _holds_apart(a_system: LevelConstraints, a_high: int, a_low: int, a_drop: i
 ## The rest becomes ground of its own side. Measured on the band's own Voronoi gap, which is
 ## twice a cell's distance from the midline.
 func _narrow_cliff_bands() -> void:
-	var view_slope: float = tan(deg_to_rad(TerrainGrid.MIN_VIEW_PITCH_DEGREES))
+	var view_slope: float = DMath.tan(deg_to_rad(TerrainGrid.MIN_VIEW_PITCH_DEGREES))
 	for cell: Vector2i in _topology.barrier_of.keys():
 		var cut: int = _topology.barrier_of[cell]
 		if not is_cliff(cut):

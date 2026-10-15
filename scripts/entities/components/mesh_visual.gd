@@ -72,6 +72,29 @@ const STATUS_TINT_NORMAL: Color = Color.WHITE
 @export var turn_speed: float = 0.0
 #endregion
 
+#region Attitude
+## The model's own turn on its piece — pitch (x), yaw (y), roll (z), in radians, YXZ as
+## `rotation` is: an aircraft's lean (Aerial) and the model's facing. Held as script state and
+## written to the basis with DMath, as Entity.yaw is, because a turret or launch point under the
+## model is placed from this basis and must land in the same place on every platform. Until
+## first set, the turn the model was authored with.
+var attitude: Vector3:
+	get:
+		if not _has_attitude:
+			_take_attitude_from_basis()
+		return _attitude
+	set(value):
+		if not _has_attitude:
+			_take_attitude_from_basis()
+		_attitude = value
+		basis = VU.euler_basis(value) * Basis.from_scale(_rest_scale)
+
+var _attitude: Vector3 = Vector3.ZERO
+var _has_attitude: bool = false
+## The model's authored scale, kept so writing an attitude does not undo it.
+var _rest_scale: Vector3 = Vector3.ONE
+#endregion
+
 #region State
 var _anim_state: AnimationState = AnimationState.IDLE
 var _tint: Color = Color.WHITE
@@ -95,7 +118,7 @@ var _ready_done: bool = false
 
 func _ready() -> void:
 	_gather_surfaces()
-	_target_yaw = rotation.y
+	_target_yaw = attitude.y
 	_ready_done = true
 	_reapply()
 
@@ -388,6 +411,13 @@ func play_descent(a_height: float, a_seconds: float) -> void:
 #endregion
 
 
+## Seed `attitude` from the basis the model was authored with, read with DMath.
+func _take_attitude_from_basis() -> void:
+	_has_attitude = true
+	_rest_scale = basis.get_scale()
+	_attitude = VU.euler_of(basis)
+
+
 #region Facing
 ## Yaw the model to look along `dir` (XZ only; Y ignored). With turn_speed 0 the
 ## change is instant; otherwise _process eases toward it. -Z is the model's
@@ -396,18 +426,19 @@ func face_direction(a_dir: Vector3) -> void:
 	var flat: Vector2 = Vector2(a_dir.x, a_dir.z)
 	if flat.length_squared() < 0.0001:
 		return
-	_target_yaw = atan2(-flat.x, -flat.y)
+	_target_yaw = DMath.atan2(-flat.x, -flat.y)
 	_has_target_yaw = true
 	if turn_speed <= 0.0:
-		rotation.y = _target_yaw
+		attitude.y = _target_yaw
 
 
 func _process(a_delta: float) -> void:
 	if turn_speed <= 0.0 or not _has_target_yaw:
 		return
-	var diff: float = wrapf(_target_yaw - rotation.y, -PI, PI)
+	var yaw: float = attitude.y
+	var diff: float = wrapf(_target_yaw - yaw, -PI, PI)
 	var step: float = turn_speed * a_delta
-	rotation.y = _target_yaw if absf(diff) <= step else rotation.y + signf(diff) * step
+	attitude.y = _target_yaw if absf(diff) <= step else yaw + signf(diff) * step
 
 
 #endregion

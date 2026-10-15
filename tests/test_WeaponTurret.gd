@@ -130,13 +130,13 @@ func test_it_takes_the_short_way_round() -> void:
 
 func test_its_yaw_is_relative_to_the_body() -> void:
 	var piece: StubPiece = _piece()
-	piece.rotation.y = PI / 2.0  # the body already faces +X
+	piece.yaw = PI / 2.0  # the body already faces +X
 	var gun: Weapon = _gun(piece)
 	var right: Vector3 = Vector3(10, 0, 0)
 	assert_true(gun.is_turret_aimed_at(piece, right), "a centred turret points where the body does")
 	gun.aim_turret_toward(piece, right)
 	assert_almost_eq(gun.turret_yaw, 0.0, 0.0001, "nothing to swing")
-	piece.rotation.y = 0.0  # the body turns away underneath it
+	piece.yaw = 0.0  # the body turns away underneath it
 	assert_false(gun.is_turret_aimed_at(piece, right), "a turret turns with its hull")
 	for i in 8:
 		gun.aim_turret_toward(piece, right)
@@ -190,7 +190,7 @@ func test_attack_holds_a_turret_weapons_fire_until_the_turret_is_on_target() -> 
 	for i in 8:
 		attack._update_facing(piece)
 	assert_true(attack._is_aimed_at_target(piece), "aimed once the turret has swung round")
-	assert_almost_eq(piece.rotation.y, 0.0, 0.0001, "the body never turned")
+	assert_almost_eq(piece.yaw, 0.0, 0.0001, "the body never turned")
 
 
 func test_attack_with_a_non_turret_weapon_keeps_the_body_rule() -> void:

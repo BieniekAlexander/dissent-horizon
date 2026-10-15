@@ -517,7 +517,7 @@ static func get_nonoverlapping_points(
 			# Centre-to-centre gap ≥ the two bodies touching (sum of radii), up to 2×
 			# that, so neighbours never overlap whatever their individual sizes.
 			var spacing: float = (parent_radius + new_radius) * (1.0 + rng.randf())
-			var new_point := about_point + spacing * Vector2(sin(angle), cos(angle))
+			var new_point := about_point + spacing * Vector2(DMath.sin(angle), DMath.cos(angle))
 
 			# Stay inside region in XZ.
 			if (new_point - center).length_squared() >= region_radius * region_radius:
@@ -578,7 +578,7 @@ static func _seed_off_center(
 	while ring < search_radius:
 		for i in range(sample_count):
 			var angle: float = 2.0 * PI * rng.randf()
-			var candidate: Vector2 = center + ring * Vector2(sin(angle), cos(angle))
+			var candidate: Vector2 = center + ring * Vector2(DMath.sin(angle), DMath.cos(angle))
 			if _is_free_on_nav(map, candidate, probe_shape, world_3d, collision_mask):
 				return candidate
 		ring += step

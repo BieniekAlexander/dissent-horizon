@@ -764,7 +764,7 @@ func _cliff_warnings() -> PackedStringArray:
 	var hidden_cells: float = (
 		cliff_drop_terraces_max
 		* elevation_step
-		/ tan(deg_to_rad(TerrainGrid.MIN_VIEW_PITCH_DEGREES))
+		/ DMath.tan(deg_to_rad(TerrainGrid.MIN_VIEW_PITCH_DEGREES))
 	)
 	if hidden_cells > barrier_width_cells + 1.0:
 		(

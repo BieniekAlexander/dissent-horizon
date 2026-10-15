@@ -254,6 +254,30 @@ var is_planned: bool = false
 ## of a seed — how a recorded order names it (Scenario.register_piece). 0 until then, and for
 ## good on anything that never enters play in a scenario (a build preview, a test fixture).
 var spawn_serial: int = 0
+
+## The way this piece faces, in radians about +Y (0 = +Z): the simulation's facing, read and
+## turned by everything that plays the game. Setting it writes the piece's basis, built with
+## DMath, so the engine derives every child's world placement from bits that are the same on
+## every platform. It is held here rather than read back from `rotation.y` because the engine
+## re-derives that from the basis with the platform's atan2 whenever the transform is written —
+## every move — and the platforms round it differently (authoring/native-code.md §Maths that
+## rounds the same everywhere). Until first set, it is the yaw of the basis the piece was given
+## (its scene, or the editor).
+var yaw: float:
+	get:
+		if not _has_yaw:
+			_take_yaw_from_basis()
+		return _yaw
+	set(value):
+		if not _has_yaw:
+			_take_yaw_from_basis()
+		_yaw = value
+		basis = VU.yaw_basis(value) * Basis.from_scale(_root_scale)
+
+var _yaw: float = 0.0
+var _has_yaw: bool = false
+## The root's authored scale, kept so writing a yaw does not undo it.
+var _root_scale: Vector3 = Vector3.ONE
 #endregion
 
 #region Targeting priority
@@ -537,9 +561,7 @@ func bounding_radius(a_layer: int) -> float:
 ## → gdd/systems/combat/projectiles.md §A rocket aims at the hurtbox
 func aim_point() -> Vector3:
 	var node: CollisionShape3D = (
-		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
-		if hurtbox != null
-		else null
+		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D if hurtbox != null else null
 	)
 	return node.global_position if node != null and node.is_inside_tree() else global_position
 
@@ -548,9 +570,7 @@ func aim_point() -> Vector3:
 ## strikes it. Zero for a piece with no targetable shape.
 func top_height() -> float:
 	var node: CollisionShape3D = (
-		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
-		if hurtbox != null
-		else null
+		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D if hurtbox != null else null
 	)
 	if node == null or node.shape == null or not node.is_inside_tree():
 		return 0.0
@@ -576,9 +596,7 @@ static func _half_height_of(shape: Shape3D) -> float:
 ## measured as the point it stands on.
 func hull() -> Hull:
 	var node: CollisionShape3D = (
-		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
-		if hurtbox != null
-		else null
+		hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D if hurtbox != null else null
 	)
 	if node == null or node.shape == null:
 		return Hull.point(xz_position)
@@ -829,6 +847,15 @@ func _ready() -> void:
 	_validate()
 
 
+## Seed `yaw` from the basis the piece was given. A yaw-only basis's Z axis is (sin, 0, cos) of
+## its yaw, and the stored basis's bits are the same everywhere, so DMath reads the same yaw.
+func _take_yaw_from_basis() -> void:
+	_has_yaw = true
+	var given: Basis = basis
+	_root_scale = given.get_scale()
+	_yaw = DMath.atan2(given.z.x, given.z.z)
+
+
 ## Number this piece on its first entry into a scenario. Only pieces are numbered: an emission
 ## is never named by an order.
 func _take_spawn_serial() -> void:
@@ -891,7 +918,7 @@ func _auto_initialize() -> void:
 	# quarter turn, so the authored yaw is read as the nearest one (and the piece squared up to it).
 	if spawns_deployed() and not found_map.structure_cell_map.has(self):
 		found_map.add_structure(
-			self, VU.in_xz(pre_init_pos), Fixture.quarter_turns_of_yaw(rotation.y), false
+			self, VU.in_xz(pre_init_pos), Fixture.quarter_turns_of_yaw(yaw), false
 		)
 
 

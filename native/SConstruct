@@ -6,7 +6,15 @@ import os
 
 env = SConscript("godot-cpp/SConstruct")
 env.Append(CPPPATH=["src/"])
-sources = Glob("src/*.cpp")
+sources = Glob("src/*.cpp") + Glob("src/dmath/*.cpp")
+
+# DMath must give the same bits on every platform, so no compiler may fuse a multiply and an add
+# into one rounding (clang does by default on arm64). Applied to the whole library: the other
+# native code is simulation-facing too.
+if env.get("is_msvc", False):
+    env.Append(CCFLAGS=["/fp:precise"])
+else:
+    env.Append(CCFLAGS=["-ffp-contract=off"])
 
 library = env.SharedLibrary(
     "../bin/libdissent_native{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),

@@ -155,6 +155,9 @@ var turret_yaw: float = 0.0
 
 ## The resolved turret_visual_path node, or null. Resolved once in _ready.
 var _turret_visual: Node3D = null
+## The turret model's authored basis, taken on its first sync: what turret_yaw turns.
+var _turret_rest: Basis = Basis.IDENTITY
+var _has_turret_rest: bool = false
 
 ## Index of the launch point the next emission leaves from. Framework-imposed state: the
 ## ring of launch points is walked one shot at a time, so where the last shot left is the
@@ -267,7 +270,7 @@ func aim_turret_toward(a_carrier: Node3D, a_world_position: Vector3) -> void:
 	dir.y = 0.0
 	if dir.is_zero_approx():
 		return
-	var wanted: float = wrapf(atan2(dir.x, dir.z) - a_carrier.global_rotation.y, -PI, PI)
+	var wanted: float = wrapf(DMath.atan2(dir.x, dir.z) - VU.yaw_of(a_carrier), -PI, PI)
 	_swing_turret_toward(wanted, turret_turn_rate)
 
 
@@ -279,14 +282,14 @@ func is_turret_aimed_at(a_carrier: Node3D, a_world_position: Vector3) -> bool:
 	if dir.is_zero_approx():
 		return true
 	return (
-		absf(angle_difference(turret_world_yaw(a_carrier), atan2(dir.x, dir.z)))
+		absf(angle_difference(turret_world_yaw(a_carrier), DMath.atan2(dir.x, dir.z)))
 		<= TURRET_ALIGNMENT_EPSILON
 	)
 
 
 ## The turret's yaw in world space: the body's yaw plus turret_yaw.
 func turret_world_yaw(a_carrier: Node3D) -> float:
-	return wrapf(a_carrier.global_rotation.y + turret_yaw, -PI, PI)
+	return wrapf(VU.yaw_of(a_carrier) + turret_yaw, -PI, PI)
 
 
 ## Once the turret has gone TURRET_REST_DELAY_SECONDS without being aimed, drift it back
@@ -332,8 +335,14 @@ func _resolve_turret_visual() -> void:
 ## Show turret_yaw on the model. Called wherever turret_yaw changes, so the model is
 ## never more than the tick it is aimed on behind the aim itself.
 func _sync_turret_visual() -> void:
-	if _turret_visual != null:
-		_turret_visual.rotation.y = turret_yaw
+	if _turret_visual == null:
+		return
+	if not _has_turret_rest:
+		_has_turret_rest = true
+		_turret_rest = _turret_visual.basis
+	# As `rotation.y = turret_yaw` would, its authored tilt and scale kept, but built with DMath:
+	# the barrel's launch frame is read off this basis (launch_frame).
+	_turret_visual.basis = VU.with_yaw(_turret_rest, turret_yaw)
 
 
 #endregion
@@ -367,6 +376,12 @@ func launch_points() -> Array[Marker3D]:
 
 
 ## The frame launch points are placed in, with this weapon's own position as its origin.
+##
+## Read off the nodes' global transforms, which are the same on every platform because every
+## basis the game turns is written with DMath — the piece's (Entity.yaw), the model's
+## (MeshVisual.attitude), the turret model's (_sync_turret_visual) — and the engine composes them
+## by plain arithmetic (gdd/systems/authoring/native-code.md §Maths that rounds the same
+## everywhere). A shot must leave from the same place on every machine in a networked match.
 func launch_frame() -> Transform3D:
 	var frame: Transform3D
 	if _turret_visual != null:
@@ -381,7 +396,7 @@ func launch_frame() -> Transform3D:
 			else Transform3D.IDENTITY
 		)
 		if turret:
-			frame.basis = frame.basis * Basis(Vector3.UP, turret_yaw)
+			frame.basis = frame.basis * VU.yaw_basis(turret_yaw)
 	return frame * Transform3D(Basis.IDENTITY, position)
 
 
@@ -428,12 +443,19 @@ func digest_token() -> String:
 	var lock: String = "-"
 	if _lock_target is Vector3:
 		var at: Vector3 = _lock_target
-		lock = "%.2f,%.2f,%.2f" % [at.x, at.y, at.z]
+		lock = SimulationDigest.fixed_vector(at, 2)
 	elif is_instance_valid(_lock_target) and _lock_target is Entity:
 		lock = str((_lock_target as Entity).spawn_serial)
 	return (
-		"%d/%d/%d/%.4f/%d>%s"
-		% [_split_timer_ticks, _reload_timer_ticks, _ammo, _charge_accum, _lock_ticks, lock]
+		"%d/%d/%d/%s/%d>%s"
+		% [
+			_split_timer_ticks,
+			_reload_timer_ticks,
+			_ammo,
+			SimulationDigest.fixed(_charge_accum, 4),
+			_lock_ticks,
+			lock,
+		]
 	)
 
 

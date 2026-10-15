@@ -148,7 +148,7 @@ func factor(a_dial: Dial) -> float:
 
 ## 2^(2d − 1): NEUTRAL multiplies by 1, 1 by MODULATION_SPAN, 0 by its reciprocal.
 static func factor_of(value: float) -> float:
-	return pow(MODULATION_SPAN, 2.0 * value - 1.0)
+	return DMath.pow(MODULATION_SPAN, 2.0 * value - 1.0)
 
 
 ## A copy of `a_config` with the fields in DIVIDED_BY_DIAL modulated by the held dials — the

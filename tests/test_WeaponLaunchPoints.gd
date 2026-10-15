@@ -88,8 +88,10 @@ func test_a_turret_model_is_the_frame() -> void:
 	_carrier.add_child(turret_model)
 	turret_model.position = Vector3(0, 0.4, 0)
 	turret_model.scale = Vector3.ONE * 0.45
-	turret_model.rotation.y = PI / 2.0
+	_weapon.turret = true
+	_weapon.turret_yaw = PI / 2.0
 	_weapon._turret_visual = turret_model
+	_weapon._sync_turret_visual()
 	assert_almost_eq(
 		_weapon.next_launch_position(),
 		CARRIER_AT + Vector3(0, 0.4, 0) + Vector3(WEAPON_AT.z, WEAPON_AT.y, 0.0),

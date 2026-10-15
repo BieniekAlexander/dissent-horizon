@@ -1,0 +1,5 @@
+# Lint tools for tools/lint.sh, pinned so every machine formats alike. Install with
+#   pipx install clang-format==17.0.6        (or: pip install -r tools/requirements-lint.txt)
+# clang-format is pinned to the release native/.clang-format was synced to (godot-cpp's own
+# style file, "last sync: Clang 17.0.6"): a newer one reflows code the older one accepts.
+clang-format==17.0.6

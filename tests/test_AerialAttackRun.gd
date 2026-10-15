@@ -59,7 +59,7 @@ func _aim(a_actor: Actor, a_point: Vector3, a_degrees_off: float) -> void:
 			break
 		a_actor.movement.face_toward(a_point)
 	assert_true(a_actor.movement.is_facing(a_point), "the body reached exact alignment")
-	a_actor.rotation.y += deg_to_rad(a_degrees_off)
+	a_actor.yaw += deg_to_rad(a_degrees_off)
 
 
 #region The dive is opt-in

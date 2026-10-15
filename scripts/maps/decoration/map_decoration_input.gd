@@ -78,7 +78,7 @@ static func from_map(map: Map) -> MapDecorationInput:
 			# Read from the yaw, not Fixture.quarter_turns: a piece out of the tree, or not yet
 			# registered, has not taken its turn from the yaw yet (Entity._auto_initialize).
 			var dims: Vector2i = Fixture.oriented_dimensions(
-				structure.dimensions, Fixture.quarter_turns_of_yaw((node as Node3D).rotation.y)
+				structure.dimensions, Fixture.quarter_turns_of_yaw((node as Entity).yaw)
 			)
 			var xz: Vector2 = _map_local_xz(node as Node3D, map) + grid_half
 			var origin := Vector2i(roundi(xz.x - dims.x * 0.5), roundi(xz.y - dims.y * 0.5))

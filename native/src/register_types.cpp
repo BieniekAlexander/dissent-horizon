@@ -1,5 +1,6 @@
 // Entry point of the dissent_native GDExtension: registers the native classes with the engine.
 
+#include "dmath/dmath.h"
 #include "fog_raster.h"
 #include "minimap_compositor.h"
 #include "terrain_cells.h"
@@ -20,6 +21,7 @@ void initialize_dissent_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(dissent::TerrainCells);
 	GDREGISTER_CLASS(dissent::FogRaster);
 	GDREGISTER_CLASS(dissent::MinimapCompositor);
+	GDREGISTER_ABSTRACT_CLASS(dissent::DMath);
 }
 
 void uninitialize_dissent_native(ModuleInitializationLevel p_level) {

@@ -276,9 +276,9 @@ func steered_toward(a_velocity: Vector3, a_position: Vector3, a_goal: Variant) -
 			if absf(goal_direction.dot(Vector3.UP)) < NEAR_VERTICAL_COSINE
 			else Vector3.RIGHT
 		)
-		goal_direction = goal_direction.rotated(axis, DEAD_ASTERN_NUDGE_RADIANS)
+		goal_direction = DMath.rotated_3d(goal_direction, axis, DEAD_ASTERN_NUDGE_RADIANS)
 	var is_facing: bool = a_velocity.normalized().dot(goal_direction.normalized()) >= 0
-	var off_nose: float = a_velocity.angle_to(goal_direction)
+	var off_nose: float = DMath.angle_to_3d(a_velocity, goal_direction)
 	var turned: Vector3 = VU.get_rotated_vector_3d(
 		a_velocity,
 		goal_direction,
@@ -334,7 +334,7 @@ func loses_lock(a_velocity: Vector3, a_position: Vector3, a_target_point: Vector
 		lock_cone_degrees > 0.0
 		and not a_velocity.is_zero_approx()
 		and not to_target.is_zero_approx()
-		and rad_to_deg(a_velocity.angle_to(to_target)) > lock_cone_degrees
+		and rad_to_deg(DMath.angle_to_3d(a_velocity, to_target)) > lock_cone_degrees
 	)
 
 
@@ -446,7 +446,7 @@ func _ballistic_velocity(
 func _lob_velocity(a_origin: Vector3, a_destination: Vector3) -> Vector3:
 	var horizontal: float = (VU.in_xz(a_destination) - VU.in_xz(a_origin)).length()
 	var rise: float = (
-		horizontal * tan(deg_to_rad(launch_pitch_degrees)) - (a_destination.y - a_origin.y)
+		horizontal * DMath.tan(deg_to_rad(launch_pitch_degrees)) - (a_destination.y - a_origin.y)
 	)
 	if rise <= 0.0 or horizontal <= 0.0:
 		return _ballistic_velocity(a_origin, a_destination, _speed_per_tick())

@@ -745,7 +745,10 @@ func _compute_home_centroid() -> Vector3:
 	var centres: Array = owned_command_centres()
 	var home: Dictionary = {}
 	for cluster: Dictionary in all:
-		if home.is_empty() or (cluster["members"] as Array).size() > (home["members"] as Array).size():
+		if (
+			home.is_empty()
+			or (cluster["members"] as Array).size() > (home["members"] as Array).size()
+		):
 			home = cluster
 		for centre: Actor in centres:
 			if (cluster["members"] as Array).has(VU.in_xz(centre.global_position)):
@@ -1964,7 +1967,7 @@ static func clock_weight(arrival_seconds: float, answer_seconds: float, falloff:
 	var margin: float = arrival_seconds - answer_seconds
 	if margin <= 0.0 or falloff <= 0.0:
 		return 1.0
-	return CLOCK_FLOOR + (1.0 - CLOCK_FLOOR) * exp(-margin / falloff)
+	return CLOCK_FLOOR + (1.0 - CLOCK_FLOOR) * DMath.exp(-margin / falloff)
 
 
 ## THE FASTEST ANSWER the bot could field: the shortest build time, in seconds, among the

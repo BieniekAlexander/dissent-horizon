@@ -7,7 +7,6 @@ extends GutTest
 
 const LOCALHOST: String = "127.0.0.1"
 const BUILD: String = "build"
-const PLATFORM: String = "os/arch"
 ## How long a test waits on sockets: real time, so bounded by the wall clock, never by frames.
 const WAIT_SECONDS: float = 5.0
 const RECIPE: Dictionary = {"map_seed": 3, "rng_seed": 4}
@@ -25,7 +24,7 @@ func after_each() -> void:
 
 ## A hosted lobby of `a_players`, with slots `a_open` marked open.
 func _host(a_players: int = 3, a_open: Array = [1, 2]) -> LobbyLink:
-	var link := LobbyLink.new(BUILD, PLATFORM)
+	var link := LobbyLink.new(BUILD)
 	assert_eq(link.host(0, LOCALHOST), OK)
 	link.setup.set_player_count(a_players)
 	for slot: int in a_open:
@@ -37,7 +36,7 @@ func _host(a_players: int = 3, a_open: Array = [1, 2]) -> LobbyLink:
 
 
 func _join(a_host: LobbyLink, a_build: String = BUILD) -> LobbyLink:
-	var link := LobbyLink.new(a_build, PLATFORM)
+	var link := LobbyLink.new(a_build)
 	assert_eq(link.join(LOCALHOST, a_host.lobby_port()), OK)
 	_links.append(link)
 	return link
@@ -132,3 +131,15 @@ func test_play_hands_every_peer_the_same_match_and_forms_the_mesh() -> void:
 
 func _all_meshed(a_links: Array) -> bool:
 	return a_links.all(func(l: LobbyLink) -> bool: return l.transport.is_connected_to_all())
+
+
+## At Play the host closes its lobby first, so the joiner's own close meets a server peer that
+## is already gone — which must not try to disconnect it again.
+func test_a_joiner_closes_cleanly_after_the_host_has_gone() -> void:
+	var host: LobbyLink = _host()
+	var joiner: LobbyLink = _join(host)
+	assert_true(await _until(_seated.bind(joiner)))
+	host.close()
+	assert_true(await _until(func() -> bool: return joiner.refusal != ""))
+	joiner.close()
+	assert_engine_error_count(0)

@@ -11,10 +11,10 @@ Scoped 2026-10-12. **Built: the widened digest, the input buffer, the wire forma
 transport interface with a loopback for tests (2026-10-13); the lockstep loop, the ENet transport,
 the handshake and the ready barrier, the Multiplayer lobby, the per-player verdict, and desync
 detection (2026-10-14). A networked skirmish can be hosted, joined and played, and two processes
-on one machine play it in step (`test_TwoProcessNetplay`); two real machines over a real network,
-and two platforms, have not been tried.** Players on different machines play one match by
-sending each other their orders, and every machine runs the whole simulation. The direction is
-Alex's (2026-10-11): **deterministic lockstep now, rollback in the long term**, and lockstep is
+on one machine play it in step (`test_TwoProcessNetplay`). Two machines over Wi-Fi — a Mac
+hosting, a Windows PC joining — played 900 ticks in step on 2026-10-14 (`tests/_netplay_peer`
+with `--address`).** Players on different machines play one match by sending each other their
+orders, and every machine runs the whole simulation. The direction is Alex's (2026-10-11): **deterministic lockstep now, rollback in the long term**, and lockstep is
 built in rollback's shape so the step from one to the other adds to it rather than replacing it.
 The first build's decisions were made 2026-10-13 ([`gdd/tasks.md`](../../tasks.md) T-107) and
 are under §Decisions.
@@ -83,11 +83,11 @@ rest are PLANNED.
   Rollback keeps one; it only gets smaller.
 - **Session setup**: built 2026-10-14. `NetSession` — every peer sends every other its whole status
   each frame, unacknowledged, a lost one replaced by the next: its build (the replay version
-  stamp), platform, whether it has loaded the map and what that map hashed to (`MapDigest`), and
+  stamp), whether it has loaded the map and what that map hashed to (`MapDigest`), and
   whether it has started. The host's status carries the match: the recipe
   (`SkirmishSetup.recipe`), each peer's seat (the commander it plays) and the input delay, kept in
-  wire form so the host builds from what every peer builds from. A different build or platform, a
-  different map or a peer with no seat refuses the match, with a reason. The session and the turns
+  wire form so the host builds from what every peer builds from. A different build, a different
+  map or a peer with no seat refuses the match, with a reason. The session and the turns
   share one connection on two channels (`TransportMux`), each reading only its own messages.
   `NetMatch`, a node in the scenario, holds the world until the session is ready, then starts the
   `Lockstep` and joins it to the stream; orders given while held go out in the first turn.
@@ -181,10 +181,18 @@ Decided 2026-10-13 (T-107). PLANNED, except where a decision names the code that
     matches each claiming the win. A relay or a server as judge would settle both.
   - `test_Lockstep` (three peers, lossy links, a peer that comes back after its fence),
     `test_NetMatch` (the readout, then the forfeit, in a real scenario).
-- **Platforms:** the handshake refuses a different OS or CPU architecture (built,
-  `NetSession.platform`). Mixed platforms are a
-  required goal, not an option: TODO measure one seed across platforms
-  ([recording-and-replay](recording-and-replay.md) §Detecting drift), then lift the refusal.
+- **Platforms:** any OS and CPU architecture may play together — the handshake refused another
+  until Alex lifted that on 2026-10-15. Mixed platforms compute the same match because simulation
+  maths goes through `DMath`, every basis the game turns is written with it, and digests round by
+  arithmetic ([native-code](../authoring/native-code.md) §Maths that rounds the same everywhere).
+  - Measured 2026-10-14, macOS/arm64 against Windows/x86_64, with `tools/netplay/determinism_probe`
+    and `compare_determinism.py`: before, one bot match parted at tick 357 on the platforms' C
+    maths libraries; after, a five-minute HARD bot match, Colonial against Anarchical, agreed to
+    the bit for all 9000 ticks — every digest, and every piece's position and velocity.
+  - TODO: one match is a sample. It never reached late tiers, turreted pieces or superweapons;
+    more seeds, each faction on each side, and matches played to a verdict would cover them. A
+    cross-platform drift in the meantime ends the match as any desync does, with both machines'
+    state written out (§Decisions, on a desync).
 - **The digest covers everything a physics tick governs**, not only positions, HP and resources:
   the RNG state, each actor's current command and queue, production and research progress,
   cooldowns, and any other per-tick simulation state. Still built once a second. Entities are

@@ -45,9 +45,7 @@ static func requires_position() -> bool:
 
 
 ## Only a unit that can actually navigate can wander.
-static func meets_precondition(
-	actor: Actor, _message: CommandMessage
-) -> PreconditionFailureCause:
+static func meets_precondition(actor: Actor, _message: CommandMessage) -> PreconditionFailureCause:
 	return (
 		PreconditionFailureCause.NONE
 		if actor != null and actor.can_move()
@@ -91,7 +89,9 @@ func _retarget(a_actor: Actor) -> void:
 	# near the anchor.
 	var angle: float = SU.rng.randf() * TAU
 	var distance: float = sqrt(SU.rng.randf()) * RADIUS
-	var candidate: Vector3 = _anchor + Vector3(cos(angle) * distance, 0.0, sin(angle) * distance)
+	var candidate: Vector3 = (
+		_anchor + Vector3(DMath.cos(angle) * distance, 0.0, DMath.sin(angle) * distance)
+	)
 	if map != null:
 		# Sample the terrain height first: the navmesh is 3D, so snapping from a
 		# point at the wrong altitude can resolve to a different cell entirely.

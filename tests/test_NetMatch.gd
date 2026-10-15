@@ -9,7 +9,6 @@ extends GutTest
 const HARNESS: String = "res://scenes/scenarios/test/test_kamikaze_cluster.tscn"
 const SEED: int = 7
 const BUILD: String = "build"
-const PLATFORM: String = "os/arch"
 ## The test's peer hosts the match and plays commander 1; the scenario's machine plays 2.
 const HOST: int = 1
 const LOCAL: int = 2
@@ -51,12 +50,12 @@ class Wiring:
 		var host_mux := TransportMux.new(network.endpoint(HOST))
 		muxes = [local_mux, host_mux]
 		match_node = NetMatch.new(
-			NetSession.new(local_mux.channel(TransportMux.SESSION), HOST, BUILD, PLATFORM),
+			NetSession.new(local_mux.channel(TransportMux.SESSION), HOST, BUILD),
 			local_mux.channel(TransportMux.TURNS),
 			null,
 			local_mux.channel(TransportMux.DIGESTS)
 		)
-		host_session = NetSession.new(host_mux.channel(TransportMux.SESSION), HOST, BUILD, PLATFORM)
+		host_session = NetSession.new(host_mux.channel(TransportMux.SESSION), HOST, BUILD)
 		host_session.offer_match({}, SEATS, TimeUtils.seconds_from_ticks(DELAY_TICKS))
 		host_turns = host_mux.channel(TransportMux.TURNS)
 		host_digests = host_mux.channel(TransportMux.DIGESTS)

@@ -116,11 +116,7 @@ func _clear_fog_at(a_points: Array[Vector2], a_manager: ScenarioTriggerManager) 
 ## a reveal that is not an authored event — the HEGEMONY opening's shelter reveal
 ## (Scenario._reveal_shelters_at_start) — opens fog exactly as this event does.
 static func spawn_vision(
-	a_commander: Commander,
-	a_map: Map,
-	a_point: Vector2,
-	a_radius: float,
-	a_lifespan_seconds: float
+	a_commander: Commander, a_map: Map, a_point: Vector2, a_radius: float, a_lifespan_seconds: float
 ) -> Actor:
 	var scout := _SCOUT_SCENE.instantiate() as Actor
 	if scout == null:

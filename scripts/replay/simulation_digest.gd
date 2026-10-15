@@ -30,6 +30,8 @@ extends RefCounted
 ## How many hex characters of the SHA-256 a digest keeps: enough that two different states
 ## colliding is not a concern, short enough to read in a log line.
 const DIGEST_LENGTH: int = 16
+## 10 to the power of each number of decimal places `fixed` is asked for.
+const _DECIMAL_SCALES: Array[int] = [1, 10, 100, 1000, 10000]
 
 
 static func of(scenario: Scenario) -> String:
@@ -87,17 +89,38 @@ static func _commander_part(a_commander: Commander) -> String:
 	)
 
 
+## `a_value` to `a_decimals` places, as text that is the same on every platform. Rounded by
+## arithmetic, never by "%.3f": string formatting is the platform's, and a value on an exact tie
+## (-39.5625 to three places) rounds to even on one platform and away from zero on another
+## (measured 2026-10-14) — a digest that differs where the simulation does not.
+static func fixed(a_value: float, a_decimals: int) -> String:
+	var scale: int = _DECIMAL_SCALES[a_decimals]
+	var units: int = roundi(a_value * scale)
+	var minus: String = "-" if units < 0 else ""
+	var whole: int = absi(units) / scale
+	var part: String = str(absi(units) % scale).pad_zeros(a_decimals)
+	return "%s%d.%s" % [minus, whole, part] if a_decimals > 0 else "%s%d" % [minus, whole]
+
+
+static func fixed_vector(a_vector: Vector3, a_decimals: int) -> String:
+	return ",".join(
+		[
+			fixed(a_vector.x, a_decimals),
+			fixed(a_vector.y, a_decimals),
+			fixed(a_vector.z, a_decimals)
+		]
+	)
+
+
 static func _entity_line(a_entity: Entity) -> String:
 	var at: Vector3 = a_entity.global_position
-	var line: String = (
-		"#%d %s@%.3f,%.3f,%.3f" % [a_entity.spawn_serial, a_entity.id, at.x, at.y, at.z]
-	)
+	var line: String = "#%d %s@%s" % [a_entity.spawn_serial, a_entity.id, fixed_vector(at, 3)]
 	var actor := a_entity as Actor
 	if actor == null:
 		return line
 	var hp: float = actor.defense.hp if actor.defense != null else 0.0
 	var v: Vector3 = actor.velocity
-	line += " hp%.2f v%.3f,%.3f,%.3f" % [hp, v.x, v.y, v.z]
+	line += " hp%s v%s" % [fixed(hp, 2), fixed_vector(v, 3)]
 	line += " c[%s]" % _commands(actor)
 	line += " w[%s]" % _weapons(actor)
 	line += " p[%s]" % _production(actor)
@@ -123,7 +146,7 @@ static func _commands(a_actor: Actor) -> String:
 			if is_instance_valid(command.message.target):
 				target_serial = command.message.target.spawn_serial
 			to = command.message.world_position
-		out.append("%s>%d@%.2f,%.2f,%.2f" % [kind, target_serial, to.x, to.y, to.z])
+		out.append("%s>%d@%s" % [kind, target_serial, fixed_vector(to, 2)])
 	return ",".join(out)
 
 
@@ -148,7 +171,9 @@ static func _abilities(a_actor: Actor) -> String:
 		return ""
 	var out: PackedStringArray = []
 	for i: int in abilities.pool_count():
-		out.append("%d:%.4f" % [abilities.pool_charges(i), abilities.pool_recharge_fraction(i)])
+		out.append(
+			"%d:%s" % [abilities.pool_charges(i), fixed(abilities.pool_recharge_fraction(i), 4)]
+		)
 	return ",".join(out)
 
 
@@ -160,6 +185,6 @@ static func _effects(a_actor: Actor) -> String:
 			continue
 		var script: Script = effect.get_script()
 		var kind: String = String(script.get_global_name()) if script != null else "?"
-		out.append("%s:x%d:%.4f" % [kind, effect.stacks, effect.remaining_fraction()])
+		out.append("%s:x%d:%s" % [kind, effect.stacks, fixed(effect.remaining_fraction(), 4)])
 	out.sort()
 	return ",".join(out)

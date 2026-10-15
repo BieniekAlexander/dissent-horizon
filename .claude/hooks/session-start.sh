@@ -17,6 +17,9 @@ if ! command -v scons >/dev/null 2>&1; then
 fi
 "$PWD/tools/build_native.sh"
 
+# tools/lint.sh needs the pinned lint tools.
+pip install --quiet --break-system-packages -r "$PWD/tools/requirements-lint.txt"
+
 # `.godot/` is git-ignored, so a fresh clone has no import cache and no class_name registry —
 # scripts referencing a `class_name` fail to parse until this has run. It is cheap once cached.
 # The engine reports leaked RIDs at exit even on success, so judge the run by the registry it writes.

@@ -1004,7 +1004,7 @@ static func lifetime_of(
 ## separate two exposed spots register where a share of the held horizon would not — a spot the
 ## enemy reaches inside the quiet horizon is in play, one it reaches long after is safe.
 static func safety_of(lifetime_seconds: float) -> float:
-	return 1.0 - exp(-lifetime_seconds / QUIET_HORIZON_SECONDS)
+	return 1.0 - DMath.exp(-lifetime_seconds / QUIET_HORIZON_SECONDS)
 
 
 ## CONNECTED COMPONENTS of `cells` once each is grown by `grow` cells each way on `lattice`:

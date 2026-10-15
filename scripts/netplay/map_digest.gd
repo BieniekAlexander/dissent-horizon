@@ -7,8 +7,9 @@ extends RefCounted
 ## generated differently on one machine is refused rather than played.
 ## gdd/systems/commands/netplay.md §Decisions (the map).
 ##
-## Positions are rounded, as SimulationDigest's are: two machines agreeing to the millimetre have
-## built the same map, and a hash of raw floats would not say where they differ anyway.
+## Positions are rounded, as SimulationDigest's are (SimulationDigest.fixed): two machines
+## agreeing to the millimetre have built the same map, and a hash of raw floats would not say
+## where they differ anyway.
 
 
 static func of(scenario: Scenario) -> String:
@@ -16,14 +17,17 @@ static func of(scenario: Scenario) -> String:
 	context.start(HashingContext.HASH_SHA256)
 	var terrain: TerrainData = scenario.map.terrain_data if scenario.map != null else null
 	if terrain != null:
-		context.update(terrain.heights.to_byte_array())
-		context.update(terrain.tile_types)
-		context.update(terrain.void_cells)
+		# HashingContext.update refuses an empty array, and a map with no void cells is common.
+		for bytes: PackedByteArray in [
+			terrain.heights.to_byte_array(), terrain.tile_types, terrain.void_cells
+		]:
+			if not bytes.is_empty():
+				context.update(bytes)
 	var pieces: PackedStringArray = []
 	for node: Node in scenario.find_children("*", "Entity", true, false):
 		var entity: Entity = node as Entity
 		var at: Vector3 = entity.global_position if entity.is_inside_tree() else entity.position
-		pieces.append("%s@%.3f,%.3f,%.3f" % [entity.id, at.x, at.y, at.z])
+		pieces.append("%s@%s" % [entity.id, SimulationDigest.fixed_vector(at, 3)])
 	pieces.sort()
 	context.update("|".join(pieces).to_utf8_buffer())
 	return context.finish().hex_encode().substr(0, SimulationDigest.DIGEST_LENGTH)

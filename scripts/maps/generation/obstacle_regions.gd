@@ -646,7 +646,7 @@ func _grow_cut(a_cut: int, a_reach_scale: float) -> void:
 		* a_reach_scale
 	)
 	for attempt: int in _GROWTH_ATTEMPTS:
-		var added: Array[Vector2i] = _growth_cells(a_cut, width * pow(_RETRY_REACH, attempt))
+		var added: Array[Vector2i] = _growth_cells(a_cut, width * DMath.pow(_RETRY_REACH, attempt))
 		if added.is_empty():
 			return
 		var before: PackedByteArray = _topology.passable_mask()

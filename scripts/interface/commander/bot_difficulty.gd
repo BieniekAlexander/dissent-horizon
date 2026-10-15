@@ -502,7 +502,9 @@ func jittered(a_rng: RandomNumberGenerator, a_spread: float) -> BotDifficulty:
 		var current: Variant = out.get(field)
 		if float(current) < lo or float(current) > hi:
 			continue  # a sentinel, outside the range on purpose
-		var drawn: float = clampf(float(current) + a_rng.randfn(0.0, a_spread * (hi - lo)), lo, hi)
+		var drawn: float = clampf(
+			float(current) + DMath.randfn(a_rng, 0.0, a_spread * (hi - lo)), lo, hi
+		)
 		out.set(field, roundi(drawn) if typeof(current) == TYPE_INT else drawn)
 	return out
 

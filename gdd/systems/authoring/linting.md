@@ -10,8 +10,15 @@ type: system-note
 
 ```
 pipx install "gdtoolkit==4.*"    # a plain `pip install --user` is refused by PEP 668 here
+pipx install clang-format==17.0.6
 ./tools/lint.sh
 ```
+
+The same script checks the C++ under `native/src` with `clang-format`, pinned in
+`tools/requirements-lint.txt` to the release godot-cpp's style file was synced to (a newer one
+reflows code the older one accepts). A missing `clang-format` fails the lint rather than
+skipping it, and cloud sessions install it in the session-start hook. `native/src/dmath/musl/`
+is vendored, so it is not ours to style either.
 
 The config is `gdlintrc` at the repository root. `tools/lint.sh` covers `scripts/`,
 `tools/` and `tests/`; `addons/` is vendored and `scripts/generated/` is generated, so

@@ -4,10 +4,11 @@ extends RefCounted
 ## The networked skirmish lobby's connection: who is in the lobby, what the host has set, and the
 ## moment the host presses Play. gdd/systems/commands/netplay.md §Decisions (entry).
 ##
-## The HOST listens; a JOINER dials it by address and port. A joiner says which build and
-## platform it runs, and is refused — with the reason — for another of either, or when no OPEN
-## slot is free; otherwise the host gives it a peer id and seats it in the first free open slot
-## (SkirmishSetup.seat_anywhere), and it may move to another. The host sends the whole setup to
+## The HOST listens; a JOINER dials it by address and port. A joiner says which build it runs,
+## and is refused — with the reason — for another, or when no OPEN slot is free; another OS or
+## CPU is fine, as every platform computes the same match. Otherwise the host gives it a peer id
+## and seats it in the first free open slot (SkirmishSetup.seat_anywhere), and it may move to
+## another. The host sends the whole setup to
 ## every joiner whenever it changes; a joiner sees it and asks only to move.
 ##
 ## Each machine opens its MATCH transport (an ENetTransport) as soon as it knows its own peer id
@@ -26,7 +27,7 @@ signal started(a_launch: Dictionary)
 signal refused(a_reason: String)
 
 ## Bumped on any change to the lobby's messages; a joiner on another is refused.
-const LOBBY_VERSION: int = 1
+const LOBBY_VERSION: int = 2
 const _CHANNEL: int = 0
 const _CHANNEL_COUNT: int = 1
 
@@ -41,7 +42,6 @@ var transport: ENetTransport = null
 var refusal: String = ""
 
 var _build: String
-var _platform: String
 var _is_host: bool = false
 var _is_started: bool = false
 var _connection: ENetConnection = null
@@ -54,10 +54,9 @@ var _host_address: String = ""
 var _round_trips_ms: Dictionary = {}
 
 
-## `a_build` and `a_platform` default to this machine's; tests name others.
-func _init(a_build: String = "", a_platform: String = "") -> void:
+## `a_build` defaults to this machine's; tests name others.
+func _init(a_build: String = "") -> void:
 	_build = a_build if a_build != "" else ReplayFile.current_version()
-	_platform = a_platform if a_platform != "" else NetSession.platform()
 
 
 #region Hosting and joining
@@ -112,8 +111,11 @@ func close() -> void:
 	var peers: Array = _connection.get_peers()
 	if _server != null and not peers.has(_server):
 		peers.append(_server)
+	# A peer already gone (the host closed its side first, as it does at Play) has no ENet peer
+	# behind it, and disconnecting it again raises an engine error.
 	for peer: ENetPacketPeer in peers:
-		peer.peer_disconnect_now()
+		if peer.is_active():
+			peer.peer_disconnect_now()
 	_connection.flush()
 	_connection.destroy()
 	_connection = null
@@ -145,10 +147,7 @@ func poll() -> void:
 		match type:
 			ENetConnection.EVENT_CONNECT:
 				if not _is_host:
-					_send(
-						peer,
-						{"t": "hello", "v": LOBBY_VERSION, "build": _build, "platform": _platform}
-					)
+					_send(peer, {"t": "hello", "v": LOBBY_VERSION, "build": _build})
 			ENetConnection.EVENT_DISCONNECT:
 				_on_disconnect(peer)
 			ENetConnection.EVENT_RECEIVE:
@@ -305,10 +304,6 @@ func _join_receive(a_message: Dictionary) -> void:
 func _refusal_for(a_hello: Dictionary) -> String:
 	if int(a_hello.get("v", -1)) != LOBBY_VERSION or a_hello.get("build") != _build:
 		return "This lobby runs another version of the game."
-	if a_hello.get("platform") != _platform:
-		return (
-			"This lobby plays on %s; matches between platforms are not supported yet." % _platform
-		)
 	return ""
 
 

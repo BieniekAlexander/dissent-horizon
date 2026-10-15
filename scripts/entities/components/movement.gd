@@ -788,13 +788,27 @@ func _owner_node() -> Node3D:
 ## caller. Uses the owner node's +Z axis as "forward": our models are authored
 ## facing -Y in Blender, which the glTF importer maps to +Z in Godot (NOT the
 ## engine's own -Z forward), so +Z is the visual front of the mesh and the
-## root's rotation.y orients it directly. Defaults to (0, 0, 1) (rotation.y ==
-## 0) when there's no owner Node3D.
+## root's yaw (Entity.yaw) orients it directly. Defaults to (0, 0, 1) (a yaw of 0) when
+## there's no owner Node3D.
 func get_facing() -> Vector3:
 	var owner_node: Node3D = _owner_node()
 	if owner_node == null:
 		return Vector3(0, 0, 1)
-	return Vector3(sin(owner_node.rotation.y), 0, cos(owner_node.rotation.y))
+	var yaw: float = _yaw_of(owner_node)
+	return Vector3(DMath.sin(yaw), 0, DMath.cos(yaw))
+
+
+## The owner's facing: a piece's own `yaw` (see Entity.yaw for why it is not `rotation.y`), or a
+## bare node's rotation, as a test rig is.
+static func _yaw_of(a_owner: Node3D) -> float:
+	return (a_owner as Entity).yaw if a_owner is Entity else a_owner.rotation.y
+
+
+static func _set_yaw_of(a_owner: Node3D, a_yaw: float) -> void:
+	if a_owner is Entity:
+		(a_owner as Entity).yaw = a_yaw
+	else:
+		a_owner.rotation.y = a_yaw
 
 
 ## Rotate the owner toward `target_position` (XZ only) at turn_rate deg/s —
@@ -841,7 +855,7 @@ func is_facing_within(a_target_position: Vector3, a_tolerance: float) -> bool:
 	dir.y = 0.0
 	if dir.is_zero_approx():
 		return true
-	return get_facing().angle_to(dir.normalized()) <= a_tolerance
+	return DMath.angle_to_3d(get_facing(), dir.normalized()) <= a_tolerance
 
 
 ## Rotate the owner node's rotation.y so its +Z (forward) axis points along the
@@ -854,14 +868,15 @@ func turn_toward(a_target_dir: Vector3) -> void:
 	var owner_node: Node3D = _owner_node()
 	if owner_node == null or a_target_dir.is_zero_approx():
 		return
-	var target_angle: float = atan2(a_target_dir.x, a_target_dir.z)
+	var target_angle: float = DMath.atan2(a_target_dir.x, a_target_dir.z)
 	if turn_rate == INF:
-		owner_node.rotation.y = target_angle
+		_set_yaw_of(owner_node, target_angle)
 		return
 	var tps: float = float(TimeUtils.ticks_per_second())
 	var max_delta: float = deg_to_rad(_effective_turn_rate()) / tps
-	owner_node.rotation.y += clampf(
-		angle_difference(owner_node.rotation.y, target_angle), -max_delta, max_delta
+	var yaw: float = _yaw_of(owner_node)
+	_set_yaw_of(
+		owner_node, yaw + clampf(angle_difference(yaw, target_angle), -max_delta, max_delta)
 	)
 
 
@@ -1018,10 +1033,10 @@ func _turn_heading_toward(a_from: Vector3, a_toward: Vector3, a_max_angle: float
 	if current.is_zero_approx() or wanted.is_zero_approx():
 		return a_toward
 	current = current.normalized()
-	var signed: float = current.angle_to(wanted.normalized())
+	var signed: float = DMath.angle_to(current, wanted.normalized())
 	if absf(signed) <= a_max_angle:
 		return a_toward
-	return VU.from_xz(current.rotated(signf(signed) * a_max_angle))
+	return VU.from_xz(DMath.rotated(current, signf(signed) * a_max_angle))
 
 
 ## Cap `desired_speed` so this unit's minimum turn radius is small enough to actually curve
@@ -1116,7 +1131,7 @@ func _apply_grounded_turn(a_velocity: Vector3) -> Vector3:
 
 	var desired_dir: Vector3 = a_velocity / desired_speed
 	var max_angle: float = deg_to_rad(turn_rate) / tps
-	var angle: float = facing.angle_to(desired_dir)
+	var angle: float = DMath.angle_to_3d(facing, desired_dir)
 	turn_toward(desired_dir)
 	var new_facing: Vector3 = get_facing()
 

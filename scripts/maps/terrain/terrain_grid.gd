@@ -27,7 +27,12 @@ const MIN_VIEW_PITCH_DEGREES: float = 30.0
 ## steep to traverse. The spread bounds the steepest slope over the cell, so this keeps every
 ## walkable slope at or under MIN_VIEW_PITCH_DEGREES, per cell (Map.CELL_SIZE is 1). Raw map_data
 ## units (multiply by terrain_body.scale.y to convert to world-space metres).
-const MAX_SLOPE_DIFF: float = tan(deg_to_rad(MIN_VIEW_PITCH_DEGREES))
+##
+## The tangent of MIN_VIEW_PITCH_DEGREES, written out: a const is evaluated with the platform's
+## own tan, which differs between platforms in the last bit, and every map would differ with it.
+## test_DMath holds it to DMath.tan(deg_to_rad(MIN_VIEW_PITCH_DEGREES)), so retuning the pitch
+## without this fails there.
+const MAX_SLOPE_DIFF: float = 0.5773502691896257
 #endregion
 
 #region Signals
