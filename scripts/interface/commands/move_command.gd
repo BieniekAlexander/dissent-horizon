@@ -240,10 +240,14 @@ var message: CommandMessage
 var has_been_active: bool = false
 
 ## Counts down toward the next per-second destination-swap check (see
-## _resolve_destination_swap). Only meaningful for a plain MoveCommand instance,
+## _plan_destination_swaps). Only meaningful for a plain MoveCommand instance,
 ## since subclasses (Patrol, Attack, Defend, ...) override get_updated_state()
 ## without calling super and so never run this check.
 var _swap_cooldown: float = 0.0
+## The trades decided this tick (decide), for get_updated_state to apply: each
+## [sibling Actor, its command, my destination before, its destination before].
+var _decided_swaps: Array = []
+var _has_decided_swaps: bool = false
 
 #endregion
 
@@ -254,8 +258,9 @@ var _swap_cooldown: float = 0.0
 ## get_updated_state or can_act to apply in the act phase. Writes nothing but this command's
 ## own decision fields. Run for the command a piece holds when the tick starts; a command that
 ## becomes current mid-tick has not decided, and works the tick out live.
-func decide(_a_commandable: Actor) -> void:
-	pass
+func decide(a_commandable: Actor) -> void:
+	_has_decided_swaps = true
+	_decided_swaps = _plan_destination_swaps(a_commandable) if _is_swap_due() else []
 
 
 ## Potentially return a new command based on a state check. A plain MoveCommand
@@ -263,19 +268,24 @@ func decide(_a_commandable: Actor) -> void:
 ## retargeting (chasing down a nearby enemy) is opt-in per subclass (see
 ## AttackMove, Patrol, Defend), not a base-class behavior every command inherits.
 func get_updated_state(a_commandable: Actor) -> Variant:
-	_swap_cooldown -= 1.0 / TimeUtils.ticks_per_second()
-	if _swap_cooldown <= 0.0:
-		_swap_cooldown = 1.0
-		_resolve_destination_swap(a_commandable)
+	if _has_decided_swaps:
+		_has_decided_swaps = false
+		_apply_destination_swaps(a_commandable, _decided_swaps)
+		_decided_swaps = []
+	elif _is_swap_due():
+		_apply_destination_swaps(a_commandable, _plan_destination_swaps(a_commandable))
 	return self
 
 
-## Once a second, check every sibling unit sharing this exact multi-unit move
-## order (same CommandMessage.origin — see RTSController.assign_command_to_units)
-## for a beneficial destination swap: if trading destinations would shorten both
-## units' remaining paths, swap them and retarget both units' Movement immediately.
-## This corrects crossing paths that develop after the angular-sort assignment at
-## issue time — e.g. once RVO avoidance nudges a unit off its straight-line course.
+## Count the swap check down a tick; true once a second, when it is due.
+func _is_swap_due() -> bool:
+	_swap_cooldown -= 1.0 / TimeUtils.ticks_per_second()
+	if _swap_cooldown > 0.0:
+		return false
+	_swap_cooldown = 1.0
+	return true
+
+
 ## Whether two command messages came from the SAME player order — the only condition
 ## under which their units may trade destinations. Identity of the order's token, not
 ## equality of anything in it: two separate orders that happen to look alike are still
@@ -287,15 +297,20 @@ static func is_same_order(mine: CommandMessage, other: CommandMessage) -> bool:
 	return is_same(mine.origin, other.origin)
 
 
-func _resolve_destination_swap(a_commandable: Actor) -> void:
+## The trades with siblings in this exact multi-unit move order (same CommandMessage.origin
+## — see RTSController.assign_command_to_units) that would shorten both units' remaining
+## paths, as planned against the world now: [sibling, its command, my destination before,
+## its destination before]. This corrects crossing paths that develop after the angular-sort
+## assignment at issue time — e.g. once RVO avoidance nudges a unit off its straight-line
+## course. Reads only, so the decide phase may run it.
+func _plan_destination_swaps(a_commandable: Actor) -> Array:
 	if message.origin == null or message.target != null:
-		return
+		return []
 	if a_commandable.movement == null or a_commandable.movement.is_navigation_finished():
-		return
+		return []
 	if a_commandable.commander == null:
-		return
-
-	var my_dest: Vector3 = message.position
+		return []
+	var siblings: Array = []
 	for other in a_commandable.commander.get_children():
 		if not (other is Actor) or other == a_commandable:
 			continue
@@ -307,19 +322,67 @@ func _resolve_destination_swap(a_commandable: Actor) -> void:
 			continue
 		if other_unit.movement == null or other_unit.movement.is_navigation_finished():
 			continue
+		siblings.append([other_unit, other_cmd])
+	var trades: Array = []
+	var positions: Array[Vector3] = []
+	var destinations: Array[Vector3] = []
+	for sibling: Array in siblings:
+		positions.append((sibling[0] as Actor).global_position)
+		destinations.append((sibling[1] as MoveCommand).message.position)
+	var here: Vector3 = a_commandable.global_position
+	for trade: Array in swap_trades(here, message.position, positions, destinations):
+		var sibling: Array = siblings[int(trade[0])]
+		trades.append([sibling[0], sibling[1], trade[1], trade[2]])
+	return trades
 
-		var other_dest: Vector3 = other_cmd.message.position
-		var my_dist: float = a_commandable.global_position.distance_to(my_dest)
-		var other_dist: float = other_unit.global_position.distance_to(other_dest)
-		var swap_my_dist: float = a_commandable.global_position.distance_to(other_dest)
-		var swap_other_dist: float = other_unit.global_position.distance_to(my_dest)
 
-		if swap_my_dist + swap_other_dist < my_dist + other_dist:
-			message.world_position = other_dest
-			other_cmd.message.world_position = my_dest
-			a_commandable.locomotion.set_goal(message.position)
-			other_unit.locomotion.set_goal(other_cmd.message.position)
-			my_dest = other_cmd.message.position
+## The trades a unit at `position` heading for `destination` makes, in order, with siblings at
+## `positions` heading for `destinations`: each [sibling index, my destination before, its
+## destination before]. A trade happens when swapping shortens the two straight-line distances
+## combined; after one, the unit heads for what it traded for. Pure, so a test can drive it.
+static func swap_trades(
+	position: Vector3,
+	destination: Vector3,
+	positions: Array[Vector3],
+	destinations: Array[Vector3]
+) -> Array:
+	var trades: Array = []
+	var mine: Vector3 = destination
+	for i: int in positions.size():
+		var theirs: Vector3 = destinations[i]
+		var now: float = position.distance_to(mine) + positions[i].distance_to(theirs)
+		var swapped: float = position.distance_to(theirs) + positions[i].distance_to(mine)
+		if swapped < now:
+			trades.append([i, mine, theirs])
+			mine = theirs
+	return trades
+
+
+## Make the trades `a_trades` planned, each only if it still holds: the sibling still runs the
+## same command, both are still travelling, and both destinations are still the ones planned
+## from — an earlier piece's act this tick may have changed any of them (two siblings each
+## planning to trade with the other: the first trade lands, the second no longer holds).
+func _apply_destination_swaps(a_commandable: Actor, a_trades: Array) -> void:
+	for trade: Array in a_trades:
+		var other_unit: Variant = trade[0]
+		if not is_instance_valid(other_unit) or not (other_unit as Actor).is_inside_tree():
+			continue
+		var unit := other_unit as Actor
+		var other_cmd: MoveCommand = trade[1]
+		var mine: Vector3 = trade[2]
+		var theirs: Vector3 = trade[3]
+		if not is_same(unit.current_command(), other_cmd):
+			continue
+		if message.position != mine or other_cmd.message.position != theirs:
+			continue
+		if a_commandable.movement == null or a_commandable.movement.is_navigation_finished():
+			continue
+		if unit.movement == null or unit.movement.is_navigation_finished():
+			continue
+		message.world_position = theirs
+		other_cmd.message.world_position = mine
+		a_commandable.locomotion.set_goal(message.position)
+		unit.locomotion.set_goal(other_cmd.message.position)
 
 
 ## An independent copy of this command, for handing to a DIFFERENT actor than the one it was

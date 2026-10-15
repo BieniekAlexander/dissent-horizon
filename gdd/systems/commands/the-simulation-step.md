@@ -59,11 +59,11 @@ writes nothing but itself; the act phase checks it still holds before applying i
 - **A command decides through `MoveCommand.decide`**, run for the command each piece holds when
   the tick starts; one that becomes current mid-tick has not decided and works its tick out
   live. `AttackMove`'s scan for something to fight is the first: decided, then swapped to in
-  `get_updated_state` only if `Actor.decided_attack_holds`.
+  `get_updated_state` only if `Actor.decided_attack_holds`. The base `MoveCommand` destination
+  swap is planned in decide (`swap_trades`, pure) and each trade applied only if both units
+  still hold the order and the destinations it was planned from.
 - PLANNED — the commands whose "read" methods write today, and so must be split into a decided
   half and an applied half before more of their tick can move (audited 2026-10-15):
-  - the base `MoveCommand` destination swap, inherited by twelve commands: it writes a sibling's
-    destination and both units' locomotion goals;
   - `Attack` and `FocusFire`: `get_updated_state` aims, stops and turns the unit; `can_act`
     holds the weapon's lock;
   - `Deploy` and `Undeploy`: `can_act` advances the deploy state machine;
@@ -134,7 +134,7 @@ the serial order, and deaths in their own step.
   keeps its node for every read and gains the serial a snapshot writes, so no command's code
   changes and none is touched twice.
 - **Replays recorded before a change to how a match plays are refused by build number**
-  (`application/config/version`; 0.2.0 with the stepper, 0.3.0 with the decide pass, 0.4.0 with AttackMove deciding), bumped by hand at each such
+  (`application/config/version`; 0.2.0 with the stepper, 0.3.0 with the decide pass, 0.4.0 with AttackMove deciding, 0.5.0 with the destination swap), bumped by hand at each such
   change. TODO: the version stamp hashes no simulation
   script, so any change to how a match plays relies on someone bumping the number. Adding the
   scripts to `ReplayFile.VERSIONED_PATHS` would refuse replays on every refactor, which is its own

@@ -3,7 +3,7 @@ extends GutTest
 ## MoveCommand.is_same_order — the gate on destination swapping.
 ##
 ## Units in a multi-unit move periodically trade destinations when that shortens both
-## their paths (MoveCommand._resolve_destination_swap). That is only ever legitimate
+## their paths (MoveCommand.swap_trades). That is only ever legitimate
 ## between units the player commanded TOGETHER.
 ##
 ## Regression guard: the gate compares `CommandMessage.origin` by identity, and
@@ -62,3 +62,45 @@ func test_deep_copy_keeps_units_in_their_order() -> void:
 	var order: CommandMessage = _order()
 	var copy: CommandMessage = CommandMessage.deep_copy(_snapshot(order))
 	assert_true(MoveCommand.is_same_order(copy, _snapshot(order)))
+
+
+# --- The trades themselves (MoveCommand.swap_trades) ---------------------------------------
+
+
+func test_crossed_paths_trade() -> void:
+	# I stand left heading right; my sibling stands right heading left.
+	var trades: Array = MoveCommand.swap_trades(
+		Vector3(0, 0, 0),
+		Vector3(10, 0, 0),
+		[Vector3(10, 0, 1)] as Array[Vector3],
+		[Vector3(0, 0, 1)] as Array[Vector3]
+	)
+	assert_eq(trades.size(), 1)
+	assert_eq(trades[0], [0, Vector3(10, 0, 0), Vector3(0, 0, 1)])
+
+
+func test_parallel_paths_do_not_trade() -> void:
+	var trades: Array = MoveCommand.swap_trades(
+		Vector3(0, 0, 0),
+		Vector3(10, 0, 0),
+		[Vector3(0, 0, 1)] as Array[Vector3],
+		[Vector3(10, 0, 1)] as Array[Vector3]
+	)
+	assert_eq(trades, [])
+
+
+## After one trade the unit heads for what it traded for, and later comparisons use that — so
+## no destination is ever handed to two units.
+func test_a_second_trade_starts_from_what_the_first_gave() -> void:
+	# The first sibling crosses me; the second stands on what I win from the first, heading
+	# behind me — so I trade the first's destination on to the second.
+	var trades: Array = MoveCommand.swap_trades(
+		Vector3(0, 0, 0),
+		Vector3(10, 0, 0),
+		[Vector3(10, 0, 1), Vector3(0, 0, 1)] as Array[Vector3],
+		[Vector3(0, 0, 1), Vector3(0, 0, -3)] as Array[Vector3]
+	)
+	assert_eq(trades.size(), 2)
+	assert_eq(trades[1], [1, Vector3(0, 0, 1), Vector3(0, 0, -3)], "it gives away its prize")
+	var given: Array = trades.map(func(t: Array) -> Vector3: return t[1])
+	assert_eq(given.count(Vector3(10, 0, 0)), 1, "no destination goes to two units")
