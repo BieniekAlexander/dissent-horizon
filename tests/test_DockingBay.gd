@@ -781,7 +781,8 @@ func test_the_strip_is_released_once_the_departing_aircraft_is_airborne() -> voi
 ## A live Rearm with its pad already claimed, as the first tick of one would leave it.
 func _rearm_on(a_actor: Actor, a_field: Actor) -> Rearm:
 	var order := Rearm.new(CommandMessage.new(null, a_field, null, a_field.global_position))
-	order.get_updated_state(a_actor)  # claims a pad
+	order.get_updated_state(a_actor)
+	order.apply_state(a_actor)  # claims a pad
 	return order
 
 
@@ -886,6 +887,7 @@ func test_the_last_leg_of_a_departure_opens_up_to_flight_speed() -> void:
 func _approaching(a_field: Actor, a_plane: Actor) -> Rearm:
 	var order := Rearm.new(CommandMessage.new(null, a_field, null, a_field.global_position))
 	order.get_updated_state(a_plane)
+	order.apply_state(a_plane)
 	return order
 
 

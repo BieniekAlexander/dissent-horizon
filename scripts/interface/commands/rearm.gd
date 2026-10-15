@@ -165,17 +165,18 @@ func ends_on_arrival() -> bool:
 	return false
 
 
-## Reserve a pad, and abandon the order if the airfield is destroyed under us.
-##
-## The reservation is retried every tick until it succeeds, which is how a full bay
-## becomes a queue: the aircraft simply keeps flying at the airfield (message.position)
-## until a pad frees up, then latches onto it.
-func get_updated_state(a_actor: Actor) -> Variant:
+## Abandon the order if the airfield is destroyed under us (on_released lets the pad go).
+func get_updated_state(_a_actor: Actor) -> Variant:
+	return self if _bay_of(message.target) != null else null
+
+
+## Reserve a pad. The reservation is retried every tick until it succeeds, which is how a
+## full bay becomes a queue: the aircraft simply keeps flying at the airfield
+## (message.position) until a pad frees up, then latches onto it.
+func apply_state(a_actor: Actor) -> void:
 	var bay: DockingBay = _bay_of(message.target)
 	if bay == null:
-		_release_pad()
-		_clear_collision_exception()
-		return null
+		return
 	if _pad == null:
 		_pad = bay.reserve(a_actor)
 		if _pad != null:
@@ -184,7 +185,6 @@ func get_updated_state(a_actor: Actor) -> Variant:
 		# The pad was taken from under us (the claimant died and something else moved in, or
 		# the airfield was rebuilt). Drop it and re-reserve on the next tick.
 		_pad = null
-	return self
 
 
 ## Everything past the approach is "acting": the descent, the wait on the deck, and the
@@ -502,6 +502,10 @@ func _clear_collision_exception() -> void:
 ## trap for the group-move speed cap, which is what on_released was added for; this is the
 ## second thing to fall into it.
 func on_released(a_actor: Actor) -> void:
+	# The airfield is gone: nothing to park on, so the pad is let go before anything below
+	# could hand it to the docked unit.
+	if _bay_of(message.target) == null:
+		_release_pad()
 	_clear_collision_exception()
 	# The pad is NOT released on a completed rearm: the aircraft is still standing on it, and
 	# handing the space to somebody else would land a second aircraft on top of it. It goes

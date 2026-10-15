@@ -37,18 +37,25 @@ func should_move(_a_actor: Actor) -> bool:
 	return false
 
 
-## Evacuate fires once the host is on the ground.
-## For HOVERING hosts, land() is called each tick (idempotent) until
-## GROUNDED_TEMP; evacuate() already calls take_off() at completion.
-func can_act(a_actor: Actor) -> bool:
-	if (
+## Whether a HOVERING host was still in the air when this tick's apply_state looked.
+var _is_landing: bool = false
+
+
+## For HOVERING hosts, land() is called each tick (idempotent) until GROUNDED_TEMP;
+## evacuate() already calls take_off() at completion.
+func apply_state(a_actor: Actor) -> void:
+	_is_landing = (
 		a_actor.aerial != null
 		and a_actor.aerial.mode == Movement.Mode.HOVERING
 		and not a_actor.aerial.is_grounded_temp()
-	):
+	)
+	if _is_landing:
 		a_actor.aerial.land(Callable())
-		return false
-	return true
+
+
+## Evacuate fires once the host is on the ground.
+func can_act(_a_actor: Actor) -> bool:
+	return not _is_landing
 
 
 ## Restore every occupant an order may release to the scene tree and disperse them. A
