@@ -163,8 +163,9 @@ but buildings still hide".
 
 ## Beyond both: the simulation rate
 
-**TODO — Alex to decide, not proposed.** SC2 pays its per-tick costs 22.4 times a real
-second; this game pays them 30 times. Godot 4 has built-in physics interpolation, so a 20 Hz
+**REJECTED for now (Alex, 2026-10-15)** — the simulation stays at 30 Hz, as C&C Generals' does
+(`LOGICFRAMES_PER_SECOND = 30` in its released source). Kept because the lever is real. SC2 pays
+its per-tick costs 22.4 times a real second; this game pays them 30 times. Godot 4 has built-in physics interpolation, so a 20 Hz
 simulation with interpolated rendering would cut every per-tick cost by a third without
 touching any system. It is recorded here because it is the largest lever this research turned
 up, not because it is recommended now. It changes input latency, projectile tunnelling

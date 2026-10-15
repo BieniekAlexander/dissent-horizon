@@ -84,6 +84,10 @@ the serial order, and deaths in their own step.
   tick's positions and read-only thereafter. It grows from the existing spatial partition grid,
   and hurtbox-exact range checks are ported onto it. Neither queueing queries to the main thread
   (no parallelism left) nor Jolt's thread-safe queries (cross-platform determinism unmeasured).
+  Approved 2026-10-15 to go further: once every reader is on the index, the per-piece detection
+  areas (aggro, vision, detection ranges) leave the physics server, whose broadphase now carries
+  them every tick. This is what C&C Generals' PartitionManager is: a grid of map cells that
+  every range query reads.
 - **Path requests are intents**: decide asks, act calls the navigation server serially. Path
   queries are rare (under one per tick in the profile), so this costs nothing. Aircraft move in
   the act phase as well, so every piece's position changes at the same point in the tick.
@@ -96,7 +100,7 @@ the serial order, and deaths in their own step.
   rollback snapshot cannot hold a node reference, so doing it now avoids touching every command
   twice.
 - **Replays recorded before a change to how a match plays are refused by build number**
-  (`application/config/version`, set to 0.1.0 with the stepper), bumped by hand at each such
+  (`application/config/version`, 0.2.0 with the stepper), bumped by hand at each such
   change. TODO: the version stamp hashes no simulation
   script, so any change to how a match plays relies on someone bumping the number. Adding the
   scripts to `ReplayFile.VERSIONED_PATHS` would refuse replays on every refactor, which is its own
@@ -117,6 +121,43 @@ bit between two runs of the same build, and is measured by simulated minute on t
 3. **Worker threads for decide.** TODO: deferred by Alex (2026-10-15) until the first two stages
    are built and measured.
 
+## Sleepy updates
+
+PLANNED (approved by Alex 2026-10-15). C&C Generals runs no module it does not have to: every
+update returns how many frames it may sleep, and the game keeps the modules in a min-heap by
+wake frame, so a frame's cost is the modules due that frame, not every module in the world.
+Here, about half the pieces are structures that are idle most ticks, yet each runs its whole
+order tick every tick.
+
+**The rule: sleeping never changes the match.** A piece or component sleeps only through ticks
+whose outcome is already known — the same digests come out with sleeping on or off, and that
+equality is the gate. So:
+
+- **Physics and movement never sleep.** No staggering: a moving piece moves, steers and is
+  avoided every tick, and an order is acted on the tick it lands (Alex, 2026-10-15 — for
+  determinism and for units that respond at once).
+- **A countdown sleeps until it ends** — reloads, ability recharges, shelter production,
+  garrison sentences — by computing its wake tick exactly, rather than counting down each tick.
+- **An idle piece's order layer sleeps** only while nothing could give it work: no command, no
+  queue, and nothing it would acquire. Whatever can change that wakes it on the tick it happens
+  — an order, damage, a change of owner. TODO: noticing an enemy that walks into range without
+  polling needs the stage 2 grid to say who entered which cells; until then a piece with an
+  aggro range keeps its idle scan every tick, and only pieces with none (economy buildings,
+  walls) sleep.
+- The stepper keeps sleepers in a min-heap by wake tick, tie-broken by serial, so the order
+  pieces act in is still serial order.
+
+## Later
+
+PLANNED, approved by Alex 2026-10-15 to be revisited rather than built next:
+
+- **Leaner movement.** Ground units integrate their own position along the navmesh and
+  avoidance velocity, rather than resolving collisions with `move_and_slide` every tick — as
+  C&C Generals' hand-written locomotors do.
+- **Fewer nodes per piece.** About forty nodes each today (4,700 nodes and 19,000 objects at
+  minute four of a bot match); visuals and detection shapes can move to the rendering and
+  physics servers directly.
+
 ## Testing
 
 - The intent and conflict rules are a pure core, unit-tested against fixtures built with
@@ -125,12 +166,13 @@ bit between two runs of the same build, and is measured by simulated minute on t
   digests every tick (stage 3).
 - Netplay's forced-rollback harness, when rollback is built, is the check that the snapshot
   misses nothing.
+- Sleepy updates: the determinism probe with sleeping on and off must agree digest for digest.
 
 ## What it does not reach
 
 - **Tick cost for rollback.** Rollback wants a tick roughly ten times cheaper
   ([netplay](netplay.md) §Rollback, later). Threads alone will not get there on a machine with two
-  performance cores; staggering per-piece work and a slower simulation rate (T-062) are the other
-  levers.
+  performance cores; sleepy updates are the other lever. A slower simulation rate (T-062) is
+  REJECTED for now.
 - **The engine phase** — the physics step and RVO avoidance — stays serial; multi-threaded
   avoidance plays a different match per process ([terrain-and-navigation/navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md)).

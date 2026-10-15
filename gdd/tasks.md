@@ -228,7 +228,7 @@ Scoped 2026-10-15; every scoping decision is Alex's and is recorded in the note.
 → [commands/the-simulation-step](systems/commands/the-simulation-step.md)
 
 > [!check] Status — 2026-10-15
-> Stage 1 built: `SimulationStepper` steps every entity in spawn-serial order, emissions numbered too, deaths in their own step after everything has stepped; per-piece ticks are `simulation_step`. Build number set to 0.1.0, so older replays are refused. Gate: two 9000-tick determinism-probe runs agreed to the bit on Windows.
+> Stage 1 built: `SimulationStepper` steps every entity in spawn-serial order, emissions numbered too, deaths in their own step after everything has stepped; per-piece ticks are `simulation_step`. Build number 0.2.0, so older replays are refused. Approved 2026-10-15 and PLANNED in the note: sleepy updates (§Sleepy updates), stage 2's grid replacing the per-piece detection areas, and leaner pieces later (§Later). Gate: two 9000-tick determinism-probe runs agreed to the bit on Windows.
 > Tests: 4537 passing, plus `test_SimulationStepper` (9).
 > **Not done:** the gate on macOS/arm64; stage 2 (decide/act, the spatial index, references by serial) and stage 3 (threads) — not started.
 
@@ -347,9 +347,12 @@ The shared-vertex quad topology produces holes, miters and swallowed cells for t
 Close enough to crush a unit standing against it. Today a Stock Truck cannot reach a Shelter resident pressed to the wall.
 → [terrain-and-navigation/agent-size-classes](systems/terrain-and-navigation/agent-size-classes.md) §Reaching a building
 
-### T-062 · Should the simulation run slower than 30 Hz? #effort/high #needs-input
+### T-062 · Should the simulation run slower than 30 Hz? #effort/high #scoped #done
 With interpolated rendering; 20 Hz would cut every per-tick cost by a third. Not proposed; recorded as the largest performance lever.
 → [combat/scan-and-vision-cost](systems/combat/scan-and-vision-cost.md) §Beyond both
+
+> [!check] Status — 2026-10-15
+> Alex: rejected for now; the simulation stays at 30 Hz. Recorded as REJECTED in the note.
 
 ## UX
 
