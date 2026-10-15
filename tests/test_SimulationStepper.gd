@@ -165,3 +165,55 @@ func _scripts_under(a_root: String) -> Array[String]:
 		if entry.ends_with(".gd"):
 			out.append(a_root.path_join(entry))
 	return out
+
+
+# --- The decide phase --------------------------------------------------------------------
+
+const OWN: int = 1
+const FOE: int = 2
+
+
+func _commander(a_id: int) -> Commander:
+	var commander := Commander.new()
+	commander.id = a_id
+	add_child_autofree(commander)
+	return commander
+
+
+## A piece built from `a_options`, owned by `a_commander` at `a_at`, numbered `a_serial` and
+## handed to the stepper.
+func _enlisted_piece(
+	a_options: Dictionary, a_commander: Commander, a_at: Vector3, a_serial: int
+) -> Actor:
+	var piece := FakePieces.make(a_options) as Actor
+	add_child_autofree(piece)
+	piece.set_physics_process(false)
+	piece.ownership.commander = a_commander
+	piece.global_position = a_at
+	piece.spawn_serial = a_serial
+	_stepper.enlist(piece)
+	return piece
+
+
+func test_an_idle_piece_attacks_what_it_decided_on_the_same_tick() -> void:
+	Fog._fogs_by_commander.clear()
+	var enemy := _enlisted_piece(FakePieces.BUILDER, _commander(FOE), Vector3(3, 0, 0), 1)
+	var shooter := _enlisted_piece(FakePieces.SOLDIER, _commander(OWN), Vector3.ZERO, 2)
+	await wait_physics_frames(2)
+	_stepper.step(DELTA)
+	assert_true(shooter.current_command() is Attack, "it picked a target and started on it")
+	assert_same(shooter.current_command().message.target, enemy)
+
+
+## Every piece decides before any acts, so a target an earlier piece kills in the act phase
+## was still standing when the shooter decided — and the act phase drops the decision.
+func test_a_decided_target_killed_before_the_act_is_dropped() -> void:
+	Fog._fogs_by_commander.clear()
+	var killer := _enlisted(1)
+	var enemy := _enlisted_piece(FakePieces.BUILDER, _commander(FOE), Vector3(3, 0, 0), 2)
+	var shooter := _enlisted_piece(FakePieces.SOLDIER, _commander(OWN), Vector3.ZERO, 3)
+	_recorder(killer).action = func() -> void: enemy.defense.hp = 0.0
+	await wait_physics_frames(2)
+	_stepper.step(DELTA)
+	assert_null(shooter.current_command(), "no attack on a target already dead")
+	assert_true(enemy.is_queued_for_deletion())

@@ -1,8 +1,9 @@
 class_name SimulationStepper
 extends Node
 
-## THE ONE LOOP THAT STEPS EVERY ENTITY IN A SCENARIO, in spawn-serial order, then resolves the
-## tick's deaths. gdd/systems/commands/the-simulation-step.md.
+## THE ONE LOOP THAT STEPS EVERY ENTITY IN A SCENARIO, in spawn-serial order: every entity
+## decides, then every entity acts, then the tick's deaths resolve.
+## gdd/systems/commands/the-simulation-step.md.
 ##
 ## A node that does simulation work each tick defines `simulation_step(a_delta)` instead of
 ## `_physics_process`; its entity steps it (Entity.step_simulation), and this steps the entities.
@@ -53,8 +54,9 @@ func _physics_process(a_delta: float) -> void:
 	step(a_delta)
 
 
-## One tick: every entity in play steps in serial order, then every death the tick dealt
-## resolves, in the same order. Public so a test can drive it.
+## One tick, in three passes over the entities in play, each in serial order: every entity
+## decides, then every entity acts, then every death the tick dealt resolves. Public so a test
+## can drive it.
 func step(a_delta: float) -> void:
 	var stepping: Array = []
 	var kept: Array = []
@@ -67,6 +69,9 @@ func step(a_delta: float) -> void:
 			entity.prepare_step()
 			stepping.append(entity)
 	_entities = kept
+	for item: Variant in stepping:
+		if is_instance_valid(item) and (item as Entity).is_inside_tree():
+			(item as Entity).decide_simulation()
 	for item: Variant in stepping:
 		if is_instance_valid(item) and (item as Entity).is_inside_tree():
 			(item as Entity).step_simulation(a_delta)

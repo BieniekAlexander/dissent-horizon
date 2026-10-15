@@ -228,8 +228,8 @@ Scoped 2026-10-15; every scoping decision is Alex's and is recorded in the note.
 → [commands/the-simulation-step](systems/commands/the-simulation-step.md)
 
 > [!check] Status — 2026-10-15
-> Stage 1 built: `SimulationStepper` steps every entity in spawn-serial order, emissions numbered too, deaths in their own step after everything has stepped; per-piece ticks are `simulation_step`. Build number 0.2.0, so older replays are refused. Approved 2026-10-15 and PLANNED in the note: sleepy updates (§Sleepy updates), stage 2's grid replacing the per-piece detection areas, and leaner pieces later (§Later). Gate: two 9000-tick determinism-probe runs agreed to the bit on Windows.
-> Tests: 4537 passing, plus `test_SimulationStepper` (9).
+> Stage 1 built: `SimulationStepper` steps every entity in spawn-serial order, emissions numbered too, deaths in their own step after everything has stepped; per-piece ticks are `simulation_step`. Stage 2 begun: a decide pass before the act pass, with idle target pickup decided in it. Build number 0.3.0, so older replays are refused. PLANNED in the note, in the order Alex chose for the rework (§Stages): the rest of the hot reads into decide, sleepy updates, references by serial with the rollback snapshot, the spatial index, then threads; leaner pieces later (§Later). Gate: two 9000-tick determinism-probe runs agreed to the bit on Windows.
+> Tests: 4548 passing. Gate: two 9000-tick probe runs agree to the bit after each step.
 > **Not done:** the gate on macOS/arm64; stage 2 (decide/act, the spatial index, references by serial) and stage 3 (threads) — not started.
 
 ### T-109 · A versioned replay that every machine plays back in the suite #effort/medium #unscoped

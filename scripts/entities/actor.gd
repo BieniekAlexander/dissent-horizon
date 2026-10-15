@@ -1284,6 +1284,36 @@ func _update_state() -> void:
 		stealth.tick()
 
 
+## The attack this piece decided to start this tick, idle, on a hostile in its aggro range —
+## or null. Decided against the world as the last tick left it (simulation_decide) and taken
+## by Orders.tick in the act phase, which checks it still holds. Never outlives its tick.
+var _decided_aggro: MoveCommand = null
+
+
+## The decide phase of this actor's tick: what an idle piece would attack. Reads only.
+func simulation_decide() -> void:
+	_decided_aggro = null
+	if is_planned or orders == null or (defense != null and defense.hp <= 0):
+		return
+	if is_built and command_receiver.is_idle() and can_use_weapons():
+		_decided_aggro = get_aggro_near_position()
+
+
+## The attack decided this tick, if its target is still one to start on now; once only.
+func take_decided_aggro() -> MoveCommand:
+	var decided: MoveCommand = _decided_aggro
+	_decided_aggro = null
+	if decided == null:
+		return null
+	var target: Variant = decided.message.target
+	if not is_instance_valid(target) or not (target as Entity).is_inside_tree():
+		return null
+	var entity := target as Entity
+	if entity.defense == null or entity.defense.hp <= 0 or not is_enemy_of(entity):
+		return null
+	return decided
+
+
 ## One tick of this actor (SimulationStepper). A PLANNED structure runs none of it: nothing to
 ## produce (the queue holds its orders until it is built), nothing to shoot. A piece this tick
 ## has already killed does not act; it dies in the stepper's death step (resolve_death).

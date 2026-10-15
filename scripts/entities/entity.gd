@@ -874,6 +874,8 @@ func _take_spawn_serial() -> void:
 ## — rebuilding it is a subtree walk per entity per tick — and rebuilt when its subtree changes.
 ## UNTYPED: a node can be freed outright mid-tick, and a freed object fails a typed read.
 var _step_list: Array = []
+## The same walk's nodes that define `simulation_decide`: the decide phase's share.
+var _decide_list: Array = []
 var _is_step_list_stale: bool = true
 
 
@@ -895,6 +897,7 @@ func prepare_step() -> void:
 	if not _is_step_list_stale:
 		return
 	_step_list.clear()
+	_decide_list.clear()
 	_collect_stepped(self)
 	_is_step_list_stale = false
 
@@ -902,9 +905,23 @@ func prepare_step() -> void:
 func _collect_stepped(a_node: Node) -> void:
 	if a_node.has_method(&"simulation_step"):
 		_step_list.append(a_node)
+	if a_node.has_method(&"simulation_decide"):
+		_decide_list.append(a_node)
 	for child: Node in a_node.get_children():
 		if not child is Entity:
 			_collect_stepped(child)
+
+
+## The decide phase of this entity's tick: every node under it that decides, in tree order,
+## reading the world as the last tick left it and writing nothing but what it decided. Every
+## entity decides before any acts. gdd/systems/commands/the-simulation-step.md.
+func decide_simulation() -> void:
+	for item: Variant in _decide_list:
+		if not is_instance_valid(item):
+			continue
+		var node: Node = item
+		if node.is_inside_tree() and node.can_process():
+			node.call(&"simulation_decide")
 
 
 ## One tick of everything this entity does, in tree order — the order the engine processed the
@@ -932,6 +949,7 @@ func _physics_process(a_delta: float) -> void:
 		return
 	invalidate_step_list()
 	prepare_step()
+	decide_simulation()
 	step_simulation(a_delta)
 	resolve_death()
 

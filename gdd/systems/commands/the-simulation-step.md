@@ -8,7 +8,8 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
 Scoped 2026-10-15 ([`gdd/tasks.md`](../../tasks.md) T-110), decisions Alex's. **Built: stage 1,
-the serial stepper (2026-10-15). PLANNED: stages 2 and 3, the decide/act split and threads.**
+the serial stepper, and the decide pass with its first tenant (2026-10-15). PLANNED: the rest of
+stage 2, then sleepy updates, then stage 3 (§Stages).**
 
 One tick of the simulation becomes a single step that the scenario drives, in two phases:
 **decide**, where every piece reads the world as the previous tick left it and writes down what it
@@ -43,6 +44,22 @@ tool — an entity steps itself.
   still happens at once through `Entity.kill`.
 - **A node switched off with `PROCESS_MODE_DISABLED` is not stepped**, as the engine would not
   process it — how a test freezes one component.
+
+## The decide pass
+
+Built. Each tick runs three passes over the entities in play, each in serial order: every entity
+**decides** (the nodes under it that define `simulation_decide`), then every entity **acts**
+(`simulation_step`), then deaths resolve. A decision reads the world as the last tick left it and
+writes nothing but itself; the act phase checks it still holds before applying it.
+
+- **An idle piece's target pickup is decided** (`Actor.simulation_decide`): the aggro scan runs
+  in the decide pass, and `Orders.tick` starts the attack in the act pass only if the target is
+  still in play, alive and hostile — `Actor.take_decided_aggro`. A decision never outlives its
+  tick.
+- INVARIANT: a `simulation_decide` writes only its own piece's decision fields. Nothing in the
+  language can stop it writing more, and a write there is seen by every piece deciding after it,
+  which is the same-tick order dependence the pass exists to remove — and, once decide runs on
+  threads, a data race.
 
 ## What the remaining stages replace
 
@@ -97,10 +114,11 @@ the serial order, and deaths in their own step.
   thread.
 - **References between pieces become spawn serials** — in intents and in every field that holds
   another piece: command messages, garrison lists, claims, payload sources, followed units. A
-  rollback snapshot cannot hold a node reference, so doing it now avoids touching every command
-  twice.
+  rollback snapshot cannot hold a node reference. Built with the snapshot (§Stages): a field
+  keeps its node for every read and gains the serial a snapshot writes, so no command's code
+  changes and none is touched twice.
 - **Replays recorded before a change to how a match plays are refused by build number**
-  (`application/config/version`, 0.2.0 with the stepper), bumped by hand at each such
+  (`application/config/version`; 0.2.0 with the stepper, 0.3.0 with the decide pass), bumped by hand at each such
   change. TODO: the version stamp hashes no simulation
   script, so any change to how a match plays relies on someone bumping the number. Adding the
   scripts to `ReplayFile.VERSIONED_PATHS` would refuse replays on every refactor, which is its own
@@ -116,14 +134,30 @@ bit between two runs of the same build, and is measured by simulated minute on t
    and every sampled float — on Windows/x86_64; the match differs from the tree-ordered one from
    tick 1, as expected. Wall time was unchanged within this laptop's run-to-run noise (213–293 s
    against 282 s), which stage 1 never aimed to move. TODO: the same check on macOS/arm64.
-2. **Decide and act, still serial.** The intent records, re-validation at apply, the spatial index,
-   path requests as intents, references by serial.
-3. **Worker threads for decide.** TODO: deferred by Alex (2026-10-15) until the first two stages
-   are built and measured.
+2. **Decide and act, still serial.** Built: the decide pass, and idle target pickup in it
+   (§The decide pass). PLANNED, in this order — each touches the code once, which Alex asked for
+   over short-term speed (2026-10-15):
+   1. The rest of the hot reads move into decide: a command's reactive swap
+      (`get_updated_state`), `can_act`'s range and line-of-fire checks, and path progress, each
+      applied in act with re-validation. Path requests become intents.
+   2. **Sleepy updates** (§Sleepy updates): once every change one piece makes to another is
+      applied in the act phase, "wake the piece it was applied to" lives there, not at every
+      mutation site.
+   3. **References by serial, with the rollback snapshot** — the state inventory, snapshot and
+      restore of netplay's §Rollback, later. Serials matter only to a snapshot, so they are
+      built with it.
+   4. **The spatial index**, replacing the physics broad phase for decide's reads, and with it
+      the per-piece detection areas. A serial decide pass reads the physics server safely — no
+      piece writes during it — so the index is needed first by threads.
+3. **Worker threads for decide**, on the spatial index. TODO: deferred by Alex (2026-10-15) until
+   the first two stages are built and measured.
 
 ## Sleepy updates
 
-PLANNED (approved by Alex 2026-10-15). C&C Generals runs no module it does not have to: every
+PLANNED (approved by Alex 2026-10-15), after the hot reads move into decide (§Stages). Measured
+2026-10-15: the pieces this would sleep — about half of them by minute four, idle unarmed
+buildings — cost 1.3–1.5 ms of a ~20 ms tick, against ~7 ms for the ~30 moving units; Alex chose
+the order that suits the rework over that short-term gain. C&C Generals runs no module it does not have to: every
 update returns how many frames it may sleep, and the game keeps the modules in a min-heap by
 wake frame, so a frame's cost is the modules due that frame, not every module in the world.
 Here, about half the pieces are structures that are idle most ticks, yet each runs its whole
