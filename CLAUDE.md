@@ -568,6 +568,10 @@ applied by `OrderDispatcher` at the start of the next tick** — never by UI cod
 directly, or a replay of the match drifts. Pieces in an order are named by `Entity.spawn_serial`.
 → [`gdd/systems/commands/recording-and-replay.md`](gdd/systems/commands/recording-and-replay.md)
 
+The simulation step — PLANNED: one stepper in spawn-serial order, a decide phase threads can share,
+a serial act phase, and references between pieces held as serials for rollback.
+→ [`gdd/systems/commands/the-simulation-step.md`](gdd/systems/commands/the-simulation-step.md)
+
 Netplay — the same order stream exchanged between machines: lockstep now, built to carry forward to rollback.
 → [`gdd/systems/commands/netplay.md`](gdd/systems/commands/netplay.md)
 

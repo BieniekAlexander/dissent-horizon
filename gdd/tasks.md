@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-109**
+> Next id: **T-111**
 
 # Tasks
 
@@ -222,6 +222,10 @@ Decided (Alex, 2026-10-11): peer-to-peer deterministic lockstep over the existin
 > Tests: full suite green on this Mac, 4511 in 400 files — including `test_Lockstep`, `test_ENetTransport` (real sockets on localhost), `test_NetSession`, `test_NetMatch` (a match started through the barrier plays back exactly), `test_RemoteHumanSlot`, `test_TwoProcessNetplay`, `test_OrderFeedback`, `test_LobbyLink`, `test_NetworkedLobby`, `test_DesyncCheck`, `test_NetworkedHolds`, the free-for-all and viewer-independence cases in `test_Alliances`, a match held through repeated stalls that replays digest for digest (`test_ReplayRoundTrip`), `test_AvoidanceNotPaused`, and an engine-frame-counter scan in `test_SeededRandomness`.
 > **Not done:** a DROP's selection and a toggle's card refresh still fire from the apply (fine for lockstep, a TODO before rollback); a bot taking a forfeited slot (team games); a three-way network split can fence at different ticks. Joiners' round trips to each other are not measured for the input delay. Cross-platform determinism is measured on one match only (note §Decisions, platforms).
 > **2026-10-14, later:** a Mac and a Windows PC played a networked match over Wi-Fi in step (900 ticks). Cross-platform determinism: the platforms' maths libraries differ in the last bit, so simulation code now calls a native `DMath` (Alex's choice); with that, a piece's facing held as `Entity.yaw`, and digests rounded by arithmetic, a five-minute bot match agreed to the bit on both platforms for all 9000 ticks (authoring/native-code.md §Maths that rounds the same everywhere). The platform refusal was removed 2026-10-15 at Alex's request.
+
+### T-110 · The simulation step: decide in parallel, act in serial order #effort/high #scoped
+Scoped 2026-10-15; every scoping decision is Alex's and is recorded in the note. One stepper drives the tick in spawn-serial order: a decide phase that reads only last tick's state, then an act phase applying intents serially with re-validation. Built in stages — the serial stepper, then decide/act still serial, then worker threads (deferred until the first two are measured). Rollback groundwork first, tick cost second. T-109 is reserved for the replay-fixture item stashed on 2026-10-15.
+→ [commands/the-simulation-step](systems/commands/the-simulation-step.md)
 
 ### T-038 · Move-line drag: the follow-ups #effort/medium #unscoped #shelved
 Built for the unarmed right click only. Left: the minimap, armed orders, navmesh snapping of slots, recording issued destinations in the replay (T-037).

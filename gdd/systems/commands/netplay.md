@@ -249,9 +249,9 @@ TODO, all of it: none of this is planned yet, and lockstep does not wait on it.
 - **Once per frame, not once per re-simulation**: sounds, alerts, effects and the order-feedback
   hooks are matched against what an earlier run of the same tick already did. Viewer-local state
   (camera, selection, the displayed fog) stays out of snapshots.
-- **Update order by serial.** `_physics_process` runs in tree order plus priority, which is the
-  same on every machine only while nodes are added in the same order. A single loop stepping
-  actors sorted by `spawn_serial` would guarantee it; consider it with the snapshot work.
+- **Update order by serial.** PLANNED: one stepper in spawn-serial order, with a decide phase and
+  an act phase, and references between pieces held as serials —
+  [the-simulation-step](the-simulation-step.md).
 - **Bot state** goes into snapshots, since every peer's bots re-run on rollback.
 - **The match end and a departure are fences**: applied only on a confirmed tick, and never
   rolled back across.

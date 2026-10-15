@@ -5,6 +5,9 @@ type: system-note
 
 # The command tick
 
+PLANNED: the tick is to become a decide phase and an act phase driven by one stepper in
+spawn-serial order — [the-simulation-step](the-simulation-step.md).
+
 `CommandReceiver._process_commands` is one tick of the active order. The five-step lifecycle
 itself is in `CLAUDE.md` §Command system, which is load-bearing enough to stay there; this
 note is what that summary leaves out.

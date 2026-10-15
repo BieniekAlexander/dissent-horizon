@@ -115,6 +115,7 @@ The last two spikes were the economy's build-spot search (115 ms) and the scout'
   an attack-move the military meant to override.
 - **REJECTED — a worker thread for the think.** 0 A.D. tried it and backed out (the state
   copy costs more than it saves). Here the managers read the live scene tree, and Godot's
-  scene tree is not thread-safe.
+  scene tree is not thread-safe. The planned decide/act split keeps the think serial
+  ([commands/the-simulation-step](../commands/the-simulation-step.md)).
 - **REJECTED (2026-09-25, for now) — a simulation-harness gate** that fails a run whose think
   time exceeds a budget.

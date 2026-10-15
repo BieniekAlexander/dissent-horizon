@@ -220,7 +220,9 @@ orders a player can give.
 
 ## Deferred goals
 
-- **Seeking** by re-running from the start at full speed, and later by **periodic snapshots**.
+- **Seeking** by re-running from the start at full speed, and later by **periodic snapshots**
+  (references between pieces held as serials is PLANNED groundwork —
+  [the-simulation-step](the-simulation-step.md)).
   Snapshots need the simulation state to be saved and restored whole — a save system the game
   does not have.
 - **Networking** sends this order stream between machines: lockstep first, rollback later, which

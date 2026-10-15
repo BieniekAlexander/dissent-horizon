@@ -19,6 +19,7 @@ the individual command families.
 | [deploying.md](deploying.md) | Deploy and Undeploy: the planted stance, its transitions, and which orders a planting unit takes |
 | [saying-it-plainly.md](saying-it-plainly.md) | Go and Fire — the plain move and the shot at a place the click ladder could not express |
 | [the-click-ladder.md](the-click-ladder.md) | how a click becomes a command: the hotkey table, the default ladder, and why it is in that order |
+| [the-simulation-step.md](the-simulation-step.md) | PLANNED: one stepper in spawn-serial order, a decide phase threads can share and a serial act phase; rollback groundwork |
 | [the-command-tick.md](the-command-tick.md) | one tick of the active order: what suspends processing, why a fixed wing never stops, stagger |
 | [unit-tasking.md](unit-tasking.md) | a standing order that pushes errands onto its unit's queue and never releases it; `TaskShelter` is the first consumer |
 
