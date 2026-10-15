@@ -1034,7 +1034,10 @@ func _confirm_create_terrain_mesh() -> void:
 		]
 	)
 	dialog.ok_button_text = "Flatten"
-	EditorInterface.get_base_control().add_child(dialog)
+	# Looked up by name: the EditorInterface identifier does not exist in an exported game, and
+	# naming it fails this whole script — and every script that uses Map — at compile time.
+	var editor: Object = Engine.get_singleton(&"EditorInterface")
+	(editor.call(&"get_base_control") as Control).add_child(dialog)
 	dialog.confirmed.connect(_create_terrain_mesh)
 	# The dialog is a throwaway: it is built per click so it can never hold a stale closure
 	# over a Map that has since been freed.

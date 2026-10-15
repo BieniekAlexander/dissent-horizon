@@ -31,7 +31,8 @@ const START_POINT_SCENE: String = "res://scenes/scenarios/start_point.tscn"
 ## How a placed piece is instanced. With edit state, packing the map stores only what the
 ## placement CHANGED; without it, every group the piece's own scene declares is copied onto the
 ## instance — derived groups included, which then outlive any change to the piece
-## (tests/test_DerivedGroupsStayOnPieces).
+## (tests/test_DerivedGroupsStayOnPieces). Only an editor build has edit state: an exported game
+## refuses it outright, and never packs a map, so it instances plainly (`_placed_state`).
 const PLACED: PackedScene.GenEditState = PackedScene.GEN_EDIT_STATE_INSTANCE
 ## A start column's colour: a random hue, vivid enough to find at a glance.
 const START_COLOR_SATURATION: float = 0.8
@@ -109,7 +110,7 @@ func build_map(a_map: GeneratedMap, a_terrain_path: String) -> Map:
 	rng.seed = a_map.generation_seed
 	var grid_half := Vector2(terrain.grid_width(), terrain.grid_depth()) * 0.5
 	for i: int in a_map.starts.size():
-		var marker: Node3D = (load(START_POINT_SCENE) as PackedScene).instantiate(PLACED)
+		var marker: Node3D = (load(START_POINT_SCENE) as PackedScene).instantiate(_placed_state())
 		marker.name = "StartPoint%d" % (i + 1)
 		var start: Vector2 = a_map.starts[i].position
 		marker.position = _world(start, grid_half, _height_under(terrain, start))
@@ -123,7 +124,7 @@ func build_map(a_map: GeneratedMap, a_terrain_path: String) -> Map:
 			continue
 		for placement: Dictionary in feature.placements:
 			var piece: MapPiece = placement.piece
-			var entity: Node3D = (_scenes[piece.id] as PackedScene).instantiate(PLACED)
+			var entity: Node3D = (_scenes[piece.id] as PackedScene).instantiate(_placed_state())
 			counts[piece.id] = counts.get(piece.id, 0) + 1
 			entity.name = "%s%d" % [String(piece.id), counts[piece.id]]
 			var rect: Rect2i = MapFeature.placement_rect(placement)
@@ -438,4 +439,12 @@ static func report(map: GeneratedMap, title: String) -> PackedStringArray:
 			)
 		)
 	return lines
+
+
 #endregion
+
+
+## PLACED where the engine has edit state (an editor build, which is what packs maps), and a
+## plain instance in an exported game, which would refuse PLACED and never packs.
+static func _placed_state() -> PackedScene.GenEditState:
+	return PLACED if OS.has_feature("editor") else PackedScene.GEN_EDIT_STATE_DISABLED
