@@ -52,6 +52,15 @@ normals pointed down. Maps still carry no lighting by design: lighting belongs t
 
 ## Options not taken yet
 
+- TODO — **what the sun's shadows are worth**, Alex's call (raised 2026-10-15). Measured on an
+  i5-1245U's Iris Xe, skirmish.tscn at its opening camera, 1600×900, Forward+, three interleaved
+  runs each: the shipped rig (two shadow splits) draws a frame in 18.9 ms of GPU time and
+  936k primitives; one split (`SHADOW_ORTHOGONAL`) in 17.7 ms and 683k; no shadows in 15.6 ms
+  and 339k. The shadow pass is two thirds of the primitives and about 3.3 ms of the frame.
+  Shortening `directional_shadow_max_distance` to 60 changed nothing at this camera height. The
+  options: keep both splits; one split; blob shadows under units (below) with no sun shadows.
+  The Mobile renderer was no faster here once the terrain stopped drawing twice.
+
 - TODO: **blob shadows** under units — a decal or soft disc instead of real shadows, the classic
   RTS fallback if a large army's shadow pass costs too much. Not needed until measured.
 - TODO: **a rim or back light** for silhouette readability against dark ground — SC2's third

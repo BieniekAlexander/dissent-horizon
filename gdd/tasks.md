@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-111**
+> Next id: **T-112**
 
 # Tasks
 
@@ -238,6 +238,10 @@ Unscoped:
 - **The version stamp refuses it.** `ReplayFile.current_version()` hashes every piece scene, the generated data and `SimulationDigest`, so a checked-in fixture is refused after any edit to those — weekly at least. It needs either a regeneration step (a tool that re-records it, run with the spec importer, with the re-recording reviewed for drift first) or a playback path for this test that skips the version check, which loses the guard that a digest change is not drift.
 - **Content, not mechanics.** A recording of a shipped scenario drifts when a stat changes (CLAUDE.md §A unit test does not assert facts about authored content); a test scenario under `scenes/scenarios/test/` with few pieces keeps it small and stable, but still plays shipped pieces.
 - **Which platform recorded it** goes in the fixture's name or header, so a failure says which pair of platforms disagree.
+
+### T-111 · An exported build and the editor disagree #effort/medium #unscoped
+Found 2026-10-15 measuring a release export. Two disagreements: (1) `ReplayFile.current_version` hashes the raw bytes of `VERSIONED_PATHS`, which an export converts, so an exported game's stamp never equals the editor's — each refuses the other's replays, and netplay refuses a mixed match; (2) on the authored `skirmish.tscn` a bot match in the release build parts from the editor's at tick 6872 (one unit fewer), though a lobby-generated map agrees to the bit for 9000 ticks. Each build is repeatable on its own. Fixed alongside: `Map` named `EditorInterface` (every script using `Map` failed to compile in an export) and `GeneratedMapWriter` instanced in edit state (the lobby crashed in an export).
+→ [commands/recording-and-replay](systems/commands/recording-and-replay.md), [commands/netplay](systems/commands/netplay.md)
 
 ### T-038 · Move-line drag: the follow-ups #effort/medium #unscoped #shelved
 Built for the unarmed right click only. Left: the minimap, armed orders, navmesh snapping of slots, recording issued destinations in the replay (T-037).

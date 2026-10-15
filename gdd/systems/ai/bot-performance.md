@@ -316,7 +316,13 @@ from here when a measurement says so.
 | Per-side spatial hash replacing Godot's shape queries | only if aggro grows costly again (0.27 ms/tick now) | [combat/scan-and-vision-cost](../combat/scan-and-vision-cost.md) §The aggro scan |
 | Incremental path search (Moving Target D* Lite) | only with our own A* | [navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md) |
 | A debug-build wall-clock tripwire for bot work-unit weights | catches drift, saves nothing | [think-scheduling](think-scheduling.md) |
-| Simulation below 30 Hz with interpolated rendering (deferred 1.41) | every per-tick cost by a third | [combat/scan-and-vision-cost](../combat/scan-and-vision-cost.md) §Beyond both |
+| Simulation below 30 Hz with interpolated rendering — REJECTED for now (Alex, 2026-10-15) | every per-tick cost by a third | [combat/scan-and-vision-cost](../combat/scan-and-vision-cost.md) §Beyond both |
+| Sleepy updates: idle pieces and countdowns skip ticks whose outcome is known | the idle half of the pieces' order ticks | [commands/the-simulation-step](../commands/the-simulation-step.md) §Sleepy updates |
+
+**Every figure in this note is an editor build.** Measured 2026-10-15 on an i5-1245U, the same
+9000-tick bot match exported as a release build ran the script phase about 1.4× faster (mean
+11–13 ms against 16.5–18 ms; ticks over budget 190–310 against 830–1,100) and played the same
+match to the bit on a generated map. A player's machine runs the release build.
 
 ## Method
 
