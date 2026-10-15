@@ -165,7 +165,8 @@ is for.
   change to what it covers refuses older recordings instead of reporting drift at their first
   digest.
 - **Across platforms is unmeasured.** TODO: measure one seed on two platforms before promising
-  a replay plays anywhere but where it was made.
+  a replay plays anywhere but where it was made. A checked-in replay the suite plays back on
+  every machine would make the measurement routine — see [`gdd/tasks.md`](../../tasks.md) T-109.
 - The source scan in `tests/test_SeededRandomness.gd` extends to wall-clock reads in simulation
   code, with an allow-list for the UI ones (double-click timing, pulsing highlights, the bot
   scheduler's diagnostic timing).

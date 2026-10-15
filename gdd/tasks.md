@@ -224,13 +224,20 @@ Decided (Alex, 2026-10-11): peer-to-peer deterministic lockstep over the existin
 > **2026-10-14, later:** a Mac and a Windows PC played a networked match over Wi-Fi in step (900 ticks). Cross-platform determinism: the platforms' maths libraries differ in the last bit, so simulation code now calls a native `DMath` (Alex's choice); with that, a piece's facing held as `Entity.yaw`, and digests rounded by arithmetic, a five-minute bot match agreed to the bit on both platforms for all 9000 ticks (authoring/native-code.md §Maths that rounds the same everywhere). The platform refusal was removed 2026-10-15 at Alex's request.
 
 ### T-110 · The simulation step: decide in parallel, act in serial order #effort/high #scoped #shelved
-Scoped 2026-10-15; every scoping decision is Alex's and is recorded in the note. One stepper drives the tick in spawn-serial order: a decide phase that reads only last tick's state, then an act phase applying intents serially with re-validation. Built in stages — the serial stepper, then decide/act still serial, then worker threads (deferred until the first two are measured). Rollback groundwork first, tick cost second. T-109 is reserved for the replay-fixture item stashed on 2026-10-15.
+Scoped 2026-10-15; every scoping decision is Alex's and is recorded in the note. One stepper drives the tick in spawn-serial order: a decide phase that reads only last tick's state, then an act phase applying intents serially with re-validation. Built in stages — the serial stepper, then decide/act still serial, then worker threads (deferred until the first two are measured). Rollback groundwork first, tick cost second.
 → [commands/the-simulation-step](systems/commands/the-simulation-step.md)
 
 > [!check] Status — 2026-10-15
 > Stage 1 built: `SimulationStepper` steps every entity in spawn-serial order, emissions numbered too, deaths in their own step after everything has stepped; per-piece ticks are `simulation_step`. Build number set to 0.1.0, so older replays are refused. Gate: two 9000-tick determinism-probe runs agreed to the bit on Windows.
 > Tests: 4537 passing, plus `test_SimulationStepper` (9).
 > **Not done:** the gate on macOS/arm64; stage 2 (decide/act, the spatial index, references by serial) and stage 3 (threads) — not started.
+
+### T-109 · A versioned replay that every machine plays back in the suite #effort/medium #unscoped
+Requested 2026-10-14. Check in one short replay (a few seconds of a seeded match, with an order or two) and a GUT test that plays it back and requires every recorded digest to match. Every machine that runs the suite — the Mac, Windows, a cloud container — then measures cross-platform determinism for free, and drift shows up as a red test naming the first tick that differs. It is the measurement both T-037 and T-107 leave open (recording-and-replay §Detecting drift; netplay §Decisions, platforms), and the evidence for lifting `NetSession`'s platform refusal.
+Unscoped:
+- **The version stamp refuses it.** `ReplayFile.current_version()` hashes every piece scene, the generated data and `SimulationDigest`, so a checked-in fixture is refused after any edit to those — weekly at least. It needs either a regeneration step (a tool that re-records it, run with the spec importer, with the re-recording reviewed for drift first) or a playback path for this test that skips the version check, which loses the guard that a digest change is not drift.
+- **Content, not mechanics.** A recording of a shipped scenario drifts when a stat changes (CLAUDE.md §A unit test does not assert facts about authored content); a test scenario under `scenes/scenarios/test/` with few pieces keeps it small and stable, but still plays shipped pieces.
+- **Which platform recorded it** goes in the fixture's name or header, so a failure says which pair of platforms disagree.
 
 ### T-038 · Move-line drag: the follow-ups #effort/medium #unscoped #shelved
 Built for the unarmed right click only. Left: the minimap, armed orders, navmesh snapping of slots, recording issued destinations in the replay (T-037).
