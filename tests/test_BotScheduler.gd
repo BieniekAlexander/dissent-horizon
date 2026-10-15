@@ -116,3 +116,23 @@ func test_two_bots_share_one_budget() -> void:
 	assert_eq(_ran, [&"first_bot"], "the second bot's job waits for budget rather than stacking")
 	_steps(1)
 	assert_true(_ran.has(&"second_bot"))
+
+
+## Every brain in a session shares one scheduler, and so one budget — even brains that register
+## in the same frame, before the first scheduler has been added to the tree.
+func test_brains_registering_in_one_frame_share_one_scheduler() -> void:
+	var host := Node.new()
+	add_child_autofree(host)
+	var first_brain := Node.new()
+	var second_brain := Node.new()
+	host.add_child(first_brain)
+	host.add_child(second_brain)
+	var first: BotScheduler = BotScheduler.find_or_create(first_brain, host)
+	var second: BotScheduler = BotScheduler.find_or_create(second_brain, host)
+	assert_same(second, first)
+	await wait_physics_frames(1)
+	var schedulers: Array = host.get_children().filter(
+		func(n: Node) -> bool: return n is BotScheduler
+	)
+	assert_eq(schedulers.size(), 1, "one scheduler in the tree")
+	assert_same(BotScheduler.find_or_create(first_brain, host), first, "and found once it is in")

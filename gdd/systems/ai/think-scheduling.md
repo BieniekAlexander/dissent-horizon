@@ -94,6 +94,11 @@ The last two spikes were the economy's build-spot search (115 ms) and the scout'
 
 ## Open
 
+- **Until 2026-10-15 every bot had its own scheduler.** `find_or_create` could not see a
+  scheduler made earlier in the same frame, so a two-bot match ran two, each with the full
+  `WORK_UNITS_PER_TICK` — twice the AI share T-005 names, and nothing kept the bots' jobs off
+  the same tick. Every match played and measured before then, self-play included, ran on that
+  doubled budget; matches since play on the budget as written (build 0.1.0).
 - **TODO — the AI's share of a tick** (gdd/tasks.md T-005) is Alex's to set.
   `BotScheduler.WORK_UNITS_PER_TICK` is a provisional 2000 units, ~2 ms.
 - **TODO — a debug-build wall-clock tripwire** (Decision 1's option 3) was not built: nothing
