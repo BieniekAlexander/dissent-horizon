@@ -8,8 +8,9 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
 Scoped 2026-10-15 ([`gdd/tasks.md`](../../tasks.md) T-110), decisions Alex's. **Built: stage 1,
-the serial stepper, and the decide pass with its first tenant (2026-10-15). PLANNED: the rest of
-stage 2, then sleepy updates, then stage 3 (§Stages).**
+the serial stepper; the decide pass with the hot reads it holds so far; pure command reads with
+writes in `apply_state`; and sleepy updates for idle buildings (all 2026-10-15). PLANNED:
+references by serial with the rollback snapshot, the spatial index, then stage 3 (§Stages).**
 
 One tick of the simulation becomes a single step that the scenario drives, in two phases:
 **decide**, where every piece reads the world as the previous tick left it and writes down what it
@@ -166,9 +167,8 @@ bit between two runs of the same build, and is measured by simulated minute on t
    1. The rest of the hot reads move into decide: a command's reactive swap
       (`get_updated_state`), `can_act`'s range and line-of-fire checks, and path progress, each
       applied in act with re-validation. Path requests become intents.
-   2. **Sleepy updates** (§Sleepy updates): once every change one piece makes to another is
-      applied in the act phase, "wake the piece it was applied to" lives there, not at every
-      mutation site.
+   2. **Sleepy updates** (§Sleepy updates) — built for idle buildings; their wakes live at the
+      handful of places an idle building can be given work.
    3. **References by serial, with the rollback snapshot** — the state inventory, snapshot and
       restore of netplay's §Rollback, later. Serials matter only to a snapshot, so they are
       built with it.
@@ -180,32 +180,45 @@ bit between two runs of the same build, and is measured by simulated minute on t
 
 ## Sleepy updates
 
-PLANNED (approved by Alex 2026-10-15), after the hot reads move into decide (§Stages). Measured
-2026-10-15: the pieces this would sleep — about half of them by minute four, idle unarmed
-buildings — cost 1.3–1.5 ms of a ~20 ms tick, against ~7 ms for the ~30 moving units; Alex chose
-the order that suits the rework over that short-term gain. C&C Generals runs no module it does not have to: every
-update returns how many frames it may sleep, and the game keeps the modules in a min-heap by
-wake frame, so a frame's cost is the modules due that frame, not every module in the world.
-Here, about half the pieces are structures that are idle most ticks, yet each runs its whole
-order tick every tick.
+Built 2026-10-15 (approved by Alex). C&C Generals runs no module it does not have to: every
+update returns how many frames it may sleep, so a frame's cost is the modules due that frame,
+not every module in the world. Here an entity sleeps whole: after it steps, it sleeps as many
+ticks as every node it steps promises (`sleep_ticks()`), and on waking the nodes that count
+time are handed the ticks they slept (`catch_up`). A node that cannot promise keeps its entity
+awake, so sleeping is opt-in per component.
 
-**The rule: sleeping never changes the match.** A piece or component sleeps only through ticks
-whose outcome is already known — the same digests come out with sleeping on or off, and that
-equality is the gate. So:
+**The rule: sleeping never changes the match.** An entity sleeps only through ticks whose
+outcome is already known. `SimulationStepper.is_sleep_enabled` turns it off, and the
+determinism probe run with `--sleep=off` must agree with a run without it, digest for digest —
+the gate, met for 9000 ticks of a bot match.
 
 - **Physics and movement never sleep.** No staggering: a moving piece moves, steers and is
   avoided every tick, and an order is acted on the tick it lands (Alex, 2026-10-15 — for
   determinism and for units that respond at once).
-- **A countdown sleeps until it ends** — reloads, ability recharges, shelter production,
-  garrison sentences — by computing its wake tick exactly, rather than counting down each tick.
-- **An idle piece's order layer sleeps** only while nothing could give it work: no command, no
-  queue, and nothing it would acquire. Whatever can change that wakes it on the tick it happens
-  — an order, damage, a change of owner. TODO: noticing an enemy that walks into range without
-  polling needs the stage 2 grid to say who entered which cells; until then a piece with an
-  aggro range keeps its idle scan every tick, and only pieces with none (economy buildings,
-  walls) sleep.
-- The stepper keeps sleepers in a min-heap by wake tick, tie-broken by serial, so the order
-  pieces act in is still serial order.
+- **What sleeps today: idle buildings** (`Actor.sleep_ticks`) — built, unmoving, unarmed, not
+  detecting, liberating, docking, stealthed or a manned bunker, with no orders and nothing in
+  production. An income building sleeps until the tick before its payout and counts the slept
+  ticks on waking (`EnergyExtractor`, `DominionGenerator`); a body `VisionRange`, an empty
+  `Garrison` and an `Abilities` with no pools promise forever.
+- **`Entity.wake()` is called wherever an idle building can be given work**: an order
+  (`CommandReceiver.update_commands`), a production job (`Production.enqueue`), damage, a change
+  of owner, construction progress, a change of form, an occupant arriving (`Garrison.garrison`),
+  and any node joining or leaving the entity. A piece woken before its turn acts that tick, as
+  it would have awake.
+- INVARIANT: a new way to give an idle building work must wake it. Nothing can check that a
+  change reached a sleeper; a missed wake shows only as the probe's sleep-on and sleep-off runs
+  parting, and only if the match exercises it.
+- TODO: an armed piece keeps its idle aggro scan every tick, so it never sleeps. Noticing an
+  enemy walking into range without polling needs the spatial index (§Stages) to say who entered
+  which cells; armed buildings are the larger prize.
+- TODO: countdowns beyond income — reloads, ability recharges, shelter production, sentences —
+  keep their entity awake; each could promise its remaining ticks the way income does.
+- TODO: a rollback snapshot of a sleeping entity must include its slept ticks
+  (`Entity._slept_ticks`), or its counters restore short.
+- Measured 2026-10-15 on an i5-1245U, the bot match's script phase, sleeping off against on,
+  two interleaved runs each: mean 14.4 ms against 13.5–13.7 ms — about 0.8 ms, near the
+  1.3–1.5 ms the idle buildings were measured to cost before building, and the same match both
+  ways.
 
 ## Later
 

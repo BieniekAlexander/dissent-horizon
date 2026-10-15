@@ -415,6 +415,11 @@ func detach(a_unit: Actor) -> void:
 const SENTENCE_COOLDOWN_BONUS: float = 0.08
 
 
+## Nothing to step until a captive starts a sentence (garrison wakes the host then).
+func sleep_ticks() -> int:
+	return Entity.SLEEP_FOREVER if _sentence_remaining.is_empty() else 0
+
+
 func simulation_step(a_delta: float) -> void:
 	if _sentence_remaining.is_empty():
 		return
@@ -648,6 +653,9 @@ func _reaching_weapon(a_unit: Actor, a_owner: Actor, a_target: Entity) -> Weapon
 
 ## Remove `unit` from the active scene tree and store it here.
 func garrison(a_unit: Actor) -> void:
+	var host := get_parent() as Entity
+	if host != null:
+		host.wake()
 	_adopt_commander_if_neutral(a_unit)
 	# For a bunker, hoist the unit's weapon inventory onto this garrison's owner
 	# so its weapons keep advancing their simulation_step reload timers — an

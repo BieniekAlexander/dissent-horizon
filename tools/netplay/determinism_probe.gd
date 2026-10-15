@@ -8,7 +8,7 @@ extends Node
 ##
 ## Run, on each machine, from the same commit:
 ##   godot --headless --path . --fixed-fps 30 tools/netplay/determinism_probe.tscn -- \
-##       --out=/abs/dir [--ticks=9000] [--seed=20261014] [--dense-from=<tick>]
+##       --out=/abs/dir [--ticks=9000] [--seed=20261014] [--dense-from=<tick>] [--sleep=off]
 ## then compare the two directories with tools/netplay/compare_determinism.py.
 ##
 ## Writes into `--out`:
@@ -18,6 +18,9 @@ extends Node
 ##   raw.txt      — "<tick> <serial>:<hex of exact position and velocity floats> …" on the same
 ##                  ticks: the digest rounds positions, so a drift below its rounding shows here
 ##                  first.
+##
+## `--sleep=off` steps every entity every tick (SimulationStepper.is_sleep_enabled): a run with
+## it must agree with one without, digest for digest, which is the gate on sleepy updates.
 
 ## Fixes the recipe (factions, map seed, gameplay seed), so both machines play one match.
 const DEFAULT_RECIPE_SEED: int = 20261014
@@ -58,6 +61,8 @@ func _ready() -> void:
 					_recipe_seed = int(pair[1])
 				"dense-from":
 					_dense_from = int(pair[1])
+				"sleep":
+					SimulationStepper.is_sleep_enabled = pair[1] != "off"
 	if _out == "":
 		push_error("determinism_probe: no --out directory given.")
 		get_tree().quit(1)

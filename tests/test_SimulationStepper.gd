@@ -279,3 +279,88 @@ func test_a_defender_drops_a_decided_target_killed_before_it_acts() -> void:
 	await wait_physics_frames(2)
 	_stepper.step(DELTA)
 	assert_true(guard.current_command() is Defend, "it stays on guard")
+
+
+# --- Sleepy updates ----------------------------------------------------------------------
+
+
+## A component that promises `promise` ticks of sleep after every step and counts the ticks
+## it lives through — stepped, or handed back by catch_up on waking.
+class Sleeper:
+	extends Node
+	var promise: int = 0
+	var stepped: int = 0
+	var counted: int = 0
+
+	func simulation_step(_a_delta: float) -> void:
+		stepped += 1
+		counted += 1
+
+	func sleep_ticks() -> int:
+		return promise
+
+	func catch_up(a_ticks: int) -> void:
+		counted += a_ticks
+
+
+## A bare entity, numbered `a_serial` and enlisted, stepping one Sleeper promising `a_promise`.
+func _sleepy(a_serial: int, a_promise: int) -> Sleeper:
+	var entity: Entity = FakePieces.feature()
+	add_child_autofree(entity)
+	entity.set_physics_process(false)
+	entity.spawn_serial = a_serial
+	_stepper.enlist(entity)
+	var sleeper := Sleeper.new()
+	sleeper.promise = a_promise
+	entity.add_child(sleeper)
+	return sleeper
+
+
+func _steps(a_count: int) -> void:
+	for _i: int in a_count:
+		_stepper.step(DELTA)
+
+
+func test_a_promised_sleep_skips_ticks_and_counts_them_back_on_waking() -> void:
+	var sleeper := _sleepy(1, 4)
+	_steps(6)
+	assert_eq(sleeper.stepped, 2, "it steps, sleeps four ticks, steps again")
+	assert_eq(sleeper.counted, 6, "and the slept ticks are counted as if stepped")
+
+
+func test_a_wake_steps_the_entity_on_the_next_tick() -> void:
+	var sleeper := _sleepy(1, 100)
+	_steps(1)
+	sleeper.get_parent().call(&"wake")
+	_steps(1)
+	assert_eq(sleeper.stepped, 2)
+	assert_eq(sleeper.counted, 2)
+
+
+func test_one_node_that_cannot_promise_keeps_the_entity_awake() -> void:
+	var sleeper := _sleepy(1, 100)
+	var other := Recorder.new()
+	other.log = _log
+	sleeper.get_parent().add_child(other)
+	_steps(3)
+	assert_eq(sleeper.stepped, 3)
+
+
+func test_with_sleep_off_every_entity_steps_every_tick() -> void:
+	var sleeper := _sleepy(1, 100)
+	SimulationStepper.is_sleep_enabled = false
+	_steps(3)
+	SimulationStepper.is_sleep_enabled = true
+	assert_eq(sleeper.stepped, 3)
+
+
+## A node added to a sleeping entity wakes it: the newcomer may have work of its own.
+func test_a_node_added_to_a_sleeper_wakes_it() -> void:
+	var sleeper := _sleepy(1, 100)
+	_steps(1)
+	var late := Sleeper.new()
+	late.promise = 100
+	sleeper.get_parent().add_child(late)
+	_steps(1)
+	assert_eq(sleeper.stepped, 2)
+	assert_eq(late.stepped, 1)

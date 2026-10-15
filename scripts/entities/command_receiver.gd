@@ -249,6 +249,9 @@ func update_commands(
 	var queued_before: Array[MoveCommand] = _command_queue.duplicate()
 	_update_commands(a_commands, a_add_to_queue, a_prepend)
 	_release_dropped(queued_before)
+	# An idle piece given work wakes (Entity.wake); a receiver built for a test may have none.
+	if is_instance_valid(owner):
+		owner.wake()
 
 
 ## Drop everything waiting behind the active command and leave the active one running.

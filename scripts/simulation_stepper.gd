@@ -36,6 +36,15 @@ static func current_round() -> int:
 	return _round
 
 
+## Whether entities may sleep through ticks whose outcome is known
+## (gdd/systems/commands/the-simulation-step.md §Sleepy updates). Off, every entity steps every
+## tick — the same match, which is how the determinism probe proves sleeping changes nothing.
+## Static: a process-wide switch for tools and tests, like the decide round.
+static var is_sleep_enabled: bool = true
+
+## Ticks this stepper has run, which entities' wake ticks are counted in.
+var _tick: int = 0
+
 ## Every entity that has entered play, in serial order. Appending keeps it sorted, since serials
 ## only grow; freed entities are dropped as each tick snapshots it. UNTYPED: an entity can be
 ## freed outright mid-tick, and a freed object fails a typed read.
@@ -76,6 +85,7 @@ func _physics_process(a_delta: float) -> void:
 ## can drive it.
 func step(a_delta: float) -> void:
 	begin_round()
+	_tick += 1
 	var stepping: Array = []
 	var kept: Array = []
 	for item: Variant in _entities:
@@ -89,13 +99,27 @@ func step(a_delta: float) -> void:
 	_entities = kept
 	for item: Variant in stepping:
 		if is_instance_valid(item) and (item as Entity).is_inside_tree():
-			(item as Entity).decide_simulation()
+			var deciding: Entity = item
+			if not deciding.is_asleep_at(_tick):
+				deciding.decide_simulation()
 	for item: Variant in stepping:
 		if is_instance_valid(item) and (item as Entity).is_inside_tree():
-			(item as Entity).step_simulation(a_delta)
+			_act(item as Entity, a_delta)
 	for item: Variant in stepping:
 		if is_instance_valid(item) and (item as Entity).is_inside_tree():
 			(item as Entity).resolve_death()
+
+
+## One entity's act pass: skipped while it sleeps — counted, so it catches up on waking — and
+## after it, how long it may sleep.
+func _act(a_entity: Entity, a_delta: float) -> void:
+	if a_entity.is_asleep_at(_tick):
+		a_entity.note_slept_tick()
+		return
+	a_entity.catch_up_slept_ticks()
+	a_entity.step_simulation(a_delta)
+	var sleep: int = a_entity.step_sleep_ticks() if is_sleep_enabled else 0
+	a_entity.sleep_until(_tick + 1 + sleep)
 
 
 ## A node joined or left some entity's subtree: that entity rebuilds the list of nodes it steps

@@ -463,6 +463,7 @@ func plan_construction() -> void:
 ## Idempotent-ish: a no-op on a structure that was never planned, so the direct-issue
 ## build path (scenario events, tests) is unaffected.
 func commit_construction(a_map: Map, a_world_center: Vector2) -> void:
+	wake()
 	if not is_planned:
 		return
 	is_planned = false
@@ -509,6 +510,7 @@ func begin_construction() -> void:
 ## Also scales hp proportionally so health tracks build progress during construction
 ## (Task 4): each unit of build progress adds delta * hp_max * (1 - INITIAL_HEALTH_FACTOR).
 func advance_build_progress(a_delta: float) -> bool:
+	wake()
 	var was_built: bool = build_progress >= 1.0
 	var old_progress: float = build_progress
 	build_progress = minf(build_progress + a_delta, 1.0)
@@ -1325,6 +1327,45 @@ func decided_attack_holds(a_attack: MoveCommand) -> bool:
 		return false
 	var entity := target as Entity
 	return entity.defense != null and entity.defense.hp > 0 and is_enemy_of(entity)
+
+
+## How many coming ticks this actor's step is known to do nothing but count toward its next
+## income: none unless it is an idle building — built, unmoving, unarmed, not detecting,
+## liberating, docking or stealthed, with no orders and nothing in production — and then the
+## ticks until its next payout. Every piece that could give it work wakes it (Entity.wake).
+func sleep_ticks() -> int:
+	if not _is_idle_for_sleep():
+		return 0
+	var ticks: int = SLEEP_FOREVER
+	if energy_extractor != null:
+		ticks = mini(ticks, energy_extractor.ticks_before_payout())
+	if dominion_generator != null:
+		ticks = mini(ticks, dominion_generator.ticks_before_payout())
+	return ticks
+
+
+## The slept ticks, counted by the income components as if they had stepped.
+func catch_up(a_ticks: int) -> void:
+	if energy_extractor != null:
+		energy_extractor.count_ticks(a_ticks)
+	if dominion_generator != null:
+		dominion_generator.count_ticks(a_ticks)
+
+
+func _is_idle_for_sleep() -> bool:
+	if is_planned or not is_built or _stagger_ticks > 0:
+		return false
+	if locomotion_component != null or movement != null or aerial != null:
+		return false
+	if weapon_inventory != null or docking != null or docking_bay != null:
+		return false
+	if liberator != null or detection_range != null or stealth != null:
+		return false
+	if garrison != null and garrison.bunker and garrison.garrisoned_count() > 0:
+		return false
+	if orders != null and not (command_receiver.is_idle() and orders.held_attack_target == null):
+		return false
+	return production == null or production.job_count() == 0
 
 
 ## One tick of this actor (SimulationStepper). A PLANNED structure runs none of it: nothing to

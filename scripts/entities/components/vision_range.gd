@@ -47,6 +47,12 @@ func _ready() -> void:
 
 ## Framework-imposed: the shape is re-stood at the orbit's centre every tick, since the anchor
 ## moves (a Sortie takes station, an Attack re-centres it) without telling anyone.
+## A body vision rides on its piece and never needs stepping; an orbit one is re-stood every
+## tick.
+func sleep_ticks() -> int:
+	return Entity.SLEEP_FOREVER if origin != Origin.ORBIT else 0
+
+
 func simulation_step(_a_delta: float) -> void:
 	if origin != Origin.ORBIT:
 		return

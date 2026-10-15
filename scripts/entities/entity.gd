@@ -373,6 +373,7 @@ func undeploy() -> void:
 ## FOLLOWS the form: which component is live, the unit/fixture/structure groups, the collision
 ## and target layers, and whatever an override of _on_form_changed keeps.
 func set_deployed(a_deployed: bool) -> void:
+	wake()
 	var structure := get_node_or_null("Fixture") as Fixture
 	var locomotion := get_node_or_null("Locomotion") as Movement
 	if structure == null or locomotion == null:
@@ -887,9 +888,63 @@ static func owning(a_node: Node) -> Entity:
 	return node as Entity
 
 
-## A node joined or left this entity's subtree.
+## A node joined or left this entity's subtree — which also wakes it: whatever came or went
+## may have work of its own.
 func invalidate_step_list() -> void:
 	_is_step_list_stale = true
+	wake()
+
+
+## Ticks a node may promise to need no stepping for, the longest a sleep can be.
+const SLEEP_FOREVER: int = 1 << 30
+## The stepper tick this entity next steps on; before it, it sleeps.
+var _wake_tick: int = 0
+## Ticks slept since it last stepped, which catch_up hands to the nodes that count time.
+var _slept_ticks: int = 0
+## Whether every node this entity steps can say how long it may sleep (`sleep_ticks`).
+var _is_step_list_sleepable: bool = false
+
+
+## Step on the next tick that comes, whatever the entity last promised: something changed
+## that its sleep did not foresee. Called wherever an idle piece can be given work.
+func wake() -> void:
+	_wake_tick = 0
+
+
+func is_asleep_at(a_tick: int) -> bool:
+	return _wake_tick > a_tick
+
+
+func sleep_until(a_tick: int) -> void:
+	_wake_tick = a_tick
+
+
+func note_slept_tick() -> void:
+	_slept_ticks += 1
+
+
+## How many coming ticks this entity's step is known to change nothing but counters: the
+## fewest any node it steps promises, and none unless every node can promise
+## (`sleep_ticks()` on the node). Asked right after it steps.
+func step_sleep_ticks() -> int:
+	if not _is_step_list_sleepable:
+		return 0
+	var ticks: int = SLEEP_FOREVER
+	for item: Variant in _step_list:
+		if is_instance_valid(item):
+			ticks = mini(ticks, int((item as Node).call(&"sleep_ticks")))
+	return maxi(ticks, 0)
+
+
+## Hand the ticks slept since the last step to every node that counts time (`catch_up`), so
+## its counters read as if it had stepped through them.
+func catch_up_slept_ticks() -> void:
+	if _slept_ticks == 0:
+		return
+	for item: Variant in _step_list:
+		if is_instance_valid(item) and (item as Node).has_method(&"catch_up"):
+			(item as Node).call(&"catch_up", _slept_ticks)
+	_slept_ticks = 0
 
 
 ## Fix what this tick steps, before any entity steps: a node added mid-tick waits for the next.
@@ -899,6 +954,9 @@ func prepare_step() -> void:
 	_step_list.clear()
 	_decide_list.clear()
 	_collect_stepped(self)
+	_is_step_list_sleepable = _step_list.all(
+		func(n: Node) -> bool: return n.has_method(&"sleep_ticks")
+	)
 	_is_step_list_stale = false
 
 
@@ -1015,6 +1073,7 @@ func _auto_initialize() -> void:
 
 
 func _on_commander_changed(_a_old_commander: Commander, a_new_commander: Commander) -> void:
+	wake()
 	_apply_team_tint()
 	_apply_targetable_layers()
 	# Keep the scene tree organised: entities live as children of their commander.
@@ -1084,6 +1143,7 @@ func initialize(a_map: Map, a_commander: Commander):
 
 
 func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
+	wake()
 	if defense == null:
 		return
 	var was_alive: bool = defense.hp > 0

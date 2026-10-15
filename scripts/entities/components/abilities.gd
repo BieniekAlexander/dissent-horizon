@@ -91,6 +91,11 @@ func _rebuild() -> void:
 		remove_from_group(ALERTING_GROUP)
 
 
+## Only a component with no pools has nothing to recharge.
+func sleep_ticks() -> int:
+	return Entity.SLEEP_FOREVER if _charges.is_empty() else 0
+
+
 func simulation_step(_a_delta: float) -> void:
 	for i: int in _charges.size():
 		var pool: Dictionary = groups[i]
