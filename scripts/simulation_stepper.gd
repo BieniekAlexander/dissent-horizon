@@ -76,6 +76,7 @@ func enlist(a_entity: Entity) -> void:
 	assert(a_entity.spawn_serial > _last_serial)
 	_last_serial = a_entity.spawn_serial
 	_entities.append(a_entity)
+	index.track(a_entity)
 
 
 func _physics_process(a_delta: float) -> void:
@@ -99,7 +100,7 @@ func step(a_delta: float) -> void:
 			entity.prepare_step()
 			stepping.append(entity)
 	_entities = kept
-	index.update(stepping)
+	index.update_dirty(kept)
 	_wake_watchers(stepping)
 	SpatialIndex.reading = index
 	for item: Variant in stepping:

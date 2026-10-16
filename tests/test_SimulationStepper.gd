@@ -24,10 +24,18 @@ class Recorder:
 
 
 var _stepper: SimulationStepper = null
+
+
+func after_each() -> void:
+	SpatialIndex.is_verifying = false
+
+
 var _log: Array[int] = []
 
 
 func before_each() -> void:
+	# Every tick of these tests also checks the index's dirty marks against a fresh scan.
+	SpatialIndex.is_verifying = true
 	_stepper = SimulationStepper.new()
 	add_child_autofree(_stepper)
 	_stepper.set_physics_process(false)

@@ -41,6 +41,49 @@ var _cells: Dictionary = {}
 var _entries: Dictionary = {}
 ## Bumped by every update; an entry not stamped with the latest has left play.
 var _stamp: int = 0
+## Instance ids of tracked pieces whose Hurtbox may have changed since the last update: moved,
+## entered or left the tree, or had its layers written (Entity.mark_spatial_dirty).
+var _dirty: Dictionary = {}
+## Whether the first full scan has run; after it, update_dirty touches only the dirty.
+var _has_scanned: bool = false
+
+## Rebuild a fresh index every update and assert the incremental one matches it, entry for
+## entry: the check that every change to a Hurtbox marks its piece. For the determinism probe
+## (`--verify-index`) and tests; far too slow to leave on.
+static var is_verifying: bool = false
+
+
+## Keep `a_entity` up to date in this index from now on: its transform changes, tree changes
+## and layer writes mark it dirty (Entity.mark_spatial_dirty). Called as it enters play.
+func track(a_entity: Entity) -> void:
+	a_entity.track_in_spatial_index(self)
+	mark(a_entity)
+
+
+func mark(a_entity: Entity) -> void:
+	_dirty[a_entity.get_instance_id()] = true
+
+
+## Bring the index up to date from the dirty marks alone — the pieces that moved, arrived, left
+## or changed layers since the last update — after one full scan of `a_entities` (every tracked
+## piece in play) the first time.
+func update_dirty(a_entities: Array) -> void:
+	if not _has_scanned:
+		_has_scanned = true
+		_dirty.clear()
+		update(a_entities)
+	else:
+		_stamp += 1
+		for id: int in _dirty.keys():
+			var found: Object = instance_from_id(id)
+			var entity := found as Entity
+			if entity == null or not _refresh(entity):
+				var entry: Variant = _entries.get(id)
+				if entry != null:
+					_unfile(entry)
+		_dirty.clear()
+	if is_verifying:
+		_verify(a_entities)
 
 
 ## Index every piece in `a_entities` that has a Hurtbox in the tree, from scratch.
@@ -57,27 +100,53 @@ func rebuild(a_entities: Array) -> void:
 func update(a_entities: Array) -> void:
 	_stamp += 1
 	for item: Variant in a_entities:
-		if not is_instance_valid(item):
-			continue
-		var entity: Entity = item
-		if not entity.is_inside_tree() or entity.hurtbox == null:
-			continue
-		var shape_node := entity.hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
-		if shape_node == null or shape_node.shape == null or not shape_node.is_inside_tree():
-			continue
-		var xform: Transform3D = shape_node.global_transform
-		var key: Vector3 = _shape_key(shape_node.shape)
-		var entry: Variant = _entries.get(entity.get_instance_id())
-		if entry != null and entry[7] == xform and entry[8] == key:
-			entry[2] = entity.hurtbox.collision_layer
-			entry[9] = _stamp
-			continue
-		if entry != null:
-			_unfile(entry)
-		_file(_measure(entity, shape_node, xform, key))
+		if is_instance_valid(item):
+			_refresh(item as Entity)
 	for id: int in _entries.keys():
 		if int(_entries[id][9]) != _stamp:
 			_unfile(_entries[id])
+
+
+## Bring `a_entity`'s entry up to date and stamp it; false — and no entry made — when it has no
+## Hurtbox in the tree to index.
+func _refresh(a_entity: Entity) -> bool:
+	if not a_entity.is_inside_tree() or a_entity.hurtbox == null:
+		return false
+	var shape_node := a_entity.hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
+	if shape_node == null or shape_node.shape == null or not shape_node.is_inside_tree():
+		return false
+	var xform: Transform3D = shape_node.global_transform
+	var key: Vector3 = _shape_key(shape_node.shape)
+	var entry: Variant = _entries.get(a_entity.get_instance_id())
+	if entry != null and entry[7] == xform and entry[8] == key:
+		entry[2] = a_entity.hurtbox.collision_layer
+		entry[9] = _stamp
+		return true
+	if entry != null:
+		_unfile(entry)
+	_file(_measure(a_entity, shape_node, xform, key))
+	return true
+
+
+## Assert this index holds exactly what a fresh scan of `a_entities` would: the same pieces,
+## each in the same cells with the same layers and span.
+func _verify(a_entities: Array) -> void:
+	var fresh := SpatialIndex.new()
+	fresh.update(a_entities)
+	var mine: Dictionary = _signatures()
+	var theirs: Dictionary = fresh._signatures()
+	for id: int in theirs:
+		assert(mine.get(id) == theirs[id], "SpatialIndex stale for %s" % instance_from_id(id))
+	for id: int in mine:
+		assert(theirs.has(id), "SpatialIndex holds %s, gone from play" % instance_from_id(id))
+
+
+func _signatures() -> Dictionary:
+	var out: Dictionary = {}
+	for id: int in _entries:
+		var entry: Array = _entries[id]
+		out[id] = [entry[6], entry[2], entry[3], entry[4]]
+	return out
 
 
 ## A fresh entry for `a_entity`, whose Hurtbox shape is `a_shape_node` at `a_xform`.

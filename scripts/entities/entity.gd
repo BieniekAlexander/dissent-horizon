@@ -748,6 +748,7 @@ func _apply_targetable_layers() -> void:
 	# does a charge riding on another piece: shooting at it is shooting at its carrier.
 	if is_planned or PlantedCharge.is_riding(self):
 		hurtbox.collision_layer = layers
+		mark_spatial_dirty()
 		return
 	_targetable_as_air = is_air_target()
 	if structure_is_active():
@@ -766,6 +767,7 @@ func _apply_targetable_layers() -> void:
 	# follows the owner, which is why a capture re-applies these layers.
 	layers |= CollisionLayers.side_bits(layers & CollisionLayers.TARGETABLE_ANY, commander_id)
 	hurtbox.collision_layer = layers
+	mark_spatial_dirty()
 
 
 ## The ATTACKABLE facet: a weapon can lock onto it and it can take damage
@@ -903,6 +905,33 @@ var _wake_tick: int = 0
 var _slept_ticks: int = 0
 ## Whether every node this entity steps can say how long it may sleep (`sleep_ticks`).
 var _is_step_list_sleepable: bool = false
+
+## The spatial index keeping this piece's Hurtbox, or null when none tracks it.
+var _spatial_index: SpatialIndex = null
+
+
+## Start reporting Hurtbox changes to `a_index` (SpatialIndex.track).
+func track_in_spatial_index(a_index: SpatialIndex) -> void:
+	_spatial_index = a_index
+	set_notify_transform(true)
+
+
+## Tell the spatial index this piece's Hurtbox may have changed — moved, entered or left the
+## tree, or had its layers written. INVARIANT: every write to a Hurtbox's layers, shape or
+## local transform calls this; nothing else can see the write, and `--verify-index` on the
+## determinism probe is the check that catches one that does not.
+func mark_spatial_dirty() -> void:
+	if _spatial_index != null:
+		_spatial_index.mark(self)
+
+
+func _notification(a_what: int) -> void:
+	if (
+		a_what == NOTIFICATION_TRANSFORM_CHANGED
+		or a_what == NOTIFICATION_ENTER_TREE
+		or a_what == NOTIFICATION_EXIT_TREE
+	):
+		mark_spatial_dirty()
 
 
 ## Step on the next tick that comes, whatever the entity last promised: something changed

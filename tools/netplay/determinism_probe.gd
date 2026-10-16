@@ -9,6 +9,7 @@ extends Node
 ## Run, on each machine, from the same commit:
 ##   godot --headless --path . --fixed-fps 30 tools/netplay/determinism_probe.tscn -- \
 ##       --out=/abs/dir [--ticks=9000] [--seed=20261014] [--dense-from=<tick>] [--sleep=off]
+##       [--verify-index=on]
 ## then compare the two directories with tools/netplay/compare_determinism.py.
 ##
 ## Writes into `--out`:
@@ -63,6 +64,8 @@ func _ready() -> void:
 					_dense_from = int(pair[1])
 				"sleep":
 					SimulationStepper.is_sleep_enabled = pair[1] != "off"
+				"verify-index":
+					SpatialIndex.is_verifying = pair[1] != "off"
 	if _out == "":
 		push_error("determinism_probe: no --out directory given.")
 		get_tree().quit(1)

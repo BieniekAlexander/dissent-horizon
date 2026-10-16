@@ -166,3 +166,61 @@ func test_a_resized_hurtbox_is_measured_again() -> void:
 	shape.radius = 3.0
 	(enemy.hurtbox.get_node("HurtboxShape") as CollisionShape3D).shape = shape
 	assert_eq(_hostiles_after_update(scanner, [scanner, enemy]), [enemy] as Array[Entity])
+
+
+# --- Dirty marking -----------------------------------------------------------------------
+
+
+## Tracked pieces, after the first full scan, are kept up to date from their own marks.
+func _tracked(a_pieces: Array) -> void:
+	for piece: Entity in a_pieces:
+		_index.track(piece)
+	_index.update_dirty(a_pieces)
+
+
+func _hostiles_now(a_scanner: Actor, a_pieces: Array) -> Array[Entity]:
+	# Transform notices are delivered between physics steps, as in play.
+	await wait_physics_frames(1)
+	_index.update_dirty(a_pieces)
+	return _index.entities_within(
+		a_scanner.hull(),
+		_scan_shape(),
+		a_scanner.global_position,
+		CollisionLayers.hostile_mask(
+			CollisionLayers.TARGETABLE_ANY, a_scanner.allied_commander_ids()
+		),
+		[a_scanner.hurtbox.get_rid()]
+	)
+
+
+func test_a_tracked_piece_that_moves_marks_itself() -> void:
+	SpatialIndex.is_verifying = true
+	var scanner := _piece(_commander(OWN), Vector3.ZERO)
+	var enemy := _piece(_commander(FOE), Vector3(40, 0, 0))
+	_tracked([scanner, enemy])
+	enemy.global_position = Vector3(3, 0, 0)
+	assert_eq(await _hostiles_now(scanner, [scanner, enemy]), [enemy] as Array[Entity])
+	SpatialIndex.is_verifying = false
+
+
+func test_a_tracked_capture_marks_itself() -> void:
+	SpatialIndex.is_verifying = true
+	var own := _commander(OWN)
+	var scanner := _piece(own, Vector3.ZERO)
+	var enemy := _piece(_commander(FOE), Vector3(3, 0, 0))
+	_tracked([scanner, enemy])
+	enemy.ownership.commander = own
+	assert_eq(await _hostiles_now(scanner, [scanner, enemy]), [] as Array[Entity])
+	SpatialIndex.is_verifying = false
+
+
+func test_a_tracked_piece_leaving_the_tree_marks_itself() -> void:
+	SpatialIndex.is_verifying = true
+	var scanner := _piece(_commander(OWN), Vector3.ZERO)
+	var enemy := _piece(_commander(FOE), Vector3(3, 0, 0))
+	_tracked([scanner, enemy])
+	var parent: Node = enemy.get_parent()
+	parent.remove_child(enemy)
+	assert_eq(await _hostiles_now(scanner, [scanner, enemy]), [] as Array[Entity])
+	parent.add_child(enemy)
+	SpatialIndex.is_verifying = false

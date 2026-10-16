@@ -74,6 +74,9 @@ func _write(a_on: bool) -> void:
 		body.collision_layer |= CollisionLayers.Mask.LIBERATABLE
 	else:
 		body.collision_layer &= ~CollisionLayers.Mask.LIBERATABLE
+	var host := get_parent() as Entity
+	if host != null:
+		host.mark_spatial_dirty()
 
 
 func _on_commander_changed(_a_old_commander: Commander, _a_new_commander: Commander) -> void:
