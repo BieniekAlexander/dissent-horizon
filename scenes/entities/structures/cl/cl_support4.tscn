@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://cctq1hb7a2mc5"]
+[gd_scene load_steps=24 format=3 uid="uid://cctq1hb7a2mc5"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_root"]
 [ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="1_spec"]
@@ -20,15 +20,13 @@
 [ext_resource type="PackedScene" uid="uid://c0a8hdddox08m" path="res://scenes/components/footprint_visualizer.tscn" id="17_spec"]
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="18_spec"]
 [ext_resource type="Script" uid="uid://cben1rmf76xst" path="res://scripts/entities/components/abilities.gd" id="19_spec"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_placeholder"]
-size = Vector3(5.0, 2.0, 5.0)
+[ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/cl_support4.res" id="model_cl_support4"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
 size = Vector3(5.0, 2.0, 5.0)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
-size = Vector3(5.0, 2.0, 5.0)
+size = Vector3(5.0, 2.8, 5.0)
 
 [node name="ClSupport4" type="CharacterBody3D" groups=["piece", "fixture", "structure"]]
 collision_layer = 0
@@ -44,8 +42,8 @@ infrastructure = -200
 [node name="Hurtbox" parent="." instance=ExtResource("1_spec")]
 
 [node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.4, 0.0)
 shape = SubResource("BoxShape3D_hurtbox")
-transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
 metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." instance=ExtResource("2_spec")]
@@ -83,8 +81,8 @@ script = ExtResource("9_spec")
 [node name="#####VISUALS#####" type="Node" parent="."]
 
 [node name="HPBar" parent="." instance=ExtResource("10_spec")]
-transform = Transform3D(1.302083, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 2.12, 0.0)
-metadata/_visual_default_hp_bar = 3.333333
+transform = Transform3D(1.276042, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 2.92, 0.0)
+metadata/_visual_default_hp_bar = 3.266667
 
 [node name="SelectionIndicator" parent="." instance=ExtResource("11_spec")]
 
@@ -94,10 +92,8 @@ script = ExtResource("12_spec")
 [node name="MeshVisual" type="Node3D" parent="."]
 script = ExtResource("13_spec")
 
-[node name="PlaceholderModel" type="MeshInstance3D" parent="MeshVisual"]
-mesh = SubResource("BoxMesh_placeholder")
-metadata/_visual_default_mesh = "structure"
-transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+[node name="Model" type="MeshInstance3D" parent="MeshVisual"]
+mesh = ExtResource("model_cl_support4")
 
 [node name="StatusVisuals" type="Node3D" parent="."]
 script = ExtResource("14_spec")

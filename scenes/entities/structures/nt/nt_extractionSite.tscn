@@ -7,16 +7,16 @@
 [ext_resource type="Script" path="res://scripts/entities/components/fixture.gd" id="3_j87wn"]
 [ext_resource type="Script" path="res://scripts/entities/components/mesh_visual.gd" id="5_p0npg"]
 [ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="6_jqy5p"]
-[ext_resource type="PackedScene" path="res://assets/meshes/cone.blend" id="6_x2nsk"]
 [ext_resource type="PackedScene" path="res://scenes/components/selection_indicator.tscn" id="9_ovfs8"]
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="10_flfwd"]
 [ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="11_y1p3o"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/nt_extractionSite.res" id="model_nt_extractionSite"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ijod7"]
 size = Vector3(2, 2, 2)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
-size = Vector3(2.0, 2.0, 2.0)
+size = Vector3(2.0, 0.95, 2.0)
 
 [node name="ExtractionSite" type="CharacterBody3D" unique_id=1970929826 groups=["piece", "fixture", "extraction_site"]]
 collision_layer = 0
@@ -29,8 +29,8 @@ id = &"nt_extractionSite"
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("2_ijod7")]
 
 [node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.475, 0.0)
 shape = SubResource("BoxShape3D_hurtbox")
-transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.041021, 0.0)
 metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="Ownership" type="Node" parent="." unique_id=31239474]
@@ -56,11 +56,11 @@ metadata/_visual_default_selection = "BoxShape3D"
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=598928600]
 
 [node name="MeshVisual" type="Node3D" parent="." unique_id=761925218]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0410213, 0)
 script = ExtResource("5_p0npg")
 metadata/_custom_type_script = "uid://dt2degoni7u3v"
 
-[node name="cone" parent="MeshVisual" unique_id=902720253 instance=ExtResource("6_x2nsk")]
+[node name="Model" type="MeshInstance3D" parent="MeshVisual"]
+mesh = ExtResource("model_nt_extractionSite")
 
 [node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("9_ovfs8")]
 

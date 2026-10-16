@@ -6,7 +6,6 @@
 [ext_resource type="Script" path="res://scripts/entities/components/docking_pad.gd" id="2_dockpad"]
 [ext_resource type="Script" path="res://scripts/entities/components/runway.gd" id="2_runway"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="2_spec"]
-[ext_resource type="PackedScene" path="res://assets/meshes/entities/colonial/sky_port.blend" id="3_model"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_gvy43"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_ykhsf"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_5aya5"]
@@ -24,12 +23,13 @@
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="22_7mln7"]
 [ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="23_ymtxq"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="3_spec"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/cl_airField.res" id="model_cl_airField"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_5qipo"]
 size = Vector3(6, 1.5, 4)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
-size = Vector3(6.0, 1.5, 4.0)
+size = Vector3(6.0, 1.88, 4.0)
 
 [node name="ClAirField" type="CharacterBody3D" unique_id=412375293 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
@@ -45,8 +45,8 @@ verbose = "potato"
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_gvy43")]
 
 [node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.94, 0.0)
 shape = SubResource("BoxShape3D_hurtbox")
-transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.75, 0.0)
 metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_ykhsf")]
@@ -85,8 +85,8 @@ script = ExtResource("3_spec")
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1131926929]
 
 [node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("13_f5h82")]
-transform = Transform3D(1.5625, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 1.62, 0)
-metadata/_visual_default_hp_bar = 4.0
+transform = Transform3D(1.536458, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 2.0, 0.0)
+metadata/_visual_default_hp_bar = 3.933333
 
 [node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("14_gp2cs")]
 
@@ -97,7 +97,8 @@ script = ExtResource("15_mckpw")
 script = ExtResource("16_5o0d6")
 metadata/_custom_type_script = "uid://dt2degoni7u3v"
 
-[node name="sky_port" parent="MeshVisual" unique_id=1714750783 instance=ExtResource("3_model")]
+[node name="Model" type="MeshInstance3D" parent="MeshVisual"]
+mesh = ExtResource("model_cl_airField")
 
 [node name="StatusVisuals" type="Node3D" parent="." unique_id=818666087]
 script = ExtResource("19_3mea4")

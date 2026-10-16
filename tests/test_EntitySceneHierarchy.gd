@@ -23,12 +23,11 @@ extends GutTest
 
 const ENTITY_ROOT: String = "res://scenes/entities"
 
-## Pieces whose layout is worth naming outright: the one that hides the generated stand-in
-## behind its own art, the two that keep the dummy as deliberate bulk beside a real model,
-## and two plain infantrymen.
+## Pieces whose layout is worth naming outright: a structure wearing a generated model
+## (tools/structure_models/) in place of its stand-in, the one that keeps the dummy as
+## deliberate bulk beside a real model, and two plain infantrymen.
 var _WELL_KNOWN: Dictionary = {
-	"res://scenes/entities/structures/cl/cl_airField.tscn": ["sky_port"],
-	"res://scenes/entities/structures/cl/cl_infrastructure.tscn": ["Model", "hexagonal_prism"],
+	"res://scenes/entities/structures/cl/cl_airField.tscn": ["Model"],
 	"res://scenes/entities/structures/an/an_commandCenter.tscn": ["Model", "cube"],
 	"res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn": ["irregular", "cube"],
 	"res://scenes/entities/units/an/an_bioLight_builder.tscn": ["irregular"],
