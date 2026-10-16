@@ -395,6 +395,120 @@ A probe that hooks every registered building's `tree_exiting` saw no building fr
 of the tree while still on the grid. TODO: the stale entry arrives some other way. Logged as
 gdd/tasks.md T-113.
 
+### Where a tick goes
+
+A second profile the same afternoon, after the safety-channel work. It runs the same
+two-MEDIUM-bot skirmish for ten simulated minutes, on the map as the editor had saved it at
+14:07, so it is a different match from the runs above. A throwaway probe timed each priority
+band of the physics frame and the whole `_process` phase. It took each priority-0 system over to
+time it alone, as §Method does for fog. It also timed the stepper's passes, every node's
+`simulation_step`, the phases of `Actor.simulation_step`, and the command tick by command and
+phase. Totals come from a run with band timers only. The splits come from two runs with the
+finer timers, which add about 6%. The fine timers were reverted. Mean over ticks 300+, ms.
+
+**A tick averages 10.4 ms against the 33.3 ms budget**: p50 8.8, p95 22.4, 0.7% of ticks over.
+That is about 30% of the budget on average.
+
+| Band | ms per tick | Share |
+|---|---|---|
+| Bots: the shared `BotScheduler` | 3.5 | 38% |
+| Pieces: the `SimulationStepper` | 4.0 | 38% |
+| Visual `_process`: HUD, minimap, models, cards, status badges | 1.3 | 13% |
+| Engine: physics server, navigation sync, the rest of the frame | 0.5 | 5% |
+| Commanders at priority 100: production queue, blackboard | 0.5 | 4.5% |
+| Fog, both commanders | 0.4 | 3.5% |
+| Order stream, replay recorder, triggers, alerts, match log | < 0.1 | ~1% |
+
+**Bot jobs** add up to 2.4 ms a tick:
+
+| Job | ms per tick |
+|---|---|
+| `fields` | 1.0 |
+| `economy` | 0.57 |
+| `scout` | 0.35 |
+| `production` | 0.14 |
+| `posture` | 0.13 |
+| `military` | 0.09 |
+| any other job | under 0.05 each |
+
+The scheduler as a whole measured 3.5 ms. TODO: the ~1 ms between the two is unexplained. It
+may be the scheduler's own bookkeeping, but the two figures came from different runs, so
+measure both in one run before acting on it.
+
+**The stepper** (4.0 ms). The act pass is 3.5 ms:
+
+| Piece kind | ms per tick |
+|---|---|
+| units | 2.6 |
+| structures | 0.34 |
+| features (mostly shelters) | 0.18 |
+| other | 0.09 |
+
+The decide pass, the idle-aggro and attack-move scans, is 0.64 ms. The spatial index is 0.15 ms,
+and snapshot, wake and deaths about 0.1 ms. About 108 entities step each tick, and 49 of them
+sleep through it.
+
+Within `Actor.simulation_step` (about 2.7 ms):
+
+| Phase | ms per tick |
+|---|---|
+| the command tick (`Orders.tick` → the receiver) | 1.6 |
+| collection, liberation, stealth detection, stealth | 0.43 |
+| avoidance priority | 0.18 |
+| terrain-height snap | 0.14 |
+| crush | 0.09 |
+| targetable altitude | 0.05 |
+
+Inside the command tick:
+- **Movement for orders that travel** is about 0.65 ms: plain moves 0.22, attack-moves 0.16,
+  build trips 0.11, attack chases 0.09.
+- **Shelter residents' `Wander`** is about 0.23 ms: thirteen neutral walkers, mostly in
+  `apply_state`/`can_act`.
+- **Attacks** in range cost 0.13 ms.
+- **About 0.4 ms** is the receiver's own overhead around the commands (the action tracker,
+  follow-avoidance reconciling, the queue).
+
+**How it grows.** Mean tick 4.6 ms at minute 0 (22 units), 10.4 at minute 4, and 18 at minute 8
+(44 units). By minute 8 the bots are 7.0 ms and the stepper 7.3 ms, while visuals and the engine
+stay at 2–3 ms between them. **Both halves grow with the army and nothing else does**, so the
+levers are in those two halves.
+
+**Where to look next**, in order of the share each could move. Each is a TODO, not approved.
+1. **The bots' fields rebuild**, 1.0 ms: the largest single bot cost, paid every refresh
+   whatever changed. Candidates:
+   - rebuild only the fields whose sources moved;
+   - lengthen `field_refresh_seconds` with army size;
+   - bucket arrival fields to the speed ladder
+     ([lattice-and-topology](world-model/lattice-and-topology.md) §Cadence and cost names this
+     one).
+2. **Per-unit command and movement work**, 1.6 ms and growing with the army:
+   - travel-order movement is the largest part;
+   - the receiver's overhead around each command is about a quarter of it.
+
+   The PLANNED leaner movement in [commands/the-simulation-step](../commands/the-simulation-step.md)
+   is the standing remedy. Short of that, profile `_drive_movement` itself.
+3. **The decide pass's scans**, 0.64 ms: the PLANNED grid that takes over the per-piece
+   detection areas (the same note) is aimed at this.
+4. **Per-tick checks most pieces do not need**, about 0.8 ms together:
+   - detection, collection and liberation run their checks on every actor every tick
+     (0.43 ms);
+   - avoidance priority (0.18 ms) and the terrain snap (0.14 ms) are paid by every mover every
+     tick.
+
+   Each could step only for the pieces that carry the component, or sleep while nothing nearby
+   changes.
+5. **Shelter residents**: their `Wander` (0.23 ms) and the shelter's own step (0.17 ms) cost
+   about 0.4 ms for thirteen neutral walkers that do nothing in the match, before their 33 ms
+   spawns (item 3 above). Let a resident sleep between wander legs.
+6. **Visual `_process`**, 1.3 ms, flat: every piece runs `MeshVisual`, `StatusVisuals`,
+   `CommandLineIndicator` and `Actor._process` every frame, even with nothing to show. Not on
+   the simulation's budget in a real game, but it shares the frame.
+7. **The economy's one-off reads**, 0.57 ms on average plus the spikes in item 2 above.
+
+The method is reproducible: the probe is a throwaway scene that hooks priorities −100000,
+−999, 0, 49, 51 and 100000 for the physics bands, process priorities ±100000 for `_process`,
+and drives every priority-0 physics node from its own hook, in tree order.
+
 ## Backlog: optimizations not built
 
 Every candidate turned up by the 2026-09-25/27 performance work and not built, in rough order
@@ -414,7 +528,12 @@ from here when a measurement says so.
 | Incremental path search (Moving Target D* Lite) | only with our own A* | [navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md) |
 | A debug-build wall-clock tripwire for bot work-unit weights | catches drift, saves nothing | [think-scheduling](think-scheduling.md) |
 | Simulation below 30 Hz with interpolated rendering — REJECTED for now (Alex, 2026-10-15) | every per-tick cost by a third | [combat/scan-and-vision-cost](../combat/scan-and-vision-cost.md) §Beyond both |
-| Sleepy updates: idle pieces and countdowns skip ticks whose outcome is known | the idle half of the pieces' order ticks | [commands/the-simulation-step](../commands/the-simulation-step.md) §Sleepy updates |
+| The bots' fields rebuild: only the fields whose sources moved, a longer refresh with army size, or speed-ladder buckets | up to 1.0 ms/tick, the largest bot job | §Where a tick goes, item 1 |
+| Per-unit command and movement work: leaner travel-order movement, less receiver overhead per command | part of 1.6 ms/tick, growing with the army | §Where a tick goes, item 2 |
+| Per-tick actor checks only where the component is, or asleep while nothing nearby changes | about 0.8 ms/tick | §Where a tick goes, item 4 |
+| Shelter residents sleep between wander legs | about 0.4 ms/tick | §Where a tick goes, item 5 |
+| Visual `_process` skipped while there is nothing to show | part of 1.3 ms/frame | §Where a tick goes, item 6 |
+| The ~1 ms between the bot scheduler's total and its jobs' sum | unexplained, maybe 1 ms/tick | §Where a tick goes |
 | The economy's other one-off reads: `_propose_savings`, the pond-spot search, `_anchor_for`'s cluster walk | the economy runs still over 20 ms, up to 68 | §Re-measured 2026-10-16, item 2 |
 | A shelter resident's spawn point read from the terrain grid | 33 ms per resident; 130–140 ms opening ticks | §Re-measured 2026-10-16, item 3 |
 
