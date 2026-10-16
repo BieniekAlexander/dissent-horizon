@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-112**
+> Next id: **T-113**
 
 # Tasks
 
@@ -242,6 +242,20 @@ Unscoped:
 ### T-111 · An exported build and the editor disagree #effort/medium #unscoped
 Found 2026-10-15 measuring a release export. Two disagreements: (1) `ReplayFile.current_version` hashes the raw bytes of `VERSIONED_PATHS`, which an export converts, so an exported game's stamp never equals the editor's — each refuses the other's replays, and netplay refuses a mixed match; (2) on the authored `skirmish.tscn` a bot match in the release build parts from the editor's at tick 6872 (one unit fewer), though a lobby-generated map agrees to the bit for 9000 ticks. Each build is repeatable on its own. Fixed alongside: `Map` named `EditorInterface` (every script using `Map` failed to compile in an export) and `GeneratedMapWriter` instanced in edit state (the lobby crashed in an export).
 → [commands/recording-and-replay](systems/commands/recording-and-replay.md), [commands/netplay](systems/commands/netplay.md)
+
+### T-112 · The dominion generator's range shapes are part of its body #effort/low #needs-input
+Found 2026-10-16 surveying collision for the spatial index. In `an_bioMedium_dominionGen.tscn` the `DominionRegion` (cylinder r 2.5) and `LiberationRange` (cylinder r 4) are enabled `CollisionShape3D` children of the root `CharacterBody3D`, so they are shapes of the unit's body: it collides and blocks on MOVEMENT_OBSTRUCTION as something 8 units wide, and a STEALTH scan would hit it there. Every other range shape in the game (aggro, vision, detection) ships `disabled = true` and is only read as a shape. `FakePieces`' LiberationRange is enabled too.
+
+> [!question] Q — 2026-10-16
+> Should the two range shapes be disabled like every other range shape?
+> **Why it matters:** disabled, they stop being part of the body — the generator moves and blocks at the size of its MovementBody — while `followers_of` and `Liberator` keep reading them as query shapes; left as they are, the unit pushes and is pushed as an 8-unit-wide body.
+> **Options:**
+> 1. Disable both in the scene (and in `FakePieces`), and have the importer write `disabled = true` for any range shape it adds.
+> 2. Disable both in the scene only.
+>
+> **Leaning:** 1 — the importer is what keeps the next range shape from shipping live.
+>
+> **Answer:**
 
 ### T-038 · Move-line drag: the follow-ups #effort/medium #unscoped #shelved
 Built for the unarmed right click only. Left: the minimap, armed orders, navmesh snapping of slots, recording issued destinations in the replay (T-037).

@@ -173,7 +173,9 @@ bit between two runs of the same build, and is measured by simulated minute on t
       restore of netplay's §Rollback, later. Serials matter only to a snapshot, so they are
       built with it.
    4. **The spatial index** (§The spatial index) — built for decide's aggro scans, and armed
-      idle pieces sleep on it. The per-piece detection areas leaving the physics server follows.
+      idle pieces sleep on it. The per-piece aggro, vision and detection shapes turned out to be
+      disabled already (2026-10-16): only ever read as shapes, never in the physics server, so
+      there is nothing to remove. Two range shapes on one unit are live by mistake — T-112.
 3. **Worker threads for decide**, on the spatial index. TODO: deferred by Alex (2026-10-15) until
    the first two stages are built and measured.
 
@@ -198,6 +200,11 @@ Defend. C&C Generals' `PartitionManager` is the same idea.
   Both must move before decide can run on threads.
 - TODO: act-phase queries (crush, stealth detection, liberation, blast victims) stay on the
   physics server; they read live positions mid-tick, which a tick-start index does not hold.
+- TODO: **the rebuild costs about 1 ms a tick** on an i5-1245U (the bot match's script phase
+  rose 1.1 ms between 2026-10-15 and -16, sleeping on and off alike) — a full GDScript pass
+  computing every piece's `Hull` and filling the grid. It pays for itself in what it enables
+  (decide off the physics server, armed pieces asleep), not yet in time. Updating only pieces
+  that moved, or a native grid beside `TerrainCells`, would take most of it back.
 
 
 Built 2026-10-15 (approved by Alex). C&C Generals runs no module it does not have to: every
@@ -236,10 +243,10 @@ the gate, met for 9000 ticks of a bot match.
   sentences — keep their entity awake; each could promise its remaining ticks the way income does.
 - TODO: a rollback snapshot of a sleeping entity must include its slept ticks
   (`Entity._slept_ticks`), or its counters restore short.
-- Measured 2026-10-15 on an i5-1245U, the bot match's script phase, sleeping off against on,
-  two interleaved runs each: mean 14.4 ms against 13.5–13.7 ms — about 0.8 ms, near the
-  1.3–1.5 ms the idle buildings were measured to cost before building, and the same match both
-  ways.
+- Measured on an i5-1245U, the bot match's script phase, sleeping off against on, two
+  interleaved runs each: unarmed buildings only (2026-10-15), 14.4 ms against 13.5–13.7 ms;
+  armed pieces too (2026-10-16), 15.5–15.6 ms against 14.6–14.9 ms. About 0.8 ms either way —
+  the bot match has few idle armed pieces — and the same match both ways.
 
 ## Later
 
