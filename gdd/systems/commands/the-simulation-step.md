@@ -182,8 +182,10 @@ bit between two runs of the same build, and is measured by simulated minute on t
 ## The spatial index
 
 Built 2026-10-16. `SpatialIndex` holds every piece's Hurtbox — footprint (`Hull`), collision
-layers with side bits, and vertical span — on a grid of 8-unit cells, rebuilt by the stepper
-at the start of each tick from the world as the last tick left it. While the decide pass runs
+layers with side bits, and vertical span — on a grid of 8-unit cells, brought up to date by the
+stepper at the start of each tick from the world as the last tick left it. A piece whose Hurtbox
+transform and shape are exactly as indexed keeps its entry, with only its layers re-read; the
+rest are measured and re-filed, and pieces gone from play are dropped. While the decide pass runs
 it is `SpatialIndex.reading`, and `SU.entities_within` answers from it for any mask a Hurtbox
 carries (`SpatialIndex.answers`) — the aggro scans of idle pieces, AttackMove, Patrol and
 Defend. C&C Generals' `PartitionManager` is the same idea.
@@ -200,11 +202,15 @@ Defend. C&C Generals' `PartitionManager` is the same idea.
   Both must move before decide can run on threads.
 - TODO: act-phase queries (crush, stealth detection, liberation, blast victims) stay on the
   physics server; they read live positions mid-tick, which a tick-start index does not hold.
-- TODO: **the rebuild costs about 1 ms a tick** on an i5-1245U (the bot match's script phase
-  rose 1.1 ms between 2026-10-15 and -16, sleeping on and off alike) — a full GDScript pass
-  computing every piece's `Hull` and filling the grid. It pays for itself in what it enables
-  (decide off the physics server, armed pieces asleep), not yet in time. Updating only pieces
-  that moved, or a native grid beside `TerrainCells`, would take most of it back.
+- **What the update costs**, timed in the bot match on an i5-1245U (2026-10-16): 0.34–0.68 ms
+  a tick by minute three, against 0.78–1.25 ms for a full rebuild — about 16 of ~95 pieces move
+  in a tick, and checking the rest costs about 3 µs each, which is GDScript's own overhead;
+  caching each Hurtbox node in its entry measured no better.
+- TODO: an update that touches only the pieces that moved — each marking itself dirty from
+  `NOTIFICATION_TRANSFORM_CHANGED`, and from every place its Hurtbox's layers or shape change —
+  would cost the moved pieces alone. The price is an invariant nothing checks: a change that
+  does not mark leaves a stale entry, and the physics path no longer runs beside it to show it.
+  A native grid beside `TerrainCells` would cut the per-piece check instead.
 
 
 Built 2026-10-15 (approved by Alex). C&C Generals runs no module it does not have to: every

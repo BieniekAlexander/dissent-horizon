@@ -4,9 +4,10 @@ extends RefCounted
 ## THE PIECES' HURTBOXES ON A GRID, as the last tick left them — what the decide pass reads
 ## instead of the physics server. gdd/systems/commands/the-simulation-step.md §The spatial index.
 ##
-## Rebuilt by the stepper at the start of every tick, before anything decides, so it is the
-## same world the decide pass reads everywhere else; nothing writes it until the next rebuild,
-## which is what lets decide run on threads later. Each entry is a piece's footprint (Hull),
+## Brought up to date by the stepper at the start of every tick, before anything decides, so it
+## is the same world the decide pass reads everywhere else; nothing writes it until the next
+## update, which is what lets decide run on threads later. Only pieces that moved are measured
+## again. Each entry is a piece's footprint (Hull),
 ## its Hurtbox's collision layers (side bits included) and the Hurtbox's vertical span — what a
 ## physics query on a TARGETABLE mask hits. C&C Generals' PartitionManager is the same idea.
 
@@ -32,14 +33,29 @@ static func answers(collision_mask: int) -> bool:
 	return collision_mask & ~hurtbox_layers == 0
 
 
-## Cell -> Array of entries, each [entity, hull, layers, y_min, y_max, hurtbox rid], appended
-## in serial order (the stepper's), so every query answers in serial order.
+## Cell -> Array of entries. An entry is [entity, hull, layers, y_min, y_max, hurtbox rid,
+## cells, hurtbox transform, shape key, stamp, instance id]; queries read the first six and
+## sort by serial, so the order entries sit in a cell does not matter.
 var _cells: Dictionary = {}
+## Instance id -> entry, kept between ticks so a piece that has not moved is not measured again.
+var _entries: Dictionary = {}
+## Bumped by every update; an entry not stamped with the latest has left play.
+var _stamp: int = 0
 
 
-## Index every piece in `a_entities` (serial order) that has a Hurtbox in the tree.
+## Index every piece in `a_entities` that has a Hurtbox in the tree, from scratch.
 func rebuild(a_entities: Array) -> void:
 	_cells.clear()
+	_entries.clear()
+	update(a_entities)
+
+
+## Bring the index up to date with `a_entities`, the pieces in play as the tick starts. A piece
+## whose Hurtbox transform and shape are exactly as last indexed keeps its entry — only its
+## layers are re-read — so the cost is the pieces that moved, not every piece: half of them are
+## buildings. One that has left play (freed, off the tree) is dropped.
+func update(a_entities: Array) -> void:
+	_stamp += 1
 	for item: Variant in a_entities:
 		if not is_instance_valid(item):
 			continue
@@ -49,23 +65,74 @@ func rebuild(a_entities: Array) -> void:
 		var shape_node := entity.hurtbox.get_node_or_null("HurtboxShape") as CollisionShape3D
 		if shape_node == null or shape_node.shape == null or not shape_node.is_inside_tree():
 			continue
-		var half: float = (
-			Entity._half_height_of(shape_node.shape) * shape_node.global_transform.basis.y.length()
-		)
-		var y: float = shape_node.global_position.y
-		var hull: Hull = entity.hull()
-		var entry: Array = [
-			entity,
-			hull,
-			entity.hurtbox.collision_layer,
-			y - half,
-			y + half,
-			entity.hurtbox.get_rid()
-		]
-		for cell: Vector2i in _cells_around(hull.center, hull.extent()):
-			if not _cells.has(cell):
-				_cells[cell] = []
-			(_cells[cell] as Array).append(entry)
+		var xform: Transform3D = shape_node.global_transform
+		var key: Vector3 = _shape_key(shape_node.shape)
+		var entry: Variant = _entries.get(entity.get_instance_id())
+		if entry != null and entry[7] == xform and entry[8] == key:
+			entry[2] = entity.hurtbox.collision_layer
+			entry[9] = _stamp
+			continue
+		if entry != null:
+			_unfile(entry)
+		_file(_measure(entity, shape_node, xform, key))
+	for id: int in _entries.keys():
+		if int(_entries[id][9]) != _stamp:
+			_unfile(_entries[id])
+
+
+## A fresh entry for `a_entity`, whose Hurtbox shape is `a_shape_node` at `a_xform`.
+func _measure(
+	a_entity: Entity, a_shape_node: CollisionShape3D, a_xform: Transform3D, a_key: Vector3
+) -> Array:
+	var half: float = Entity._half_height_of(a_shape_node.shape) * a_xform.basis.y.length()
+	var y: float = a_xform.origin.y
+	var hull: Hull = a_entity.hull()
+	return [
+		a_entity,
+		hull,
+		a_entity.hurtbox.collision_layer,
+		y - half,
+		y + half,
+		a_entity.hurtbox.get_rid(),
+		_cells_around(hull.center, hull.extent()),
+		a_xform,
+		a_key,
+		_stamp,
+		a_entity.get_instance_id()
+	]
+
+
+func _file(a_entry: Array) -> void:
+	_entries[int(a_entry[10])] = a_entry
+	for cell: Vector2i in a_entry[6]:
+		if not _cells.has(cell):
+			_cells[cell] = []
+		(_cells[cell] as Array).append(a_entry)
+
+
+## Take `a_entry` out of its cells and the index. Touches nothing on its entity, which may be
+## freed.
+func _unfile(a_entry: Array) -> void:
+	for cell: Vector2i in a_entry[6]:
+		var filed: Array = _cells.get(cell, [])
+		filed.erase(a_entry)
+		if filed.is_empty():
+			_cells.erase(cell)
+	_entries.erase(int(a_entry[10]))
+
+
+## What decides a Hurtbox's footprint and span besides its transform: its dimensions, so a
+## shape resized in place (live tuning) is measured again.
+static func _shape_key(a_shape: Shape3D) -> Vector3:
+	if a_shape is BoxShape3D:
+		return (a_shape as BoxShape3D).size
+	if a_shape is CylinderShape3D:
+		return Vector3((a_shape as CylinderShape3D).radius, (a_shape as CylinderShape3D).height, 1)
+	if a_shape is CapsuleShape3D:
+		return Vector3((a_shape as CapsuleShape3D).radius, (a_shape as CapsuleShape3D).height, 2)
+	if a_shape is SphereShape3D:
+		return Vector3((a_shape as SphereShape3D).radius, 0, 3)
+	return Vector3.ZERO
 
 
 ## The pieces whose Hurtbox carries a layer in `collision_mask`, whose span overlaps `shape`

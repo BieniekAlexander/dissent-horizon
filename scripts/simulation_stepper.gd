@@ -99,7 +99,7 @@ func step(a_delta: float) -> void:
 			entity.prepare_step()
 			stepping.append(entity)
 	_entities = kept
-	index.rebuild(stepping)
+	index.update(stepping)
 	_wake_watchers(stepping)
 	SpatialIndex.reading = index
 	for item: Variant in stepping:

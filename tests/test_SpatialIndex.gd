@@ -110,3 +110,59 @@ func test_it_answers_hurtbox_masks_only() -> void:
 	assert_true(SpatialIndex.answers(CollisionLayers.Mask.LIBERATABLE))
 	assert_false(SpatialIndex.answers(CollisionLayers.Mask.STEALTH))
 	assert_false(SpatialIndex.answers(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
+
+
+# --- Updating in place -------------------------------------------------------------------
+
+
+func _hostiles_after_update(a_scanner: Actor, a_pieces: Array) -> Array[Entity]:
+	_index.update(a_pieces)
+	return _index.entities_within(
+		a_scanner.hull(),
+		_scan_shape(),
+		a_scanner.global_position,
+		CollisionLayers.hostile_mask(
+			CollisionLayers.TARGETABLE_ANY, a_scanner.allied_commander_ids()
+		),
+		[a_scanner.hurtbox.get_rid()]
+	)
+
+
+func test_a_piece_that_moves_is_found_where_it_now_stands() -> void:
+	var scanner := _piece(_commander(OWN), Vector3.ZERO)
+	var enemy := _piece(_commander(FOE), Vector3(40, 0, 0))
+	assert_eq(_hostiles_after_update(scanner, [scanner, enemy]), [] as Array[Entity])
+	enemy.global_position = Vector3(3, 0, 0)
+	assert_eq(_hostiles_after_update(scanner, [scanner, enemy]), [enemy] as Array[Entity])
+	enemy.global_position = Vector3(40, 0, 0)
+	assert_eq(_hostiles_after_update(scanner, [scanner, enemy]), [] as Array[Entity])
+
+
+func test_a_piece_no_longer_in_play_is_dropped() -> void:
+	var scanner := _piece(_commander(OWN), Vector3.ZERO)
+	var enemy := _piece(_commander(FOE), Vector3(3, 0, 0))
+	assert_eq(_hostiles_after_update(scanner, [scanner, enemy]).size(), 1)
+	assert_eq(_hostiles_after_update(scanner, [scanner]), [] as Array[Entity])
+
+
+## A change of side moves no Hurtbox, but its layers are re-read every update.
+func test_a_capture_is_seen_without_a_move() -> void:
+	var own := _commander(OWN)
+	var scanner := _piece(own, Vector3.ZERO)
+	var enemy := _piece(_commander(FOE), Vector3(3, 0, 0))
+	assert_eq(_hostiles_after_update(scanner, [scanner, enemy]).size(), 1)
+	enemy.ownership.commander = own
+	assert_eq(_hostiles_after_update(scanner, [scanner, enemy]), [] as Array[Entity])
+
+
+## A Hurtbox resized in place (live tuning) is measured again though it did not move.
+func test_a_resized_hurtbox_is_measured_again() -> void:
+	var scanner := _piece(_commander(OWN), Vector3.ZERO)
+	var enemy := _piece(_commander(FOE), Vector3(RADIUS + 2.0, 0, 0))
+	assert_eq(_hostiles_after_update(scanner, [scanner, enemy]), [] as Array[Entity])
+	var shape: CylinderShape3D = (
+		(enemy.hurtbox.get_node("HurtboxShape") as CollisionShape3D).shape.duplicate()
+	)
+	shape.radius = 3.0
+	(enemy.hurtbox.get_node("HurtboxShape") as CollisionShape3D).shape = shape
+	assert_eq(_hostiles_after_update(scanner, [scanner, enemy]), [enemy] as Array[Entity])
