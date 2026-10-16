@@ -163,6 +163,8 @@ func _parse_args() -> void:
 				time_scale = val.to_float()
 			"fprof-keys":
 				fprof_keys = PackedStringArray(val.split(","))
+			"sleep":
+				SimulationStepper.is_sleep_enabled = val != "off"
 
 
 ## Every slot becomes a bot so the session is a spectator match that needs no input.

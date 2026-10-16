@@ -95,7 +95,7 @@ func _pool(a_actor: Actor) -> Abilities:
 ## Tick `a_actor`'s ability pool `a_ticks` times.
 func _recharge(a_actor: Actor, a_ticks: int) -> void:
 	for _i: int in a_ticks:
-		_pool(a_actor)._physics_process(0.0)
+		_pool(a_actor).simulation_step(0.0)
 
 
 # --- Capability ------------------------------------------------------------------

@@ -34,14 +34,24 @@ func should_move(_a_actor: Actor) -> bool:
 	return false
 
 
-## Starts the undeploy on its first tick and reports true once it has run its time.
-func can_act(a_actor: Actor) -> bool:
+## Whether the undeploy has run its time, as this tick's apply_state found.
+var _is_finished: bool = false
+
+
+## Starts the undeploy on its first tick and runs it a tick each tick after.
+func apply_state(a_actor: Actor) -> void:
 	var deployable: Deployable = Deployable.of(a_actor)
 	if deployable == null:
-		return true
-	if deployable.stance == Deployable.Stance.DEPLOYED and not deployable.begin_undeploy():
-		return true
-	return deployable.advance()
+		_is_finished = true
+	elif deployable.stance == Deployable.Stance.DEPLOYED and not deployable.begin_undeploy():
+		_is_finished = true
+	else:
+		_is_finished = deployable.advance()
+
+
+## True once the undeploy has run its time.
+func can_act(_a_actor: Actor) -> bool:
+	return _is_finished
 
 
 func fulfill_action(_a_actor: Actor) -> Variant:

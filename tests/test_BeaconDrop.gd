@@ -117,7 +117,7 @@ func test_a_dropped_beacon_does_not_see() -> void:
 
 func test_a_dropped_beacon_is_stealthed() -> void:
 	var beacon: Beacon = _drop(OWN, Vector2.ZERO)
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	assert_eq(beacon.host().stealth.state, Stealth.State.STEALTHED)
 
 
@@ -140,7 +140,7 @@ func _repairer(a_commander_id: int) -> Actor:
 func test_an_enemy_repairer_takes_away_a_beacon_it_can_see() -> void:
 	var beacon: Beacon = _drop(OWN, Vector2.ZERO)
 	beacon.host().stealth.reveal()
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	var repairer: Actor = _repairer(FOE)
 	assert_true(Repair.can_repair(repairer, beacon.host()))
 	var message := CommandMessage.new(_map, beacon.host())
@@ -150,19 +150,19 @@ func test_an_enemy_repairer_takes_away_a_beacon_it_can_see() -> void:
 
 func test_a_stealthed_beacon_cannot_be_repaired_away() -> void:
 	var beacon: Beacon = _drop(OWN, Vector2.ZERO)
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	assert_false(Repair.can_repair(_repairer(FOE), beacon.host()))
 
 
 func test_an_owner_does_not_repair_its_own_beacon_away() -> void:
 	var beacon: Beacon = _drop(OWN, Vector2.ZERO)
 	beacon.host().stealth.reveal()
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	assert_false(Repair.can_repair(_repairer(OWN), beacon.host()))
 
 
 func test_a_beacon_without_a_repairer_is_left_alone() -> void:
 	var beacon: Beacon = _drop(OWN, Vector2.ZERO)
 	beacon.host().stealth.reveal()
-	beacon._physics_process(0.0)
+	beacon.simulation_step(0.0)
 	assert_false(Repair.can_repair(_piece({"speed": 2.0}, FOE, Vector2(1, 0)), beacon.host()))

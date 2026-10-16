@@ -19,6 +19,8 @@ extends Node
 
 ## Physics ticks the host has stood so far. Per-frame node state, the framework's shape.
 var _ticks_alive: int = 0
+## Whether the host has been sent out of play; it lingers until the frame's frees.
+var _has_expired: bool = false
 #endregion
 
 
@@ -45,9 +47,11 @@ func is_expired() -> bool:
 
 
 #region Lifecycle
-func _physics_process(_a_delta: float) -> void:
+func simulation_step(_a_delta: float) -> void:
+	if _has_expired:
+		return
 	_ticks_alive += 1
 	if is_expired():
-		set_physics_process(false)
+		_has_expired = true
 		(get_parent() as Entity).expire()
 #endregion

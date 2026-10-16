@@ -43,7 +43,7 @@ func _make_unit(a_speed: float = 1.0, a_attrs: Array = []) -> StubCommandable:
 func _tick(a_effect: StatusEffect, a_n: int) -> void:
 	for i in a_n:
 		if is_instance_valid(a_effect) and a_effect.get_parent() != null:
-			a_effect._physics_process(0.0)
+			a_effect.simulation_step(0.0)
 
 
 func _status_children(a_u: Node) -> Array:

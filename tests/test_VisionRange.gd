@@ -61,7 +61,7 @@ func test_an_orbit_vision_stands_at_the_orbit_centre() -> void:
 	var piece: Actor = _piece(AIRCRAFT, VisionRange.Origin.ORBIT)
 	piece.global_position = Vector3(10.0, 0.0, -3.0)
 	piece.aerial.set_anchor(ANCHOR)
-	_vision(piece)._physics_process(0.0)
+	_vision(piece).simulation_step(0.0)
 	assert_true(piece.grants_vision())
 	assert_eq(VU.in_xz(_vision(piece).global_position), VU.in_xz(ANCHOR))
 
@@ -70,13 +70,13 @@ func test_an_orbit_vision_on_a_sortie_is_blind_in_transit() -> void:
 	var piece: Actor = _piece(AIRCRAFT, VisionRange.Origin.ORBIT)
 	piece.global_position = HOME
 	var sortie: Sortie = Sortie.launch(piece, _map, HOME, STATION, STATION_SECONDS)
-	sortie.set_physics_process(false)
+	sortie.process_mode = Node.PROCESS_MODE_DISABLED
 	assert_false(piece.grants_vision(), "inbound")
 	piece.global_position = STATION
-	sortie._physics_process(0.0)
+	sortie.simulation_step(0.0)
 	assert_eq(sortie.phase, Sortie.Phase.ON_STATION)
 	assert_true(piece.grants_vision(), "on station")
-	_vision(piece)._physics_process(0.0)
+	_vision(piece).simulation_step(0.0)
 	assert_eq(VU.in_xz(_vision(piece).global_position), VU.in_xz(STATION))
 	sortie._leave(piece)
 	assert_false(piece.grants_vision(), "outbound")

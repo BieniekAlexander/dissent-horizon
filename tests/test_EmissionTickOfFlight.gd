@@ -64,7 +64,7 @@ class Shooter:
 		add_child(emission)
 		Emitter.launch(emission, null, emission.global_position)
 		if ticks_at_once:
-			locomotion._physics_process(0.0)
+			locomotion.simulation_step(0.0)
 
 
 func _fire(a_configure: Callable, a_ticks_at_once: bool = false) -> Shooter:

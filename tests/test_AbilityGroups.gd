@@ -35,7 +35,7 @@ func _pool(a_grants: Array, a_charges: int = 1, a_cooldown_ticks: int = 30) -> D
 
 func _tick(a_node: Abilities, a_times: int) -> void:
 	for _i: int in a_times:
-		a_node._physics_process(1.0 / 30.0)
+		a_node.simulation_step(1.0 / 30.0)
 
 
 # --- Granting --------------------------------------------------------------------

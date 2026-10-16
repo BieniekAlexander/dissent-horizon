@@ -16,6 +16,16 @@ var build_up_max: int = 10
 
 
 #region Public API
+## Ticks to come that only count toward the next cycle: the host may sleep through them.
+func ticks_before_payout() -> int:
+	return TICK_RATE - ticks_elapsed - 1
+
+
+## Count `a_ticks` slept ticks, none of which reached a cycle (ticks_before_payout).
+func count_ticks(a_ticks: int) -> void:
+	ticks_elapsed += a_ticks
+
+
 func tick() -> void:
 	ticks_elapsed += 1
 	if ticks_elapsed == TICK_RATE:

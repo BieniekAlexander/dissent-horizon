@@ -6,13 +6,13 @@ extends Node
 ##
 ## Lifecycle (all measured in physics ticks; the game runs at 30 ticks/second):
 ##   apply_to(entity)  — reparents this node under `entity`, then _on_apply() enacts it.
-##   _physics_process  — each tick calls _on_tick(); after `duration_ticks` ticks the
+##   simulation_step  — each tick calls _on_tick(); after `duration_ticks` ticks the
 ##                       effect ends: _on_remove() undoes it and the node frees itself.
 ##   remove()          — external cancellation (a relevant event forces it to finish).
 ##
 ## Subclasses override the hooks. Authored as a node, a StatusEffect doubles as a
 ## TEMPLATE: while it sits unattached under an EffectApplicator (no _entity), its
-## _physics_process is inert. EffectApplicator duplicate()s the template and calls
+## simulation_step is inert. EffectApplicator duplicate()s the template and calls
 ## apply_to() per recipient, so the template is never consumed.
 ##
 ## REAPPLICATION — when a kind of effect already on the host is applied again (matched
@@ -199,7 +199,7 @@ func is_active() -> bool:
 
 
 #region Lifecycle
-func _physics_process(_a_delta: float) -> void:
+func simulation_step(_a_delta: float) -> void:
 	# Inert while a template (no entity) or in the editor.
 	if Engine.is_editor_hint() or _entity == null:
 		return

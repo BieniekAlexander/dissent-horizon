@@ -396,6 +396,15 @@ func terrain_height_at(a_world_xz: Vector2) -> float:
 	return (global_transform * Vector3(local.x, h_local, local.z)).y
 
 
+## Whether the segment `a_from` -> `a_to` (world space, starting above the surface) touches
+## the terrain the physics server collides with — answered from the heightmap itself
+## (HeightmapRay), so a read in the decide pass needs no physics query.
+func terrain_segment_hits(a_from: Vector3, a_to: Vector3) -> bool:
+	if height_map == null or _terrain_collision_shape == null:
+		return false
+	return HeightmapRay.hits(height_map, _terrain_collision_shape.global_transform, a_from, a_to)
+
+
 ## Convert a world XZ position to the nearest grid cell indices.
 ## This is the exact inverse of grid_to_world: it undoes the terrain_body
 ## transform and the (map_width-1)/2 centering that grid_to_world applies.
@@ -1034,7 +1043,10 @@ func _confirm_create_terrain_mesh() -> void:
 		]
 	)
 	dialog.ok_button_text = "Flatten"
-	EditorInterface.get_base_control().add_child(dialog)
+	# Looked up by name: the EditorInterface identifier does not exist in an exported game, and
+	# naming it fails this whole script — and every script that uses Map — at compile time.
+	var editor: Object = Engine.get_singleton(&"EditorInterface")
+	(editor.call(&"get_base_control") as Control).add_child(dialog)
 	dialog.confirmed.connect(_create_terrain_mesh)
 	# The dialog is a throwaway: it is built per click so it can never hold a stale closure
 	# over a Map that has since been freed.

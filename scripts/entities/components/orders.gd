@@ -197,8 +197,10 @@ func tick() -> void:
 	# unbuilt owner's commands, so an ungated pickup would latch onto a target it cannot shoot.
 	# A grounded aircraft picks up nothing (can_use_weapons), nor does a piece holding fire
 	# (get_aggro_near_position answers null).
+	# The target was chosen in the decide phase, against the world as the last tick left it;
+	# here it is only checked to still hold.
 	if actor.is_built and receiver.is_idle() and actor.can_use_weapons():
-		var aggro_cmd: MoveCommand = actor.get_aggro_near_position()
+		var aggro_cmd: MoveCommand = actor.take_decided_aggro()
 		if aggro_cmd != null:
 			update_commands(aggro_cmd)
 	receiver._update_state()

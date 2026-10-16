@@ -97,7 +97,7 @@ The kamikaze's weapon is deliberately uncharged.
 ## Docking a FLYING unit suspends flight
 
 
-`FLYING` had no landing regime at all before this: it was unconditionally airborne, `_update_flying_height` owned the altitude and pushed it back to `AERIAL_HEIGHT` every tick, and an idle one orbited rather than stopping. So grounding one is not a matter of reusing the hover landing — it is a matter of **suspending normal flight**, which is what `_landing_state != AIRBORNE` now means for this mode too. `_physics_process` routes to `_tick_flying_landing` instead of `_update_flying_height` while that holds, so the two never fight over `_current_height_offset`.
+`FLYING` had no landing regime at all before this: it was unconditionally airborne, `_update_flying_height` owned the altitude and pushed it back to `AERIAL_HEIGHT` every tick, and an idle one orbited rather than stopping. So grounding one is not a matter of reusing the hover landing — it is a matter of **suspending normal flight**, which is what `_landing_state != AIRBORNE` now means for this mode too. `simulation_step` routes to `_tick_flying_landing` instead of `_update_flying_height` while that holds, so the two never fight over `_current_height_offset`.
 
 Four consequences, each with the place it lives:
 

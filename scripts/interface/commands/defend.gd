@@ -68,7 +68,18 @@ func should_move(a_actor: Actor) -> bool:
 	return not _on_station
 
 
+func decide(a_actor: Actor) -> void:
+	_decide_aggro(a_actor, _scan)
+
+
 func get_updated_state(a_actor: Actor) -> Variant:
+	var new_command: MoveCommand = _take_aggro(a_actor, _scan)
+	return new_command if new_command != null else self
+
+
+## The threat to engage, leashed to the defended area — or null. Reads only: the leash is
+## written into the attack it creates, which nothing else holds yet.
+func _scan(a_actor: Actor) -> MoveCommand:
 	# Scan for threats around the DEFENDED REGION — the shared aggro_shape at its own world
 	# position — not this unit's post, so every defender reacts to the same incursion and a
 	# bait can't peel one unit off alone. Passing the shape node as the centre makes
@@ -87,7 +98,7 @@ func get_updated_state(a_actor: Actor) -> Variant:
 	)
 	if new_command != null:
 		_leash_to_defended_area(a_actor, new_command)
-	return new_command if new_command != null else self
+	return new_command
 
 
 ## Hand the engagement the SAME region it was acquired in, so acquiring and releasing a target

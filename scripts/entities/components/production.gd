@@ -106,6 +106,9 @@ func enqueue(
 ) -> bool:
 	if not is_free():
 		return false
+	var host := get_parent() as Entity
+	if host != null:
+		host.wake()
 	training_queue.push_back(
 		[a_creation_time, a_creation_time, a_packed_scene, a_unit_type, a_commands, a_transaction]
 	)

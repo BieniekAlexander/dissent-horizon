@@ -45,7 +45,7 @@ func _movement(a_mode: Movement.Mode = Movement.Mode.GROUNDED) -> Movement:
 
 func _tick(a_movement: Movement, a_ticks: int) -> void:
 	for _i: int in a_ticks:
-		a_movement._physics_process(1.0 / TimeUtils.ticks_per_second())
+		a_movement.simulation_step(1.0 / TimeUtils.ticks_per_second())
 
 
 ## Ticks until the descent ends, or TICK_BUDGET if it never does.
@@ -53,7 +53,7 @@ func _fall(a_movement: Movement) -> int:
 	for elapsed: int in TICK_BUDGET:
 		if not a_movement.is_parachuting():
 			return elapsed
-		a_movement._physics_process(1.0 / TimeUtils.ticks_per_second())
+		a_movement.simulation_step(1.0 / TimeUtils.ticks_per_second())
 	return TICK_BUDGET
 
 

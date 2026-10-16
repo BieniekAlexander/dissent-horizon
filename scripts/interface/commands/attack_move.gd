@@ -24,10 +24,17 @@ func releases_hold_fire() -> bool:
 
 
 #region State updates
+func decide(a_actor: Actor) -> void:
+	_decide_aggro(a_actor, _scan)
+
+
+## Something to fight near the actor, at this order's minimum target priority.
+func _scan(a_actor: Actor) -> MoveCommand:
+	return a_actor.get_aggro_near_position(null, null, message.target_priority)
+
+
 func get_updated_state(a_actor: Actor) -> Variant:
-	var aggro_command: MoveCommand = a_actor.get_aggro_near_position(
-		null, null, message.target_priority
-	)
+	var aggro_command: MoveCommand = _take_aggro(a_actor, _scan)
 	# Return the aggro command directly (not wrapped in an array). The
 	# update_commands(cmd, add_to_queue=true, prepend=true) path in
 	# CommandReceiver already pushes the current AttackMove back to the front

@@ -170,7 +170,7 @@ func test_a_pool_dial_grows_as_the_charge_comes_back() -> void:
 	var abilities := piece.get_node("Abilities") as Abilities
 	abilities.spend(CAST)
 	for i: int in 4:
-		abilities._physics_process(0.0)
+		abilities.simulation_step(0.0)
 	assert_almost_eq(ChargeDial.pool_state(abilities, 0).progress, 0.4, 0.001)
 
 

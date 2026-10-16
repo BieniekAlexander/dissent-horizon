@@ -129,7 +129,7 @@ func _recharge_ticks(a_pool: Abilities) -> int:
 	a_pool.spend(SHELL)
 	var ticks: int = 0
 	while not a_pool.is_ready(SHELL) and ticks < COOLDOWN_TICKS * 2:
-		a_pool._physics_process(0.0)
+		a_pool.simulation_step(0.0)
 		ticks += 1
 	return ticks
 

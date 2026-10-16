@@ -73,7 +73,7 @@ past the click slop.
   has not decided whether they should.
 - **TODO** Slots are not snapped to the navmesh, so a slot on a cliff or inside a wall is
   unreachable; the unit goes as near as it can.
-- **TODO** The destination swap in `MoveCommand._resolve_destination_swap` may reorder a line's
+- **TODO** The destination swap in `MoveCommand.swap_trades` may reorder a line's
   slots once a second. Harmless given interchangeable actors.
 - **TODO** Recording: when the replay stream lands (`recording-and-replay.md`), record the issued
   destinations, not the drag.

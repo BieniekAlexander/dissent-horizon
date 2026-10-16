@@ -239,7 +239,7 @@ var _permanently_grounded: bool = false
 var _land_on_complete: Callable = Callable()
 
 ## When the predicted touchdown is off-navmesh, _try_start_landing() raises this
-## flag instead of immediately entering LANDING. While true, _physics_process drives
+## flag instead of immediately entering LANDING. While true, simulation_step drives
 ## the unit toward _landing_target in AIRBORNE state; the descent begins only once
 ## the unit arrives. Cleared either on arrival (→ LANDING) or by cancel_pending_land().
 var _pending_land: bool = false
@@ -328,7 +328,7 @@ func _ready() -> void:
 		_anchor = host.global_position
 
 
-func _physics_process(_a_delta: float) -> void:
+func simulation_step(_a_delta: float) -> void:
 	if _movement_is_dormant():
 		return
 	if mode == Movement.Mode.FLYING:
@@ -731,13 +731,13 @@ func _brake_during_descent() -> void:
 
 
 ## One tick of a FLYING unit's pad landing — the fixed-wing counterpart of the HOVERING
-## LANDING / GROUNDED_TEMP / TAKING_OFF block in _physics_process.
+## LANDING / GROUNDED_TEMP / TAKING_OFF block in simulation_step.
 ##
 ## FLYING has no landing regime of its own: `_update_flying_height` owns the altitude and
 ## pushes it back to AERIAL_HEIGHT every tick, and an idle FLYING unit orbits rather than
 ## stopping. So docking one is not a matter of reusing the hover landing — it is a matter
 ## of SUSPENDING normal flight, which is what `_landing_state != AIRBORNE` means for this
-## mode. `_physics_process` routes here instead of `_update_flying_height` while that holds,
+## mode. `simulation_step` routes here instead of `_update_flying_height` while that holds,
 ## so the two never fight over `_current_height_offset`.
 ##
 ## Only ever reached for a PAD landing: nothing else sets a FLYING unit's landing state, so
@@ -983,7 +983,7 @@ func request_dive(a_target_xz: Vector2, a_floor: float = 0.0) -> void:
 	_dive_floor = a_floor
 
 
-## Per-tick FLYING altitude control, called from _physics_process. Two regimes:
+## Per-tick FLYING altitude control, called from simulation_step. Two regimes:
 ##   * committed to a dive — inside dive_distance of the requested target, descending at
 ##     the rate that lands it on the target's altitude (see _descend_toward_dive);
 ##   * otherwise — climbing back to AERIAL_HEIGHT at the flat LANDING_SPEED, wings level.

@@ -83,7 +83,6 @@ mirror_secondary_axis = 2
 [node name="Sun" type="DirectionalLight3D" parent="Map" unique_id=1565876378]
 transform = Transform3D(0.76592153, 0.3691074, -0.5264257, 0, 0.8187863, 0.57409835, 0.64293414, -0.43971425, 0.6271261, 0, 40, 0)
 light_energy = 1.1
-shadow_enabled = true
 
 [node name="StartPoint1" parent="Map" unique_id=105025530 instance=ExtResource("10_ehaxw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 60)

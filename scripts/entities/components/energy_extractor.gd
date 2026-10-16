@@ -30,6 +30,16 @@ var reservoir: WaterBody = null
 
 
 #region Public API
+## Ticks to come that only count toward the next payout: the host may sleep through them.
+func ticks_before_payout() -> int:
+	return TICK_RATE - _ticks_elapsed % TICK_RATE - 1
+
+
+## Count `a_ticks` slept ticks, none of which reached a payout (ticks_before_payout).
+func count_ticks(a_ticks: int) -> void:
+	_ticks_elapsed += a_ticks
+
+
 func tick() -> void:
 	_ticks_elapsed += 1
 	if _ticks_elapsed % TICK_RATE != 0:

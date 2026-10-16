@@ -252,7 +252,7 @@ Three consequences worth knowing:
   to play before the sentence model, and `is_closed()` before that. `Bot.get_deposit_structures`
   asks the same question, so a future holding structure is picked up with no code change.
 - **A finished sentence CONSUMES the captive** (`Garrison.discard`, called from the component's
-  own `_physics_process`): the unit is freed outright, producing nothing further but the
+  own `simulation_step`): the unit is freed outright, producing nothing further but the
   dominion it paid along the way and the [[work_detail|Work Detail]] cooldown reduction it
   fires on the way out. This is what separates the Colonial route from the Anarchical one —
   a Warlord converts a Terrestrial and keeps the unit in the world; a Compound spends it.

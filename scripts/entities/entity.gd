@@ -251,7 +251,7 @@ var pc_set: Set = Set.new()
 var is_planned: bool = false
 
 ## This piece's spawn serial: the number it took on first entering play, the same on every run
-## of a seed — how a recorded order names it (Scenario.register_piece). 0 until then, and for
+## of a seed — how a recorded order names it (Scenario.register_entity). 0 until then, and for
 ## good on anything that never enters play in a scenario (a build preview, a test fixture).
 var spawn_serial: int = 0
 
@@ -373,6 +373,7 @@ func undeploy() -> void:
 ## FOLLOWS the form: which component is live, the unit/fixture/structure groups, the collision
 ## and target layers, and whatever an override of _on_form_changed keeps.
 func set_deployed(a_deployed: bool) -> void:
+	wake()
 	var structure := get_node_or_null("Fixture") as Fixture
 	var locomotion := get_node_or_null("Locomotion") as Movement
 	if structure == null or locomotion == null:
@@ -747,6 +748,7 @@ func _apply_targetable_layers() -> void:
 	# does a charge riding on another piece: shooting at it is shooting at its carrier.
 	if is_planned or PlantedCharge.is_riding(self):
 		hurtbox.collision_layer = layers
+		mark_spatial_dirty()
 		return
 	_targetable_as_air = is_air_target()
 	if structure_is_active():
@@ -765,6 +767,7 @@ func _apply_targetable_layers() -> void:
 	# follows the owner, which is why a capture re-applies these layers.
 	layers |= CollisionLayers.side_bits(layers & CollisionLayers.TARGETABLE_ANY, commander_id)
 	hurtbox.collision_layer = layers
+	mark_spatial_dirty()
 
 
 ## The ATTACKABLE facet: a weapon can lock onto it and it can take damage
@@ -856,14 +859,205 @@ func _take_yaw_from_basis() -> void:
 	_yaw = DMath.atan2(given.z.x, given.z.z)
 
 
-## Number this piece on its first entry into a scenario. Only pieces are numbered: an emission
-## is never named by an order.
+## Number this entity on its first entry into a scenario, and hand its stepping to the
+## scenario's SimulationStepper, which steps every entity in serial order. Emissions are numbered
+## too: they act in that order like any piece, though no order ever names one.
 func _take_spawn_serial() -> void:
-	if spawn_serial != 0 or not is_in_group("piece") or Engine.is_editor_hint():
+	if spawn_serial != 0 or Engine.is_editor_hint():
 		return
 	var scenario: Scenario = Scenario.of(self)
 	if scenario != null:
-		spawn_serial = scenario.register_piece(self)
+		spawn_serial = scenario.register_entity(self)
+		set_physics_process(false)
+
+
+#region Simulation step
+## The nodes this entity steps each tick, in tree order: itself and every node under it that
+## defines `simulation_step`, down to (not into) any entity nested beneath it. Kept between ticks
+## — rebuilding it is a subtree walk per entity per tick — and rebuilt when its subtree changes.
+## UNTYPED: a node can be freed outright mid-tick, and a freed object fails a typed read.
+var _step_list: Array = []
+## The same walk's nodes that define `simulation_decide`: the decide phase's share.
+var _decide_list: Array = []
+var _is_step_list_stale: bool = true
+
+
+## The nearest entity at or above `a_node`, or null when it belongs to none.
+static func owning(a_node: Node) -> Entity:
+	var node: Node = a_node
+	while node != null and not node is Entity:
+		node = node.get_parent()
+	return node as Entity
+
+
+## A node joined or left this entity's subtree — which also wakes it: whatever came or went
+## may have work of its own.
+func invalidate_step_list() -> void:
+	_is_step_list_stale = true
+	wake()
+
+
+## Ticks a node may promise to need no stepping for, the longest a sleep can be.
+const SLEEP_FOREVER: int = 1 << 30
+## The stepper tick this entity next steps on; before it, it sleeps.
+var _wake_tick: int = 0
+## Ticks slept since it last stepped, which catch_up hands to the nodes that count time.
+var _slept_ticks: int = 0
+## Whether every node this entity steps can say how long it may sleep (`sleep_ticks`).
+var _is_step_list_sleepable: bool = false
+
+## The spatial index keeping this piece's Hurtbox, or null when none tracks it.
+var _spatial_index: SpatialIndex = null
+
+
+## Start reporting Hurtbox changes to `a_index` (SpatialIndex.track).
+func track_in_spatial_index(a_index: SpatialIndex) -> void:
+	_spatial_index = a_index
+	set_notify_transform(true)
+
+
+## Tell the spatial index this piece's Hurtbox may have changed — moved, entered or left the
+## tree, or had its layers written. INVARIANT: every write to a Hurtbox's layers, shape or
+## local transform calls this; nothing else can see the write, and `--verify-index` on the
+## determinism probe is the check that catches one that does not.
+func mark_spatial_dirty() -> void:
+	if _spatial_index != null:
+		_spatial_index.mark(self)
+
+
+func _notification(a_what: int) -> void:
+	if (
+		a_what == NOTIFICATION_TRANSFORM_CHANGED
+		or a_what == NOTIFICATION_ENTER_TREE
+		or a_what == NOTIFICATION_EXIT_TREE
+	):
+		mark_spatial_dirty()
+
+
+## Step on the next tick that comes, whatever the entity last promised: something changed
+## that its sleep did not foresee. Called wherever an idle piece can be given work.
+func wake() -> void:
+	_wake_tick = 0
+
+
+func is_asleep_at(a_tick: int) -> bool:
+	return _wake_tick > a_tick
+
+
+func sleep_until(a_tick: int) -> void:
+	_wake_tick = a_tick
+	_watch_radius = sleep_watch_radius() if a_tick > 0 else -1.0
+
+
+## How far this entity, asleep, watches for hostiles; -1.0 for one that picks no fights. An
+## Actor answers by its aggro range.
+func sleep_watch_radius() -> float:
+	return -1.0
+
+
+## The watch radius it fell asleep with (SimulationStepper wakes it on a hostile within it).
+var _watch_radius: float = -1.0
+
+
+func watch_radius() -> float:
+	return _watch_radius
+
+
+func note_slept_tick() -> void:
+	_slept_ticks += 1
+
+
+## How many coming ticks this entity's step is known to change nothing but counters: the
+## fewest any node it steps promises, and none unless every node can promise
+## (`sleep_ticks()` on the node). Asked right after it steps.
+func step_sleep_ticks() -> int:
+	if not _is_step_list_sleepable:
+		return 0
+	var ticks: int = SLEEP_FOREVER
+	for item: Variant in _step_list:
+		if is_instance_valid(item):
+			ticks = mini(ticks, int((item as Node).call(&"sleep_ticks")))
+	return maxi(ticks, 0)
+
+
+## Hand the ticks slept since the last step to every node that counts time (`catch_up`), so
+## its counters read as if it had stepped through them.
+func catch_up_slept_ticks() -> void:
+	if _slept_ticks == 0:
+		return
+	for item: Variant in _step_list:
+		if is_instance_valid(item) and (item as Node).has_method(&"catch_up"):
+			(item as Node).call(&"catch_up", _slept_ticks)
+	_slept_ticks = 0
+
+
+## Fix what this tick steps, before any entity steps: a node added mid-tick waits for the next.
+func prepare_step() -> void:
+	if not _is_step_list_stale:
+		return
+	_step_list.clear()
+	_decide_list.clear()
+	_collect_stepped(self)
+	_is_step_list_sleepable = _step_list.all(
+		func(n: Node) -> bool: return n.has_method(&"sleep_ticks")
+	)
+	_is_step_list_stale = false
+
+
+func _collect_stepped(a_node: Node) -> void:
+	if a_node.has_method(&"simulation_step"):
+		_step_list.append(a_node)
+	if a_node.has_method(&"simulation_decide"):
+		_decide_list.append(a_node)
+	for child: Node in a_node.get_children():
+		if not child is Entity:
+			_collect_stepped(child)
+
+
+## The decide phase of this entity's tick: every node under it that decides, in tree order,
+## reading the world as the last tick left it and writing nothing but what it decided. Every
+## entity decides before any acts. gdd/systems/commands/the-simulation-step.md.
+func decide_simulation() -> void:
+	for item: Variant in _decide_list:
+		if not is_instance_valid(item):
+			continue
+		var node: Node = item
+		if node.is_inside_tree() and node.can_process():
+			node.call(&"simulation_decide")
+
+
+## One tick of everything this entity does, in tree order — the order the engine processed the
+## same nodes in when each ran its own `_physics_process`. A node whose process mode is off
+## (`PROCESS_MODE_DISABLED`) is skipped, as the engine would skip it.
+func step_simulation(a_delta: float) -> void:
+	for item: Variant in _step_list:
+		if not is_instance_valid(item):
+			continue
+		var node: Node = item
+		if node.is_inside_tree() and node.can_process():
+			node.call(&"simulation_step", a_delta)
+
+
+## End the entity's life if this tick's damage did; after every entity has stepped. A piece
+## that can die (Actor) overrides it.
+func resolve_death() -> void:
+	pass
+
+
+## Framework-imposed: outside a scenario — a test fixture, a preview tool — nothing steps this
+## entity, so it steps itself. In a scenario the stepper does, and this is switched off.
+func _physics_process(a_delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
+	invalidate_step_list()
+	prepare_step()
+	SimulationStepper.begin_round()
+	decide_simulation()
+	step_simulation(a_delta)
+	resolve_death()
+
+
+#endregion
 
 
 func _validate() -> void:
@@ -923,6 +1117,7 @@ func _auto_initialize() -> void:
 
 
 func _on_commander_changed(_a_old_commander: Commander, a_new_commander: Commander) -> void:
+	wake()
 	_apply_team_tint()
 	_apply_targetable_layers()
 	# Keep the scene tree organised: entities live as children of their commander.
@@ -992,6 +1187,7 @@ func initialize(a_map: Map, a_commander: Commander):
 
 
 func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
+	wake()
 	if defense == null:
 		return
 	var was_alive: bool = defense.hp > 0

@@ -90,7 +90,6 @@ material = SubResource("Material_terrain")
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1565876378]
 transform = Transform3D(0.766, 0.369, -0.527, 0, 0.819, 0.574, 0.643, -0.44, 0.628, 0, 40, 0)
 light_energy = 1.1
-shadow_enabled = true
 
 [node name="StartPoint1" parent="." unique_id=105025530 instance=ExtResource("start_point")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 0, -34)

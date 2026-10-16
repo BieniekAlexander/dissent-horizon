@@ -10,7 +10,7 @@ extends Node3D
 #region Properties
 #region ammo
 ## PHYSICS TICKS, not seconds — the countdowns below are decremented once per
-## _physics_process, so ticks are the unit the mechanism actually works in. The gdd doc
+## simulation_step, so ticks are the unit the mechanism actually works in. The gdd doc
 ## authors SECONDS (`split_time:` / `reload_time:`) and the importer converts through
 ## TimeUtils; the two are spelled differently on purpose, because they used to share a
 ## name and differ by a factor of 30 with nothing on either page to say so.
@@ -167,7 +167,7 @@ var _next_launch_point: int = 0
 ## by scene path and weapon name — so the warning is said once per piece, not per spawn.
 static var _warned_origin: Dictionary = {}
 ## Physics ticks since aim_turret_toward() was last called. Reset to 0 by every aim and
-## counted up by _physics_process, so it cannot matter which of the two runs first in a tick.
+## counted up by simulation_step, so it cannot matter which of the two runs first in a tick.
 var _turret_idle_ticks: int = 0
 #endregion
 
@@ -220,7 +220,7 @@ func _ready() -> void:
 		(target_mask & ~CollisionLayers.TARGETABLE_ANY) == 0,
 		"Weapon '%s': target_mask may only set TARGETABLE_GROUND / TARGETABLE_AIR" % name
 	)
-	# An ordinary weapon is filled by the first _physics_process tick (its reload countdown
+	# An ordinary weapon is filled by the first simulation_step tick (its reload countdown
 	# starts at 0). A charged one never runs that countdown, so it has to be seeded here or
 	# it would spawn holding the single round _ammo is declared with.
 	if charged:
@@ -231,7 +231,36 @@ func _ready() -> void:
 		wielder().entity_occurrence.connect(_on_wielder_occurrence)
 
 
-func _physics_process(_a_delta: float) -> void:
+## Once its turret is at rest, every tick only counts: the rest counter, the split and reload
+## timers. The host may sleep through them (catch_up counts them on waking).
+func sleep_ticks() -> int:
+	if turret and not _is_turret_resting():
+		return 0
+	return Entity.SLEEP_FOREVER
+
+
+## `a_ticks` slept ticks, counted exactly as simulation_step would have stepped them.
+func catch_up(a_ticks: int) -> void:
+	if turret:
+		_turret_idle_ticks += a_ticks
+	_split_timer_ticks = maxi(_split_timer_ticks - a_ticks, 0)
+	if charged:
+		return
+	_reload_timer_ticks -= a_ticks
+	if _reload_timer_ticks <= 0:
+		_split_timer_ticks = 0
+		_ammo = clip_size
+
+
+## Whether the turret has drifted all the way home and nothing has aimed it since.
+func _is_turret_resting() -> bool:
+	return (
+		turret_yaw == 0.0
+		and _turret_idle_ticks > TimeUtils.ticks_from_seconds(TURRET_REST_DELAY_SECONDS)
+	)
+
+
+func simulation_step(_a_delta: float) -> void:
 	if turret:
 		_update_turret_rest()
 	# CLAMPED AT ZERO, because is_ready() asks for EXACTLY zero. A weapon that becomes ready
@@ -803,7 +832,7 @@ func recharge(a_ticks: float = 1.0) -> bool:
 	# A weapon that was dry must not fire the instant its first round lands mid-burst
 	# cadence, so the between-shots timer is deliberately NOT reset here — it is left to run
 	# down on its own. (It used to be clamped up to zero at this point, which is now the
-	# business of _physics_process and true every tick rather than only while docked.)
+	# business of simulation_step and true every tick rather than only while docked.)
 	return _ammo >= clip_size
 
 

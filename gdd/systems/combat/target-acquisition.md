@@ -297,7 +297,7 @@ said it should be shot at ground range — a hangar full of aircraft was immune 
 standing next to it.
 
 **The layer is now re-filed on the tick the answer flips**, from
-`Actor._physics_process`, immediately after the same height is applied to the body.
+`Actor.simulation_step`, immediately after the same height is applied to the body.
 That costs one float comparison per piece per tick and a property write only on a crossing;
 it is on the tick boundary with the Y-write on purpose, so the two can never be a frame apart.
 
@@ -322,7 +322,7 @@ Two consequences, both accepted deliberately rather than worked around:
 
 **The layer is LATCHED and the reach is LIVE, and nothing makes those simultaneous for an
 observer.** `refresh_targetable_altitude` writes the layer at the end of the piece's OWN
-`_physics_process`; `Weapon.get_range_for_target` reads `is_air_target()` at the moment it is
+`simulation_step`; `Weapon.get_range_for_target` reads `is_air_target()` at the moment it is
 asked. Another entity's command tick runs in between. So for the one tick a piece spends
 crossing `AIR_TARGET_ALTITUDE` — a descending aircraft, a parachutist halfway down — the two
 halves of "can this weapon reach it" genuinely disagree: `Loadout.weapon_for_target` accepts a

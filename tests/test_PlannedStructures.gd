@@ -223,10 +223,10 @@ func test_blueprint_is_not_registered_with_the_commander() -> void:
 
 func test_blueprint_runs_no_per_tick_logic() -> void:
 	var blueprint: Actor = _plan()
-	assert_false(
-		blueprint.is_physics_processing(),
-		"nothing to produce, shoot or die — physics is off until it's placed"
-	)
+	# A live actor's step starts by counting its stagger down.
+	blueprint._stagger_ticks = 3
+	blueprint.simulation_step(1.0 / TimeUtils.ticks_per_second())
+	assert_eq(blueprint._stagger_ticks, 3, "nothing to produce, shoot or die until it's placed")
 
 
 func test_blueprint_is_drawn_at_the_planned_opacity() -> void:
@@ -294,7 +294,9 @@ func test_committing_makes_the_same_node_the_real_structure() -> void:
 	assert_false(blueprint.is_planned, "it is a real structure now")
 	assert_eq(_map.placed.size(), 1, "registered on the grid exactly once")
 	assert_same(_map.placed[0]["structure"], blueprint, "and it's the same node")
-	assert_true(blueprint.is_physics_processing(), "per-tick logic is on")
+	blueprint._stagger_ticks = 3
+	blueprint.simulation_step(1.0 / TimeUtils.ticks_per_second())
+	assert_eq(blueprint._stagger_ticks, 2, "per-tick logic is on")
 	assert_true(blueprint.is_in_group("los"), "it sees for its owner now")
 	# Infrastructure follows FINISHING, not starting (see Actor.advance_build_progress
 	# and tests/test_UnfinishedConstruction.gd) — a foundation is not yet a working relay or a

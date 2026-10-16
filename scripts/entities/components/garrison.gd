@@ -415,7 +415,12 @@ func detach(a_unit: Actor) -> void:
 const SENTENCE_COOLDOWN_BONUS: float = 0.08
 
 
-func _physics_process(a_delta: float) -> void:
+## Nothing to step until a captive starts a sentence (garrison wakes the host then).
+func sleep_ticks() -> int:
+	return Entity.SLEEP_FOREVER if _sentence_remaining.is_empty() else 0
+
+
+func simulation_step(a_delta: float) -> void:
 	if _sentence_remaining.is_empty():
 		return
 	# Only the head of the queue serves (SENTENCES_AT_ONCE); the captives behind it wait with
@@ -590,7 +595,7 @@ func any_garrison_can_target(a_target: Entity) -> bool:
 
 ## Fire every garrisoned unit's first target-capable weapon at `target` from
 ## `owner`'s world position, for those weapons that are loaded and in range.
-## Each weapon advances its own reload timer in Weapon._physics_process because
+## Each weapon advances its own reload timer in Weapon.simulation_step because
 ## its Loadout was reparented onto `owner` at garrison time (see garrison()), so
 ## firing simply respects Weapon.is_ready() rather than tracking timers here.
 func tick_bunker_fire(a_owner: Actor, a_target: Entity) -> void:
@@ -648,9 +653,12 @@ func _reaching_weapon(a_unit: Actor, a_owner: Actor, a_target: Entity) -> Weapon
 
 ## Remove `unit` from the active scene tree and store it here.
 func garrison(a_unit: Actor) -> void:
+	var host := get_parent() as Entity
+	if host != null:
+		host.wake()
 	_adopt_commander_if_neutral(a_unit)
 	# For a bunker, hoist the unit's weapon inventory onto this garrison's owner
-	# so its weapons keep advancing their _physics_process reload timers — an
+	# so its weapons keep advancing their simulation_step reload timers — an
 	# orphaned (off-tree) unit doesn't tick, so otherwise its weapons would never
 	# reload or fire. The unit itself still leaves the tree; only its Loadout
 	# stays, reparented under the owner.

@@ -67,7 +67,7 @@ func _pool(a_piece: Actor) -> Abilities:
 
 func _tick_pool(a_pool: Abilities, a_ticks: int) -> void:
 	for _i: int in a_ticks:
-		a_pool._physics_process(0.0)
+		a_pool.simulation_step(0.0)
 
 
 func _message(a_target: Variant = null) -> CommandMessage:
@@ -121,7 +121,7 @@ func test_a_charge_rides_its_carrier_and_is_not_a_target_of_its_own() -> void:
 	assert_eq(charge.host().global_position, tank.global_position)
 	assert_eq(charge.host().targetable_layers(), 0, "shooting it is shooting its carrier")
 	tank.global_position = Vector3(9.0, 0.0, 1.0)
-	charge._physics_process(0.0)
+	charge.simulation_step(0.0)
 	assert_eq(charge.host().global_position, tank.global_position)
 
 

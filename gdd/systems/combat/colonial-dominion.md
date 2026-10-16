@@ -147,7 +147,7 @@ Tasking a truck on a Shelter is its own system, and the first consumer of it:
    garrison (the Servants-only allowlist gone). `CLAUDE.md` §Terminology's closed-garrison
    example changed in the same change, and the deferred item for the bot parking a spare Servant
    for dominion — retired, because there is nowhere to park one now. `Garrison.deposit_from` /
-   `Garrison._physics_process` / `scripts/entities/components/garrison.gd`.
+   `Garrison.simulation_step` / `scripts/entities/components/garrison.gd`.
 2. ✅ **The positional bonus.** Emitted on completion (`Garrison._emit_positional_bonus` →
    `Abilities.reduce_all_cooldowns`); the passive recharge-rate constant is retired and
    `work_detail`'s ability doc rewritten around the event.

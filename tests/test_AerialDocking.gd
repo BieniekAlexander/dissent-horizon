@@ -50,7 +50,7 @@ func _tick_until(a_movement: Movement, a_predicate: Callable) -> int:
 	for i in MAX_TICKS:
 		if a_predicate.call():
 			return i
-		_air(a_movement)._physics_process(1.0 / 30.0)
+		_air(a_movement).simulation_step(1.0 / 30.0)
 	return -1 if not a_predicate.call() else MAX_TICKS
 
 
@@ -100,7 +100,7 @@ func test_flight_height_control_does_not_fight_the_descent() -> void:
 	_air(m).land_at(Vector3.ZERO, 0.0, Callable())
 	var previous: float = _air(m).height_offset()
 	for i in MAX_TICKS:
-		_air(m)._physics_process(1.0 / 30.0)
+		_air(m).simulation_step(1.0 / 30.0)
 		assert_true(
 			_air(m).height_offset() <= previous + 0.0001,
 			"altitude never climbs back during a descent"
@@ -212,7 +212,7 @@ func test_an_opted_out_aircraft_keeps_flying_normally() -> void:
 	var m := _flier(Movement.Mode.FLYING, false)
 	_air(m).land_at(Vector3.ZERO, 0.0, Callable())
 	for i in 30:
-		_air(m)._physics_process(1.0 / 30.0)
+		_air(m).simulation_step(1.0 / 30.0)
 	assert_ne(_air(m).compute_orbit_velocity(), Vector3.ZERO, "normal flight is untouched")
 
 

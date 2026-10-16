@@ -19,7 +19,7 @@ func _ready() -> void:
 	_parent_entity = get_parent() as Entity
 
 
-func _physics_process(_a_delta: float) -> void:
+func simulation_step(_a_delta: float) -> void:
 	for body: Node3D in get_overlapping_bodies():
 		var entity: Entity = body as Entity
 		if not heals(entity):

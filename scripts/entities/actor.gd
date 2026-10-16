@@ -463,6 +463,7 @@ func plan_construction() -> void:
 ## Idempotent-ish: a no-op on a structure that was never planned, so the direct-issue
 ## build path (scenario events, tests) is unaffected.
 func commit_construction(a_map: Map, a_world_center: Vector2) -> void:
+	wake()
 	if not is_planned:
 		return
 	is_planned = false
@@ -488,8 +489,6 @@ func commit_construction(a_map: Map, a_world_center: Vector2) -> void:
 	if commander != null:
 		commander.add_structure(self)
 
-	# Per-tick logic (production, aggro, death checks) was off while planned.
-	set_physics_process(true)
 	begin_construction()
 	if defense != null:
 		defense.hp = defense.hp_max * INITIAL_HEALTH_FACTOR
@@ -511,6 +510,7 @@ func begin_construction() -> void:
 ## Also scales hp proportionally so health tracks build progress during construction
 ## (Task 4): each unit of build progress adds delta * hp_max * (1 - INITIAL_HEALTH_FACTOR).
 func advance_build_progress(a_delta: float) -> bool:
+	wake()
 	var was_built: bool = build_progress >= 1.0
 	var old_progress: float = build_progress
 	build_progress = minf(build_progress + a_delta, 1.0)
@@ -920,7 +920,7 @@ func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
 const STAGGER_SECONDS: int = 3
 
 ## Remaining stagger duration in physics ticks; 0 when not staggered. Refreshed to full
-## in receive_damage, counted down each tick in _physics_process.
+## in receive_damage, counted down each tick in simulation_step.
 var _stagger_ticks: int = 0
 
 
@@ -1047,12 +1047,6 @@ func _ready() -> void:
 	# no-op for them; units are always built.
 	build_progress_changed.connect(_on_build_progress_changed)
 	_apply_construction_visuals()
-
-	# A planned structure runs no per-tick logic: nothing to produce (the queue holds
-	# its orders until it's built), nothing to shoot, nothing to die. commit_construction
-	# switches this back on when the builder lays it down.
-	if is_planned:
-		set_physics_process(false)
 
 	# Wire Movement → physics handler for any entity carrying one. Wired on the COMPONENT,
 	# live or not, so a two-form piece that starts deployed is ready the moment it undeploys;
@@ -1234,7 +1228,7 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 		move_and_slide()
 
 	# Snap Y to terrain after each move so height tracks the final XZ this tick,
-	# not the XZ from before the move (which is what _physics_process saw).
+	# not the XZ from before the move (which is what simulation_step saw).
 	if map != null:
 		_snap_height_to_terrain()
 
@@ -1248,10 +1242,6 @@ func _snap_height_to_terrain() -> void:
 
 
 func _update_state() -> void:
-	if defense != null and defense.hp <= 0:
-		_on_death()
-		return
-
 	# Before anything else this tick: an aircraft with nothing left to fire stands down the
 	# order that assumed it would shoot, and then — only if that leaves it with nothing else
 	# worth doing — takes itself home. Ahead of the idle-aggro check on purpose, so a dry
@@ -1296,8 +1286,106 @@ func _update_state() -> void:
 		stealth.tick()
 
 
-func _physics_process(_a_delta: float) -> void:
-	if Engine.is_editor_hint():
+## The attack this piece decided to start this tick, idle, on a hostile in its aggro range —
+## or null. Decided against the world as the last tick left it (simulation_decide) and taken
+## by Orders.tick in the act phase, which checks it still holds. Never outlives its tick.
+var _decided_aggro: MoveCommand = null
+## The decide round `_decided_aggro` belongs to (SimulationStepper.current_round).
+var _decided_aggro_round: int = -1
+
+
+## The decide phase of this actor's tick: what an idle piece would attack, and its current
+## command's own decisions (MoveCommand.decide). Reads only.
+func simulation_decide() -> void:
+	_decided_aggro = null
+	_decided_aggro_round = SimulationStepper.current_round()
+	if is_planned or orders == null or (defense != null and defense.hp <= 0):
+		return
+	if is_built and command_receiver.is_idle() and can_use_weapons():
+		_decided_aggro = get_aggro_near_position()
+	var current: MoveCommand = current_command()
+	if current != null:
+		current.decide(self)
+
+
+## The attack decided this tick, if its target is still one to start on now; once only.
+func take_decided_aggro() -> MoveCommand:
+	var decided: MoveCommand = _decided_aggro
+	_decided_aggro = null
+	if _decided_aggro_round != SimulationStepper.current_round():
+		return null
+	return decided if decided_attack_holds(decided) else null
+
+
+## Whether `a_attack`, decided against the world as the last tick left it, still holds now:
+## its target is in play, alive and hostile. False for null.
+func decided_attack_holds(a_attack: MoveCommand) -> bool:
+	if a_attack == null:
+		return false
+	var target: Variant = a_attack.message.target
+	if not is_instance_valid(target) or not (target as Entity).is_inside_tree():
+		return false
+	var entity := target as Entity
+	return entity.defense != null and entity.defense.hp > 0 and is_enemy_of(entity)
+
+
+## How far an idle sleeping piece must watch for hostiles: its widest aggro radius, or -1.0
+## when it picks no fights. The stepper wakes it the tick one comes that close
+## (SpatialIndex.has_hostile_near), which is the only way its idle scan could find a target.
+func sleep_watch_radius() -> float:
+	if weapon_inventory == null:
+		return -1.0
+	# The larger of the shape's own radius, which the scan measures by, and its scaled one.
+	var radius: float = -1.0
+	for node: CollisionShape3D in aggro_shapes():
+		radius = maxf(radius, maxf(RangeShapes.radius_of(node.shape), RangeShapes.xz_radius(node)))
+	return radius
+
+
+## How many coming ticks this actor's step is known to do nothing but count toward its next
+## income: none unless it is an idle building — built, unmoving, not detecting,
+## liberating, docking or stealthed, with no orders and nothing in production — and then the
+## ticks until its next payout. Every piece that could give it work wakes it (Entity.wake).
+func sleep_ticks() -> int:
+	if not _is_idle_for_sleep():
+		return 0
+	var ticks: int = SLEEP_FOREVER
+	if energy_extractor != null:
+		ticks = mini(ticks, energy_extractor.ticks_before_payout())
+	if dominion_generator != null:
+		ticks = mini(ticks, dominion_generator.ticks_before_payout())
+	return ticks
+
+
+## The slept ticks, counted by the income components as if they had stepped.
+func catch_up(a_ticks: int) -> void:
+	if energy_extractor != null:
+		energy_extractor.count_ticks(a_ticks)
+	if dominion_generator != null:
+		dominion_generator.count_ticks(a_ticks)
+
+
+func _is_idle_for_sleep() -> bool:
+	if is_planned or not is_built or _stagger_ticks > 0:
+		return false
+	if locomotion_component != null or movement != null or aerial != null:
+		return false
+	if docking != null or docking_bay != null:
+		return false
+	if liberator != null or detection_range != null or stealth != null:
+		return false
+	if garrison != null and garrison.bunker and garrison.garrisoned_count() > 0:
+		return false
+	if orders != null and not (command_receiver.is_idle() and orders.held_attack_target == null):
+		return false
+	return production == null or production.job_count() == 0
+
+
+## One tick of this actor (SimulationStepper). A PLANNED structure runs none of it: nothing to
+## produce (the queue holds its orders until it is built), nothing to shoot. A piece this tick
+## has already killed does not act; it dies in the stepper's death step (resolve_death).
+func simulation_step(_a_delta: float) -> void:
+	if is_planned or (defense != null and defense.hp <= 0):
 		return
 	if _stagger_ticks > 0:
 		_stagger_ticks -= 1
@@ -1453,6 +1541,16 @@ func _run_over_overlapping_units() -> void:
 
 
 #endregion
+
+
+## Deaths resolve after every entity has stepped, in serial order, so a death lands on the tick
+## that dealt it whatever order the pieces involved act in. Not for a PLANNED structure, which
+## cannot be damaged, nor for one already torn down this tick (Entity.kill).
+func resolve_death() -> void:
+	if is_planned or is_queued_for_deletion():
+		return
+	if defense != null and defense.hp <= 0:
+		_on_death()
 
 
 ## A two-form piece is one of its commander's structures exactly while it is deployed. A

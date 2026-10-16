@@ -1,6 +1,6 @@
 extends GutTest
 
-## Every piece takes a spawn serial on first entering play, the same on every run of a seed — how
+## Every entity takes a spawn serial on first entering play, the same on every run of a seed — how
 ## a recorded order names a piece. gdd/systems/commands/recording-and-replay.md §The order stream.
 
 ## A small scenario the test boots as a harness; what it contains does not matter, only that
@@ -9,21 +9,41 @@ const HARNESS: String = "res://scenes/scenarios/test/test_kamikaze_cluster.tscn"
 const BOOT_TICKS: int = 5
 
 
+## An entity in the "piece" group, as the importer marks every Actor and feature.
+func _piece() -> Entity:
+	var piece := Entity.new()
+	piece.add_to_group("piece")
+	return piece
+
+
 func test_serials_count_up_from_one_and_name_the_piece() -> void:
 	var scenario := Scenario.new()
-	var first := autofree(Entity.new()) as Entity
-	var second := autofree(Entity.new()) as Entity
-	assert_eq(scenario.register_piece(first), 1)
-	assert_eq(scenario.register_piece(second), 2)
+	var first := autofree(_piece()) as Entity
+	var second := autofree(_piece()) as Entity
+	assert_eq(scenario.register_entity(first), 1)
+	assert_eq(scenario.register_entity(second), 2)
+	assert_eq(second.spawn_serial, 2)
 	assert_same(scenario.piece_by_serial(2), second)
 	assert_null(scenario.piece_by_serial(3), "no piece has taken it yet")
 	scenario.free()
 
 
+## An emission is numbered — it is stepped in serial order like any piece — but no order names
+## one, so it is not looked up by serial.
+func test_an_emission_takes_a_serial_but_is_not_a_piece_by_serial() -> void:
+	var scenario := Scenario.new()
+	var emission := autofree(Entity.new()) as Entity
+	var piece := autofree(_piece()) as Entity
+	assert_eq(scenario.register_entity(emission), 1)
+	assert_eq(scenario.register_entity(piece), 2, "they share one count")
+	assert_null(scenario.piece_by_serial(1))
+	scenario.free()
+
+
 func test_a_freed_piece_reads_as_none() -> void:
 	var scenario := Scenario.new()
-	var piece := Entity.new()
-	var serial: int = scenario.register_piece(piece)
+	var piece := _piece()
+	var serial: int = scenario.register_entity(piece)
 	piece.free()
 	assert_null(scenario.piece_by_serial(serial))
 	scenario.free()

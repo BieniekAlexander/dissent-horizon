@@ -139,14 +139,16 @@ func _clear_rvo_suppression() -> void:
 
 
 #region State updates
-## Cancel if the target is destroyed while the unit is en route.
-## For HOVERING hosts, registers garrison intent on the first valid tick so the
-## host knows to descend and can take off again once all pending units are inside.
-func get_updated_state(a_actor: Actor) -> Variant:
-	if not is_instance_valid(message.target):
-		_clear_collision_exception()
-		_clear_rvo_suppression()
-		return null
+## Cancel if the target is destroyed while the unit is en route. Dropping the order releases
+## it, and on_released clears the exceptions it set.
+func get_updated_state(_a_actor: Actor) -> Variant:
+	return self if is_instance_valid(message.target) else null
+
+
+## Pass through the host's body and its avoidance for the whole approach, and for a HOVERING
+## host register garrison intent on the first tick, so the host knows to descend and can take
+## off again once all pending units are inside.
+func apply_state(a_actor: Actor) -> void:
 	_ensure_collision_exception(a_actor)
 	_ensure_rvo_suppression(a_actor)
 	var host := message.target as Actor
@@ -159,7 +161,6 @@ func get_updated_state(a_actor: Actor) -> Variant:
 	):
 		host.garrison.register_garrison_intent(a_actor)
 		_garrison_registered_actor = a_actor
-	return self
 
 
 ## The host, for the whole life of the order. A passenger must not steer around the very

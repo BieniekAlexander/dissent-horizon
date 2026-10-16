@@ -27,7 +27,8 @@ loop of that kind, found by profiling a full bot match
 
 Gameplay logic is not a candidate, even when it is hot: the per-actor order and command code
 is mostly calls into the engine, so a port would buy a small factor for a large, constantly
-changing rewrite. The answer there is to run it less often.
+changing rewrite. The answer there is to run it less often, or to split it into a read-only
+phase that threads can share (PLANNED, [commands/the-simulation-step](../commands/the-simulation-step.md)).
 
 ## The game does not run without the library
 
