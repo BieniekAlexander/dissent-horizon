@@ -100,6 +100,7 @@ func step(a_delta: float) -> void:
 			stepping.append(entity)
 	_entities = kept
 	index.rebuild(stepping)
+	_wake_watchers(stepping)
 	SpatialIndex.reading = index
 	for item: Variant in stepping:
 		if is_instance_valid(item) and (item as Entity).is_inside_tree():
@@ -113,6 +114,16 @@ func step(a_delta: float) -> void:
 	for item: Variant in stepping:
 		if is_instance_valid(item) and (item as Entity).is_inside_tree():
 			(item as Entity).resolve_death()
+
+
+## Wake every sleeping entity with a hostile now within its watch radius, before anything
+## decides, so it decides this tick exactly as it would have awake.
+func _wake_watchers(a_stepping: Array) -> void:
+	for item: Variant in a_stepping:
+		var entity: Entity = item
+		if entity.is_asleep_at(_tick) and entity.watch_radius() >= 0.0:
+			if index.has_hostile_near(entity, entity.watch_radius()):
+				entity.wake()
 
 
 ## One entity's act pass: skipped while it sleeps — counted, so it catches up on waking — and

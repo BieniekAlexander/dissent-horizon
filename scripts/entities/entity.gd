@@ -917,6 +917,21 @@ func is_asleep_at(a_tick: int) -> bool:
 
 func sleep_until(a_tick: int) -> void:
 	_wake_tick = a_tick
+	_watch_radius = sleep_watch_radius() if a_tick > 0 else -1.0
+
+
+## How far this entity, asleep, watches for hostiles; -1.0 for one that picks no fights. An
+## Actor answers by its aggro range.
+func sleep_watch_radius() -> float:
+	return -1.0
+
+
+## The watch radius it fell asleep with (SimulationStepper wakes it on a hostile within it).
+var _watch_radius: float = -1.0
+
+
+func watch_radius() -> float:
+	return _watch_radius
 
 
 func note_slept_tick() -> void:

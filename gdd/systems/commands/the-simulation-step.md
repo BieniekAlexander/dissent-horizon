@@ -172,9 +172,8 @@ bit between two runs of the same build, and is measured by simulated minute on t
    3. **References by serial, with the rollback snapshot** — the state inventory, snapshot and
       restore of netplay's §Rollback, later. Serials matter only to a snapshot, so they are
       built with it.
-   4. **The spatial index** (§The spatial index) — built for decide's aggro scans; armed
-      buildings sleeping on it, and the per-piece detection areas leaving the physics server,
-      follow.
+   4. **The spatial index** (§The spatial index) — built for decide's aggro scans, and armed
+      idle pieces sleep on it. The per-piece detection areas leaving the physics server follows.
 3. **Worker threads for decide**, on the spatial index. TODO: deferred by Alex (2026-10-15) until
    the first two stages are built and measured.
 
@@ -216,9 +215,13 @@ the gate, met for 9000 ticks of a bot match.
 - **Physics and movement never sleep.** No staggering: a moving piece moves, steers and is
   avoided every tick, and an order is acted on the tick it lands (Alex, 2026-10-15 — for
   determinism and for units that respond at once).
-- **What sleeps today: idle buildings** (`Actor.sleep_ticks`) — built, unmoving, unarmed, not
-  detecting, liberating, docking, stealthed or a manned bunker, with no orders and nothing in
-  production. An income building sleeps until the tick before its payout and counts the slept
+- **What sleeps today: idle unmoving pieces** (`Actor.sleep_ticks`) — built, not detecting,
+  liberating, docking, stealthed or a manned bunker, with no orders and nothing in production.
+  An armed one sleeps too, watching its widest aggro radius: each tick, before anything decides,
+  the stepper asks the spatial index whether any hostile footprint is that close
+  (`SpatialIndex.has_hostile_near`) and wakes it if so — a superset of what its idle scan could
+  find, so it decides that tick exactly as awake. A `Weapon` promises sleep once its turret is
+  at rest, and counts its rest, split and reload ticks on waking. An income building sleeps until the tick before its payout and counts the slept
   ticks on waking (`EnergyExtractor`, `DominionGenerator`); a body `VisionRange`, an empty
   `Garrison` and an `Abilities` with no pools promise forever.
 - **`Entity.wake()` is called wherever an idle building can be given work**: an order
@@ -229,11 +232,8 @@ the gate, met for 9000 ticks of a bot match.
 - INVARIANT: a new way to give an idle building work must wake it. Nothing can check that a
   change reached a sleeper; a missed wake shows only as the probe's sleep-on and sleep-off runs
   parting, and only if the match exercises it.
-- TODO: an armed piece keeps its idle aggro scan every tick, so it never sleeps. Noticing an
-  enemy walking into range without polling needs the spatial index (§Stages) to say who entered
-  which cells; armed buildings are the larger prize.
-- TODO: countdowns beyond income — reloads, ability recharges, shelter production, sentences —
-  keep their entity awake; each could promise its remaining ticks the way income does.
+- TODO: countdowns beyond income and weapons — ability recharges, shelter production,
+  sentences — keep their entity awake; each could promise its remaining ticks the way income does.
 - TODO: a rollback snapshot of a sleeping entity must include its slept ticks
   (`Entity._slept_ticks`), or its counters restore short.
 - Measured 2026-10-15 on an i5-1245U, the bot match's script phase, sleeping off against on,

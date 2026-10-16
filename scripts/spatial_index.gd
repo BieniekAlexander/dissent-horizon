@@ -108,6 +108,21 @@ func entities_within(
 	return found
 
 
+## Whether any piece hostile to `a_watcher` has a footprint within `a_radius` of the watcher's,
+## at any height and whether or not it can be seen — everything an idle scan could ever find
+## a target among, and more. What wakes a sleeping armed piece.
+func has_hostile_near(a_watcher: Entity, a_radius: float) -> bool:
+	var hostile: int = CollisionLayers.hostile_mask(
+		CollisionLayers.TARGETABLE_ANY, a_watcher.allied_commander_ids()
+	)
+	var from: Hull = a_watcher.hull()
+	for cell: Vector2i in _cells_around(from.center, a_radius + from.extent()):
+		for entry: Array in _cells.get(cell, []):
+			if int(entry[2]) & hostile != 0 and Hull.gap(from, entry[1]) <= a_radius:
+				return true
+	return false
+
+
 ## The cells a disc of `a_radius` around `a_center` touches.
 static func _cells_around(a_center: Vector2, a_radius: float) -> Array[Vector2i]:
 	var low: Vector2i = Vector2i(

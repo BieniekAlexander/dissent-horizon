@@ -1329,8 +1329,21 @@ func decided_attack_holds(a_attack: MoveCommand) -> bool:
 	return entity.defense != null and entity.defense.hp > 0 and is_enemy_of(entity)
 
 
+## How far an idle sleeping piece must watch for hostiles: its widest aggro radius, or -1.0
+## when it picks no fights. The stepper wakes it the tick one comes that close
+## (SpatialIndex.has_hostile_near), which is the only way its idle scan could find a target.
+func sleep_watch_radius() -> float:
+	if weapon_inventory == null:
+		return -1.0
+	# The larger of the shape's own radius, which the scan measures by, and its scaled one.
+	var radius: float = -1.0
+	for node: CollisionShape3D in aggro_shapes():
+		radius = maxf(radius, maxf(RangeShapes.radius_of(node.shape), RangeShapes.xz_radius(node)))
+	return radius
+
+
 ## How many coming ticks this actor's step is known to do nothing but count toward its next
-## income: none unless it is an idle building — built, unmoving, unarmed, not detecting,
+## income: none unless it is an idle building — built, unmoving, not detecting,
 ## liberating, docking or stealthed, with no orders and nothing in production — and then the
 ## ticks until its next payout. Every piece that could give it work wakes it (Entity.wake).
 func sleep_ticks() -> int:
@@ -1357,7 +1370,7 @@ func _is_idle_for_sleep() -> bool:
 		return false
 	if locomotion_component != null or movement != null or aerial != null:
 		return false
-	if weapon_inventory != null or docking != null or docking_bay != null:
+	if docking != null or docking_bay != null:
 		return false
 	if liberator != null or detection_range != null or stealth != null:
 		return false

@@ -231,6 +231,35 @@ func _ready() -> void:
 		wielder().entity_occurrence.connect(_on_wielder_occurrence)
 
 
+## Once its turret is at rest, every tick only counts: the rest counter, the split and reload
+## timers. The host may sleep through them (catch_up counts them on waking).
+func sleep_ticks() -> int:
+	if turret and not _is_turret_resting():
+		return 0
+	return Entity.SLEEP_FOREVER
+
+
+## `a_ticks` slept ticks, counted exactly as simulation_step would have stepped them.
+func catch_up(a_ticks: int) -> void:
+	if turret:
+		_turret_idle_ticks += a_ticks
+	_split_timer_ticks = maxi(_split_timer_ticks - a_ticks, 0)
+	if charged:
+		return
+	_reload_timer_ticks -= a_ticks
+	if _reload_timer_ticks <= 0:
+		_split_timer_ticks = 0
+		_ammo = clip_size
+
+
+## Whether the turret has drifted all the way home and nothing has aimed it since.
+func _is_turret_resting() -> bool:
+	return (
+		turret_yaw == 0.0
+		and _turret_idle_ticks > TimeUtils.ticks_from_seconds(TURRET_REST_DELAY_SECONDS)
+	)
+
+
 func simulation_step(_a_delta: float) -> void:
 	if turret:
 		_update_turret_rest()

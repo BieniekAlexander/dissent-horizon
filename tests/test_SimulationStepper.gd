@@ -364,3 +364,36 @@ func test_a_node_added_to_a_sleeper_wakes_it() -> void:
 	_steps(1)
 	assert_eq(sleeper.stepped, 2)
 	assert_eq(late.stepped, 1)
+
+
+## An immobile armed piece, idle, sleeps while no hostile is near — and the tick one comes
+## within its aggro range, it wakes before anything decides and starts on it, as awake.
+func test_an_idle_armed_piece_sleeps_until_an_enemy_comes_near() -> void:
+	Fog._fogs_by_commander.clear()
+	var turret := _enlisted_piece({"weapon": {"ground": 6.0}}, _commander(OWN), Vector3.ZERO, 1)
+	_steps(3)
+	assert_true(turret.is_asleep_at(_stepper._tick + 1), "nothing near: it sleeps")
+	var enemy := _enlisted_piece(FakePieces.BUILDER, _commander(FOE), Vector3(3, 0, 0), 2)
+	await wait_physics_frames(2)
+	_steps(1)
+	assert_true(turret.current_command() is Attack, "woken by the index, it attacks at once")
+	assert_same(turret.current_command().message.target, enemy)
+
+
+## Catching a weapon up over slept ticks lands it exactly where stepping them would have.
+func test_a_weapon_caught_up_matches_one_stepped() -> void:
+	var stepped := _enlisted_piece({"weapon": {"ground": 6.0}}, _commander(OWN), Vector3.ZERO, 1)
+	var slept := _enlisted_piece({"weapon": {"ground": 6.0}}, _commander(OWN), Vector3(9, 0, 0), 2)
+	var a: Weapon = stepped.weapon_inventory.get_child(0)
+	var b: Weapon = slept.weapon_inventory.get_child(0)
+	for weapon: Weapon in [a, b]:
+		weapon._ammo = 0
+		weapon._reload_timer_ticks = 5
+		weapon._split_timer_ticks = 3
+	for _i: int in 8:
+		a.simulation_step(DELTA)
+	b.catch_up(8)
+	assert_eq(
+		[b._ammo, b._reload_timer_ticks, b._split_timer_ticks],
+		[a._ammo, a._reload_timer_ticks, a._split_timer_ticks]
+	)
