@@ -161,12 +161,14 @@ bit between two runs of the same build, and is measured by simulated minute on t
    and every sampled float — on Windows/x86_64; the match differs from the tree-ordered one from
    tick 1, as expected. Wall time was unchanged within this laptop's run-to-run noise (213–293 s
    against 282 s), which stage 1 never aimed to move. TODO: the same check on macOS/arm64.
-2. **Decide and act, still serial.** Built: the decide pass, and idle target pickup in it
-   (§The decide pass). PLANNED, in this order — each touches the code once, which Alex asked for
-   over short-term speed (2026-10-15):
-   1. The rest of the hot reads move into decide: a command's reactive swap
-      (`get_updated_state`), `can_act`'s range and line-of-fire checks, and path progress, each
-      applied in act with re-validation. Path requests become intents.
+2. **Decide and act, still serial.** In this order — each touches the code once, which Alex
+   asked for over short-term speed (2026-10-15):
+   1. **The hot reads move into decide** — built (§The decide pass): idle pickup, the aggro
+      scans of AttackMove, Patrol and Defend, the destination swap, and Attack's and FocusFire's
+      keep, range and line-of-fire checks; every command's reads are pure, its writes in
+      `apply_state`. Path requests already happen only in the act phase (`Movement.tick`), and
+      path progress is a read of the unit's navigation agent, so nothing there needed moving
+      (checked 2026-10-16).
    2. **Sleepy updates** (§Sleepy updates) — built for idle buildings; their wakes live at the
       handful of places an idle building can be given work.
    3. **References by serial, with the rollback snapshot** — the state inventory, snapshot and
