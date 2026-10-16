@@ -244,6 +244,83 @@ func entities_within(
 	return found
 
 
+## The pieces whose Hurtbox carries a layer in `collision_mask` and touches `shape` (a cylinder
+## or sphere) standing upright at `origin` — SU.entities_touched_by's answer, in serial order.
+## A Hurtbox is an upright prism (cylinder or yaw-turned box on its base), so a cylinder touches
+## it when its footprint comes within the radius and the vertical spans overlap, and a sphere
+## when the horizontal and vertical gaps together come within it.
+func entities_touched_by(
+	shape: Shape3D, origin: Vector3, collision_mask: int, exclude: Array = []
+) -> Array[Entity]:
+	var found: Array[Entity] = []
+	var radius: float = RangeShapes.radius_of(shape)
+	if radius < 0.0:
+		return found
+	var is_sphere: bool = shape is SphereShape3D
+	var half_height: float = (
+		(shape as CylinderShape3D).height * 0.5 if shape is CylinderShape3D else radius
+	)
+	var at := Vector2(origin.x, origin.z)
+	var seen: Dictionary = {}
+	var matches: Array = []
+	for cell: Vector2i in _cells_around(at, radius):
+		for entry: Array in _cells.get(cell, []):
+			var entity: Entity = entry[0]
+			if seen.has(entity):
+				continue
+			seen[entity] = true
+			if int(entry[2]) & collision_mask == 0:
+				continue
+			if exclude.has(entry[5]) or exclude.has(entity):
+				continue
+			var gap_xz: float = (entry[1] as Hull).distance_to_point(at)
+			var gap_y: float = maxf(
+				maxf(float(entry[3]) - origin.y, origin.y - float(entry[4])), 0.0
+			)
+			var touches: bool = (
+				gap_xz * gap_xz + gap_y * gap_y <= radius * radius
+				if is_sphere
+				else gap_xz <= radius and gap_y <= half_height
+			)
+			if touches:
+				matches.append(entry)
+	matches.sort_custom(
+		func(a: Array, b: Array) -> bool:
+			return (a[0] as Entity).spawn_serial < (b[0] as Entity).spawn_serial
+	)
+	for entry: Array in matches:
+		found.append(entry[0])
+	return found
+
+
+## Whether the segment `a_from` -> `a_to` passes through the Hurtbox of a piece on
+## STRUCTURE_BLOCKER other than `a_ends` — the obstruction half of Attack's line of fire. A
+## segment that starts inside a blocker does not count it, as a physics ray does not.
+func segment_hits_blocker(a_from: Vector3, a_to: Vector3, a_ends: Array) -> bool:
+	var from_xz := Vector2(a_from.x, a_from.z)
+	var delta_xz := Vector2(a_to.x - a_from.x, a_to.z - a_from.z)
+	var middle: Vector2 = from_xz + delta_xz * 0.5
+	for cell: Vector2i in _cells_around(middle, delta_xz.length() * 0.5):
+		for entry: Array in _cells.get(cell, []):
+			if int(entry[2]) & CollisionLayers.Mask.STRUCTURE_BLOCKER == 0:
+				continue
+			if a_ends.has(entry[0]):
+				continue
+			var span: Vector2 = (entry[1] as Hull).segment_span(from_xz, delta_xz)
+			if span.x > span.y:
+				continue
+			var y_enter: float = lerpf(a_from.y, a_to.y, span.x)
+			var y_exit: float = lerpf(a_from.y, a_to.y, span.y)
+			var low: float = float(entry[3])
+			var high: float = float(entry[4])
+			if maxf(y_enter, y_exit) < low or minf(y_enter, y_exit) > high:
+				continue
+			if span.x == 0.0 and y_enter >= low and y_enter <= high:
+				continue
+			return true
+	return false
+
+
 ## Whether any piece hostile to `a_watcher` has a footprint within `a_radius` of the watcher's,
 ## at any height and whether or not it can be seen — everything an idle scan could ever find
 ## a target among, and more. What wakes a sleeping armed piece.

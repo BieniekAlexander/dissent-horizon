@@ -224,3 +224,112 @@ func test_a_tracked_piece_leaving_the_tree_marks_itself() -> void:
 	assert_eq(await _hostiles_now(scanner, [scanner, enemy]), [] as Array[Entity])
 	parent.add_child(enemy)
 	SpatialIndex.is_verifying = false
+
+
+# --- Held to the physics server ----------------------------------------------------------
+
+const TRIALS: int = 600
+const FIELD: float = 12.0
+
+
+## A field of pieces with mixed Hurtboxes — cylinders, and boxes turned to random yaws — on the
+## line-of-fire and ground layers, indexed and in the physics server alike.
+func _field(a_rng: RandomNumberGenerator) -> Array:
+	var foe := _commander(FOE)
+	var pieces: Array = []
+	for i: int in 10:
+		var piece := _piece(
+			foe,
+			Vector3(
+				a_rng.randf_range(-FIELD, FIELD),
+				a_rng.randf_range(0.0, 1.0),
+				a_rng.randf_range(-FIELD, FIELD)
+			)
+		)
+		var node := piece.hurtbox.get_node("HurtboxShape") as CollisionShape3D
+		if i % 2 == 0:
+			var box := BoxShape3D.new()
+			box.size = Vector3(
+				a_rng.randf_range(1, 4), a_rng.randf_range(1, 3), a_rng.randf_range(1, 4)
+			)
+			node.shape = box
+			node.position = Vector3(0, box.size.y * 0.5, 0)
+			piece.yaw = a_rng.randf_range(-PI, PI)
+		piece.hurtbox.collision_layer = (
+			CollisionLayers.Mask.STRUCTURE_BLOCKER | CollisionLayers.Mask.TARGETABLE_GROUND
+		)
+		pieces.append(piece)
+	return pieces
+
+
+func _random_point(a_rng: RandomNumberGenerator) -> Vector3:
+	return Vector3(
+		a_rng.randf_range(-FIELD, FIELD),
+		a_rng.randf_range(-0.5, 3.5),
+		a_rng.randf_range(-FIELD, FIELD)
+	)
+
+
+func test_the_line_of_fire_agrees_with_the_physics_ray() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var pieces: Array = _field(rng)
+	await wait_physics_frames(2)
+	_index.rebuild(pieces)
+	var space: PhysicsDirectSpaceState3D = (pieces[0] as Node3D).get_world_3d().direct_space_state
+	var disagreements: Array = []
+	for _i: int in TRIALS:
+		var from: Vector3 = _random_point(rng)
+		var to: Vector3 = _random_point(rng)
+		var query := PhysicsRayQueryParameters3D.create(
+			from, to, CollisionLayers.Mask.STRUCTURE_BLOCKER
+		)
+		var physics: bool = not space.intersect_ray(query).is_empty()
+		if physics != _index.segment_hits_blocker(from, to, []):
+			disagreements.append([from, to, physics])
+	assert_eq(disagreements.size(), 0, "first: %s" % [disagreements.slice(0, 3)])
+
+
+func test_a_range_shape_touches_what_the_physics_query_touches() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var pieces: Array = _field(rng)
+	await wait_physics_frames(2)
+	_index.rebuild(pieces)
+	var space: PhysicsDirectSpaceState3D = (pieces[0] as Node3D).get_world_3d().direct_space_state
+	var disagreements: Array = []
+	for i: int in TRIALS:
+		var shape: Shape3D
+		if i % 2 == 0:
+			var cylinder := CylinderShape3D.new()
+			cylinder.radius = rng.randf_range(0.5, 4.0)
+			cylinder.height = rng.randf_range(0.5, 6.0)
+			shape = cylinder
+		else:
+			var sphere := SphereShape3D.new()
+			sphere.radius = rng.randf_range(0.5, 4.0)
+			shape = sphere
+		var origin: Vector3 = _random_point(rng)
+		var mask: int = CollisionLayers.Mask.TARGETABLE_GROUND
+		var physics: Array[Entity] = SU.query_shape_for_entities(
+			(pieces[0] as Node3D).get_world_3d(),
+			shape,
+			Transform3D(Basis.IDENTITY, origin),
+			mask,
+			[],
+			64
+		)
+		physics.sort_custom(
+			func(a: Entity, b: Entity) -> bool: return a.spawn_serial < b.spawn_serial
+		)
+		var ours: Array[Entity] = _index.entities_touched_by(shape, origin, mask)
+		if physics != ours:
+			disagreements.append([shape, origin, physics.size(), ours.size()])
+	assert_eq(disagreements.size(), 0, "first: %s" % [disagreements.slice(0, 3)])
+
+
+func test_a_segment_through_a_box_is_clipped_to_it() -> void:
+	var hull := Hull.rect(Vector2.ZERO, Vector2(1, 2), Vector2.RIGHT, Vector2.DOWN)
+	assert_eq(hull.segment_span(Vector2(-3, 0), Vector2(6, 0)), Vector2(2.0 / 6.0, 4.0 / 6.0))
+	var missed: Vector2 = hull.segment_span(Vector2(-3, 5), Vector2(6, 0))
+	assert_gt(missed.x, missed.y, "a segment beside it misses")

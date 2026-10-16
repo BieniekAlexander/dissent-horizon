@@ -50,6 +50,14 @@ static func _target_attackable(message: CommandMessage) -> bool:
 static func _obstruction_on_line(actor: Actor, target: Entity) -> bool:
 	if actor.is_air_target() or target.is_air_target():
 		return false
+	# In the decide pass the spatial index and the heightmap answer, not the physics server.
+	if SpatialIndex.reading != null:
+		return (
+			SpatialIndex.reading.segment_hits_blocker(
+				actor.global_position, target.global_position, [actor, target]
+			)
+			or _terrain_on_line(actor, target)
+		)
 	var space_state := actor.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(
 		actor.global_position, target.global_position, CollisionLayers.Mask.STRUCTURE_BLOCKER
@@ -88,6 +96,10 @@ static func _terrain_on_line(actor: Actor, target: Entity) -> bool:
 	if reach < 0.0 or reach >= RangeShapes.artillery_reach():
 		return false
 	var lift: Vector3 = Vector3.UP * TERRAIN_RAY_LIFT
+	if SpatialIndex.reading != null and actor.map != null:
+		return actor.map.terrain_segment_hits(
+			actor.global_position + lift, target.global_position + lift
+		)
 	var query := PhysicsRayQueryParameters3D.create(
 		actor.global_position + lift, target.global_position + lift, CollisionLayers.Mask.TERRAIN
 	)

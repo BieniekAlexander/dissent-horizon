@@ -208,9 +208,16 @@ Defend. C&C Generals' `PartitionManager` is the same idea.
 - **In serial order, and uncapped.** The physics query was cut at `max_results` (10 for aggro)
   in arbitrary order before the footprint test, so a crowd could hide the target that
   mattered; the index returns every match.
-- TODO: still on the physics server in the decide pass — an orbit weapon's range
-  (`SU.entities_touched_by`, a shape-against-hurtbox overlap) and Attack's line-of-fire ray.
-  Both must move before decide can run on threads.
+- **The decide pass reads no physics server at all** (2026-10-16). Besides the aggro scans, an
+  orbit weapon's range (`SU.entities_touched_by` → `SpatialIndex.entities_touched_by`: an upright
+  cylinder or sphere against each Hurtbox prism) and Attack's line of fire
+  (`SpatialIndex.segment_hits_blocker`, and the terrain through `Map.terrain_segment_hits` →
+  `HeightmapRay`) answer from the index and the heightmap. Each is held to the physics server by
+  tests on random queries — 600 segments and 600 range shapes over turned boxes and cylinders,
+  2,000 segments over a random heightmap — with no disagreement. The heightmap only counts a
+  crossing from above, matching the server for any segment that starts above the surface; it
+  does not follow the server's inconsistent answers for one starting under it, which the line of
+  fire never casts.
 - TODO: act-phase queries (crush, stealth detection, liberation, blast victims) stay on the
   physics server; they read live positions mid-tick, which a tick-start index does not hold.
 - **What the update costs**, timed in the bot match on an i5-1245U (2026-10-16): 0.22–0.53 ms a

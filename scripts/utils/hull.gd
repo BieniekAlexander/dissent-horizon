@@ -43,6 +43,42 @@ static func rect(at: Vector2, half_size: Vector2, x_axis: Vector2, z_axis: Vecto
 	return hull
 
 
+## The part of the segment `a_from` + t·`a_delta`, t in [0, 1], that lies within this footprint,
+## as (t_enter, t_exit); x > y when the segment misses it. A point hull is never entered.
+func segment_span(a_from: Vector2, a_delta: Vector2) -> Vector2:
+	var none := Vector2(1.0, 0.0)
+	if is_rect():
+		# Slabs in the rectangle's own frame.
+		var local := Vector2((a_from - center).dot(axis_x), (a_from - center).dot(axis_z))
+		var dir := Vector2(a_delta.dot(axis_x), a_delta.dot(axis_z))
+		var span := Vector2(0.0, 1.0)
+		for axis: int in 2:
+			var half: float = half_extents[axis]
+			if dir[axis] == 0.0:
+				if absf(local[axis]) > half:
+					return none
+				continue
+			var t0: float = (-half - local[axis]) / dir[axis]
+			var t1: float = (half - local[axis]) / dir[axis]
+			span = Vector2(maxf(span.x, minf(t0, t1)), minf(span.y, maxf(t0, t1)))
+		return span if span.x <= span.y else none
+	if radius <= 0.0:
+		return none
+	# |from + t·delta - center|² = radius²
+	var offset: Vector2 = a_from - center
+	var a: float = a_delta.dot(a_delta)
+	var b: float = 2.0 * offset.dot(a_delta)
+	var c: float = offset.dot(offset) - radius * radius
+	if a == 0.0:
+		return Vector2(0.0, 1.0) if c <= 0.0 else none
+	var disc: float = b * b - 4.0 * a * c
+	if disc < 0.0:
+		return none
+	var root: float = sqrt(disc)
+	var span := Vector2(maxf((-b - root) / (2.0 * a), 0.0), minf((-b + root) / (2.0 * a), 1.0))
+	return span if span.x <= span.y else none
+
+
 func is_rect() -> bool:
 	return half_extents != Vector2.ZERO
 

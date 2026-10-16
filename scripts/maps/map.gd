@@ -396,6 +396,15 @@ func terrain_height_at(a_world_xz: Vector2) -> float:
 	return (global_transform * Vector3(local.x, h_local, local.z)).y
 
 
+## Whether the segment `a_from` -> `a_to` (world space, starting above the surface) touches
+## the terrain the physics server collides with — answered from the heightmap itself
+## (HeightmapRay), so a read in the decide pass needs no physics query.
+func terrain_segment_hits(a_from: Vector3, a_to: Vector3) -> bool:
+	if height_map == null or _terrain_collision_shape == null:
+		return false
+	return HeightmapRay.hits(height_map, _terrain_collision_shape.global_transform, a_from, a_to)
+
+
 ## Convert a world XZ position to the nearest grid cell indices.
 ## This is the exact inverse of grid_to_world: it undoes the terrain_body
 ## transform and the (map_width-1)/2 centering that grid_to_world applies.
