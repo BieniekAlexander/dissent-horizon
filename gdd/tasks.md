@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-114**
+> Next id: **T-115**
 
 # Tasks
 
@@ -181,6 +181,16 @@ Built: one drone at a time, firing from inside; the Shock Drone fires at long ra
 ### T-029 · Fog resolution: one pixel per cell, or coarser? #effort/medium #needs-input
 Coarser is cheaper and blurs vision edges and the per-cell structure-sighting test.
 → [combat/scan-and-vision-cost](systems/combat/scan-and-vision-cost.md) §Proposal: the fog of war
+
+### T-114 · Environmental pieces: hazards and pickups #effort/high #scoped #done
+Scoped 2026-10-16. Neutral hazards that go off when shot (power cells in three blast sizes with PLASMA + a new structure-burning status, a cryo dewar that Freezes, an activation cask leaving a long radiation field) and coin pickups (fuel cartridges for 500/2000 energy, an ordnance pod whose grant is authored per instance). Needs a `Volatile` and a `Pickup` component, the `burning` status, eight neutral docs and their models. Open `TODO`s in the note: burning's tuning, bot targeting, map generation (the radiation field deals INCENDIARY — decided 2026-10-16).
+→ [combat/environmental-pieces](systems/combat/environmental-pieces.md)
+
+> [!check] Status — 2026-10-16
+> Built: `Volatile`, `Pickup`, `StatusEffect.host_filter` / `ends_on_heal`, `burning` + `cryo_burst`, the `volatile:` / `pickup:` doc keys, 13 neutral docs (5 hazards, 5 emissions, 3 pickups) composed with placeholder models, and the ordnance depot (`OrdnanceDepot`, `CAST_FROM_DEPOT`, the card wiring). Tests: 6 new files green; suite 4625 tests, 2 red — `test_Retaliation` is flaky (passes alone), `test_ReplayRoundTrip` fails in the working tree but passes at HEAD with only these changes overlaid, so it belongs to the structure-models work in the tree.
+> Visuals built 2026-10-16: vent, burst, cloud and radiation looks under `scenes/effects/emissions/`, sized by `AreaEffect`; the fuse phase needed `ends_on_arrival: false`. Retuned the same day: cell/dewar/cask are tokens (infantry / vehicle sized), the batteries are 1×1 and 2×2 (`nt_batteryRack`, `nt_batteryBank`), every AoE one bucket down, fuse 0.25 s, pod grants Mortar by default, all eight in the debug spawner, generated low-poly models for all eight.
+> Cross-faction depot grants built 2026-10-16 (`OrdnanceDepot.foreign_sanction_for`: the lowest level any faction authors; the command centre anchors the off-map entry edge), after a Colonial player's Mortar pod armed nothing; verified by a headless probe that fires it from the card. Suite 4631 green. A reimport from the OPEN EDITOR dropped the six tokens from the roster, entity ids and technology (stale tool scripts); a headless import restored them.
+> **Not done:** the ordnance card's depot path is tested by unit test and probe, not against the live HUD; bot use of hazards/pickups/depot; map generation. Models and icons are reported slots.
 
 ## Commands
 

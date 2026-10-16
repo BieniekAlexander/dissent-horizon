@@ -22,6 +22,8 @@ extends Node
 
 #region Constants
 const OUTPUT_DIR: String = "res://assets/meshes/entities/structures/"
+## Where the environmental tokens' models go (StructureModels.token_catalog).
+const TOKEN_OUTPUT_DIR: String = "res://assets/meshes/entities/tokens/"
 const SPEC_ROOT: String = "res://gdd/"
 
 ## The figure the budget protects: the Colonial Recruit, the game's baseline infantry.
@@ -66,6 +68,17 @@ func _ready() -> void:
 		)
 		print(_report_line(result))
 		results.append(result)
+	# A token's extents are authored in its catalog entry; it claims no cells and is itself
+	# figure-sized, so only the overhang check applies.
+	var tokens: Dictionary = StructureModels.token_catalog()
+	for id: StringName in tokens:
+		var entry: Dictionary = tokens[id]
+		var result: Dictionary = _build_and_measure(
+			id, spec_scenes[id], entry["build"], figure, elevation, entry["half"]
+		)
+		result["is_token"] = true
+		print(_report_line(result))
+		results.append(result)
 	if results.any(_is_refused):
 		push_error("Structure models failed their checks; nothing was written.")
 		get_tree().quit(1)
@@ -76,9 +89,18 @@ func _ready() -> void:
 ## One piece's model, built by `build` on its footprint, and how it measures:
 ## `{id, footprint, triangle_count, worst, overhang, mesh}`.
 func _build_and_measure(
-	id: StringName, scene_path: String, build: Callable, figure: CylinderShape3D, elevation: float
+	id: StringName,
+	scene_path: String,
+	build: Callable,
+	figure: CylinderShape3D,
+	elevation: float,
+	half_override: Vector2 = Vector2.ZERO
 ) -> Dictionary:
-	var footprint: Vector2 = Vector2(_footprint(scene_path)) * Map.CELL_SIZE
+	var footprint: Vector2 = (
+		half_override * 2.0
+		if half_override != Vector2.ZERO
+		else Vector2(_footprint(scene_path)) * Map.CELL_SIZE
+	)
 	var parts: Dictionary = build.call(footprint * 0.5)
 	var triangles: PackedVector3Array = StructureModels.all_triangles(parts)
 	return {
@@ -100,6 +122,8 @@ func _is_refused(result: Dictionary) -> bool:
 
 
 func _is_over_budget(result: Dictionary) -> bool:
+	if result.get("is_token", false):
+		return false
 	return result["worst"]["fraction"] > MAX_HIDDEN_FRACTION
 
 
@@ -140,8 +164,10 @@ func _overhang(triangles: PackedVector3Array, half: Vector2) -> float:
 
 func _write(results: Array[Dictionary]) -> Error:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUTPUT_DIR))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(TOKEN_OUTPUT_DIR))
 	for result: Dictionary in results:
-		var path: String = OUTPUT_DIR + String(result["id"]) + ".res"
+		var directory: String = TOKEN_OUTPUT_DIR if result.get("is_token", false) else OUTPUT_DIR
+		var path: String = directory + String(result["id"]) + ".res"
 		var error: Error = ResourceSaver.save(result["mesh"], path)
 		if error != OK:
 			push_error("Could not write %s: %s" % [path, error_string(error)])

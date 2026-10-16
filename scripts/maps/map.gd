@@ -555,9 +555,12 @@ func add_entities(
 	# faction's starting_units) sizes candidate spacing/clearance for its biggest
 	# member, so a smaller unit type earlier in the array doesn't undersize the
 	# clearance a larger one later in the array actually needs.
+	# A TOKEN (a pickup, a beacon) has no body on the obstruction layer to measure, and stands
+	# wherever it is put — only the units size the scatter.
 	var radius: float = 0.0
 	for unit: Entity in units:
-		radius = maxf(radius, unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
+		if unit.is_in_group(&"unit"):
+			radius = maxf(radius, unit.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION))
 	# Measured from the edge of whatever fixture the anchor sits on (a structure spawning
 	# beside itself), not from its centre: a footprint wider than the scatter would
 	# otherwise cover the whole region and leave nowhere to stand.

@@ -405,8 +405,9 @@ static func grid_collisions(registry: RefCounted) -> Array:
 
 
 ## [{id, label, faction, scene, is_fixture, producers, tool}] — every piece that can stand in
-## the world on its own: units, structures and features. Tokens are left out (their emitter,
-## caster or lifespan is what makes one mean anything), and so are abstract bases (no scene).
+## the world on its own: units, structures, features, and the environmental tokens a mission
+## places (a pickup, a hazard). Other tokens are left out (their emitter, caster or lifespan is
+## what makes one mean anything), and so are abstract bases (no scene).
 ##
 ## A scene no doc names is listed too, from the groups and id its own file carries, unless its
 ## id is a documented piece's: the id is how every registry finds a piece, so it would run
@@ -423,7 +424,12 @@ static func debug_roster_json(registry: RefCounted) -> String:
 			continue
 		tracked_scenes[str(spec["scene"])] = true
 		var is_fixture: bool = SpecSchema.is_fixture(spec)
-		if not is_fixture and (not SpecSchema.is_commandable(spec) or SpecSchema.is_emission(spec)):
+		var is_placeable_token: bool = SpecSchema.is_pickup(spec) or spec.has("volatile")
+		if (
+			not is_fixture
+			and not is_placeable_token
+			and (not SpecSchema.is_commandable(spec) or SpecSchema.is_emission(spec))
+		):
 			continue
 		var ui: Dictionary = spec["ui"] if spec.get("ui") is Dictionary else {}
 		var factions: Array = ui.get("factions", [])

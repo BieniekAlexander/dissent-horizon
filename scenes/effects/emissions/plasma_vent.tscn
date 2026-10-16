@@ -1,0 +1,85 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/rendering/area_effect.gd" id="1_area"]
+[ext_resource type="Material" path="res://resources/emissions/particle_additive.tres" id="2_add"]
+[ext_resource type="Material" path="res://resources/emissions/particle_smoke.tres" id="3_smoke"]
+
+[sub_resource type="Gradient" id="Gradient_Arcs"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.85, 0.97, 1, 1, 0.35, 0.55, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Arcs"]
+gradient = SubResource("Gradient_Arcs")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Arcs"]
+emission_shape = 1
+emission_sphere_radius = 0.35
+direction = Vector3(0, 1, 0)
+spread = 180.0
+initial_velocity_min = 1.5
+initial_velocity_max = 3.5
+gravity = Vector3(0, -2, 0)
+damping_min = 2.0
+damping_max = 3.0
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.04
+scale_max = 0.08
+color_ramp = SubResource("GradientTexture1D_Arcs")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Arcs"]
+material = ExtResource("2_add")
+
+[sub_resource type="Gradient" id="Gradient_Steam"]
+offsets = PackedFloat32Array(0, 0.3, 1)
+colors = PackedColorArray(0.8, 0.9, 1, 0, 0.8, 0.9, 1, 0.5, 0.75, 0.85, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Steam"]
+gradient = SubResource("Gradient_Steam")
+
+[sub_resource type="Curve" id="Curve_Steam"]
+_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Steam"]
+curve = SubResource("Curve_Steam")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Steam"]
+emission_shape = 1
+emission_sphere_radius = 0.25
+direction = Vector3(0, 1, 0)
+spread = 25.0
+initial_velocity_min = 1.2
+initial_velocity_max = 2.0
+gravity = Vector3(0, 0.6, 0)
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.3
+scale_max = 0.5
+scale_curve = SubResource("CurveTexture_Steam")
+color_ramp = SubResource("GradientTexture1D_Steam")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Steam"]
+material = ExtResource("3_smoke")
+
+[node name="PlasmaVent" type="Node3D"]
+script = ExtResource("1_area")
+unscaled = Array[NodePath]([NodePath("Arcs"), NodePath("Steam")])
+
+[node name="Arcs" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+emitting = false
+amount = 30
+lifetime = 0.3
+visibility_aabb = AABB(-4, -1, -4, 8, 8, 8)
+process_material = SubResource("ParticleProcessMaterial_Arcs")
+draw_pass_1 = SubResource("QuadMesh_Arcs")
+
+[node name="Steam" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+emitting = false
+amount = 12
+lifetime = 0.9
+visibility_aabb = AABB(-4, -1, -4, 8, 8, 8)
+process_material = SubResource("ParticleProcessMaterial_Steam")
+draw_pass_1 = SubResource("QuadMesh_Steam")

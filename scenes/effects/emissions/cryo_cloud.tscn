@@ -1,0 +1,86 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/rendering/area_effect.gd" id="1_area"]
+[ext_resource type="Material" path="res://resources/emissions/particle_additive.tres" id="2_add"]
+[ext_resource type="Material" path="res://resources/emissions/particle_smoke.tres" id="3_smoke"]
+
+[sub_resource type="Gradient" id="Gradient_Flash"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.95, 1, 1, 1, 0.6, 0.85, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Flash"]
+gradient = SubResource("Gradient_Flash")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Flash"]
+direction = Vector3(0, 1, 0)
+spread = 180.0
+initial_velocity_min = 0.0
+initial_velocity_max = 0.0
+gravity = Vector3(0, 0, 0)
+scale_min = 1.6
+scale_max = 2.0
+color_ramp = SubResource("GradientTexture1D_Flash")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Flash"]
+material = ExtResource("2_add")
+
+[sub_resource type="Gradient" id="Gradient_Cloud"]
+offsets = PackedFloat32Array(0, 0.2, 0.7, 1)
+colors = PackedColorArray(0.9, 0.97, 1, 0, 0.88, 0.95, 1, 0.75, 0.8, 0.9, 1, 0.5, 0.75, 0.85, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Cloud"]
+gradient = SubResource("Gradient_Cloud")
+
+[sub_resource type="Curve" id="Curve_Cloud"]
+_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(0.5, 1), 0.0, 0.0, 0, 0, Vector2(1, 1.1), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_Cloud"]
+curve = SubResource("Curve_Cloud")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Cloud"]
+emission_shape = 1
+emission_sphere_radius = 0.3
+direction = Vector3(0, 1, 0)
+spread = 180.0
+flatness = 1.0
+initial_velocity_min = 1.4
+initial_velocity_max = 2.8
+gravity = Vector3(0, -0.15, 0)
+damping_min = 1.2
+damping_max = 1.6
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.6
+scale_max = 1.0
+scale_curve = SubResource("CurveTexture_Cloud")
+color_ramp = SubResource("GradientTexture1D_Cloud")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Cloud"]
+material = ExtResource("3_smoke")
+
+[node name="CryoCloud" type="Node3D"]
+script = ExtResource("1_area")
+unscaled = Array[NodePath]([NodePath("Flash")])
+
+[node name="Flash" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+emitting = false
+amount = 1
+lifetime = 0.15
+one_shot = true
+explosiveness = 1.0
+visibility_aabb = AABB(-8, -2, -8, 16, 12, 16)
+process_material = SubResource("ParticleProcessMaterial_Flash")
+draw_pass_1 = SubResource("QuadMesh_Flash")
+
+[node name="Cloud" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+emitting = false
+amount = 40
+lifetime = 1.8
+one_shot = true
+explosiveness = 0.9
+visibility_aabb = AABB(-8, -2, -8, 16, 12, 16)
+process_material = SubResource("ParticleProcessMaterial_Cloud")
+draw_pass_1 = SubResource("QuadMesh_Cloud")

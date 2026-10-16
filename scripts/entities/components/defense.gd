@@ -167,6 +167,7 @@ func restore(a_amount: float) -> bool:
 	# clears markers its owner may not be able to see.
 	if host != null and not is_staggered:
 		host.shed_hostile_markers()
+		host.shed_healable_effects()
 	if hp >= hp_max:
 		# Whole, but still wearing a marker the stagger kept on: not done yet.
 		return not (is_staggered and host.has_hostile_markers())

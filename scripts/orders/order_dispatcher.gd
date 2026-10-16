@@ -57,6 +57,8 @@ static func apply(order: PlayerOrder, scenario: Scenario) -> Array:
 			return _apply_pending_command_order(order, scenario)
 		PlayerOrder.Kind.DIALOG:
 			_apply_dialog(order, scenario)
+		PlayerOrder.Kind.CAST_FROM_DEPOT:
+			_apply_depot_cast(order, scenario)
 		PlayerOrder.Kind.FORFEIT:
 			scenario.forfeit(order.commander_id)
 	return []
@@ -98,6 +100,24 @@ static func _apply_unlock_sanction(order: PlayerOrder, scenario: Scenario) -> vo
 	)
 	if entry != null:
 		commander.sanction_grid.try_unlock(entry)
+
+
+## A depot cast names its ability, not a sanction: the commander's grid says which cell it
+## fires through (SanctionGrid.entry_for_ability), so the same order replays whatever the
+## commander has since unlocked.
+static func _apply_depot_cast(order: PlayerOrder, scenario: Scenario) -> void:
+	var commander: Commander = _commander(scenario, order.commander_id)
+	if commander == null or commander.ordnance_depot == null:
+		return
+	var at: Array = order.data.get("position", [0.0, 0.0, 0.0])
+	var serial: int = int(order.data.get("target", 0))
+	var target: Entity = scenario.piece_by_serial(serial) if serial != 0 else null
+	commander.ordnance_depot.cast(
+		StringName(str(order.data.get("ability", ""))),
+		Vector3(float(at[0]), float(at[1]), float(at[2])),
+		target,
+		StringName(str(order.data.get("payload", "")))
+	)
 
 
 static func _apply_drop(order: PlayerOrder, scenario: Scenario) -> Array:

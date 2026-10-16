@@ -902,6 +902,15 @@
 			"mr_barracks"
 		]
 	},
+	"nt_activationCask": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
 	"nt_aircraftLight_recon": {
 		"build_time_ticks": 300,
 		"cost": {
@@ -912,6 +921,24 @@
 		"requires": []
 	},
 	"nt_aircraftMedium_transport": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_batteryBank": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_batteryRack": {
 		"build_time_ticks": 300,
 		"cost": {
 			"dominion": 0,
@@ -965,6 +992,24 @@
 		},
 		"requires": []
 	},
+	"nt_courierPod": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_cryoDewar": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
 	"nt_extractionSite": {
 		"build_time_ticks": 300,
 		"cost": {
@@ -979,6 +1024,33 @@
 		"cost": {
 			"dominion": 0,
 			"energy": 500,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_fuelCache": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_fuelCartridge": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
+	"nt_powerCell": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
 			"infrastructure": 0
 		},
 		"requires": []

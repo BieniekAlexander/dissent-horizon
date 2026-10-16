@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://b1burn0e00001"]
+
+[ext_resource type="Script" path="res://scripts/entities/effects/damage_over_time_status_effect.gd" id="1_burn"]
+
+[node name="Burning" type="Node"]
+script = ExtResource("1_burn")
+title = "Burning"
+description = "On fire: it takes damage until the flames die down or a crew puts them out."
+verbose = "A plasma blast lights whatever structure it touches, and the fire keeps eating at it after the blast is gone. Repair puts it out at the first touch; otherwise it burns for a while and goes out on its own.\nOnly a fixture burns this way — the units in the blast take its damage and nothing more."
+duration_ticks = 300
+host_tint = Color(1, 0.62, 0.3, 1)
+host_filter = 1
+ends_on_heal = true
+damage_per_tick = 10.0
+tick_rate = 10
+damage_type = 9

@@ -1,0 +1,110 @@
+[gd_scene format=3 uid="uid://b7yhb03na2s0i"]
+
+[ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_root"]
+[ext_resource type="PackedScene" uid="uid://cf2ath2dyfx8t" path="res://scenes/components/hurtbox.tscn" id="1_spec"]
+[ext_resource type="PackedScene" uid="uid://cv856fb48540r" path="res://scenes/components/aggro_range.tscn" id="2_spec"]
+[ext_resource type="Script" uid="uid://cw7pigc81a8s6" path="res://scripts/entities/components/ownership.gd" id="3_spec"]
+[ext_resource type="Script" uid="uid://bjhym188pi4f3" path="res://scripts/entities/components/fixture.gd" id="4_spec"]
+[ext_resource type="Script" uid="uid://bo07mrma1gsbw" path="res://scripts/entities/components/defense.gd" id="5_spec"]
+[ext_resource type="Script" uid="uid://cr9hh3lw0al5i" path="res://scripts/entities/components/veterancy.gd" id="6_spec"]
+[ext_resource type="PackedScene" uid="uid://dekg3nbby2yo0" path="res://scenes/components/selectable.tscn" id="7_spec"]
+[ext_resource type="PackedScene" uid="uid://d0ceq6gujtn8" path="res://scenes/components/hp_bar.tscn" id="8_spec"]
+[ext_resource type="PackedScene" uid="uid://bbkejnpmkntco" path="res://scenes/components/selection_indicator.tscn" id="9_spec"]
+[ext_resource type="Script" uid="uid://sd0rhvmj6kyu" path="res://scripts/entities/components/command_line_indicator.gd" id="10_spec"]
+[ext_resource type="Script" uid="uid://dt2degoni7u3v" path="res://scripts/entities/components/mesh_visual.gd" id="11_spec"]
+[ext_resource type="Script" uid="uid://vdgaeokymiph" path="res://scripts/entities/components/status_visuals.gd" id="12_spec"]
+[ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="13_spec"]
+[ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="14_spec"]
+[ext_resource type="PackedScene" uid="uid://c0a8hdddox08m" path="res://scenes/components/footprint_visualizer.tscn" id="15_spec"]
+[ext_resource type="Script" uid="uid://qlndmox00008" path="res://scripts/entities/components/volatile.gd" id="16_spec"]
+[ext_resource type="PackedScene" uid="uid://bx1ffpsmji6b2" path="res://scenes/entities/projectiles/nt/nt_plasma_blast_large.tscn" id="17_spec"]
+
+[ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/nt_batteryBank.res" id="model_nt_batteryBank"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
+size = Vector3(2.0, 1.0, 2.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(2.0, 1.0, 2.0)
+
+[node name="NtBatteryBank" type="CharacterBody3D" groups=["piece", "fixture"]]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_root")
+id = &"nt_batteryBank"
+editor_description = "Neutral hazard — destroy it and it blows."
+description = "A settlement's battery bank — heavily shielded, and the biggest burst on the map."
+verbose = "A settlement's whole stored charge in one shielded bank of racks. Its shielding takes a great deal of punishment, and when it finally quenches the plasma column reaches anything flying over it."
+
+[node name="#####STATE#####" type="Node" parent="."]
+
+[node name="Hurtbox" parent="." instance=ExtResource("1_spec")]
+
+[node name="HurtboxShape" parent="Hurtbox" index="0"]
+shape = SubResource("BoxShape3D_hurtbox")
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 0.0)
+metadata/_visual_default_hurtbox = "BoxShape3D"
+
+[node name="AggroRangeGround" parent="." instance=ExtResource("2_spec")]
+
+[node name="Ownership" type="Node" parent="."]
+script = ExtResource("3_spec")
+
+[node name="Fixture" type="Node" parent="."]
+script = ExtResource("4_spec")
+dimensions = Vector2i(2, 2)
+
+[node name="Defense" type="Node" parent="."]
+script = ExtResource("5_spec")
+hp_max = 250.0
+armour_type = 2
+frame_type = 1
+
+[node name="Veterancy" type="Node" parent="."]
+script = ExtResource("6_spec")
+
+[node name="#####CONTROLS#####" type="Node" parent="."]
+
+[node name="Selectable" parent="." instance=ExtResource("7_spec")]
+
+[node name="SelectionShape" parent="Selectable" index="0"]
+shape = SubResource("BoxShape3D_selection")
+metadata/_visual_default_selection = "BoxShape3D"
+
+[node name="#####VISUALS#####" type="Node" parent="."]
+
+[node name="HPBar" parent="." instance=ExtResource("8_spec")]
+transform = Transform3D(0.494792, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 1.12, 0.0)
+metadata/_visual_default_hp_bar = 1.266667
+
+[node name="SelectionIndicator" parent="." instance=ExtResource("9_spec")]
+
+[node name="CommandLineIndicator" type="Node3D" parent="."]
+script = ExtResource("10_spec")
+
+[node name="MeshVisual" type="Node3D" parent="."]
+script = ExtResource("11_spec")
+
+[node name="Model" type="MeshInstance3D" parent="MeshVisual"]
+mesh = ExtResource("model_nt_batteryBank")
+
+[node name="StatusVisuals" type="Node3D" parent="."]
+script = ExtResource("12_spec")
+
+[node name="#####DEBUG#####" type="Node" parent="."]
+
+[node name="DebugLabel" parent="." instance=ExtResource("13_spec")]
+
+[node name="#####TRIGGERS#####" type="Node" parent="."]
+
+[node name="TargetIndicator" parent="." instance=ExtResource("14_spec")]
+
+[node name="AggroRangeAir" parent="." instance=ExtResource("2_spec")]
+
+[node name="FootprintVisualizer" parent="." instance=ExtResource("15_spec")]
+
+[node name="Volatile" type="Node" parent="."]
+script = ExtResource("16_spec")
+blast_scene = ExtResource("17_spec")
+
+[editable path="Hurtbox"]

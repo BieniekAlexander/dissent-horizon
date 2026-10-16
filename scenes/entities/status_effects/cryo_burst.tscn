@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://b1cryob000001"]
+
+[ext_resource type="Script" path="res://scripts/entities/effects/freeze_status_effect.gd" id="1_fz"]
+[ext_resource type="Texture2D" path="res://assets/interface/status_freeze.svg" id="2_flake"]
+
+[node name="CryoBurst" type="Node"]
+script = ExtResource("1_fz")
+title = "Frozen"
+description = "Encased in ice by a ruptured cryogen dewar: it can do nothing, and the ice takes damage before it does."
+valence = 2
+verbose = "The same freeze the Colonial cryogenics deal, from a dewar that burst. The cold cloud hugs the ground, so it freezes the units standing in it and leaves structures alone — like a frost field, not like the Freeze ordnance."
+host_tint = Color(0.62, 0.84, 1, 1)
+indicator_icon = ExtResource("2_flake")
+host_filter = 2

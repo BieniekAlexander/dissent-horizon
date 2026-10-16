@@ -721,6 +721,52 @@ func _validate(a_spec: Dictionary) -> void:
 			_validate_shape(a_spec)
 
 
+## `volatile:` names the EMISSION thrown where the piece dies (Volatile). The fuse is that
+## emission's first phase, so there is nothing else to author here; `false` removes the
+## component.
+func _validate_volatile(a_spec: Dictionary) -> void:
+	var value: Variant = a_spec["volatile"]
+	if value is bool:
+		if bool(value):
+			_err(a_spec, "volatile: true says nothing — name the blast emission, or false")
+		return
+	var blast: String = str(value)
+	if not projectiles.has(blast):
+		_err(a_spec, "volatile names unknown emission '%s'" % blast)
+	elif not a_spec.has("hp"):
+		_err(a_spec, "volatile needs defense: — a piece with no hit points cannot be destroyed")
+
+
+## `pickup:` makes the piece a collectible token (Pickup): exactly one of `energy` or
+## `ability` (with an optional `charges`), and an optional `radius`. A token claims no cells,
+## so `footprint:` is refused beside it; `false` removes the component.
+func _validate_pickup(a_spec: Dictionary) -> void:
+	var value: Variant = a_spec["pickup"]
+	if value is bool:
+		if bool(value):
+			_err(a_spec, "pickup: true says nothing — write what it grants, or false")
+		return
+	if not (value is Dictionary):
+		_err(a_spec, "pickup must be a mapping: {energy: 500} or {ability: scan, charges: 1}")
+		return
+	var pickup: Dictionary = value
+	for key: Variant in pickup:
+		if not (str(key) in ["energy", "ability", "charges", "radius"]):
+			_err(a_spec, "pickup: unknown key '%s'" % key)
+	if pickup.has("energy") == pickup.has("ability"):
+		_err(a_spec, "pickup grants exactly one of energy: or ability:")
+	if pickup.has("energy") and int(pickup["energy"]) <= 0:
+		_err(a_spec, "pickup.energy must be positive")
+	if pickup.has("ability") and not abilities.has(str(pickup["ability"])):
+		_err(a_spec, "pickup.ability names unknown ability '%s'" % pickup["ability"])
+	if pickup.has("charges") and (not pickup.has("ability") or int(pickup["charges"]) < 1):
+		_err(a_spec, "pickup.charges needs ability: and must be at least 1")
+	if pickup.has("radius") and float(pickup["radius"]) <= 0.0:
+		_err(a_spec, "pickup.radius must be positive")
+	if a_spec.has("footprint"):
+		_err(a_spec, "a pickup is a token: it claims no cells, so footprint: is refused")
+
+
 func _validate_piece(a_spec: Dictionary) -> void:
 	if not SpecSchema.has_discriminator(a_spec):
 		_err(
@@ -774,6 +820,10 @@ func _validate_piece(a_spec: Dictionary) -> void:
 	# three-state machine, and the DetectionRange volumes that reveal it.
 	if a_spec.has("stealth") and not (a_spec["stealth"] is bool):
 		_err(a_spec, "stealth must be true or false")
+	if a_spec.has("volatile"):
+		_validate_volatile(a_spec)
+	if a_spec.has("pickup"):
+		_validate_pickup(a_spec)
 	# Identity components: presence only, their tuning is scene-authored (SpecSceneSync.
 	# IDENTITY_COMPONENTS).
 	for key: String in ["shelter", "extraction_site", "extractor", "plants_beacons", "flushes"]:

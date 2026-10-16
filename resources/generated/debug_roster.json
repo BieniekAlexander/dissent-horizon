@@ -837,11 +837,38 @@
 	},
 	{
 		"faction": "neutral",
+		"id": "nt_activationCask",
+		"is_fixture": false,
+		"label": "Activation Cask",
+		"producers": [],
+		"scene": "res://scenes/entities/tokens/nt/nt_activationCask.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
 		"id": "nt_aircraftMedium_transport",
 		"is_fixture": false,
 		"label": "Dropship",
 		"producers": [],
 		"scene": "res://scenes/entities/units/nt/nt_aircraftMedium_transport.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_batteryBank",
+		"is_fixture": true,
+		"label": "Battery Bank",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/nt/nt_batteryBank.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_batteryRack",
+		"is_fixture": true,
+		"label": "Battery Rack",
+		"producers": [],
+		"scene": "res://scenes/entities/structures/nt/nt_batteryRack.tscn",
 		"tool": ""
 	},
 	{
@@ -891,6 +918,24 @@
 	},
 	{
 		"faction": "neutral",
+		"id": "nt_courierPod",
+		"is_fixture": false,
+		"label": "Courier Pod",
+		"producers": [],
+		"scene": "res://scenes/entities/tokens/nt/nt_courierPod.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_cryoDewar",
+		"is_fixture": false,
+		"label": "Cryo Dewar",
+		"producers": [],
+		"scene": "res://scenes/entities/tokens/nt/nt_cryoDewar.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
 		"id": "nt_extractionSite",
 		"is_fixture": true,
 		"label": "Extraction Site",
@@ -906,6 +951,33 @@
 		"producers": [],
 		"scene": "res://scenes/entities/structures/nt/nt_extractor.tscn",
 		"tool": "command_tool_nt_extractor"
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_fuelCache",
+		"is_fixture": false,
+		"label": "Fuel Cache",
+		"producers": [],
+		"scene": "res://scenes/entities/tokens/nt/nt_fuelCache.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_fuelCartridge",
+		"is_fixture": false,
+		"label": "Fuel Cartridge",
+		"producers": [],
+		"scene": "res://scenes/entities/tokens/nt/nt_fuelCartridge.tscn",
+		"tool": ""
+	},
+	{
+		"faction": "neutral",
+		"id": "nt_powerCell",
+		"is_fixture": false,
+		"label": "Power Cell",
+		"producers": [],
+		"scene": "res://scenes/entities/tokens/nt/nt_powerCell.tscn",
+		"tool": ""
 	},
 	{
 		"faction": "neutral",

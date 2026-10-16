@@ -80,6 +80,8 @@ const TOP_LEVEL_ORDER: Array = [
 	"extractor",
 	"plants_beacons",
 	"flushes",
+	"volatile",
+	"pickup",
 	# Root-node properties: neither belongs to a component.
 	"infrastructure",
 	"occupancy_size",
@@ -403,11 +405,26 @@ static func derived_groups(spec: Dictionary) -> Array[String]:
 
 
 ## Whether the doc names at least one key that gives a piece a body or a sense: a footprint,
-## movement, or vision. A doc with none is prose carrying the marker, or a piece whose author
+## movement, vision, or a token's reason to stand on the ground — a pickup's reach, or a
+## hazard's blast (a cell or a dewar claims no cell and moves nowhere, and is shot where it
+## stands). A doc with none is prose carrying the marker, or a piece whose author
 ## forgot the key that makes it anything — both refused (composition-rework §The
 ## discriminating keys).
 static func has_discriminator(spec: Dictionary) -> bool:
-	return spec.has("footprint") or spec.has("movement") or spec.has("vision")
+	return (
+		spec.has("footprint")
+		or spec.has("movement")
+		or spec.has("vision")
+		or is_pickup(spec)
+		or spec.has("volatile")
+	)
+
+
+## Whether the piece is a collectible token (`pickup:`). A doc key, read here because the
+## composition tier asks it: a pickup has a body to walk over and a model to see, with no
+## cells and no hit points.
+static func is_pickup(spec: Dictionary) -> bool:
+	return spec.get("pickup") is Dictionary
 
 
 ## Whether the doc opts out of the default model, by waiving `has_mesh_visual`.

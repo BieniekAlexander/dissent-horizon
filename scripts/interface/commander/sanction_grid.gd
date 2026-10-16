@@ -310,6 +310,25 @@ func deployable_entry_for(a_ability_id: StringName) -> Entry:
 	return null
 
 
+## The cell a cast of `a_ability_id` goes through when the charge is the DEPOT's rather than a
+## caster's (OrdnanceDepot): the one in play when the commander owns one, else the lowest-tier
+## cell granting the ability — a free charge of an ordnance nobody has unlocked casts its first
+## level. Null when the grid has no cell for it at all.
+func entry_for_ability(a_ability_id: StringName) -> Entry:
+	var deployable: Entry = deployable_entry_for(a_ability_id)
+	if deployable != null:
+		return deployable
+	var lowest: Entry = null
+	for entry: Entry in entries:
+		if entry.sanction == null or entry.sanction.ability_id != a_ability_id:
+			continue
+		if entry.sanction.passive:
+			continue
+		if lowest == null or entry.tier() < lowest.tier():
+			lowest = entry
+	return lowest
+
+
 ## The live Sanction instances the commander can actually deploy, in grid order. Every
 ## consumer — the sanction bar, the bot, cooldown ticking — reads this rather than
 ## filtering `entries` itself, so nothing can leave a superseded sanction in play.

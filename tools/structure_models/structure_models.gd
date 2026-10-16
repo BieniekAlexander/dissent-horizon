@@ -73,6 +73,24 @@ static func catalog() -> Dictionary:
 		EntityIds.NT_EXTRACTION_SITE: extraction_site,
 		EntityIds.NT_EXTRACTOR: extractor,
 		EntityIds.NT_SHELTER: shelter,
+		EntityIds.NT_BATTERY_RACK: battery_rack,
+		EntityIds.NT_BATTERY_BANK: battery_bank,
+	}
+
+
+## Piece id → `{build, half}` for the environmental TOKENS (environmental-pieces.md): a token
+## claims no cells, so its extents are authored here rather than read from a footprint —
+## infantry-sized for what a soldier carries, vehicle-sized for what a truck does. `build` is
+## called with those half-extents like every other model function. No foundation slab: a token
+## stands on the ground, not on cells.
+static func token_catalog() -> Dictionary:
+	return {
+		EntityIds.NT_POWER_CELL: {"build": power_cell, "half": Vector2(0.2, 0.2)},
+		EntityIds.NT_CRYO_DEWAR: {"build": cryo_dewar, "half": Vector2(0.45, 0.7)},
+		EntityIds.NT_ACTIVATION_CASK: {"build": activation_cask, "half": Vector2(0.5, 0.5)},
+		EntityIds.NT_FUEL_CARTRIDGE: {"build": fuel_cartridge, "half": Vector2(0.15, 0.25)},
+		EntityIds.NT_FUEL_CACHE: {"build": fuel_cache, "half": Vector2(0.5, 0.7)},
+		EntityIds.NT_COURIER_POD: {"build": courier_pod, "half": Vector2(0.45, 0.7)},
 	}
 
 
@@ -567,6 +585,214 @@ static func shelter(half: Vector2) -> Dictionary:
 		trim += MeshPrimitives.cylinder(vent, 0.07, 0.6, 1.05, 6)
 		trim += MeshPrimitives.cylinder(vent, 0.11, 1.05, 1.12, 6)
 	return _model(half, body, trim, PackedVector3Array())
+
+
+#endregion
+
+#region Environmental pieces
+
+
+## Battery Rack: an open frame of posts and two shelves, each holding a row of storage cells,
+## a bus bar running along the top.
+static func battery_rack(half: Vector2) -> Dictionary:
+	var frame: Vector2 = half - Vector2(0.18, 0.18)
+	var trim: PackedVector3Array = PackedVector3Array()
+	for corner: Vector2 in _corners(frame):
+		trim += MeshPrimitives.box(
+			Vector3(corner.x - POST * 0.5, 0.0, corner.y - POST * 0.5),
+			Vector3(corner.x + POST * 0.5, 0.8, corner.y + POST * 0.5)
+		)
+	var body: PackedVector3Array = PackedVector3Array()
+	for shelf: float in [0.26, 0.54]:
+		trim += MeshPrimitives.box(
+			Vector3(-frame.x, shelf, -frame.y), Vector3(frame.x, shelf + 0.04, frame.y)
+		)
+		for x: float in [-0.2, 0.0, 0.2]:
+			for z: float in [-0.12, 0.12]:
+				body += MeshPrimitives.cylinder(Vector2(x, z), 0.06, shelf + 0.04, shelf + 0.24, 6)
+	var accent: PackedVector3Array = MeshPrimitives.box(
+		Vector3(-frame.x, 0.8, -0.04), Vector3(frame.x, 0.86, 0.04)
+	)
+	return _model(half, body, trim, accent)
+
+
+## Battery Bank: a shielded block with cooling fins down its back and a conduit along its side,
+## a charge strip glowing on its face.
+static func battery_bank(half: Vector2) -> Dictionary:
+	var block: Vector2 = half - Vector2(0.25, 0.25)
+	var body: PackedVector3Array = MeshPrimitives.box(
+		Vector3(-block.x, 0.0, -block.y), Vector3(block.x, 0.7, block.y)
+	)
+	var trim: PackedVector3Array = PackedVector3Array()
+	for x: float in _spaced(-block.x + 0.15, block.x - 0.15, 0.3):
+		trim += MeshPrimitives.box(
+			Vector3(x - 0.04, 0.7, -block.y + 0.1), Vector3(x + 0.04, 0.95, -0.1)
+		)
+	trim += MeshPrimitives.cylinder(
+		Vector2(block.x - 0.3, block.y - 0.3), 0.2, 0.7, 1.0, ROUND_SIDES
+	)
+	trim += MeshPrimitives.beam(
+		Vector3(-block.x - 0.12, 0.3, -block.y), Vector3(-block.x - 0.12, 0.3, block.y), 0.08
+	)
+	var accent: PackedVector3Array = MeshPrimitives.box(
+		Vector3(-block.x + 0.2, 0.3, block.y), Vector3(block.x - 0.2, 0.4, block.y + 0.03)
+	)
+	return _model(half, body, trim, accent)
+
+
+## Power Cell: a man-portable storage canister — an upright drum between two end caps, a coil
+## band glowing round its middle and a terminal post on top.
+static func power_cell(half: Vector2) -> Dictionary:
+	var radius: float = minf(half.x, half.y) - 0.03
+	var body: PackedVector3Array = MeshPrimitives.cylinder(
+		Vector2.ZERO, radius, 0.06, 0.78, ROUND_SIDES
+	)
+	var trim: PackedVector3Array = MeshPrimitives.cylinder(
+		Vector2.ZERO, radius + 0.02, 0.0, 0.06, ROUND_SIDES
+	)
+	trim += MeshPrimitives.cylinder(Vector2.ZERO, radius + 0.02, 0.78, 0.84, ROUND_SIDES)
+	trim += MeshPrimitives.cylinder(Vector2.ZERO, 0.04, 0.84, 0.95, 6)
+	var accent: PackedVector3Array = MeshPrimitives.cylinder(
+		Vector2.ZERO, radius + 0.015, 0.36, 0.5, ROUND_SIDES
+	)
+	return {Slot.BODY: body, Slot.TRIM: trim, Slot.ACCENT: accent}
+
+
+## Cryo Dewar: a horizontal tank on a cradle, frosted end caps and a valve stack on top.
+static func cryo_dewar(half: Vector2) -> Dictionary:
+	var radius: float = half.x - 0.08
+	var length: float = half.y * 2.0 - 0.3
+	var lying: Transform3D = Transform3D(
+		Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0.0, radius + 0.15, 0.0)
+	)
+	var body: PackedVector3Array = MeshPrimitives.transformed(
+		MeshPrimitives.cylinder(Vector2.ZERO, radius, -length * 0.5, length * 0.5, ROUND_SIDES),
+		lying
+	)
+	var accent: PackedVector3Array = MeshPrimitives.transformed(
+		(
+			MeshPrimitives.cylinder(
+				Vector2.ZERO, radius + 0.02, -length * 0.5 - 0.06, -length * 0.5, ROUND_SIDES
+			)
+			+ MeshPrimitives.cylinder(
+				Vector2.ZERO, radius + 0.02, length * 0.5, length * 0.5 + 0.06, ROUND_SIDES
+			)
+		),
+		lying
+	)
+	var trim: PackedVector3Array = PackedVector3Array()
+	for z: float in [-length * 0.3, length * 0.3]:
+		trim += MeshPrimitives.box(Vector3(-half.x, 0.0, z - 0.06), Vector3(half.x, 0.2, z + 0.06))
+	trim += MeshPrimitives.cylinder(
+		Vector2(0.0, 0.0), 0.06, radius * 2.0 + 0.1, radius * 2.0 + 0.35, 6
+	)
+	trim += MeshPrimitives.beam(
+		Vector3(-0.15, radius * 2.0 + 0.3, 0.0), Vector3(0.15, radius * 2.0 + 0.3, 0.0), 0.05
+	)
+	return {Slot.BODY: body, Slot.TRIM: trim, Slot.ACCENT: accent}
+
+
+## Activation Cask: a squat thick-walled drum on a pallet, cooling fins round it, a hazard band
+## below its lid.
+static func activation_cask(half: Vector2) -> Dictionary:
+	var radius: float = minf(half.x, half.y) - 0.1
+	var trim: PackedVector3Array = MeshPrimitives.box(
+		Vector3(-half.x, 0.0, -half.y), Vector3(half.x, 0.1, half.y)
+	)
+	var body: PackedVector3Array = MeshPrimitives.cylinder(
+		Vector2.ZERO, radius, 0.1, 0.75, ROUND_SIDES
+	)
+	trim += MeshPrimitives.frustum(
+		Vector2.ZERO, radius + 0.04, radius - 0.1, 0.75, 0.88, ROUND_SIDES
+	)
+	for fin: int in range(4):
+		var direction: Vector2 = Vector2.from_angle(TAU * fin / 4.0)
+		var start: Vector3 = Vector3(direction.x, 0.2, direction.y) * (radius - 0.02)
+		var end: Vector3 = Vector3(direction.x, 0.2, direction.y) * (radius + 0.08)
+		trim += MeshPrimitives.beam(start, end, 0.08)
+		trim += MeshPrimitives.beam(start + Vector3.UP * 0.4, end + Vector3.UP * 0.4, 0.08)
+	var accent: PackedVector3Array = MeshPrimitives.cylinder(
+		Vector2.ZERO, radius + 0.01, 0.6, 0.7, ROUND_SIDES
+	)
+	return {Slot.BODY: body, Slot.TRIM: trim, Slot.ACCENT: accent}
+
+
+## Fuel Cartridge: a hydride cartridge lying on the ground — a short capped cylinder with a grip.
+static func fuel_cartridge(half: Vector2) -> Dictionary:
+	var radius: float = half.x - 0.02
+	var length: float = half.y * 2.0 - 0.12
+	var lying: Transform3D = Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0.0, radius, 0.0))
+	var body: PackedVector3Array = MeshPrimitives.transformed(
+		MeshPrimitives.cylinder(Vector2.ZERO, radius, -length * 0.5, length * 0.5, ROUND_SIDES),
+		lying
+	)
+	var accent: PackedVector3Array = MeshPrimitives.transformed(
+		MeshPrimitives.cylinder(Vector2.ZERO, radius * 0.7, length * 0.5, length * 0.5 + 0.05, 6),
+		lying
+	)
+	var trim: PackedVector3Array = MeshPrimitives.box(
+		Vector3(-0.03, radius * 2.0 - 0.02, -0.08), Vector3(0.03, radius * 2.0 + 0.05, 0.08)
+	)
+	return {Slot.BODY: body, Slot.TRIM: trim, Slot.ACCENT: accent}
+
+
+## Fuel Cache: a pallet of cartridges, two layers deep, strapped down.
+static func fuel_cache(half: Vector2) -> Dictionary:
+	var trim: PackedVector3Array = MeshPrimitives.box(
+		Vector3(-half.x, 0.0, -half.y), Vector3(half.x, 0.08, half.y)
+	)
+	var radius: float = 0.13
+	var length: float = half.y * 2.0 - 0.2
+	var body: PackedVector3Array = PackedVector3Array()
+	for layer: int in range(2):
+		for x: float in [-0.3, 0.0, 0.3]:
+			var lying: Transform3D = Transform3D(
+				Basis(Vector3.RIGHT, -PI * 0.5),
+				Vector3(x, 0.08 + radius + layer * radius * 2.0, 0.0)
+			)
+			body += MeshPrimitives.transformed(
+				MeshPrimitives.cylinder(Vector2.ZERO, radius, -length * 0.5, length * 0.5, 6), lying
+			)
+	var top: float = 0.08 + radius * 4.0
+	var accent: PackedVector3Array = PackedVector3Array()
+	for z: float in [-length * 0.3, length * 0.3]:
+		accent += MeshPrimitives.box(
+			Vector3(-half.x + 0.05, 0.0, z - 0.03), Vector3(half.x - 0.05, top + 0.03, z + 0.03)
+		)
+	return {Slot.BODY: body, Slot.TRIM: trim, Slot.ACCENT: accent}
+
+
+## Courier Pod: a drop capsule that came down nose-first and leans where it landed — a tapered
+## shell on three fins, its beacon still lit, on a scorched patch.
+static func courier_pod(half: Vector2) -> Dictionary:
+	var scorch: PackedVector3Array = MeshPrimitives.frustum(
+		Vector2.ZERO,
+		minf(half.x, half.y) - 0.02,
+		minf(half.x, half.y) - 0.15,
+		0.0,
+		0.03,
+		ROUND_SIDES
+	)
+	# Leaning along +Z: the nose is in the ground at the -Z end, the tail up over +Z.
+	var lean: Transform3D = Transform3D(Basis(Vector3.RIGHT, PI * 0.33), Vector3(0.0, 0.05, -0.3))
+	var shell: PackedVector3Array = MeshPrimitives.transformed(
+		MeshPrimitives.frustum(Vector2.ZERO, 0.08, 0.26, 0.0, 0.95, ROUND_SIDES), lean
+	)
+	var fins: PackedVector3Array = PackedVector3Array()
+	for fin: int in range(3):
+		var direction: Vector2 = Vector2.from_angle(TAU * fin / 3.0 + PI * 0.5)
+		fins += MeshPrimitives.transformed(
+			MeshPrimitives.beam(
+				Vector3(direction.x, 0.75, direction.y) * 0.26,
+				Vector3(direction.x, 0.9, direction.y) * 0.4,
+				0.05
+			),
+			lean
+		)
+	var accent: PackedVector3Array = MeshPrimitives.transformed(
+		MeshPrimitives.cylinder(Vector2.ZERO, 0.06, 0.95, 1.05, 6), lean
+	)
+	return {Slot.BODY: shell, Slot.TRIM: scorch + fins, Slot.ACCENT: accent}
 
 
 #endregion
