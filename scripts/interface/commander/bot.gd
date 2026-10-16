@@ -2243,6 +2243,28 @@ func safety_channel_for(a_type: StringName) -> PackedFloat32Array:
 	return f.safety(String(a_type), hp_of_type(a_type), dps_by_type_against(preview))
 
 
+## Advance the safety channel for `a_type` by up to `a_cells` cells (BotFields.safety_in_steps)
+## and return how many cells are left: 0 once safety_channel_for has it to hand, and always 0
+## without the fields.
+func advance_safety_channel(a_type: StringName, a_cells: int) -> int:
+	var f: BotFields = fields()
+	var preview: Node = _preview_for_type(a_type)
+	if f == null or preview == null:
+		return 0
+	var key: String = String(a_type)
+	f.safety_in_steps(key, hp_of_type(a_type), dps_by_type_against(preview), a_cells)
+	return f.safety_cells_remaining(key)
+
+
+## Cells of the safety channel for `a_type` still to build (BotFields.safety_cells_remaining);
+## 0 without the fields.
+func safety_cells_remaining(a_type: StringName) -> int:
+	var f: BotFields = fields()
+	if f == null or _preview_for_type(a_type) == null:
+		return 0
+	return f.safety_cells_remaining(String(a_type))
+
+
 ## THE EXPECTED LIFETIME of a structure of `a_type` standing at `a_xz`, in seconds
 ## (BotFields.lifetime_seconds_at); the held horizon without the fields, when nothing can be
 ## said against a site.

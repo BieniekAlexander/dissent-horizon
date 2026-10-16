@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-113**
+> Next id: **T-114**
 
 # Tasks
 
@@ -371,6 +371,10 @@ With interpolated rendering; 20 Hz would cut every per-tick cost by a third. Not
 
 > [!check] Status — 2026-10-15
 > Alex: rejected for now; the simulation stays at 30 Hz. Recorded as REJECTED in the note.
+
+### T-113 · A freed structure stays on the map's grids #effort/medium #unscoped
+Seen in the two-bot skirmish probe (`tools/_perf_probe_tmp.tscn`, both slots MEDIUM, `--fixed-fps 30`), which plays the same match every run. From tick ~11,100, `Map.cell_grid` and `TerrainGrid.buildings()` hold a structure that has been freed. The bot's placement reads (`PlacementKnowledge.believes_occupied`, `NavPlacement._ClassProbe.neighbours_keep_access`) then raise "Trying to assign invalid previously freed instance" ~5,000 times by tick 18,000, and those placement checks fail for as long as it lasts. `Map.remove_structure` never ran for it. A probe on every registered building's `tree_exiting` found none freed or taken out of the tree while still registered, so the entry arrives some other way: the next suspects are registration of a piece already out of the tree, and a write while the occupant is freed (`== null` is true for a freed object). Reproduce with `--ticks=11600`.
+→ [ai/bot-performance](systems/ai/bot-performance.md) §Re-measured 2026-10-16
 
 ## UX
 

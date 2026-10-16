@@ -151,6 +151,10 @@ var _own_air: Array = []
 var _defences: Array = []
 ## Structure type key → the safety channel for that type (safety), kept until the next swap.
 var _safety_cache: Dictionary = {}
+## NavField → its per-cell distance_beside (_beside_costs), for the current snapshot.
+var _beside_cache: Dictionary = {}
+## Safety channels part-way built (safety_in_steps), by key; each carries its own snapshot.
+var _safety_builds: Dictionary = {}
 
 
 #region Construction
@@ -437,6 +441,7 @@ func _swap_in() -> void:
 	_point_fields = _build["points"]
 	_coverage_cache = {}
 	_safety_cache = {}
+	_beside_cache = {}
 	_ready = true
 
 
@@ -689,8 +694,15 @@ func threat_at(a_xz: Vector2, a_hp: float, a_dps_by_type: Dictionary) -> Diction
 	_ensure_ready()
 	if _enemy_sources().is_empty():
 		return {"seconds": prior_arrival_seconds, "value": 0.0}
-	var cell: Vector2i = lattice.index_at(a_xz)
-	var arrivals: Array = []
+	return _threat_from(_threat_groups(a_dps_by_type), a_xz, a_hp)
+
+
+## The believed enemies that can hurt a target with `a_dps_by_type`, grouped as threat_at reads
+## them: {"air": every flier, each {"xz", "speed", "dps", "value"}, in source order; "ground":
+## one entry per arrival field, {"key", "dps", "value"}, in first-seen order}. Independent of
+## where the target stands, so a per-cell sweep (safety) groups once rather than per cell.
+func _threat_groups(a_dps_by_type: Dictionary) -> Dictionary:
+	var air: Array = []
 	var by_key: Dictionary = {}
 	for source: Dictionary in _enemy_sources():
 		var dps: float = float(a_dps_by_type.get(source.get("type", &""), 0.0))
@@ -698,23 +710,32 @@ func threat_at(a_xz: Vector2, a_hp: float, a_dps_by_type: Dictionary) -> Diction
 			continue
 		var value: float = float(source.get("value", 0.0))
 		if source.get("is_air", false):
-			var seconds: float = source["xz"].distance_to(a_xz) / source["speed"]
-			arrivals.append({"seconds": seconds, "dps": dps, "value": value})
+			air.append({"xz": source["xz"], "speed": source["speed"], "dps": dps, "value": value})
 			continue
 		var key: String = _arrival_key(source)
 		if not by_key.has(key):
-			by_key[key] = {"dps": 0.0, "value": 0.0}
+			by_key[key] = {"key": key, "dps": 0.0, "value": 0.0}
 		by_key[key]["dps"] += dps
 		by_key[key]["value"] += value
-	for key: String in by_key:
-		var entry: Dictionary = _enemy_arrival_fields[key]
+	return {"air": air, "ground": by_key.values()}
+
+
+## threat_at's answer at `a_xz` from groups already made by _threat_groups.
+func _threat_from(a_groups: Dictionary, a_xz: Vector2, a_hp: float) -> Dictionary:
+	var cell: Vector2i = lattice.index_at(a_xz)
+	var arrivals: Array = []
+	for flier: Dictionary in a_groups["air"]:
+		var seconds: float = flier["xz"].distance_to(a_xz) / flier["speed"]
+		arrivals.append({"seconds": seconds, "dps": flier["dps"], "value": flier["value"]})
+	for group: Dictionary in a_groups["ground"]:
+		var entry: Dictionary = _enemy_arrival_fields[group["key"]]
 		(
 			arrivals
 			. append(
 				{
 					"seconds": arrival_seconds(entry["field"], cell, lattice.pitch, entry["speed"]),
-					"dps": by_key[key]["dps"],
-					"value": by_key[key]["value"],
+					"dps": group["dps"],
+					"value": group["value"],
 				}
 			)
 		)
@@ -735,11 +756,15 @@ func kill_seconds_at(a_xz: Vector2, a_hp: float, a_dps_by_type: Dictionary) -> f
 ## when what the bot can bring there before it falls is worth at least what comes for it, else
 ## the time it has (lifetime_of).
 func lifetime_seconds_at(a_xz: Vector2, a_hp: float, a_dps_by_type: Dictionary) -> float:
-	var threat: Dictionary = threat_at(a_xz, a_hp, a_dps_by_type)
+	return _lifetime_from(threat_at(a_xz, a_hp, a_dps_by_type), a_xz)
+
+
+## lifetime_seconds_at from a threat already read at `a_xz`.
+func _lifetime_from(a_threat: Dictionary, a_xz: Vector2) -> float:
 	return lifetime_of(
-		threat["seconds"],
-		answer_value_by(a_xz, threat["seconds"]),
-		threat["value"],
+		a_threat["seconds"],
+		answer_value_by(a_xz, a_threat["seconds"]),
+		a_threat["value"],
 		HELD_LIFETIME_SECONDS
 	)
 
@@ -749,20 +774,271 @@ func lifetime_seconds_at(a_xz: Vector2, a_hp: float, a_dps_by_type: Dictionary) 
 ## kill clock per cell — a placement asks for it once per decision, and the overlay reads what is
 ## stored (stored_safety).
 func safety(a_key: String, a_hp: float, a_dps_by_type: Dictionary) -> PackedFloat32Array:
+	return safety_in_steps(a_key, a_hp, a_dps_by_type, lattice.cell_count())
+
+
+## Cells of the safety channel for `a_key` still to build: none once it is kept, every cell
+## before a build starts.
+func safety_cells_remaining(a_key: String) -> int:
 	_ensure_ready()
-	if not _safety_cache.has(a_key):
-		var out := PackedFloat32Array()
-		out.resize(lattice.cell_count())
-		for index: int in lattice.cell_count():
-			var xz: Vector2 = lattice.centre_of(lattice.cell_of(index))
-			out[index] = safety_of(lifetime_seconds_at(xz, a_hp, a_dps_by_type))
-		_safety_cache[a_key] = out
-	return _safety_cache[a_key]
+	if _safety_cache.has(a_key):
+		return 0
+	if _safety_builds.has(a_key):
+		var build: Dictionary = _safety_builds[a_key]
+		return (build["out"] as PackedFloat32Array).size() - int(build["next"])
+	return lattice.cell_count()
+
+
+## safety, built at most `a_cells` cells per call: the channel once complete, EMPTY while it is
+## still being built. A build in progress keeps its place under the inputs and the snapshot it
+## started with, ACROSS a swap — the fields swap every few ticks, faster than a build spread over
+## ticks finishes — and once complete is kept for the snapshot current then. A search waiting on
+## it ranks on facts a few ticks old, as the spot ranking already does.
+func safety_in_steps(
+	a_key: String, a_hp: float, a_dps_by_type: Dictionary, a_cells: int
+) -> PackedFloat32Array:
+	_ensure_ready()
+	if _safety_cache.has(a_key):
+		return _safety_cache[a_key]
+	if not _safety_builds.has(a_key):
+		_safety_builds[a_key] = _start_safety_build(a_hp, a_dps_by_type)
+	var build: Dictionary = _safety_builds[a_key]
+	if not _continue_safety_build(build, a_cells):
+		return PackedFloat32Array()
+	_safety_builds.erase(a_key)
+	_safety_cache[a_key] = build["out"]
+	return build["out"]
 
 
 ## The safety channel computed for `a_key` this snapshot, or empty: a read that never computes.
 func stored_safety(a_key: String) -> PackedFloat32Array:
 	return _safety_cache.get(a_key, PackedFloat32Array())
+
+
+## A safety-channel build, read FIELD BY FIELD: every arrival time the channel needs is turned
+## into a per-cell array once, here, so the per-cell pass (_continue_safety_build) is
+## arithmetic on packed arrays. It reads exactly what lifetime_seconds_at reads per cell —
+## test_BotFields holds them equal — at a fraction of the cost (bot-performance.md
+## §Re-measured 2026-10-16).
+func _start_safety_build(a_hp: float, a_dps_by_type: Dictionary) -> Dictionary:
+	var count: int = lattice.cell_count()
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var groups: Dictionary = {} if _enemy_sources().is_empty() else _threat_groups(a_dps_by_type)
+	var ground: Array = []
+	for group: Dictionary in groups.get("ground", []):
+		var entry: Dictionary = _enemy_arrival_fields[group["key"]]
+		(
+			ground
+			. append(
+				{
+					"seconds": _arrival_seconds_by_cell(entry["field"], entry["speed"], 0.0),
+					"dps": group["dps"],
+					"value": group["value"],
+				}
+			)
+		)
+	var own: Array = []
+	for key: String in _own_arrival:
+		var entry: Dictionary = _own_arrival[key]
+		(
+			own
+			. append(
+				{
+					"at": _arrival_seconds_by_cell(entry["field"], entry["speed"], entry["delay"]),
+					"value": entry["value"],
+				}
+			)
+		)
+	return {
+		"hp": a_hp,
+		"believed": not groups.is_empty(),
+		"air": groups.get("air", []),
+		"ground": ground,
+		"own": own,
+		"defences": _defences,
+		"own_air": _own_air,
+		"out": out,
+		"next": 0,
+	}
+
+
+## Every lattice cell's arrival_seconds along `a_field` at `a_speed`, plus `a_delay` (as
+## answer_value_by adds a responder's delay first): INF where the field does not reach.
+func _arrival_seconds_by_cell(
+	a_field: NavField, a_speed: float, a_delay: float
+) -> PackedFloat64Array:
+	var count: int = lattice.cell_count()
+	var out := PackedFloat64Array()
+	out.resize(count)
+	var costs: PackedInt32Array = _beside_costs(a_field)
+	for index: int in count:
+		var cost: int = costs[index]
+		var seconds: float = (
+			INF
+			if cost == NavField.UNREACHABLE or a_speed <= 0.0
+			else float(cost) / float(NavField.STEP_ORTHOGONAL) * lattice.pitch / a_speed
+		)
+		out[index] = a_delay + seconds
+	return out
+
+
+## NavField.distance_beside for every lattice cell of `a_field`, kept for the snapshot: every
+## safety build in it reads the same fields whatever the type, speed or delay, and most of the
+## lattice is unreached, so the neighbour scan was most of a build.
+func _beside_costs(a_field: NavField) -> PackedInt32Array:
+	if _beside_cache.has(a_field):
+		return _beside_cache[a_field]
+	var count: int = lattice.cell_count()
+	var width: int = lattice.width
+	var distances: PackedInt32Array = a_field.distances()
+	var costs := PackedInt32Array()
+	if distances.size() != count or a_field.width() != width:
+		costs.resize(count)
+		for index: int in count:
+			costs[index] = a_field.distance_beside(lattice.cell_of(index))
+		_beside_cache[a_field] = costs
+		return costs
+	costs = distances.duplicate()
+	for index: int in count:
+		if distances[index] != NavField.UNREACHABLE:
+			continue
+		var x: int = index % width
+		var z: int = index / width
+		var west: bool = x > 0
+		var east: bool = x < width - 1
+		var best: int = NavField.UNREACHABLE
+		var row: int = index - width
+		for neighbour_row: int in [row, index, index + width]:
+			if neighbour_row < 0 or neighbour_row >= count:
+				continue
+			var d: int
+			if west:
+				d = distances[neighbour_row - 1]
+				if d != NavField.UNREACHABLE and (best == NavField.UNREACHABLE or d < best):
+					best = d
+			if neighbour_row != index:
+				d = distances[neighbour_row]
+				if d != NavField.UNREACHABLE and (best == NavField.UNREACHABLE or d < best):
+					best = d
+			if east:
+				d = distances[neighbour_row + 1]
+				if d != NavField.UNREACHABLE and (best == NavField.UNREACHABLE or d < best):
+					best = d
+		costs[index] = best
+	_beside_cache[a_field] = costs
+	return costs
+
+
+## Fill up to `a_cells` more cells of `a_build`'s channel; true once every cell is filled.
+func _continue_safety_build(a_build: Dictionary, a_cells: int) -> bool:
+	var out: PackedFloat32Array = a_build["out"]
+	var count: int = out.size()
+	var start: int = a_build["next"]
+	var end: int = mini(count, start + maxi(a_cells, 0))
+	var hp: float = a_build["hp"]
+	var believed: bool = a_build["believed"]
+	var air: Array = a_build["air"]
+	var ground: Array = a_build["ground"]
+	var own: Array = a_build["own"]
+	var arrivals: int = air.size() + ground.size()
+	# Scratch reused across cells: a hot loop, run once per cell of the lattice.
+	var seconds := PackedFloat64Array()
+	seconds.resize(arrivals)
+	var dps := PackedFloat64Array()
+	dps.resize(arrivals)
+	var values := PackedFloat64Array()
+	values.resize(arrivals)
+	var order := PackedInt32Array()
+	order.resize(arrivals)
+	for index: int in range(start, end):
+		var xz: Vector2 = lattice.centre_of(lattice.cell_of(index))
+		var falls: float = prior_arrival_seconds
+		var threat_value: float = 0.0
+		if believed:
+			var slot: int = 0
+			for flier: Dictionary in air:
+				seconds[slot] = flier["xz"].distance_to(xz) / flier["speed"]
+				dps[slot] = flier["dps"]
+				values[slot] = flier["value"]
+				slot += 1
+			for group: Dictionary in ground:
+				seconds[slot] = (group["seconds"] as PackedFloat64Array)[index]
+				dps[slot] = group["dps"]
+				values[slot] = group["value"]
+				slot += 1
+			falls = _packed_kill_clock(hp, seconds, dps, order)
+			for i: int in arrivals:
+				if seconds[i] <= falls:
+					threat_value += values[i]
+		out[index] = safety_of(
+			lifetime_of(
+				falls,
+				_packed_answer(a_build, index, xz, falls),
+				threat_value,
+				HELD_LIFETIME_SECONDS
+			)
+		)
+	a_build["next"] = end
+	return end >= count
+
+
+## answer_value_by at cell `a_index` (centre `a_xz`), from `a_build`'s snapshot.
+func _packed_answer(a_build: Dictionary, a_index: int, a_xz: Vector2, a_seconds: float) -> float:
+	var value: float = 0.0
+	for defence: Dictionary in a_build["defences"]:
+		if (defence["xz"] as Vector2).distance_to(a_xz) <= float(defence["reach"]):
+			value += float(defence["value"])
+	for responder: Dictionary in a_build["own"]:
+		if (responder["at"] as PackedFloat64Array)[a_index] <= a_seconds:
+			value += float(responder["value"])
+	for source: Dictionary in a_build["own_air"]:
+		var at: float = (
+			float(source.get("delay", 0.0)) + source["xz"].distance_to(a_xz) / source["speed"]
+		)
+		if at <= a_seconds:
+			value += float(source.get("value", 0.0))
+	return value
+
+
+## kill_clock over packed arrays, `a_order` its scratch. Arrivals are visited in time order by
+## a STABLE insertion sort, which is what Array.sort_custom does at this size (Godot sorts by
+## insertion below seventeen elements), so ties sum their dps in the same order and the result
+## matches kill_clock to the bit. Longer lists go through kill_clock itself.
+const PACKED_KILL_CLOCK_MAX: int = 16
+
+
+static func _packed_kill_clock(
+	hp: float, seconds: PackedFloat64Array, dps: PackedFloat64Array, order: PackedInt32Array
+) -> float:
+	var count: int = seconds.size()
+	if count > PACKED_KILL_CLOCK_MAX:
+		var arrivals: Array = []
+		for i: int in count:
+			arrivals.append({"seconds": seconds[i], "dps": dps[i]})
+		return kill_clock(hp, arrivals)
+	for i: int in count:
+		var j: int = i
+		while j > 0 and seconds[i] < seconds[order[j - 1]]:
+			order[j] = order[j - 1]
+			j -= 1
+		order[j] = i
+	var remaining: float = hp
+	var rate: float = 0.0
+	var now: float = 0.0
+	for k: int in count:
+		var i: int = order[k]
+		var at: float = seconds[i]
+		if at == INF or dps[i] <= 0.0:
+			continue
+		if rate > 0.0:
+			var dealt: float = rate * (at - now)
+			if dealt >= remaining:
+				return now + remaining / rate
+			remaining -= dealt
+		now = at
+		rate += dps[i]
+	return now + remaining / rate if rate > 0.0 else INF
 
 
 ## THE BOT'S BASES: its own structures' positions, stamped on the lattice and grown by
