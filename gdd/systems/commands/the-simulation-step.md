@@ -172,13 +172,34 @@ bit between two runs of the same build, and is measured by simulated minute on t
    3. **References by serial, with the rollback snapshot** — the state inventory, snapshot and
       restore of netplay's §Rollback, later. Serials matter only to a snapshot, so they are
       built with it.
-   4. **The spatial index**, replacing the physics broad phase for decide's reads, and with it
-      the per-piece detection areas. A serial decide pass reads the physics server safely — no
-      piece writes during it — so the index is needed first by threads.
+   4. **The spatial index** (§The spatial index) — built for decide's aggro scans; armed
+      buildings sleeping on it, and the per-piece detection areas leaving the physics server,
+      follow.
 3. **Worker threads for decide**, on the spatial index. TODO: deferred by Alex (2026-10-15) until
    the first two stages are built and measured.
 
-## Sleepy updates
+## The spatial index
+
+Built 2026-10-16. `SpatialIndex` holds every piece's Hurtbox — footprint (`Hull`), collision
+layers with side bits, and vertical span — on a grid of 8-unit cells, rebuilt by the stepper
+at the start of each tick from the world as the last tick left it. While the decide pass runs
+it is `SpatialIndex.reading`, and `SU.entities_within` answers from it for any mask a Hurtbox
+carries (`SpatialIndex.answers`) — the aggro scans of idle pieces, AttackMove, Patrol and
+Defend. C&C Generals' `PartitionManager` is the same idea.
+
+- **Its answer is the physics broad phase's, with the exact footprint test after it**: a
+  Hurtbox layer in the mask, the scan volume's height overlapping the Hurtbox's span, and
+  `Hull.gap` within the radius. The 9000-tick probe match agreed to the bit with the
+  physics-backed build.
+- **In serial order, and uncapped.** The physics query was cut at `max_results` (10 for aggro)
+  in arbitrary order before the footprint test, so a crowd could hide the target that
+  mattered; the index returns every match.
+- TODO: still on the physics server in the decide pass — an orbit weapon's range
+  (`SU.entities_touched_by`, a shape-against-hurtbox overlap) and Attack's line-of-fire ray.
+  Both must move before decide can run on threads.
+- TODO: act-phase queries (crush, stealth detection, liberation, blast victims) stay on the
+  physics server; they read live positions mid-tick, which a tick-start index does not hold.
+
 
 Built 2026-10-15 (approved by Alex). C&C Generals runs no module it does not have to: every
 update returns how many frames it may sleep, so a frame's cost is the modules due that frame,

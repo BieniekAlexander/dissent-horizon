@@ -78,6 +78,9 @@ static func entities_within(
 	exclude: Array = [],
 	max_results: int = 32
 ) -> Array[Entity]:
+	# In the decide pass the index answers, against the world as the last tick left it.
+	if SpatialIndex.reading != null and SpatialIndex.answers(collision_mask):
+		return SpatialIndex.reading.entities_within(from, shape, origin, collision_mask, exclude)
 	var radius: float = RangeShapes.radius_of(shape)
 	if radius < 0.0:
 		return []

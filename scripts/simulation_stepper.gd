@@ -44,6 +44,8 @@ static var is_sleep_enabled: bool = true
 
 ## Ticks this stepper has run, which entities' wake ticks are counted in.
 var _tick: int = 0
+## The pieces' hurtboxes as this tick starts, which the decide pass reads (SpatialIndex).
+var index: SpatialIndex = SpatialIndex.new()
 
 ## Every entity that has entered play, in serial order. Appending keeps it sorted, since serials
 ## only grow; freed entities are dropped as each tick snapshots it. UNTYPED: an entity can be
@@ -97,11 +99,14 @@ func step(a_delta: float) -> void:
 			entity.prepare_step()
 			stepping.append(entity)
 	_entities = kept
+	index.rebuild(stepping)
+	SpatialIndex.reading = index
 	for item: Variant in stepping:
 		if is_instance_valid(item) and (item as Entity).is_inside_tree():
 			var deciding: Entity = item
 			if not deciding.is_asleep_at(_tick):
 				deciding.decide_simulation()
+	SpatialIndex.reading = null
 	for item: Variant in stepping:
 		if is_instance_valid(item) and (item as Entity).is_inside_tree():
 			_act(item as Entity, a_delta)
