@@ -607,6 +607,13 @@ Charged clips, airfields, pads, runways, attack runs and rearming.
 - [`gdd/systems/combat/aerial-operations/attack-runs.md`](gdd/systems/combat/aerial-operations/attack-runs.md)
 - [`gdd/systems/combat/aerial-operations/rearm-and-resupply.md`](gdd/systems/combat/aerial-operations/rearm-and-resupply.md)
 
+## Environmental pieces
+
+Neutral hazards that blow up when shot — power cells in three sizes, a cryo dewar, an activation
+cask — and coin pickups that grant energy or ordnance charges (`volatile:` / `pickup:` doc
+keys). Grounded in the fusion economy.
+→ **[`gdd/systems/combat/environmental-pieces.md`](gdd/systems/combat/environmental-pieces.md)**
+
 ## Input and HUD (`RTSController`)
 
 Selection, control groups, input actions, the command grid, HUD panels and construction visuals.

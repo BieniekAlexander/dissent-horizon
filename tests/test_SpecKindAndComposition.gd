@@ -14,6 +14,19 @@ extends GutTest
 const SpecGenerators := preload("res://tools/spec_import/generators.gd")
 const SceneSync := preload("res://tools/spec_import/scene_sync.gd")
 const TscnDoc := preload("res://tools/spec_import/tscn_doc.gd")
+const SpecComposition := preload("res://tools/spec_import/composition.gd")
+
+## A minimal emission, for a hazard's `volatile:` to name.
+const BLAST: Dictionary = {
+	"kind": "Entity",
+	"damage": 5,
+	"damage_type": "PLASMA",
+	"speed": "SUPERSONIC",
+	"trajectory": "LINEAR",
+	"hitscan": true
+}
+## A minimal ability, for a pickup's `ability:` to name.
+const ORDNANCE: Dictionary = {"kind": "AbilityDefinition", "command": "command_launch"}
 
 const MOBILE: Dictionary = {"speed": "BRISK"}
 
@@ -333,6 +346,62 @@ func test_a_charged_weapon_needs_somewhere_to_recharge() -> void:
 	_assert_refused(
 		{"kind": "Entity", "movement": MOBILE, "aerial": {"mode": "FLYING"}, "weapons": [weapon]},
 		"has a charged weapon but no `docking: true`"
+	)
+
+
+#endregion
+
+
+#region The environmental pieces: volatile and pickup
+func test_volatile_names_an_emission_on_a_piece_with_hit_points() -> void:
+	var hazard: Dictionary = {
+		"kind": "Entity",
+		"footprint": [1, 1],
+		"commandable": false,
+		"defense": {"hp": 100},
+		"volatile": "blast"
+	}
+	assert_eq(_registry({"blast": BLAST, "cell": hazard}).errors, [])
+	var token: Dictionary = hazard.duplicate()
+	token.erase("footprint")
+	assert_eq(
+		_registry({"blast": BLAST, "cell": token}).errors, [], "a hazard token is body enough"
+	)
+	var unknown: Dictionary = hazard.duplicate()
+	unknown["volatile"] = "nope"
+	_assert_refused(unknown, "volatile names unknown emission")
+	var immortal: Dictionary = hazard.duplicate()
+	immortal.erase("defense")
+	assert_true(
+		_registry({"blast": BLAST, "cell": immortal}).errors.any(
+			func(e: String) -> bool: return e.contains("volatile needs defense")
+		),
+		"a piece nothing can destroy never blows"
+	)
+
+
+func test_a_pickup_is_a_body_and_a_feature_without_cells() -> void:
+	var registry: RefCounted = _registry(
+		{
+			"scan": ORDNANCE,
+			"coin": {"kind": "Entity", "pickup": {"energy": 500}},
+			"pod": {"kind": "Entity", "pickup": {"ability": "scan", "charges": 2, "radius": 1.0}}
+		}
+	)
+	assert_eq(registry.errors, [], "a pickup is body enough")
+	assert_eq(SpecComposition.tier(registry.pieces["coin"]), SpecComposition.Tier.FEATURE)
+	assert_false(SpecComposition.is_mobile(registry.pieces["coin"]))
+
+
+func test_a_pickup_grants_one_thing_and_claims_no_cells() -> void:
+	_assert_refused({"kind": "Entity", "pickup": true}, "pickup: true says nothing")
+	_assert_refused(
+		{"kind": "Entity", "pickup": {"energy": 500, "ability": "scan"}}, "exactly one of"
+	)
+	_assert_refused({"kind": "Entity", "pickup": {"ability": "nope"}}, "unknown ability")
+	_assert_refused({"kind": "Entity", "pickup": {"energy": 0}}, "must be positive")
+	_assert_refused(
+		{"kind": "Entity", "footprint": [1, 1], "pickup": {"energy": 500}}, "claims no cells"
 	)
 
 

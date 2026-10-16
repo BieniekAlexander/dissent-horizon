@@ -4075,7 +4075,12 @@ func ordnance_card_names() -> Array:
 	var commander: Commander = _commander()
 	if commander != null and _sanction_grid != null:
 		for id: StringName in chosen.keys():
-			var entry: SanctionGrid.Entry = _sanction_grid.deployable_entry_for(id)
+			# A depot charge fires through the cell the grid names for it, unlocked or not.
+			var entry: SanctionGrid.Entry = (
+				_sanction_grid.entry_for_ability(id)
+				if _depot_holds(id)
+				else _sanction_grid.deployable_entry_for(id)
+			)
 			if entry != null and entry.sanction != null:
 				chosen[id] = entry.sanction.command_name()
 	return chosen.values()
@@ -4087,7 +4092,7 @@ func ordnance_card_names() -> Array:
 ## question. Why the GRID rather than a faction tag on the ability:
 ## gdd/systems/macroeconomics/sanctions/sanction-grid.md §What a faction offers IS its grid.
 func _faction_offers_ordnance(a_ability_id: StringName) -> bool:
-	if not AbilityCatalog.is_dominion_unlocked(a_ability_id):
+	if not AbilityCatalog.is_dominion_unlocked(a_ability_id) or _depot_holds(a_ability_id):
 		return true
 	return _sanction_grid != null and _sanction_grid.has_route_to(a_ability_id)
 
@@ -5111,7 +5116,11 @@ func _ability_readiness(a_ability_id: StringName) -> Vector2i:
 		var store := caster.get_node_or_null("Abilities") as Abilities
 		if store != null and store.is_ready(a_ability_id):
 			ready += 1
-	return Vector2i(ready, casters.size())
+	# A depot charge is a cast with no caster: it counts as one ready piece each.
+	var depot: int = (
+		commander.ordnance_depot.charges_of(a_ability_id) if commander.ordnance_depot != null else 0
+	)
+	return Vector2i(ready + depot, casters.size() + depot)
 
 
 ## A bar button is SHOWN only once the commander owns a piece that can use the ability —
@@ -5131,7 +5140,8 @@ func _paint_deploy_button(a_pair: Dictionary) -> void:
 		# tooltips are authored data and are rebuilt HERE rather than every frame.
 		a_pair["entry"] = entry
 		_refresh_deploy_tooltips(a_pair)
-	if AbilityCatalog.is_dominion_unlocked(ability) and entry == null:
+	# A depot charge shows a dominion-locked ordnance the grid has no cell of in play.
+	if AbilityCatalog.is_dominion_unlocked(ability) and entry == null and not _depot_holds(ability):
 		btn.visible = false
 		return
 	var readiness: Vector2i = _ability_readiness(ability)
@@ -5141,7 +5151,7 @@ func _paint_deploy_button(a_pair: Dictionary) -> void:
 	var label: String = (
 		entry.sanction.sanction_name if entry != null else AbilityCatalog.title_of(ability)
 	)
-	if entry != null and _pending_sanction == entry.sanction:
+	if _pending_sanction != null and _pending_sanction.ability_id == ability:
 		btn.text = "%s [click target]" % label
 	elif readiness.x == 0:
 		btn.text = "%s (recharging)" % label
@@ -5194,13 +5204,39 @@ func _on_deploy_button_pressed(a_ability_id: StringName) -> void:
 	var commander: Commander = _commander()
 	if commander == null:
 		return
-	var entry: SanctionGrid.Entry = (
-		_sanction_grid.deployable_entry_for(a_ability_id) if _sanction_grid != null else null
+	var has_depot_charge: bool = _depot_holds(a_ability_id)
+	var entry: SanctionGrid.Entry = null
+	if _sanction_grid != null:
+		# A depot charge fires through the cell the grid names for it, unlocked or not.
+		entry = (
+			_sanction_grid.entry_for_ability(a_ability_id)
+			if has_depot_charge
+			else _sanction_grid.deployable_entry_for(a_ability_id)
+		)
+	# The sanction a depot charge fires through: the grid's cell when it has one, else another
+	# faction's lowest level of the ability (OrdnanceDepot.sanction_for) — a recovered dispatch
+	# is castable whoever authored the ordnance.
+	var depot_sanction: Sanction = (
+		commander.ordnance_depot.sanction_for(a_ability_id) if has_depot_charge else null
 	)
-	if AbilityCatalog.is_dominion_unlocked(a_ability_id) and entry == null:
+	if (
+		AbilityCatalog.is_dominion_unlocked(a_ability_id)
+		and entry == null
+		and depot_sanction == null
+	):
 		return
 	var casters: Array = commander.casters_of_ability(a_ability_id)
 	if casters.is_empty():
+		# Nothing to select: a depot charge is armed on its own, and the right-click that
+		# follows fires it from the depot (_issue_sanction).
+		if depot_sanction != null:
+			if depot_sanction.needs_target:
+				_pending_sanction = depot_sanction
+				if depot_sanction.takes_a_payload():
+					command_message.tool = null
+			else:
+				_issue_sanction(depot_sanction, Vector3.ZERO)
+			upate_hud_buttons()
 		return
 	deselect()
 	for caster: Actor in casters:
@@ -5253,10 +5289,59 @@ func _show_card_for_command(a_command_name: String) -> void:
 
 ## Give every selected caster the order to cast `a_sanction` at `a_position`.
 func _issue_sanction(a_sanction: Sanction, a_position: Vector3) -> void:
+	# A DEPOT charge is spent before any caster's: it is free and never comes back, where a
+	# caster's recharges — so the free one goes first and the caster keeps its own.
+	if _depot_holds(a_sanction.ability_id):
+		_issue_depot_cast(a_sanction, a_position)
+		_pending_sanction = null
+		return
 	command_message.sanction = a_sanction
 	command_message.world_position = a_position
 	assign_command_to_units(UseSanction, command_message, additive_latched)
 	_pending_sanction = null
+
+
+## Whether the commander's depot holds a charge of `a_ability_id` (OrdnanceDepot).
+func _depot_holds(a_ability_id: StringName) -> bool:
+	var commander: Commander = _commander()
+	return (
+		commander != null
+		and commander.ordnance_depot != null
+		and commander.ordnance_depot.has_charge(a_ability_id)
+	)
+
+
+## Hand a depot cast to the simulation as its own order kind, or apply it at once with no
+## stream (a bare controller in a test). The target and cargo ride on the message as they do
+## for a caster's cast.
+func _issue_depot_cast(a_sanction: Sanction, a_position: Vector3) -> void:
+	var commander: Commander = _commander()
+	var target: Entity = (
+		command_message.target if is_instance_valid(command_message.target) else null
+	)
+	var payload: StringName = command_message.tool.type if command_message.tool != null else &""
+	if _order_stream() == null:
+		commander.ordnance_depot.cast(a_sanction.ability_id, a_position, target, payload)
+		upate_hud_buttons()
+		return
+	(
+		_order_stream()
+		. submit(
+			(
+				PlayerOrder
+				. new(
+					PlayerOrder.Kind.CAST_FROM_DEPOT,
+					commander.id,
+					{
+						"ability": String(a_sanction.ability_id),
+						"position": [a_position.x, a_position.y, a_position.z],
+						"target": target.spawn_serial if target != null else 0,
+						"payload": String(payload),
+					}
+				)
+			)
+		)
+	)
 
 
 #region Single-unit ability targeting

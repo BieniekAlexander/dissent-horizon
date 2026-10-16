@@ -82,13 +82,7 @@ const COMPONENTS: Array[Dictionary] = [
 		"when": "docking",
 		"after": "Aerial"
 	},
-	{
-		"name": "Fixture",
-		"type": "Node",
-		"script": "fixture",
-		"tiers": PHYSICAL,
-		"when": "fixture"
-	},
+	{"name": "Fixture", "type": "Node", "script": "fixture", "tiers": PHYSICAL, "when": "fixture"},
 	{"name": "Defense", "type": "Node", "script": "defense", "tiers": ACTOR},
 	{"name": "Veterancy", "type": "Node", "script": "veterancy", "tiers": ACTOR},
 	{"name": "#####CONTROLS#####", "type": "Node", "tiers": PHYSICAL},
@@ -159,13 +153,14 @@ const EMISSION_COMPONENTS: Array[Dictionary] = [
 
 
 ## A piece that takes orders or can be damaged is a Actor; a fixture that does neither
-## is a feature on a plain Entity; anything else has no body at all. "Can be damaged" is asked
-## of the doc's shape AND of the flattened spec (`defense.hp` becomes `hp`), since the importer
-## composes from the latter.
+## is a feature on a plain Entity, and so is a pickup token (a body to walk over and a model,
+## no cells); anything else has no body at all. "Can be damaged" is asked of the doc's shape
+## AND of the flattened spec (`defense.hp` becomes `hp`), since the importer composes from the
+## latter.
 static func tier(spec: Dictionary) -> Tier:
 	if SpecSchema.is_commandable(spec) or spec.has("defense") or spec.has("hp"):
 		return Tier.COMMANDABLE
-	if SpecSchema.is_fixture(spec):
+	if SpecSchema.is_fixture(spec) or SpecSchema.is_pickup(spec):
 		return Tier.FEATURE
 	return Tier.BODILESS
 

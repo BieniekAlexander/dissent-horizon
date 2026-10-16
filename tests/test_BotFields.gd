@@ -471,6 +471,78 @@ func test_safety_is_the_lifetime_s_curve_per_cell_and_is_kept() -> void:
 	assert_ne(fields.safety("fake_type", 1.0, {}), channel, "a swap drops it")
 
 
+func test_the_safety_channel_is_the_per_cell_lifetime_however_the_threat_is_grouped() -> void:
+	# safety groups the believed enemies once for its sweep; each cell must still read exactly
+	# what lifetime_seconds_at reads there. Two speeds (two arrival fields), a second walker
+	# sharing a field, a flier, and a type that cannot hurt the building.
+	var fields: FixtureFields = _fixture()
+	# A wall down column 5 with one gap, and a sealed pocket in the north-east corner, so some
+	# cells are reached only BESIDE (distance_beside) and some not at all.
+	for size: int in NavAgentClass.Size.values():
+		var mask: PackedByteArray = fields._passable[size]
+		for z: int in 9:
+			if z != 6:
+				mask[fields.lattice.index_of(Vector2i(5, z))] = 0
+		mask[fields.lattice.index_of(Vector2i(7, 0))] = 0
+		mask[fields.lattice.index_of(Vector2i(7, 1))] = 0
+		mask[fields.lattice.index_of(Vector2i(8, 1))] = 0
+		fields._passable[size] = mask
+	fields.add_walker(Vector2i(0, 0), 4.0, &"fake_runner", 50.0)
+	fields.add_walker(Vector2i(0, 8), 2.5, &"fake_walker", 300.0)
+	fields.add_walker(Vector2i(4, 0), 2.5, &"fake_harmless", 900.0)
+	var flier: Dictionary = fields._walker(Vector2i(8, 8), 6.0, &"fake_flier", 200.0)
+	flier["is_air"] = true
+	fields.sources.append(flier)
+	fields.add_responder(Vector2i(8, 4), 2.5, 3.0, 250.0)
+	fields.rebuild_now()
+	var dps: Dictionary = {&"fake_walker": 10.0, &"fake_runner": 4.0, &"fake_flier": 25.0}
+	var channel: PackedFloat32Array = fields.safety("fake_type", 400.0, dps)
+	var expected := PackedFloat32Array()
+	expected.resize(fields.lattice.cell_count())
+	for index: int in fields.lattice.cell_count():
+		var xz: Vector2 = fields.lattice.centre_of(fields.lattice.cell_of(index))
+		expected[index] = BotFields.safety_of(fields.lifetime_seconds_at(xz, 400.0, dps))
+	assert_eq(channel, expected)
+	assert_gt(Array(channel).max() - Array(channel).min(), 0.1, "the fixture is not flat")
+	var walled: int = fields.lattice.index_of(Vector2i(5, 2))
+	assert_ne(channel[walled], channel[fields.lattice.index_of(Vector2i(8, 0))], "both kinds seen")
+
+
+func test_a_safety_channel_built_in_steps_is_the_one_built_at_once() -> void:
+	var fields: FixtureFields = _fixture()
+	fields.add_responder(Vector2i(8, 4), 2.5)
+	fields.rebuild_now()
+	var dps: Dictionary = {&"fake_walker": 10.0}
+	var whole: PackedFloat32Array = fields.safety("whole", 100.0, dps)
+	var calls: int = 0
+	var stepped := PackedFloat32Array()
+	while stepped.is_empty():
+		assert_eq(fields.stored_safety("stepped"), PackedFloat32Array(), "nothing stored part-way")
+		stepped = fields.safety_in_steps("stepped", 100.0, dps, 20)
+		calls += 1
+	assert_eq(calls, ceili(fields.lattice.cell_count() / 20.0), "twenty cells a call")
+	assert_eq(stepped, whole)
+	assert_eq(fields.stored_safety("stepped"), whole, "kept once complete")
+
+
+func test_a_safety_channel_part_way_built_finishes_on_its_own_snapshot_across_a_swap() -> void:
+	# The fields swap every few ticks, faster than a build spread over ticks finishes; a build
+	# that restarted on every swap would never finish.
+	var fields: FixtureFields = _fixture()
+	fields.rebuild_now()
+	var dps: Dictionary = {&"fake_walker": 10.0}
+	var before: PackedFloat32Array = fields.safety("reference", 100.0, dps)
+	assert_eq(fields.safety_in_steps("x", 100.0, dps, 20), PackedFloat32Array())
+	fields.sources[0]["value"] = 600.0
+	fields.add_responder(Vector2i(8, 4), 2.5, 0.0, 100.0)
+	fields.add_defence(Vector2i(8, 4), 7.0, 500.0)
+	fields.rebuild_now()
+	var count: int = fields.lattice.cell_count()
+	assert_eq(fields.safety_in_steps("x", 100.0, dps, count), before, "the snapshot it began on")
+	assert_eq(fields.stored_safety("x"), before, "kept into the new snapshot")
+	assert_ne(fields.safety("fresh", 100.0, dps), before, "a new build reads the new snapshot")
+
+
 func test_a_cheap_answer_in_time_does_not_hold_a_site_against_a_dear_threat() -> void:
 	var fields: FixtureFields = _fixture()
 	fields.sources[0]["value"] = 600.0  # the walker is an army

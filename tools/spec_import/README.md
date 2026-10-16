@@ -361,6 +361,12 @@ shelter: true                  # identity components, by PRESENCE only — also
                                # flushes (a Flusher: storms enemy-held flushable garrisons);
                                # tuning stays in the scene
 beacon: 20                     # persistent bombardable bubble (BeaconRange); false removes
+volatile: nt_plasma_blast_medium   # a HAZARD: the emission thrown where the piece dies
+                               # (Volatile); the fuse is that emission's first phase. Needs
+                               # defense:; false removes. environmental-pieces.md
+pickup: {energy: 500}          # a collectible TOKEN (Pickup): exactly one of energy: or
+                               # ability: (+ charges:, default 1), optional radius:. No
+                               # footprint: beside it — a token claims no cells; false removes
 infrastructure: -40                    # Actor.infrastructure: >0 provides, <0 consumes, 0 neutral
 occupancy_size: 2              # how much of a garrison's capacity this piece consumes
                                # when garrisoned (default 1)

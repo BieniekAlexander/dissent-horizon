@@ -71,6 +71,21 @@ enum ReapplyMode {
 ## what the EMP bolt wants and a long-lived aura would not.
 @export_range(0.0, 10.0, 0.1) var indicator_blink_hz: float = 0.0
 
+## Which pieces the effect takes hold on, by the fixture/figure half of the vocabulary
+## (piece-vocabulary.md §The partition). A frame mask is the other axis (StunStatusEffect);
+## this one is what lets a blast set STRUCTURES burning while the units in it take the
+## damage alone, with the one emission naming both. Authored per scene, like `host_tint`.
+enum HostFilter {
+	ANY = 0,
+	FIXTURES = 1,
+	FIGURES = 2,
+}
+@export var host_filter: HostFilter = HostFilter.ANY
+
+## Whether a heal or repair landing on the host puts the effect out — a burning building is
+## put out by the crew that mends it. Shed by Defense.restore through Actor.shed_healable_effects.
+@export var ends_on_heal: bool = false
+
 ## WHAT THE PLAYER IS TOLD IT IS. The name on the card, the sentence on hover, and the
 ## paragraph behind the verbose key — the same two tiers every other hoverable HUD element
 ## carries (see VerboseTooltipButton).
@@ -147,6 +162,9 @@ func _validate_property(a_property: Dictionary) -> void:
 ## If the host already carries this kind of effect, the existing instance is reapplied
 ## per `reapply_mode` and THIS node is discarded (it was a redundant duplicate).
 func apply_to(a_entity: Entity, a_source: Actor = null) -> void:
+	if not admits_host(a_entity):
+		queue_free()
+		return
 	var existing: StatusEffect = _find_matching(a_entity)
 	if existing != null and existing != self:
 		source = a_source
@@ -162,6 +180,16 @@ func apply_to(a_entity: Entity, a_source: Actor = null) -> void:
 			get_parent().remove_child(self)
 		_entity.add_child(self)
 	_on_apply()
+
+
+## Whether `host_filter` lets the effect take hold on `a_entity`.
+func admits_host(a_entity: Entity) -> bool:
+	match host_filter:
+		HostFilter.FIXTURES:
+			return a_entity.is_in_group(&"fixture")
+		HostFilter.FIGURES:
+			return not a_entity.is_in_group(&"fixture")
+	return true
 
 
 ## End the effect early: undo it and free this node. Idempotent / no-op on a template.

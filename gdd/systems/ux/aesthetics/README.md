@@ -32,6 +32,11 @@ measures models against their selection shapes and HP bars). The rest stay a rev
   armour class (light/medium/strong), so those are what a silhouette must separate first;
   after that come speed, reach, and whether the piece is armed at all.
 - **Scale cues ground a piece:** a footprint, shadow, dust, exhaust, recoil.
+- **A structure never hides more than half of an infantryman behind it**, seen from the game
+  camera at any yaw — measured on the infantry hurtbox's on-screen silhouette. Units are drawn
+  through obstruction as a silhouette, but a player should not need it to see their troops.
+  It is why the generated structure models step down to their edges and keep anything tall
+  slim; the generator (`tools/structure_models/`) refuses a model over the budget.
 
 ### Condition and effect visuals
 

@@ -298,6 +298,217 @@ valuations each rung asks for. A per-rung fixed cost measured as above is the ho
 and the think-scheduling note's debug-build tripwire (§Backlog) is what would have caught all of
 this a week earlier.
 
+## Re-measured 2026-10-16: after the serial stepper
+
+The first measurement after the simulation step moved to one serial stepper with a decide pass,
+sleepy updates and a shared bot scheduler ([commands/the-simulation-step](../commands/the-simulation-step.md)).
+The probe's recipe (§Method): `skirmish.tscn`, both slots MEDIUM bots, 18,000 ticks (ten
+simulated minutes), headless, `--fixed-fps 30`, an editor build on an M3 Pro, with the Godot editor
+open (load average ~6). **Two runs played the same match to the bit**, and their timings agreed
+within 2%, so every spike below lands on the same tick every run and can be traced by tick number.
+Ticks 300+, ms.
+
+| | mean | p50 | p95 | p99 | max |
+|---|---|---|---|---|---|
+| **full tick** | 8.2 | 8.1 | 11.9 | 23.0 | 140 |
+| script phase | 6.5 | 6.3 | 9.9 | 18.4 | 139 |
+| bot jobs, both bots | 2.3 | 2.4 | 4.6 | 9.6 | 94 |
+| fog, both commanders | 0.33 | 0.34 | 0.39 | 0.42 | 1.0 |
+| engine (tick − script − fog) | 1.4 | 1.4 | 1.8 | 2.1 | 26 |
+
+**Over 33.3 ms: 112 of 17,701 ticks (0.6%); none over 150 ms.** A whole-map navmesh rebuild,
+forced at the end, is 198 ms (it was ~750 before the incremental navmesh, which is what runs in
+play). This match is smaller than 2026-09-26's (43 units at peak, not 79), so it does not show
+the stepper is cheaper per piece. The sweep below is the like-for-like number.
+
+| min | units | pieces | tick p50 | tick p95 | script p50 | bots mean | over budget |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 19 | 70 | 2.8 | 6.9 | 1.8 | 1.2 | 7 |
+| 2 | 26 | 96 | 7.6 | 13.1 | 6.2 | 2.5 | 20 |
+| 4 | 35 | 109 | 9.1 | 13.8 | 7.4 | 3.0 | 16 |
+| 6 | 34 | 99 | 7.8 | 11.1 | 6.1 | 1.8 | 11 |
+| 8 | 43 | 110 | 8.4 | 10.4 | 6.4 | 2.4 | 6 |
+
+**Population sweep** (`--mode=sweep`, twenty more Colonial infantry per side every 15 s): the
+script phase runs about 3 ms plus 0.12 ms a unit — 5.7 ms at 58 units, 13.3 at 96, 16.1 at 103 —
+and tick p95 stays under 30 ms up to ~100 units. Nothing in the sweep grows faster than linearly.
+
+**The steady state fits the budget. What is left is two kinds of single-tick spike, and both
+are one-off reads that are not budgeted:**
+
+1. **The economy's spot search builds the SAFETY CHANNEL in one go: 47–85 ms, growing with what
+   the bot believes.** Seventeen of the over-budget ticks after minute two are this, at 80–94 ms
+   by minute five. `BotEconomy._new_spot_search` asks `Bot.safety_channel_for`, and
+   `BotFields.safety` runs `lifetime_seconds_at` for every lattice cell (2,116 at pitch 5 on
+   this map). Each of those runs `threat_at`, which walks every believed enemy source to group
+   them by arrival field. That grouping does not depend on the cell, so the channel costs
+   cells × believed enemies where it could cost cells × arrival fields. `_anchor_for` pays the
+   same build when it is the first to ask. The cache lasts one fields snapshot, so the cost comes
+   back after every swap. The work-unit counters do not see it, so the scheduler's budget does
+   not bound it. **Built the same day, in three parts:**
+   - **Grouped once per build:** the believed enemies are grouped by arrival field once per
+     build (`BotFields._threat_groups`), not once per cell.
+   - **Read field by field:** each enemy field and each responder's walk becomes a per-cell
+     array of seconds once. The "reached beside" costs (`_beside_costs`) are kept for the
+     snapshot, since every type reads the same fields. The per-cell pass is arithmetic on
+     packed arrays with a stable insertion-sort kill clock. These first two are bit-identical
+     to the per-cell read, which `test_BotFields` holds equal on a walled fixture and the
+     probe's 18,000-tick match confirmed. They took a build from 47–85 ms to 8–15 ms.
+   - **Spread across ticks:** `_find_build_spot` waits on `BotFields.safety_in_steps` at
+     `SAFETY_CELL_WORK_UNITS` a cell, like the ranking. A build part-way done keeps its
+     snapshot across a fields swap. The fields swap every few ticks, and a build that
+     restarted on each swap never finished, so the bot stopped building.
+
+   Matches play differently from here on (build 0.9.0). Two runs still agree to the bit.
+   Against the original match, under the same recipe: economy runs over 20 ms 43 → 13,
+   the worst 89 → 68 ms, bot ticks over 20 ms 61 → 35, and ticks over budget 112 → 77. The
+   cost of spreading is more bot ticks between 10 and 20 ms (161 → 201). While a search waits,
+   the economy job runs its ladder again each tick, `_propose_savings` included.
+2. **The economy's other one-off reads, now the larger part of what is left.** Each was named
+   by the same tick-number tracing; none is split further. TODO, one at a time:
+   - `_propose_savings` dominates most economy runs over 10 ms. It is 3–6 ms a run in a
+     fought game, sometimes 18–22, and it runs again on every tick a spot search waits.
+   - The income rung's pond-spot search (`_workable_pond_spots` → `fits_in_pond` → a placement
+     check per cell) cost 66 ms in one think at tick 11,261. T-113's errors are raised from
+     the same path.
+   - `_anchor_for` spends 6–9 ms in its walk between clusters (`arrival_seconds_between` per
+     base), after the safety channel.
+3. **A shelter resident costs ~33 ms to place**, so the opening's four shelters producing on the
+   same tick cost 130–140 ms (ticks 302, 603 and 904), and one resident every ~10 s later costs
+   35–45 ms. This is the TODO in §Native ports, and its cost is now located: `Map.add_entities`
+   spends 32 ms in `SU.get_nonoverlapping_points`, 1 ms snapping and 0.4 ms initialising. The
+   anchor is the shelter's own centre, which is inside its footprint and so never free.
+   `_seed_off_center` therefore samples rings outward, ten candidates a ring, and projects each
+   one onto the navmesh (`map_get_closest_point`, ~1 ms here) before its shape test. The remedy
+   that TODO names still holds: find the nearest passable cell from the terrain grid.
+
+**Measuring by tick works.** Because the match is the same every run, a tick number from one run
+is the same tick in the next run. A timer added to the suspect function and a re-run name a
+spike's cause in one pass. The hand checkpoints used for each item above were `printerr` lines
+around each step of the economy ladder, in a working copy that was then reverted.
+
+**A correctness finding from the same runs.** From tick ~11,100, `Map.cell_grid` and
+`TerrainGrid.buildings()` both hold a structure that has been freed. The bot's placement reads
+(`PlacementKnowledge.believes_occupied`, `NavPlacement`'s `neighbours_keep_access`) then raise
+"previously freed instance" ~5,000 times by minute ten. `remove_structure` never ran for it.
+A probe that hooks every registered building's `tree_exiting` saw no building freed or left out
+of the tree while still on the grid. TODO: the stale entry arrives some other way. Logged as
+gdd/tasks.md T-113.
+
+### Where a tick goes
+
+A second profile the same afternoon, after the safety-channel work. It runs the same
+two-MEDIUM-bot skirmish for ten simulated minutes, on the map as the editor had saved it at
+14:07, so it is a different match from the runs above. A throwaway probe timed each priority
+band of the physics frame and the whole `_process` phase. It took each priority-0 system over to
+time it alone, as §Method does for fog. It also timed the stepper's passes, every node's
+`simulation_step`, the phases of `Actor.simulation_step`, and the command tick by command and
+phase. Totals come from a run with band timers only. The splits come from two runs with the
+finer timers, which add about 6%. The fine timers were reverted. Mean over ticks 300+, ms.
+
+**A tick averages 10.4 ms against the 33.3 ms budget**: p50 8.8, p95 22.4, 0.7% of ticks over.
+That is about 30% of the budget on average.
+
+| Band | ms per tick | Share |
+|---|---|---|
+| Bots: the shared `BotScheduler` | 3.5 | 38% |
+| Pieces: the `SimulationStepper` | 4.0 | 38% |
+| Visual `_process`: HUD, minimap, models, cards, status badges | 1.3 | 13% |
+| Engine: physics server, navigation sync, the rest of the frame | 0.5 | 5% |
+| Commanders at priority 100: production queue, blackboard | 0.5 | 4.5% |
+| Fog, both commanders | 0.4 | 3.5% |
+| Order stream, replay recorder, triggers, alerts, match log | < 0.1 | ~1% |
+
+**Bot jobs** add up to 2.4 ms a tick:
+
+| Job | ms per tick |
+|---|---|
+| `fields` | 1.0 |
+| `economy` | 0.57 |
+| `scout` | 0.35 |
+| `production` | 0.14 |
+| `posture` | 0.13 |
+| `military` | 0.09 |
+| any other job | under 0.05 each |
+
+The scheduler as a whole measured 3.5 ms. TODO: the ~1 ms between the two is unexplained. It
+may be the scheduler's own bookkeeping, but the two figures came from different runs, so
+measure both in one run before acting on it.
+
+**The stepper** (4.0 ms). The act pass is 3.5 ms:
+
+| Piece kind | ms per tick |
+|---|---|
+| units | 2.6 |
+| structures | 0.34 |
+| features (mostly shelters) | 0.18 |
+| other | 0.09 |
+
+The decide pass, the idle-aggro and attack-move scans, is 0.64 ms. The spatial index is 0.15 ms,
+and snapshot, wake and deaths about 0.1 ms. About 108 entities step each tick, and 49 of them
+sleep through it.
+
+Within `Actor.simulation_step` (about 2.7 ms):
+
+| Phase | ms per tick |
+|---|---|
+| the command tick (`Orders.tick` → the receiver) | 1.6 |
+| collection, liberation, stealth detection, stealth | 0.43 |
+| avoidance priority | 0.18 |
+| terrain-height snap | 0.14 |
+| crush | 0.09 |
+| targetable altitude | 0.05 |
+
+Inside the command tick:
+- **Movement for orders that travel** is about 0.65 ms: plain moves 0.22, attack-moves 0.16,
+  build trips 0.11, attack chases 0.09.
+- **Shelter residents' `Wander`** is about 0.23 ms: thirteen neutral walkers, mostly in
+  `apply_state`/`can_act`.
+- **Attacks** in range cost 0.13 ms.
+- **About 0.4 ms** is the receiver's own overhead around the commands (the action tracker,
+  follow-avoidance reconciling, the queue).
+
+**How it grows.** Mean tick 4.6 ms at minute 0 (22 units), 10.4 at minute 4, and 18 at minute 8
+(44 units). By minute 8 the bots are 7.0 ms and the stepper 7.3 ms, while visuals and the engine
+stay at 2–3 ms between them. **Both halves grow with the army and nothing else does**, so the
+levers are in those two halves.
+
+**Where to look next**, in order of the share each could move. Each is a TODO, not approved.
+1. **The bots' fields rebuild**, 1.0 ms: the largest single bot cost, paid every refresh
+   whatever changed. Candidates:
+   - rebuild only the fields whose sources moved;
+   - lengthen `field_refresh_seconds` with army size;
+   - bucket arrival fields to the speed ladder
+     ([lattice-and-topology](world-model/lattice-and-topology.md) §Cadence and cost names this
+     one).
+2. **Per-unit command and movement work**, 1.6 ms and growing with the army:
+   - travel-order movement is the largest part;
+   - the receiver's overhead around each command is about a quarter of it.
+
+   The PLANNED leaner movement in [commands/the-simulation-step](../commands/the-simulation-step.md)
+   is the standing remedy. Short of that, profile `_drive_movement` itself.
+3. **The decide pass's scans**, 0.64 ms: the PLANNED grid that takes over the per-piece
+   detection areas (the same note) is aimed at this.
+4. **Per-tick checks most pieces do not need**, about 0.8 ms together:
+   - detection, collection and liberation run their checks on every actor every tick
+     (0.43 ms);
+   - avoidance priority (0.18 ms) and the terrain snap (0.14 ms) are paid by every mover every
+     tick.
+
+   Each could step only for the pieces that carry the component, or sleep while nothing nearby
+   changes.
+5. **Shelter residents**: their `Wander` (0.23 ms) and the shelter's own step (0.17 ms) cost
+   about 0.4 ms for thirteen neutral walkers that do nothing in the match, before their 33 ms
+   spawns (item 3 above). Let a resident sleep between wander legs.
+6. **Visual `_process`**, 1.3 ms, flat: every piece runs `MeshVisual`, `StatusVisuals`,
+   `CommandLineIndicator` and `Actor._process` every frame, even with nothing to show. Not on
+   the simulation's budget in a real game, but it shares the frame.
+7. **The economy's one-off reads**, 0.57 ms on average plus the spikes in item 2 above.
+
+The method is reproducible: the probe is a throwaway scene that hooks priorities −100000,
+−999, 0, 49, 51 and 100000 for the physics bands, process priorities ±100000 for `_process`,
+and drives every priority-0 physics node from its own hook, in tree order.
+
 ## Backlog: optimizations not built
 
 Every candidate turned up by the 2026-09-25/27 performance work and not built, in rough order
@@ -317,7 +528,14 @@ from here when a measurement says so.
 | Incremental path search (Moving Target D* Lite) | only with our own A* | [navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md) |
 | A debug-build wall-clock tripwire for bot work-unit weights | catches drift, saves nothing | [think-scheduling](think-scheduling.md) |
 | Simulation below 30 Hz with interpolated rendering — REJECTED for now (Alex, 2026-10-15) | every per-tick cost by a third | [combat/scan-and-vision-cost](../combat/scan-and-vision-cost.md) §Beyond both |
-| Sleepy updates: idle pieces and countdowns skip ticks whose outcome is known | the idle half of the pieces' order ticks | [commands/the-simulation-step](../commands/the-simulation-step.md) §Sleepy updates |
+| The bots' fields rebuild: only the fields whose sources moved, a longer refresh with army size, or speed-ladder buckets | up to 1.0 ms/tick, the largest bot job | §Where a tick goes, item 1 |
+| Per-unit command and movement work: leaner travel-order movement, less receiver overhead per command | part of 1.6 ms/tick, growing with the army | §Where a tick goes, item 2 |
+| Per-tick actor checks only where the component is, or asleep while nothing nearby changes | about 0.8 ms/tick | §Where a tick goes, item 4 |
+| Shelter residents sleep between wander legs | about 0.4 ms/tick | §Where a tick goes, item 5 |
+| Visual `_process` skipped while there is nothing to show | part of 1.3 ms/frame | §Where a tick goes, item 6 |
+| The ~1 ms between the bot scheduler's total and its jobs' sum | unexplained, maybe 1 ms/tick | §Where a tick goes |
+| The economy's other one-off reads: `_propose_savings`, the pond-spot search, `_anchor_for`'s cluster walk | the economy runs still over 20 ms, up to 68 | §Re-measured 2026-10-16, item 2 |
+| A shelter resident's spawn point read from the terrain grid | 33 ms per resident; 130–140 ms opening ticks | §Re-measured 2026-10-16, item 3 |
 
 **Every figure in this note is an editor build.** Measured 2026-10-15 on an i5-1245U, the same
 9000-tick bot match exported as a release build ran the script phase about 1.4× faster (mean

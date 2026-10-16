@@ -10,6 +10,7 @@ How entities hurt, hold and destroy each other.
 | Note | Covers |
 |---|---|
 | [aerial-operations/](aerial-operations/) | charged ammunition, airfields, runways, attack runs, rearming |
+| [environmental-pieces.md](environmental-pieces.md) | PLANNED: neutral hazards that blow up when shot (power cells, a cryo dewar, an activation cask) and coin pickups (fuel cartridges, ordnance pods) |
 | [planted-explosives.md](planted-explosives.md) | PLANNED: the Sapper's plant ability, the fuse as a reaction window, and a charge held hostage by what it made |
 | [colonial-dominion.md](colonial-dominion.md) | the capture → deliver → sentence loop, and the Compound's positional bonus; calibration knobs still open |
 | [bombardment.md](bombardment.md) | the Colonial siege system: beacons, spotters, vision-by-proxy reach |

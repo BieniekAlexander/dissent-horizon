@@ -26,6 +26,8 @@ extends RefCounted
 ##   DIALOG    — resolve a scenario dialog: {dialog, secondary} (ScenarioDialog.serial, and
 ##               whether its second option was taken). The one kind applied while the world is
 ##               paused, since a dialog is what pauses it.
+##   CAST_FROM_DEPOT — fire an ordnance on a charge the commander's depot holds, with no caster
+##               piece: {ability, position: [x, y, z], target (serial or 0), payload}.
 enum Kind {
 	COMMAND,
 	HOLD_FIRE,
@@ -37,6 +39,7 @@ enum Kind {
 	DROP,
 	PENDING_COMMAND,
 	DIALOG,
+	CAST_FROM_DEPOT,
 	## A networked player who went silent is out of the match, on the tick every remaining peer
 	## agreed (Lockstep's drop votes). Never given by a player; stood in by the input buffer.
 	FORFEIT,

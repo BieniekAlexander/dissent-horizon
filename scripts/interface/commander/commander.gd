@@ -77,6 +77,10 @@ var faction: Faction = null
 ## the commander has no faction.
 var sanction_grid: SanctionGrid = null
 
+## Free ordnance charges held without a caster piece — what a courier pod hands over. Always
+## present (built in _init), empty for almost every commander. See OrdnanceDepot.
+var ordnance_depot: OrdnanceDepot = null
+
 ## The drops this commander still holds while its scenario deploys by drop — see Deployment.
 ## Null means this commander's scenario places its base some other way (authored, or none).
 var deployment: Deployment = null
@@ -266,6 +270,7 @@ var production_queue: ProductionQueue
 
 func _init() -> void:
 	production_queue = ProductionQueue.new(self)
+	ordnance_depot = OrdnanceDepot.new(self)
 
 
 ## Unmet needs the production queue can WAIT OUT: the spendable pools. A purchase
@@ -584,17 +589,20 @@ func has_anything_in_play() -> bool:
 	)
 
 
-## Whether this commander holds a COMMAND CENTRE in play — what the HEGEMONY win condition
-## (Scenario.win_condition) arms on and eliminates on. A blueprint is a plan, not a centre.
+## This commander's COMMAND CENTRE in play, or null: what the HEGEMONY win condition
+## (Scenario.win_condition) arms on and eliminates on, and where a cast with no caster is
+## called in from (OrdnanceDepot). A blueprint is a plan, not a centre. The first found when
+## several stand; nothing today tells them apart.
+func command_centre() -> Actor:
+	for c: Actor in _owned_commandables():
+		if Deployment.is_command_centre(c) and not c.is_queued_for_deletion() and not c.is_planned:
+			return c
+	return null
+
+
+## Whether this commander holds a command centre in play (see command_centre).
 func owns_command_centre() -> bool:
-	return _owned_commandables().any(
-		func(c: Actor) -> bool:
-			return (
-				Deployment.is_command_centre(c)
-				and not c.is_queued_for_deletion()
-				and not c.is_planned
-			)
-	)
+	return command_centre() != null
 
 
 ## Set once this commander has been REMOVED FROM THE MATCH (HEGEMONY). Never cleared.

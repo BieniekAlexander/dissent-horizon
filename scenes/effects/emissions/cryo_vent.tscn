@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/rendering/area_effect.gd" id="1_area"]
+[ext_resource type="Material" path="res://resources/emissions/particle_smoke.tres" id="2_smoke"]
+
+[sub_resource type="Gradient" id="Gradient_Frost"]
+offsets = PackedFloat32Array(0, 0.25, 1)
+colors = PackedColorArray(0.9, 0.97, 1, 0, 0.9, 0.97, 1, 0.7, 0.85, 0.95, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_Frost"]
+gradient = SubResource("Gradient_Frost")
+
+[sub_resource type="Curve" id="Curve_Frost"]
+_data = [Vector2(0, 0.3), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_Frost"]
+curve = SubResource("Curve_Frost")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_Frost"]
+emission_shape = 1
+emission_sphere_radius = 0.2
+direction = Vector3(0, 1, 0)
+spread = 35.0
+initial_velocity_min = 1.5
+initial_velocity_max = 2.5
+gravity = Vector3(0, -0.4, 0)
+damping_min = 1.0
+damping_max = 1.5
+angle_min = -180.0
+angle_max = 180.0
+scale_min = 0.3
+scale_max = 0.55
+scale_curve = SubResource("CurveTexture_Frost")
+color_ramp = SubResource("GradientTexture1D_Frost")
+
+[sub_resource type="QuadMesh" id="QuadMesh_Frost"]
+material = ExtResource("2_smoke")
+
+[node name="CryoVent" type="Node3D"]
+script = ExtResource("1_area")
+unscaled = Array[NodePath]([NodePath("Frost")])
+
+[node name="Frost" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+emitting = false
+amount = 24
+lifetime = 1.0
+visibility_aabb = AABB(-4, -1, -4, 8, 8, 8)
+process_material = SubResource("ParticleProcessMaterial_Frost")
+draw_pass_1 = SubResource("QuadMesh_Frost")

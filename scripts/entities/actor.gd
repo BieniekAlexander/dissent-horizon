@@ -719,6 +719,15 @@ func shed_hostile_markers() -> void:
 			charge.remove()
 
 
+## Put out every status effect a heal ends (StatusEffect.ends_on_heal — a burning building).
+## Called by a heal (Defense.restore), beside shed_hostile_markers.
+func shed_healable_effects() -> void:
+	for child: Node in get_children():
+		var effect := child as StatusEffect
+		if effect != null and effect.ends_on_heal and effect.is_active():
+			effect.remove()
+
+
 ## Widen Entity.is_armed(): a Actor also counts as armed while it is a bunker
 ## garrison ACTIVELY holding an occupant that carries a weapon, since bunker fire
 ## propagates that occupant's shots (making e.g. a garrisoned shelter a COMBAT_STRUCTURES

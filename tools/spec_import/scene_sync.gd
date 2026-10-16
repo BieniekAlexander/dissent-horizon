@@ -65,6 +65,10 @@ const SCRIPT_BEACON_RANGE: String = "res://scripts/entities/components/beacon_ra
 ## abilities and the charge pools they draw on (see Abilities).
 const SCRIPT_ABILITIES: String = "res://scripts/entities/components/abilities.gd"
 const SCRIPT_STEALTH: String = "res://scripts/entities/components/stealth.gd"
+## The environmental pieces (gdd/systems/combat/environmental-pieces.md): a hazard's blast,
+## and a token's grant.
+const SCRIPT_VOLATILE: String = "res://scripts/entities/components/volatile.gd"
+const SCRIPT_PICKUP: String = "res://scripts/entities/components/pickup.gd"
 const SCRIPT_DEPLOYABLE: String = "res://scripts/entities/components/deployable.gd"
 const SCRIPT_GARRISON: String = "res://scripts/entities/components/garrison.gd"
 const SCRIPT_EFFECT_APPLICATOR: String = "res://scripts/entities/effects/effect_applicator.gd"
@@ -834,6 +838,10 @@ func _sync_optional_components(a_ctx: Ctx, a_spec: Dictionary) -> void:
 			)
 	if a_spec.has("beacon_range"):
 		_sync_beacon_range(a_ctx, a_spec["beacon_range"])
+	if a_spec.has("volatile"):
+		_sync_volatile(a_ctx, a_spec["volatile"])
+	if a_spec.has("pickup"):
+		_sync_pickup(a_ctx, a_spec["pickup"])
 	_sync_ability_groups(a_ctx, a_spec)
 	if a_spec.has("garrison"):
 		_sync_garrison(a_ctx, a_spec["garrison"])
@@ -980,6 +988,64 @@ func _sync_beacon_range(a_ctx: Ctx, a_value: Variant) -> void:
 	_set_prop(
 		a_ctx, "BeaconRange", "radius", current, float(a_value), TscnDoc.fmt_float(float(a_value))
 	)
+
+
+## `volatile:` — the Volatile component, pointed at the blast emission's scene. The fuse is
+## the emission's own first phase, so the component carries nothing but the scene.
+func _sync_volatile(a_ctx: Ctx, a_value: Variant) -> void:
+	if a_value is bool:
+		_sync_flag_component(a_ctx, "Volatile", "Node", SCRIPT_VOLATILE, false)
+		return
+	_ensure_component(a_ctx, "Volatile", "Node", SCRIPT_VOLATILE)
+	var blast_path: String = str(registry.projectiles[str(a_value)]["scene"])
+	var node: Node = a_ctx.inst.get_node_or_null("Volatile")
+	var current: String = (
+		node.blast_scene.resource_path if node != null and node.blast_scene != null else ""
+	)
+	if a_ctx.created_nodes.has("Volatile") or current != blast_path:
+		var pid: String = _ensure_ext(a_ctx, "PackedScene", blast_path)
+		a_ctx.doc.set_prop(
+			_section_for(a_ctx, "Volatile"), "blast_scene", 'ExtResource("%s")' % pid
+		)
+		a_ctx.dirty = true
+
+
+## `pickup:` — the Pickup component: what the token grants (energy, or charges of an ordnance)
+## and how close a unit must come. Only the keys the doc names are written, so a doc naming
+## `energy` alone leaves the scene's `radius` as authored.
+func _sync_pickup(a_ctx: Ctx, a_value: Variant) -> void:
+	if a_value is bool:
+		_sync_flag_component(a_ctx, "Pickup", "Node", SCRIPT_PICKUP, false)
+		return
+	_ensure_component(a_ctx, "Pickup", "Node", SCRIPT_PICKUP)
+	var pickup: Dictionary = a_value
+	var node: Node = a_ctx.inst.get_node_or_null("Pickup")
+	var energy: int = int(pickup.get("energy", 0))
+	_set_prop(a_ctx, "Pickup", "energy", node.energy if node != null else -1, energy, str(energy))
+	var ability: String = str(pickup.get("ability", ""))
+	_set_prop(
+		a_ctx,
+		"Pickup",
+		"ability",
+		String(node.ability) if node != null else "\u0000",
+		ability,
+		TscnDoc.fmt_string_name(ability)
+	)
+	if pickup.has("charges"):
+		var charges: int = int(pickup["charges"])
+		_set_prop(
+			a_ctx, "Pickup", "charges", node.charges if node != null else -1, charges, str(charges)
+		)
+	if pickup.has("radius"):
+		var radius: float = float(pickup["radius"])
+		_set_prop(
+			a_ctx,
+			"Pickup",
+			"radius",
+			node.radius if node != null else -1.0,
+			radius,
+			TscnDoc.fmt_float(radius)
+		)
 
 
 ## The `garrison:` block — the Garrison component and its two independent halves: WHO may

@@ -20,15 +20,13 @@
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="17_spec"]
 [ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="18_spec"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="19_spec"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_placeholder"]
-size = Vector3(3.0, 2.0, 5.0)
+[ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/nt_building_long.res" id="model_nt_building_long"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
 size = Vector3(3.0, 2.0, 5.0)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
-size = Vector3(3.0, 2.0, 5.0)
+size = Vector3(3.0, 1.45, 5.0)
 
 [node name="NtBuildingLong" type="CharacterBody3D" groups=["piece", "fixture", "structure", "neutral_building"]]
 collision_layer = 0
@@ -43,8 +41,8 @@ verbose = "potato"
 [node name="Hurtbox" parent="." instance=ExtResource("1_spec")]
 
 [node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.725, 0.0)
 shape = SubResource("BoxShape3D_hurtbox")
-transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
 metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." instance=ExtResource("2_spec")]
@@ -84,8 +82,8 @@ script = ExtResource("19_spec")
 [node name="#####VISUALS#####" type="Node" parent="."]
 
 [node name="HPBar" parent="." instance=ExtResource("9_spec")]
-transform = Transform3D(1.302083, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 2.12, 0.0)
-metadata/_visual_default_hp_bar = 3.333333
+transform = Transform3D(1.276042, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 1.57, 0.0)
+metadata/_visual_default_hp_bar = 3.266667
 
 [node name="SelectionIndicator" parent="." instance=ExtResource("10_spec")]
 
@@ -95,10 +93,8 @@ script = ExtResource("11_spec")
 [node name="MeshVisual" type="Node3D" parent="."]
 script = ExtResource("12_spec")
 
-[node name="PlaceholderModel" type="MeshInstance3D" parent="MeshVisual"]
-mesh = SubResource("BoxMesh_placeholder")
-metadata/_visual_default_mesh = "structure"
-transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+[node name="Model" type="MeshInstance3D" parent="MeshVisual"]
+mesh = ExtResource("model_nt_building_long")
 
 [node name="StatusVisuals" type="Node3D" parent="."]
 script = ExtResource("13_spec")

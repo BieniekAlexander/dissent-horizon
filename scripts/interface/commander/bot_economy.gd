@@ -235,6 +235,11 @@ const PLACEMENT_CHECK_WORK_UNITS: int = 700
 ## Work units per footprint origin scored while ranking candidates: it reads the obstacle
 ## distance of every cell of the footprint.
 const RANK_ORIGIN_WORK_UNITS: int = 12
+## Work units per lattice cell of a safety channel built for a spot search (BotFields.
+## safety_in_steps; measured at 2–3.5 µs a cell), and the fewest cells a call builds, so a tick
+## whose allowance is already spent still moves the build on.
+const SAFETY_CELL_WORK_UNITS: int = 3
+const SAFETY_MIN_CELLS_PER_CALL: int = 64
 
 ## A dominion source past the first is built only while its best site adds at least this
 ## fraction of what one earns alone — what stops a site-dependent route (Opticons) spreading
@@ -1830,6 +1835,19 @@ func _believes_enemy_structure_where(a_is_there: Callable) -> bool:
 ## ticks can only rank on slightly old facts, never place on them.
 func _find_build_spot(a_type: StringName) -> Variant:
 	if _spot_search.get("type", &"") != a_type:
+		_spot_search = {"type": a_type, "awaiting_safety": true}
+	# The search scores ground on the type's SAFETY CHANNEL, built a share of the allowance at a
+	# time rather than all at once (bot-performance.md §Re-measured 2026-10-16); the search waits
+	# for it, holding its place like the ranking does.
+	if _spot_search.has("awaiting_safety"):
+		var cells: int = maxi(
+			SAFETY_MIN_CELLS_PER_CALL, (_allowance - _work) / SAFETY_CELL_WORK_UNITS
+		)
+		var before: int = _bot.safety_cells_remaining(a_type)
+		var left: int = _bot.advance_safety_channel(a_type, cells)
+		_work += (before - left) * SAFETY_CELL_WORK_UNITS
+		if left > 0:
+			return SEARCH_PENDING
 		_spot_search = _new_spot_search(a_type)
 	var search: Dictionary = _spot_search
 	# Rank first, a row of origins at a time; the checks start once every origin is scored.

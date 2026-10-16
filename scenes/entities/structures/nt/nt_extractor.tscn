@@ -4,7 +4,6 @@
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_medium.tres" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/structures/extractor.gd" id="2_mine0"]
 [ext_resource type="Script" path="res://scripts/entities/components/energy_extractor.gd" id="3_oreex"]
-[ext_resource type="PackedScene" path="res://assets/meshes/cone.blend" id="4_nxbv5"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_q4pme"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_7rfpf"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_a1yxf"]
@@ -22,12 +21,13 @@
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="23_4aqyj"]
 [ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="24_vrdqc"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="2_spec"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/nt_extractor.res" id="model_nt_extractor"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wirw3"]
 size = Vector3(2, 3.987007, 2)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
-size = Vector3(2.0, 2.0, 2.0)
+size = Vector3(2.0, 2.15, 2.0)
 
 [node name="Structure" type="CharacterBody3D" unique_id=1571287935 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
@@ -44,8 +44,8 @@ verbose = "potato"
 collision_layer = 0
 
 [node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.075, 0.0)
 shape = SubResource("BoxShape3D_hurtbox")
-transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.05, 0.0)
 metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_7rfpf")]
@@ -88,8 +88,8 @@ script = ExtResource("2_spec")
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1373177283]
 
 [node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("14_me5ct")]
-transform = Transform3D(0.520833, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 4.107007, 0)
-metadata/_visual_default_hp_bar = 1.333333
+transform = Transform3D(0.494792, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 2.27, 0.0)
+metadata/_visual_default_hp_bar = 1.266667
 
 [node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("15_h58gi")]
 
@@ -100,8 +100,8 @@ script = ExtResource("16_jtkdv")
 script = ExtResource("17_hi8r5")
 metadata/_custom_type_script = "uid://dt2degoni7u3v"
 
-[node name="cone" parent="MeshVisual" unique_id=902720253 instance=ExtResource("4_nxbv5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0)
+[node name="Model" type="MeshInstance3D" parent="MeshVisual"]
+mesh = ExtResource("model_nt_extractor")
 
 [node name="StatusVisuals" type="Node3D" parent="." unique_id=1856390571]
 script = ExtResource("20_ei3cj")

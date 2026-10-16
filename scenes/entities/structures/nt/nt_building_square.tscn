@@ -20,15 +20,13 @@
 [ext_resource type="PackedScene" uid="uid://c0a8hdddox08m" path="res://scenes/components/footprint_visualizer.tscn" id="22_lej7c"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="23_m4nmp"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="2_spec"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/nt_building_square.res" id="model_nt_building_square"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_pxjl4"]
 size = Vector3(4, 2, 4)
 
-[sub_resource type="BoxMesh" id="BoxMesh_mixec"]
-size = Vector3(2, 2, 2)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
-size = Vector3(4.0, 2.0, 4.0)
+size = Vector3(4.0, 1.5, 4.0)
 
 [node name="Structure" type="CharacterBody3D" unique_id=1588153302 groups=["piece", "fixture", "structure", "neutral_building"]]
 collision_layer = 0
@@ -43,8 +41,8 @@ verbose = "potato"
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_necrp")]
 
 [node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.75, 0.0)
 shape = SubResource("BoxShape3D_hurtbox")
-transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
 metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_ey3et")]
@@ -92,8 +90,8 @@ script = ExtResource("2_spec")
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1041566370]
 
 [node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("14_dfsum")]
-transform = Transform3D(0.520833, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 2.12, 0)
-metadata/_visual_default_hp_bar = 1.333333
+transform = Transform3D(1.015625, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 1.62, 0.0)
+metadata/_visual_default_hp_bar = 2.6
 
 [node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("15_ai6ps")]
 
@@ -104,10 +102,8 @@ script = ExtResource("16_plchy")
 script = ExtResource("17_7uwxf")
 metadata/_custom_type_script = "uid://dt2degoni7u3v"
 
-[node name="PlaceholderModel" type="MeshInstance3D" parent="MeshVisual" unique_id=1425518299]
-transform = Transform3D(2, 0, 0, 0, 1, 0, 0, 0, 2, 0, 1, 0)
-mesh = SubResource("BoxMesh_mixec")
-metadata/_visual_default_mesh = "structure"
+[node name="Model" type="MeshInstance3D" parent="MeshVisual"]
+mesh = ExtResource("model_nt_building_square")
 
 [node name="StatusVisuals" type="Node3D" parent="." unique_id=1926129496]
 script = ExtResource("19_4g8f5")

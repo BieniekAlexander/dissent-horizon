@@ -244,7 +244,11 @@ reach nor answered by it in time (Alex, Q5). No surface-area term is wanted anyw
 field is the expression of "defensible", and compactness buys defence only through the
 coverage and answer it actually produces (Alex, Q6; REJECTED: a perimeter or radial
 surface-area term). The channel is computed once per structure type per snapshot, on the
-placement that asks for it, and the overlay reads what is stored (`stored_safety`).
+placement that asks for it, and the overlay reads what is stored (`stored_safety`). A spot
+search builds it a share of its work-unit budget at a time and waits for it
+(`BotFields.safety_in_steps`). A build part-way done keeps the snapshot it began on across a
+swap, so the search may rank on facts a few ticks old, as its ranking already does, while
+every placement is still checked against the live map.
 
 **2. Site valuation replaces nearest-first** (`BotEconomy._income_build_spot`, `site_value`;
 the answer to T-006). Candidates are every unclaimed extraction site and every workable pond
@@ -354,11 +358,9 @@ ticks on the scheduler's work-unit budget — `NavField.run` already settles a b
 of cells per call — and refreshes on `field_refresh_seconds`, never per think; and the
 per-speed arrival fields want bucketing to the speed ladder if believed speeds multiply.
 Measured per channel before the next lands is [migration](migration.md) §Cadence and
-cost's standing rule, and this is its first entry. **Not yet measured (2026-10-09):** the
-`safety` channel, a kill clock per lattice cell (sources × cells, with one field read per
-believed class and speed) on the first placement that asks for a structure type in a
-snapshot, outside the job's budget, plus the own-responder fields swept inside it — one per
-(class, speed, delay) the bot's armed units and producers present.
+cost's standing rule, and this is its first entry. The `safety` channel, measured 2026-10-16: 47–85 ms
+as first built, now 8–15 ms and spread over ticks inside the economy's budget
+([bot-performance](../bot-performance.md) §Re-measured 2026-10-16).
 
 **With the consumers live (step 4, 2026-10-08):** the same 180 s MEDIUM mirror ran at 149
 ticks per wall second with the fields only sampled, 132 with the job and every consumer on,

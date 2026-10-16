@@ -6,5 +6,7 @@ class_name StatusEffectIds
 ## docs). The id maps to the effect scene referenced by projectiles.
 
 const BIO_STUN := &"bio_stun"
+const BURNING := &"burning"
+const CRYO_BURST := &"cryo_burst"
 const EMP := &"emp"
 const LAZER_BURN := &"lazer_burn"

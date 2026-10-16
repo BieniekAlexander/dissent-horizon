@@ -1,13 +1,11 @@
-[gd_scene load_steps=27 format=3 uid="uid://b6oqu7bqdu6sy"]
+[gd_scene load_steps=26 format=3 uid="uid://b6oqu7bqdu6sy"]
 
 [ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_8syv0"]
-[ext_resource type="PackedScene" path="res://assets/meshes/entities/dummy_structure.blend" id="1_dummy"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/abilities.gd" id="2_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/garrison.gd" id="3_inv"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_50w33"]
 [ext_resource type="Script" path="res://scripts/entities/components/occupant_dominion_generator.gd" id="4_dom"]
-[ext_resource type="PackedScene" path="res://assets/meshes/hexagonal_prism.blend" id="4_kheyl"]
 [ext_resource type="PackedScene" path="res://scenes/components/aggro_range.tscn" id="5_inmoy"]
 [ext_resource type="PackedScene" path="res://scenes/components/vision_range.tscn" id="6_qertd"]
 [ext_resource type="Script" path="res://scripts/entities/components/ownership.gd" id="8_8vqm6"]
@@ -24,12 +22,13 @@
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="25_5mrpb"]
 [ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="27_wiw40"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="3_spec"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/cl_infrastructure.res" id="model_cl_infrastructure"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_8an38"]
 size = Vector3(4, 3.911997, 4)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
-size = Vector3(4.0, 3.911997, 4.0)
+size = Vector3(4.0, 1.15, 4.0)
 
 [node name="Structure" type="CharacterBody3D" unique_id=656624236 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
@@ -45,8 +44,8 @@ id = &"cl_infrastructure"
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("4_50w33")]
 
 [node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.575, 0.0)
 shape = SubResource("BoxShape3D_hurtbox")
-transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.955999, 0.0)
 metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="AggroRangeGround" parent="." unique_id=1326815153 instance=ExtResource("5_inmoy")]
@@ -97,8 +96,8 @@ script = ExtResource("3_spec")
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=278109441]
 
 [node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("15_v0dmj")]
-transform = Transform3D(0.78125, 0, 0, 0, 2.5, 0, 0, 0, 0.5, 0, 4.031997, 0)
-metadata/_visual_default_hp_bar = 2.0
+transform = Transform3D(1.015625, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 0.5, 0.0, 1.27, 0.0)
+metadata/_visual_default_hp_bar = 2.6
 
 [node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("16_fnkuj")]
 
@@ -109,11 +108,8 @@ script = ExtResource("17_fmqir")
 script = ExtResource("18_qcrmm")
 metadata/_custom_type_script = "uid://dt2degoni7u3v"
 
-[node name="Model" parent="MeshVisual" unique_id=1298642069 instance=ExtResource("1_dummy")]
-transform = Transform3D(2, 0, 0, 0, 1.5, 0, 0, 0, 2, 0, 0, 0)
-
-[node name="hexagonal_prism" parent="MeshVisual" unique_id=912920800 instance=ExtResource("4_kheyl")]
-transform = Transform3D(1, 0, 0, 0, 0.45658338, 0, 0, 0, 1, 0, 3.4554138, 0)
+[node name="Model" type="MeshInstance3D" parent="MeshVisual"]
+mesh = ExtResource("model_cl_infrastructure")
 
 [node name="StatusVisuals" type="Node3D" parent="." unique_id=1087409391]
 script = ExtResource("22_bq51n")

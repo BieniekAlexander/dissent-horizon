@@ -30,6 +30,7 @@ on the ground has to be one of these or a new entry here.
 | **Lithium pond** | a `WaterBody` with a finite budget — [water-bodies.md](water-bodies.md) |
 | **Building** | the `nt_building_*` family — neutral, garrisonable, of differing footprints (2×2 to 8×5); generation places them in **clusters** |
 | **Shelter** | `nt_shelter` — 3×3, produces Terrestrials |
+| **Hazard / pickup** | PLANNED: neutral pieces that blow up when shot, or are collected by walking over them — [combat/environmental-pieces](../combat/environmental-pieces.md). Hand-placed in missions; generation is TODO |
 
 **Energy has exactly one collector.** Both the site and the pond are worked by the same
 `Extractor` structure; they differ only in the reservoir behind them (infinite vs finite) and in

@@ -7,17 +7,17 @@
 [ext_resource type="Script" path="res://scripts/entities/components/shelter.gd" id="4_shel"]
 [ext_resource type="PackedScene" path="res://scenes/components/selectable.tscn" id="7_fhj1p"]
 [ext_resource type="Script" path="res://scripts/entities/components/mesh_visual.gd" id="7_yubve"]
-[ext_resource type="PackedScene" path="res://assets/meshes/hexagonal_prism.blend" id="8_j75vq"]
 [ext_resource type="PackedScene" path="res://scenes/components/selection_indicator.tscn" id="10_jtbbu"]
 [ext_resource type="PackedScene" path="res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn" id="10_terr"]
 [ext_resource type="PackedScene" path="res://scenes/components/footprint_visualizer.tscn" id="11_scfmn"]
 [ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="12_ss5ie"]
+[ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/nt_shelter.res" id="model_nt_shelter"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wisfu"]
 size = Vector3(3, 0.9291992, 3)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
-size = Vector3(3.0, 0.9, 3.0)
+size = Vector3(3.0, 1.12, 3.0)
 
 [node name="ShelterStructure" type="CharacterBody3D" unique_id=1119858882 groups=["piece", "fixture", "shelter"]]
 editor_description = "Neutral map feature that houses and repopulates Terrestrials."
@@ -31,8 +31,8 @@ id = &"nt_shelter"
 [node name="Hurtbox" parent="." unique_id=1501995797 instance=ExtResource("2_wisfu")]
 
 [node name="HurtboxShape" parent="Hurtbox" index="0"]
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.56, 0.0)
 shape = SubResource("BoxShape3D_hurtbox")
-transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.494537, 0.0)
 metadata/_visual_default_hurtbox = "BoxShape3D"
 
 [node name="Ownership" type="Node" parent="." unique_id=1036473683]
@@ -62,8 +62,8 @@ shape = SubResource("BoxShape3D_wisfu")
 script = ExtResource("7_yubve")
 metadata/_custom_type_script = "uid://dt2degoni7u3v"
 
-[node name="hexagonal_prism" parent="MeshVisual" unique_id=912920800 instance=ExtResource("8_j75vq")]
-transform = Transform3D(1.8, 0, 0, 0, 0.45, 0, 0, 0, 1.588, 0, 0.49453723, 0)
+[node name="Model" type="MeshInstance3D" parent="MeshVisual"]
+mesh = ExtResource("model_nt_shelter")
 
 [node name="SelectionIndicator" parent="." unique_id=1818557065 instance=ExtResource("10_jtbbu")]
 transform = Transform3D(0.125, 0, 0, 0, 0.0883885, 0.0883885, 0, -0.0883885, 0.0883885, 0, 0, 0)
