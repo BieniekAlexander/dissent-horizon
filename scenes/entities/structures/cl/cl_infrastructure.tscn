@@ -1,7 +1,8 @@
-[gd_scene load_steps=25 format=3 uid="uid://b6oqu7bqdu6sy"]
+[gd_scene load_steps=26 format=3 uid="uid://b6oqu7bqdu6sy"]
 
 [ext_resource type="Script" path="res://scripts/entities/actor.gd" id="1_8syv0"]
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_ground_large.tres" id="1_spec"]
+[ext_resource type="Script" path="res://scripts/entities/components/abilities.gd" id="2_spec"]
 [ext_resource type="Script" path="res://scripts/entities/components/garrison.gd" id="3_inv"]
 [ext_resource type="PackedScene" path="res://scenes/components/hurtbox.tscn" id="4_50w33"]
 [ext_resource type="Script" path="res://scripts/entities/components/occupant_dominion_generator.gd" id="4_dom"]
@@ -121,6 +122,10 @@ script = ExtResource("22_bq51n")
 visible = true
 
 [node name="#####TRIGGERS#####" type="Node" parent="." unique_id=1371892630]
+
+[node name="Abilities" type="Node" parent="." unique_id=1484641596]
+script = ExtResource("2_spec")
+groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_ticks": 30, "alert": true, "grants": [&"work_detail"] }])
 
 [node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("27_wiw40")]
 

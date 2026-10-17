@@ -8,7 +8,7 @@ extends GutTest
 ## §Rate projection and gdd/systems/combat/colonial-dominion.md §A captive serves a
 ## sentence.
 ##
-## Built from real scenes, like test_TaskShelter.gd: a bare
+## Built from real scenes, like test_WorkDetail.gd and test_TaskShelter.gd: a bare
 ## off-tree Actor never gets a real CommandReceiver.
 ##
 ## Run with:

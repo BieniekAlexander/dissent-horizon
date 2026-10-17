@@ -26,7 +26,7 @@ goals it serves and which tier it sits in. Piece stats live in the spec docs.
 | [auditing](auditing.md) | how to see where a concept applies, per faction and per match timeline: role tags, not a knowledge graph |
 | [ideas](ideas.md) | brainstormed proposals against the current roster, each named by the decision it creates |
 | [proposals](proposals.md) | undecided designs: command-center win condition, Colonial dominion, parked ideas |
-| [signature-mechanics](signature-mechanics.md) | the two faction-defining systems each faction should have, the tests a signature passes, and the knob matrix (effect, duration, source, valence, breadth) for shaping one |
+| [mechanics-design](mechanics-design.md) | the knob matrix for how rich a state mechanic is — effect, duration, source, valence, breadth — with worked examples |
 
 ---
 
@@ -41,14 +41,15 @@ piece — an actor that cannot move cannot kite.
 | Tier | Meaning | Complexity budget |
 |---|---|---|
 | **Generic** | applies to (nearly) every piece, to a degree set by its properties | **high** — players meet it constantly, so they learn it fast |
-| **Slot** | a generic CATEGORY that every faction fills differently (Heal, Mobility, Disable, Positional, Minion, Infrastructure, Dominion) | the category is generic; each expression is judged at its own tier |
+| **Slot** | a generic CATEGORY that every faction fills differently — the list and ids are [matchups](matchups.md) §Faction slots, each faction's version is its doc's `slots:` | the category is generic; each expression is judged at its own tier |
 | **Shared** | a named mechanic several pieces use, but not all | **low** — seen too rarely to carry many rules |
 | **Faction-unique** | one faction's own | **sparing**; may be complex only where it anchors that faction's roster and shapes the enemy's target priority |
 | **Absence** | a faction lacking a slot's expression, a frame, or a movement class | not a mechanic, but has matchup consequences — see [matchups](matchups.md) |
 
 **Complexity is proportional to prevalence.** Stagger can carry several rules because every
 unit is subject to it. Deployment appears on several units, but not often enough to support
-more than one rule.
+more than one rule. How broad a mechanic is — and so which tier it can claim — is the Breadth
+axis of [mechanics-design](mechanics-design.md).
 
 ### What a faction-wide mechanic must do
 
@@ -66,6 +67,21 @@ A faction-wide mechanic in this game has to be designed on purpose so that it:
   counterplay;
 - appropriately influences the power of the army. TODO: this criterion was left unfinished in
   the original note.
+
+Two tests separate such a mechanic from a one-off tool that merely carries a theme (2026-10-16):
+
+1. **Several ways in, several payoffs.** Many pieces feed it, and it pays off in more than one
+   way. Bombard spotting has four producers feeding one threat; Freeze has three applicators and
+   pays off both as a disable and as protection. One source and one result is a tool, however
+   good a tool — Hijacking and planted explosives are tools.
+2. **It changes how the opponent plays even when it is not being used.** Manon's medals barely
+   change her own options, but they change what the opponent fears. Likewise anything standing
+   still near a Colonial spotter is a liability, whether or not a gun is charged.
+
+**Keep the mechanical system apart from its theme.** A piece can be strongly themed and
+mechanically flat: the Anarchist Scavenge *sanction* reads as scavenging from the enemy, but all
+it does is pay out for kills. The [mechanics-design](mechanics-design.md) matrix is how to see
+which a design is.
 
 ---
 
@@ -172,11 +188,6 @@ well-tested version of it can be studied. The reference column is the last colum
 
 Each bullet here is `REJECTED` in the §13.1 sense: turned down, with the reason it was turned
 down, so it is not proposed again.
-
-- **Work Detail, in any form** (2026-10-17) — the Compound lending cooldown reductions to the
-  buildings it touches, whether per sentence served or as a banked charge. It overlaps dominion
-  collection too much and adds too much macroeconomic elasticity. Removed from the game; see
-  [colonial-dominion](../systems/combat/colonial-dominion.md) §The positional bonus — REMOVED.
 
 - **Selling structures.** It complicates the economy, adds mechanical elasticity, walks back
   investments too cheaply, and would distort veterancy and the planned Marxist dominion route.

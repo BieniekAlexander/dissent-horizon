@@ -96,15 +96,28 @@ tasking should leave Servants aboard, or refuse to run with them, is open.
 
 TODO: the bot neither loads Servants into trucks nor sentences them.
 
-## The positional bonus — REMOVED
+## The positional bonus is an event, not a rate
 
-**REJECTED (2026-10-17): the Compound lends nothing to the buildings around it.** Work Detail —
-on each sentence completing, every edge-adjacent structure of its own lost 8% of each ability
-pool's full cooldown — was scrapped and removed from the game: it overlapped dominion collection too much and added too much macroeconomic elasticity. A banked-charge rework
-(a charge every 12 captives, spent for a flat 15 s off one neighbour's cooldown) was designed on
-2026-10-16 and dropped for the same reason. A sentence now pays dominion and nothing else, so
-where a Compound stands matters only for the trip to it. Recorded in the design framework's
-[README](../../design-framework/README.md) §Settled so it is not proposed again.
+**On a sentence completing, the Compound reduces the cooldown of every ability pool on every
+edge-adjacent structure of its own by a percentage.** Its owner's only: an ally's building next
+door gets nothing, since allies share no passive bonuses
+([target-acquisition](target-acquisition.md) §Alliances). Work Detail's passive per-occupant
+recharge rate is deprecated and replaced by this.
+
+The reason for the swap is that the two halves of the building should tell one story. A passive
+rate rewards *holding* bodies, which is exactly what the sentence model stops rewarding; a
+per-completion reduction rewards *turning them over*, which is what the dominion rate now
+measures too. A Compound worked hard by a short route is worth more at both jobs at once.
+
+Unchanged: adjacency is edge contact between footprints, the supporter must be finished and
+owned by the same commander, and a commander who cannot cover its upkeep lends nothing.
+
+**The percentage is of the pool's FULL cooldown**, not of its remaining time: a fixed chunk of
+time per completion, which a player can count ("three sentences off the next scan") and which can
+finish a cooldown outright. A share of the remaining time was rejected for the opposite property
+— it tapers toward ready, so the last stretch of a long cooldown would be immune to the mechanic.
+
+Nothing is banked: a completion while an adjacent pool is already charged is worth nothing there.
 
 ## The pieces this changes
 
@@ -135,8 +148,9 @@ Tasking a truck on a Shelter is its own system, and the first consumer of it:
    example changed in the same change, and the deferred item for the bot parking a spare Servant
    for dominion — retired, because there is nowhere to park one now. `Garrison.deposit_from` /
    `Garrison.simulation_step` / `scripts/entities/components/garrison.gd`.
-2. ✅ **The positional bonus.** Built as a per-completion event, then REMOVED on 2026-10-17
-   (§The positional bonus — REMOVED).
+2. ✅ **The positional bonus.** Emitted on completion (`Garrison._emit_positional_bonus` →
+   `Abilities.reduce_all_cooldowns`); the passive recharge-rate constant is retired and
+   `work_detail`'s ability doc rewritten around the event.
 3. ✅ **Piece values.** Stock Truck (`armour: MEDIUM`; its speed has since returned to `QUICK`) via the spec doc and an
    importer run; Shelter's `spawn_interval` (10s) hand-authored on `nt_shelter.tscn` directly —
    Shelter is not yet part of the spec-doc schema (`tools/spec_import/README.md` §Doc schema).

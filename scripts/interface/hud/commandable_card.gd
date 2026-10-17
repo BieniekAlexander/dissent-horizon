@@ -651,7 +651,7 @@ func _build_dials(a_commandable: Actor) -> void:
 
 
 ## Whether pool `a_index` grants anything that is CAST. A pool of passives (a Warlord's
-## Retinue) is never spent, so a dial for it would only ever be full.
+## Retinue, a Compound's Work Detail) is never spent, so a dial for it would only ever be full.
 static func _pool_has_cast(a_abilities: Abilities, a_index: int) -> bool:
 	var grants: Array = a_abilities.groups[a_index].get("grants", [])
 	return grants.any(

@@ -103,6 +103,7 @@ const TOP_LEVEL_ORDER: Array = [
 	# Faction docs.
 	"starts_with",
 	"sanctions",
+	"slots",
 	# Ability docs: what the ability IS, then the dominion unlock route it may
 	# have (`column`/`levels`). Neither kind is a game piece, so the component
 	# rule has nothing to say about them.

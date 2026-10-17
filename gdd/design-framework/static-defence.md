@@ -211,9 +211,10 @@ other factions' statics. System rules: [bombardment](../systems/combat/bombardme
   Bombard's unit fire is poor against infantry however strong its damage against bio is.
 - **Beacon secrecy.** A beacon is stealthed to opponents (a detector reveals it). A beacon that has
   been fired on is shown as used to its owner's side only; opponents see no change.
-- **Recharge.** 30 s (2026-10-05). Each battery has its own pool, so N batteries is N shots per
-  cycle — the 1,000 cost is what limits batteries, not the cooldown. (Work Detail, which let an
-  adjacent Compound shorten it, was removed on 2026-10-17.)
+- **Recharge.** 30 s (2026-10-05). **Work Detail** shortens it: every
+  captive sentence completed at an adjacent Compound removes 8 % of the full cooldown, and each
+  battery has its own pool, so N batteries is N shots per cycle — the 1,000 cost is what limits
+  batteries, not the cooldown.
 - **Coverage.** If the shell is effective against bio, invariant 2 rests on the **targeting
   constraints** (no beacons on bio, unit spread, the single charge, cost), not on the damage
   table. A tuning pass that makes targeting easier is touching coverage.

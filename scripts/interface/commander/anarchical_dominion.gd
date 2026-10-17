@@ -24,7 +24,7 @@ extends DominionRoute
 #region Properties
 ## The passive that makes a piece a dominion aura. Named here rather than authored, because
 ## exactly one ability is this mechanic; it becomes a doc key on the day a second faction
-## wants its own version.
+## wants its own version, exactly as Abilities.SUPPORT_ABILITY will.
 const ABILITY_ID: StringName = &"retinue"
 
 ## The collider each source sweeps. Found by NAME, the way every component finds its shapes;

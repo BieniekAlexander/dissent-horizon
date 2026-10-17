@@ -1,3 +1,17 @@
+---
+slots:
+  dominion_generation: capturing Shelters, like AoE4 shrines
+  secondary_economy: TODO
+  disable: TODO
+  mobility: TODO
+  garrison_clearing: TODO
+  stealth: TODO
+  stealing: TODO
+  power_scaling: TODO
+  scouting: TODO
+  constitution: TODO
+  infrastructure: slow aircraft, like Overlords
+---
 # Overview
 
 | **Themes**   | Devotion, Hierarchy, Imposition     |

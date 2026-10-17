@@ -4,6 +4,18 @@ title: The Warden
 scene: res://scenes/factions/libertarian.tscn
 starts_with: [lb_aircraftLight_builder, lb_aircraftLight_builder]
 sanctions: []
+slots:
+  dominion_generation: the Opticon — dominion for each tile it sees that no own fixture stands on
+  secondary_economy: TODO
+  disable: "TODO — \"rocket defense systems\" is a placeholder"
+  mobility: lots of flying units, even at low tech
+  garrison_clearing: Vipers, behind an upgrade
+  stealth: "TODO (an idea: a Viper stealth sanction)"
+  stealing: the Liberator converts enemies
+  power_scaling: TODO
+  scouting: the Security Tower (intrinsic medium detection)
+  constitution: the Liberator heals nearby units
+  infrastructure: a large power plant (the Reactor)
 ---
 # Introduction
 [[world-building#The Warden|the-warden]]

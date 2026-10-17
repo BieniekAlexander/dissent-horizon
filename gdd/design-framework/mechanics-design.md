@@ -1,86 +1,28 @@
 ---
-title: Signature mechanics — the systems that define a faction, and the knobs that shape them
+title: Mechanics design — the knob matrix for how rich a mechanic is
 type: design-note
 ---
 
-# Signature mechanics
+# Mechanics design
 
-**A signature mechanic is a faction-defining SYSTEM, not a one-off tool with a theme on it.**
-Each faction should have two (revised 2026-10-17 from three). The fighting-game analogue is Street Fighter 6's Manon:
-on the surface her medals only make command grabs hit harder, but they change what the opponent
-fears. Once her throws are scary, the opponent stops just blocking, which opens up her strikes.
+**Five axes describe a mechanic that changes a piece's state, and where it sits on each says how
+much play it can carry.** *Effect* is what it does; *Duration*, *Source*, *Valence* and *Breadth*
+are how it is delivered. A mechanic that is interactive, situationally good or bad, and broad
+across the roster is a rich toy with room for expression and creative misuse; one that is
+self-contained, fixed in valence and narrow is a simple, readable anchor. Both have a place —
+this note is for seeing which one a design is, and which knob would move it.
 
-Brainstormed 2026-10-16. Where a signature sits in the tier model is in
-[README](README.md) §Tiers; its rules live in its own system note.
+It sits beside two other ways of measuring an option: [elasticity](elasticity.md) asks how much
+an option pays back extra execution, and [decisions](decisions.md) asks what decision it creates
+(commitment, information, payoff, scarcity). This one asks what the effect itself is shaped
+like. Breadth is the axis that meets the [README](README.md) §Tiers rule — complexity follows
+prevalence.
 
-## What qualifies
-
-**Mechanical systems are kept separate from thematic flavour.** A piece can carry a strong theme
-and still be mechanically flat: the Anarchist [[scavenge|Scavenge]] sanction reads as scavenging
-from the enemy, but all it does is pay out for kills. That is a fine sanction, not a signature.
-
-A signature mechanic passes both tests:
-
-1. **Several ways in, several payoffs.** Many producers feed it, and it pays off in more than one
-   way. Bombard spotting has four producers feeding one threat. Freeze has three applicators and
-   pays off both as a disable and as protection. A mechanic with one source and one result is a
-   tool, however good a tool.
-2. **It changes how the opponent plays even when it is not being used.** Anything standing still
-   near a Colonial spotter is a liability, whether or not a gun is charged.
-
-## A faction's set, against the other factions' sets
-
-**A faction's signatures are designed as a SET, and the sets are designed against each other.**
-Decided 2026-10-16.
-
-- **They interact.** Each faction's signatures should touch other factions' signatures to some
-  degree, rather than running in parallel. A signature that never meets an opposing system
-  passes test 2 only against generic play.
-- **More importantly, the advantages a set confers are broadly comparable across factions.**
-  The mechanics differ; the opportunities they open should not. Colonial's set gives:
-
-  | Role | Colonial signature |
-  |---|---|
-  | Damage output and global spatial presence | Bombard spotting |
-  | Disable plus protection | Freeze |
-
-  Every other faction's set should offer comparable opportunities — a way to greatly increase
-  damage output, for instance — expressed through its own mechanics. This is
-  parity of opportunity, not mirroring: [matchups](matchups.md) still governs where a faction
-  deliberately lacks something.
-
-## Current allocation
-
-| Faction | Signature mechanics | Open slots |
-|---|---|---|
-| Colonial | Bombard spotting ([bombardment](../systems/combat/bombardment.md)); Freeze ([shields](../systems/combat/shields.md) §Freeze) | none |
-| Anarchical | Disable (EMP) | none — considered complete (2026-10-16): the faction's many nuanced details carry it |
-| Libertarian | Drone attachment | 1 — TODO |
-
-**Roles still to cover.** Against Colonial's set, Libertarian has augmentation (drone
-attachment). TODO: its second slot is open; parity suggests a damage-output role.
-
-**Hijacking is meant to interact with the Anarchist disable**, but it is not a signature in its
-own right.
-
-### Ruled out as signatures
-
-| Mechanic | Why not |
-|---|---|
-| Crushing | game-wide: every vehicle crushes, so it is a generic mechanic, not a faction's |
-| Veterancy / Promotion | the Colonial ordnance is thematic, but not interactive enough to carry a system |
-| Planted explosives | a one-off tool on one unit |
-| Hijacking | one instance of stealing units from an opponent; not thorough enough alone |
-| Deployment | Libertarian-only today, but not meant to stay exclusive |
-| Projectile interception | other factions may get their own versions of it |
-| Supply lines / Work Detail | REJECTED (2026-10-17): overlaps dominion collection too much and adds too much macroeconomic elasticity — see [README](README.md) §Settled |
-
----
+Brainstormed 2026-10-16.
 
 ## The knob matrix
 
-**Five axes describe a state mechanic.** *Effect* is what it does; the other four are how it is
-delivered. Each table lists the knobs, their settings, and where today's mechanics sit.
+Each table lists the knobs, their settings, and where today's mechanics sit.
 
 ### Effect
 
@@ -139,7 +81,9 @@ delivered. Each table lists the knobs, their settings, and where today's mechani
 
 ---
 
-## Profiles
+## Worked examples
+
+Four mechanics profiled on the five axes.
 
 | Axis | Bombard spotting | Freeze | EMP | Drone attachment |
 |---|---|---|---|---|
@@ -157,11 +101,11 @@ delivered. Each table lists the knobs, their settings, and where today's mechani
   the effect itself a trade-off (Freeze). The second is the richer one, and it is open for drone
   attachment: a host could gain from its drone while giving something up.
 - **Breadth pulls against the frame-based counter system.** Frame filters are what make EMP
-  MECH-only, and they cap breadth on the receiving side. So a signature gets its breadth from
-  producers and payoffs, not from receivers.
-- **A signature pushes toward the generic tier's complexity budget.** Complexity is proportional
-  to prevalence (README §Tiers); a mechanic broad enough to define a faction is met often enough
-  to afford more rules.
+  MECH-only, and they cap breadth on the receiving side. So a broad mechanic gets its breadth
+  from producers and payoffs, not from receivers.
+- **Breadth buys complexity.** Complexity is proportional to prevalence
+  ([README](README.md) §Tiers): a mechanic broad enough to define a faction is met often enough
+  to afford more rules, and a narrow one should stay simple.
 - **EMP and drone attachment sit at opposite ends of the capability axis** — one removes what a
   unit can do, the other adds to it — which makes Anarchical against Libertarian a natural place
   for cross-faction contact: an EMP shutting off an augmentation, or knocking a drone loose.

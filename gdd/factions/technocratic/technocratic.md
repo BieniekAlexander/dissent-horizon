@@ -7,6 +7,18 @@ starts_with:
   - tc_bioLight_builder
   - tc_mechMedium_infrastructure
 sanctions: []
+slots:
+  dominion_generation: reactors generate it, with a byproduct to deal with
+  secondary_economy: "TODO (an earlier idea: stripping a one-time payout from any captured structure)"
+  disable: TODO — hacking structures was struck
+  mobility: portals
+  garrison_clearing: TODO
+  stealth: TODO (Elusive is a faction theme)
+  stealing: an infiltrator enters enemy buildings to steal resources or unit production
+  power_scaling: TODO
+  scouting: TODO
+  constitution: technicians repair mechs and vehicles
+  infrastructure: reconnaissance vehicles
 ---
 # Introduction
 [[world-building#Successors of Tenjin|successors-of-tenjin]]

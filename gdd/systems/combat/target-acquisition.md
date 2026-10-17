@@ -93,8 +93,8 @@ Decided 2026-09-24: the game has alliances. Built 2026-10-09 to these decisions 
   readouts that follow from shared sight: allied blueprints shown and refused as building
   sites, capacity pips on a selected allied unit, allied structures' ranges round a placement.
 - **What they do not share:** orders, garrisons and transports (`Occupy`, docking, `Embark`
-  stay owner-only), resuming an ally's construction, and passive bonuses other than healing.
-  **Dignify** stays own-only
+  stay owner-only), resuming an ally's construction, and passive bonuses other than healing —
+  the Compound's Work Detail cooldown cut reaches only its owner's buildings. **Dignify** stays own-only
   (`EventDignify._admits_allies`): the Warlord it makes is the caster's, so it would take an
   ally's Irregular.
 - **Splash hurts allies**, as it hurts one's own pieces: the blast query is `TARGETABLE_ANY`,

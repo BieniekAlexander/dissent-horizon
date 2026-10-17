@@ -243,6 +243,39 @@ static func structure_footprint(map: Map, structure: Entity) -> Array:
 	return []
 
 
+## Every OTHER entity registered on a grid cell that shares an EDGE with `structure`'s
+## footprint — the buildings it physically touches. De-duplicated; never contains
+## `structure` itself; empty for anything not registered on the grid.
+##
+## DIAGONALS ARE EXCLUDED, and that is the whole difference from
+## `_passable_footprint_neighbors`. Two buildings meeting at a corner share no wall, and
+## "adjacent" in the game's sense — a Compound working the buildings around it — means they
+## do. The other helper asks the opposite question (where can a unit STAND next to this?)
+## and wants the diagonals, so the two cannot be one.
+static func edge_adjacent_structures(map: Map, structure: Entity) -> Array[Entity]:
+	var out: Array[Entity] = []
+	if map == null or structure == null:
+		return out
+	var footprint: Array = structure_footprint(map, structure)
+	if footprint.is_empty():
+		return out
+	var own: Dictionary = {}
+	for cell: Vector2i in footprint:
+		own[cell] = true
+	var seen: Dictionary = {}
+	for cell: Vector2i in footprint:
+		for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			var neighbor: Vector2i = cell + step
+			if own.has(neighbor) or not map.grid_coordinates_in_bounds(neighbor):
+				continue
+			var occupant := map.cell_grid[neighbor.x][neighbor.y] as Entity
+			if occupant == null or occupant == structure or seen.has(occupant):
+				continue
+			seen[occupant] = true
+			out.append(occupant)
+	return out
+
+
 ## True when a_unit's grid cell lies within (L∞ ≤ 1 of) any cell in `footprint` —
 ## i.e. on the footprint or immediately adjacent. The shared "close enough to
 ## build / repair / work on" predicate. Build measures against the would-be

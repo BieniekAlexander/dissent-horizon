@@ -1,3 +1,17 @@
+---
+slots:
+  dominion_generation: damaging structures
+  secondary_economy: TODO
+  disable: TODO
+  mobility: speed modifiers for units
+  garrison_clearing: TODO
+  stealth: TODO
+  stealing: TODO
+  power_scaling: frenzy — units that destroy buildings get a temporary bonus
+  scouting: TODO
+  constitution: ABSENT
+  infrastructure: the commie block
+---
 # Introduction
 [[world-building#Tselerate Coalition|tselerate-coalition]]
 # Overview

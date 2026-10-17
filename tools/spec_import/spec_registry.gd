@@ -1910,6 +1910,18 @@ func _validate_projectile(a_spec: Dictionary) -> void:
 
 
 func _validate_faction(a_spec: Dictionary) -> void:
+	# `slots:` is design data — the faction's version of each faction slot, keyed by the ids in
+	# gdd/design-framework/matchups.md §Faction slots. Nothing in the game reads it, so only its
+	# shape is checked: snake_case ids, each naming a non-empty description.
+	if a_spec.has("slots"):
+		if not (a_spec["slots"] is Dictionary):
+			_err(a_spec, "slots must be a mapping of slot id to the faction's version of it")
+		else:
+			for slot: Variant in a_spec["slots"]:
+				if not _valid_id(str(slot)):
+					_err(a_spec, "slot id '%s' must be snake_case" % slot)
+				elif str(a_spec["slots"][slot]).strip_edges().is_empty():
+					_err(a_spec, "slot '%s' needs a description (TODO if undesigned)" % slot)
 	if not a_spec.has("starts_with") or not (a_spec["starts_with"] is Array):
 		_err(a_spec, "faction needs a starts_with: list")
 		return
