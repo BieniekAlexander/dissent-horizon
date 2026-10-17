@@ -1606,6 +1606,9 @@ func _on_death() -> void:
 	if is_in_group("structure") and commander != null:
 		commander.remove_structure(self)
 	_withdraw_infrastructure()
+	# A grounded vehicle leaves a wreck where it fell (gdd/systems/combat/scavenging.md). Here,
+	# while the map and position are still valid; Wreck decides whether this piece is one.
+	Wreck.leave_for(self)
 	super()
 
 

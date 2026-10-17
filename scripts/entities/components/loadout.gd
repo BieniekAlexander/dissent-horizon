@@ -6,23 +6,65 @@ extends Node3D
 ## walks this list so callers don't do ad-hoc child iteration.
 
 
+#region Scavenge
+## Whether this loadout has been upgraded from a wreck (see scavenge()). Switches which weapons
+## are LIVE: before, the ordinary ones; after, the `scavenged` ones that replace them.
+## Rules: gdd/systems/combat/scavenging.md.
+var is_scavenged: bool = false
+#endregion
+
+
 #region Public API
+## The weapons in use: every Weapon child whose `scavenged` flag matches this loadout's state.
+## Everything that asks "what does this piece shoot with" goes through here, so a weapon
+## waiting on a scavenge is invisible to targeting, aggro, reach and the HUD alike.
 func get_weapons() -> Array:
+	return get_children().filter(
+		func(c: Node) -> bool: return c is Weapon and _is_live(c as Weapon)
+	)
+
+
+## Every Weapon child, live or not — for state that must be counted whatever is in use.
+func all_weapons() -> Array:
 	return get_children().filter(func(c: Node) -> bool: return c is Weapon)
 
 
 func has_weapons() -> bool:
-	for c in get_children():
-		if c is Weapon:
+	return not get_weapons().is_empty()
+
+
+## Whether `a_weapon` is in use in this loadout's current state.
+func _is_live(a_weapon: Weapon) -> bool:
+	return a_weapon.scavenged == is_scavenged
+
+
+## Whether a scavenge would change anything: this loadout holds at least one `scavenged`
+## weapon and has not been upgraded yet. The Scavenge interaction's precondition.
+func can_scavenge() -> bool:
+	if is_scavenged:
+		return false
+	for c: Node in get_children():
+		if c is Weapon and (c as Weapon).scavenged:
 			return true
 	return false
+
+
+## Switch to the scavenged weapons, for good. The ordinary weapons stop being live, so the
+## carrier's aggro is re-derived from the new reach. Does nothing when can_scavenge() is false.
+func scavenge() -> void:
+	if not can_scavenge():
+		return
+	is_scavenged = true
+	var host := get_parent() as Entity
+	if host != null:
+		host.refresh_aggro_shapes()
 
 
 ## Returns the first Weapon child whose can_target() returns true for `target`,
 ## or null if none match.
 func weapon_for_target(a_target: Entity) -> Weapon:
-	for c in get_children():
-		if c is Weapon and c.can_target(a_target):
+	for c: Weapon in get_weapons():
+		if c.can_target(a_target):
 			return c
 	return null
 
@@ -34,8 +76,8 @@ func any_weapon_can_target(a_target: Entity) -> bool:
 ## The first Weapon child that can be aimed at bare ground (see Weapon.can_fire_at_ground),
 ## or null. Asked per-actor by FocusFire; the same first-match rule weapon_for_target uses.
 func weapon_for_ground_fire() -> Weapon:
-	for c in get_children():
-		if c is Weapon and (c as Weapon).can_fire_at_ground():
+	for c: Weapon in get_weapons():
+		if c.can_fire_at_ground():
 			return c
 	return null
 
@@ -67,8 +109,8 @@ func charged_weapons() -> Array:
 ## question — "could this unit ever need an airfield?" — as opposed to whether it needs
 ## one right now.
 func has_charged_weapons() -> bool:
-	for c in get_children():
-		if c is Weapon and (c as Weapon).charged:
+	for c: Weapon in get_weapons():
+		if c.charged:
 			return true
 	return false
 
@@ -77,8 +119,8 @@ func has_charged_weapons() -> bool:
 ## to do. This is the DOCKING test — a unit sent to rearm sits on the pad until every
 ## charged weapon is full, so a partial clip is still worth the trip.
 func needs_recharge() -> bool:
-	for c in get_children():
-		if c is Weapon and (c as Weapon).needs_recharge():
+	for c: Weapon in get_weapons():
+		if c.needs_recharge():
 			return true
 	return false
 
@@ -89,10 +131,10 @@ func needs_recharge() -> bool:
 ## to top up, so only a unit with nothing left to fire sends itself home.
 func is_out_of_ammo() -> bool:
 	var found: bool = false
-	for c in get_children():
-		if c is Weapon and (c as Weapon).charged:
+	for c: Weapon in get_weapons():
+		if c.charged:
 			found = true
-			if not (c as Weapon).is_out_of_ammo():
+			if not c.is_out_of_ammo():
 				return false
 	return found
 
@@ -101,9 +143,9 @@ func is_out_of_ammo() -> bool:
 ## full — the signal the docking sequence waits on before releasing the pad.
 func recharge(a_ticks: float = 1.0) -> bool:
 	var complete: bool = true
-	for c in get_children():
-		if c is Weapon and (c as Weapon).charged:
-			complete = (c as Weapon).recharge(a_ticks) and complete
+	for c: Weapon in get_weapons():
+		if c.charged:
+			complete = c.recharge(a_ticks) and complete
 	return complete
 
 
@@ -116,17 +158,17 @@ func recharge(a_ticks: float = 1.0) -> bool:
 ## (it flies home when every charged weapon is dry and sits on the pad until all are full).
 func charged_ammo() -> int:
 	var total: int = 0
-	for c in get_children():
-		if c is Weapon and (c as Weapon).charged:
-			total += (c as Weapon).ammo()
+	for c: Weapon in get_weapons():
+		if c.charged:
+			total += c.ammo()
 	return total
 
 
 func charged_clip_size() -> int:
 	var total: int = 0
-	for c in get_children():
-		if c is Weapon and (c as Weapon).charged:
-			total += (c as Weapon).clip_size
+	for c: Weapon in get_weapons():
+		if c.charged:
+			total += c.clip_size
 	return total
 
 
@@ -135,9 +177,9 @@ func charged_clip_size() -> int:
 ## when nothing here is charged, so a caller can render unconditionally.
 func ammo_fraction() -> float:
 	var lowest: float = 1.0
-	for c in get_children():
-		if c is Weapon and (c as Weapon).charged:
-			lowest = minf(lowest, (c as Weapon).ammo_fraction())
+	for c: Weapon in get_weapons():
+		if c.charged:
+			lowest = minf(lowest, c.ammo_fraction())
 	return lowest
 #endregion
 #endregion

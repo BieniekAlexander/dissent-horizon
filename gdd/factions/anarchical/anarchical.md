@@ -34,6 +34,7 @@ world-building lore — see [[world-building#Baladians]]).
 	- Disable - EMP
 	- Positioning - blending in with existing buildings
 - Unique Mechanics
+	- Scavenging: armed infantry strip vehicle wrecks for a better weapon ([[scavenging]])
 	- EMPs, Explosives, and Kamikaze
 	- Zero Hour Cash Bounty
 	- warlord unit AOE bonus

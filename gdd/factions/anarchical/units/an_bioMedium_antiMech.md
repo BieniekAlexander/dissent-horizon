@@ -33,6 +33,14 @@ weapons:
     clip_size: 1
     reach: ground_range_medium
     hits: [ground]
+  - name: ScavengedArcWeapon
+    emits: shock_trooper_arc
+    split_time: 0.5
+    reload_time: 0.5
+    clip_size: 1
+    scavenged: true
+    reach: ground_range_medium
+    hits: [ground]
 ui: {grid: [1, 1], factions: [anarchists]}
 ---
 # Notes

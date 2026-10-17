@@ -146,11 +146,14 @@ func _unload_step(a_actor: Actor) -> Variant:
 
 
 ## Run the interaction's completion effect, dispatched by type. HIJACK takes the target over;
+## SCAVENGE consumes the wreck and upgrades the actor's weapon;
 ## DEPOSIT runs over several ticks instead (_unload_step).
 func _complete(a_actor: Actor, a_interaction: Interaction) -> void:
 	match a_interaction.type:
 		Interaction.Type.HIJACK:
 			_hijack(a_actor)
+		Interaction.Type.SCAVENGE:
+			_scavenge(a_actor)
 
 
 ## Take the targeted vehicle over: it changes hands to the actor's commander, and the
@@ -167,6 +170,16 @@ func _hijack(a_actor: Actor) -> void:
 	prize.commander = a_actor.commander
 	if a_actor.defense != null:
 		a_actor.defense.kill()
+
+
+## Strip the targeted wreck: it is consumed, and the actor's loadout switches to its
+## scavenged weapons for good. Rules: gdd/systems/combat/scavenging.md.
+func _scavenge(a_actor: Actor) -> void:
+	var wreck: Wreck = Wreck.of(message.target)
+	if wreck == null or not wreck.is_available() or a_actor.weapon_inventory == null:
+		return
+	wreck.consume()
+	a_actor.weapon_inventory.scavenge()
 
 
 #endregion

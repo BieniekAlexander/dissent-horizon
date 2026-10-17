@@ -69,6 +69,8 @@ const SCRIPT_STEALTH: String = "res://scripts/entities/components/stealth.gd"
 ## and a token's grant.
 const SCRIPT_VOLATILE: String = "res://scripts/entities/components/volatile.gd"
 const SCRIPT_PICKUP: String = "res://scripts/entities/components/pickup.gd"
+## The token a destroyed grounded vehicle leaves (gdd/systems/combat/scavenging.md).
+const SCRIPT_WRECK: String = "res://scripts/entities/components/wreck.gd"
 const SCRIPT_DEPLOYABLE: String = "res://scripts/entities/components/deployable.gd"
 const SCRIPT_GARRISON: String = "res://scripts/entities/components/garrison.gd"
 const SCRIPT_EFFECT_APPLICATOR: String = "res://scripts/entities/effects/effect_applicator.gd"
@@ -842,6 +844,8 @@ func _sync_optional_components(a_ctx: Ctx, a_spec: Dictionary) -> void:
 		_sync_volatile(a_ctx, a_spec["volatile"])
 	if a_spec.has("pickup"):
 		_sync_pickup(a_ctx, a_spec["pickup"])
+	if a_spec.has("wreck"):
+		_sync_wreck(a_ctx, a_spec["wreck"])
 	_sync_ability_groups(a_ctx, a_spec)
 	if a_spec.has("garrison"):
 		_sync_garrison(a_ctx, a_spec["garrison"])
@@ -1046,6 +1050,24 @@ func _sync_pickup(a_ctx: Ctx, a_value: Variant) -> void:
 			radius,
 			TscnDoc.fmt_float(radius)
 		)
+
+
+## `wreck:` — the Wreck component and how long the wreck stands.
+func _sync_wreck(a_ctx: Ctx, a_value: Variant) -> void:
+	if a_value is bool:
+		_sync_flag_component(a_ctx, "Wreck", "Node", SCRIPT_WRECK, false)
+		return
+	_ensure_component(a_ctx, "Wreck", "Node", SCRIPT_WRECK)
+	var node: Node = a_ctx.inst.get_node_or_null("Wreck")
+	var lifespan: float = float((a_value as Dictionary)["lifespan"])
+	_set_prop(
+		a_ctx,
+		"Wreck",
+		"lifespan_seconds",
+		node.lifespan_seconds if node != null else -1.0,
+		lifespan,
+		TscnDoc.fmt_float(lifespan)
+	)
 
 
 ## The `garrison:` block — the Garrison component and its two independent halves: WHO may
@@ -1356,6 +1378,19 @@ func _sync_one_weapon(a_ctx: Ctx, a_name: String, a_w: Dictionary, a_node: Node)
 	if a_w.has("turret_turn_rate"):
 		var rate: float = float(a_w["turret_turn_rate"])
 		_set_prop(a_ctx, wpath, "turret_turn_rate", cur_turret_rate, rate, TscnDoc.fmt_float(rate))
+	# `scavenged: true` makes the weapon wait for its carrier to scavenge a wreck, then replace
+	# the ordinary ones (see Weapon.scavenged); written whenever the key is present, like `turret`.
+	if a_w.has("scavenged"):
+		var is_scavenged: bool = bool(a_w["scavenged"])
+		var cur_scavenged: bool = a_node.scavenged if a_node != null else false
+		_set_prop(
+			a_ctx,
+			wpath,
+			"scavenged",
+			cur_scavenged,
+			is_scavenged,
+			"true" if is_scavenged else "false"
+		)
 
 	# `range_from:` names where reach is measured from (Weapon.RangeOrigin); written whenever
 	# the key is present, `hull` included, like `turret`.

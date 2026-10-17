@@ -737,6 +737,30 @@ func _validate_volatile(a_spec: Dictionary) -> void:
 		_err(a_spec, "volatile needs defense: — a piece with no hit points cannot be destroyed")
 
 
+## `wreck:` makes the piece a wreck token (Wreck): a mapping with a positive `lifespan` in
+## seconds. A token claims no cells and has no hit points, so `footprint:` and `defense:` are
+## refused beside it; `false` removes the component.
+func _validate_wreck(a_spec: Dictionary) -> void:
+	var value: Variant = a_spec["wreck"]
+	if value is bool:
+		if bool(value):
+			_err(a_spec, "wreck: true says nothing — write {lifespan: <seconds>}, or false")
+		return
+	if not (value is Dictionary):
+		_err(a_spec, "wreck must be a mapping: {lifespan: 30}")
+		return
+	var wreck: Dictionary = value
+	for key: Variant in wreck:
+		if str(key) != "lifespan":
+			_err(a_spec, "wreck: unknown key '%s'" % key)
+	if not wreck.has("lifespan") or float(wreck["lifespan"]) <= 0.0:
+		_err(a_spec, "wreck.lifespan must be a positive number of seconds")
+	if a_spec.has("footprint"):
+		_err(a_spec, "a wreck is a token: it claims no cells, so it takes no footprint:")
+	if a_spec.has("hp"):
+		_err(a_spec, "a wreck cannot be destroyed: it takes no defense:")
+
+
 ## `pickup:` makes the piece a collectible token (Pickup): exactly one of `energy` or
 ## `ability` (with an optional `charges`), and an optional `radius`. A token claims no cells,
 ## so `footprint:` is refused beside it; `false` removes the component.
@@ -824,6 +848,8 @@ func _validate_piece(a_spec: Dictionary) -> void:
 		_validate_volatile(a_spec)
 	if a_spec.has("pickup"):
 		_validate_pickup(a_spec)
+	if a_spec.has("wreck"):
+		_validate_wreck(a_spec)
 	# Identity components: presence only, their tuning is scene-authored (SpecSceneSync.
 	# IDENTITY_COMPONENTS).
 	for key: String in ["shelter", "extraction_site", "extractor", "plants_beacons", "flushes"]:
@@ -1616,6 +1642,7 @@ const WEAPON_KEYS: Array = [
 	"self_destruct",
 	"turret",
 	"turret_turn_rate",
+	"scavenged",
 	"range_from",
 	"reach",
 	"hits"
