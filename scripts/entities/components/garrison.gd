@@ -407,14 +407,6 @@ func detach(a_unit: Actor) -> void:
 #endregion
 
 #region Sentences
-## What one adjacent structure's ability pools have their cooldown reduced by, on each
-## sentence completing here — a percentage of the pool's own FULL cooldown, not of its
-## remaining time (see colonial-dominion.md §The positional bonus is an event, not a rate).
-## A CONSTANT, as the retired passive per-occupant recharge rate was before it: the number is
-## Work Detail's, not any one Compound's.
-const SENTENCE_COOLDOWN_BONUS: float = 0.08
-
-
 ## Nothing to step until a captive starts a sentence (garrison wakes the host then).
 func sleep_ticks() -> int:
 	return Entity.SLEEP_FOREVER if _sentence_remaining.is_empty() else 0
@@ -435,40 +427,6 @@ func simulation_step(a_delta: float) -> void:
 		if _sentence_remaining[unit] <= 0.0:
 			_sentence_remaining.erase(unit)
 			discard(unit)
-			_emit_positional_bonus()
-
-
-## On a sentence completing, reduce the cooldown of every ability pool on every
-## edge-adjacent structure of its own by SENTENCE_COOLDOWN_BONUS — Work Detail, carried by
-## whichever piece grants it (Abilities.SUPPORT_ABILITY). The three things that switch it
-## off are asked of the SUPPORTER (this host, the Compound), same as the passive rate this
-## replaces: it must be finished, and its commander's infrastructure must cover its upkeep.
-## Nothing beyond ownership is asked of the structure being helped — matching the
-## passive it replaces, which never gated on the beneficiary's own state either.
-func _emit_positional_bonus() -> void:
-	var host := get_parent() as Actor
-	if (
-		host == null
-		or host.map == null
-		or not host.is_built
-		or host.is_unpowered()
-		or not _grants_positional_bonus(host)
-	):
-		return
-	for neighbor: Entity in SU.edge_adjacent_structures(host.map, host):
-		var supported := neighbor as Actor
-		# The host's OWN structures: an ally shares vision, repair and friendly-target abilities,
-		# not passive bonuses (target-acquisition.md §Alliances).
-		if supported == null or supported.commander_id != host.commander_id:
-			continue
-		var pool := supported.get_node_or_null("Abilities") as Abilities
-		if pool != null:
-			pool.reduce_all_cooldowns(SENTENCE_COOLDOWN_BONUS)
-
-
-static func _grants_positional_bonus(a_host: Actor) -> bool:
-	var pool := a_host.get_node_or_null("Abilities") as Abilities
-	return pool != null and pool.grants(Abilities.SUPPORT_ABILITY)
 
 
 #endregion

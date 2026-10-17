@@ -3,7 +3,7 @@ extends GutTest
 ## TaskShelter — the Stock Truck's standing order to keep working a Shelter. See
 ## gdd/systems/commands/unit-tasking.md.
 ##
-## Built from real scenes (truck, Shelter, Compound), like test_WorkDetail.gd: a bare
+## Built from real scenes (truck, Shelter, Compound): a bare
 ## off-tree Actor never gets a real CommandReceiver (its @onready initializer only
 ## runs on _ready(), which never fires off-tree), and this needs one live to hold and chain
 ## commands. Every fixture lives under `_world`, added to the actual GUT tree in

@@ -253,8 +253,7 @@ Three consequences worth knowing:
   asks the same question, so a future holding structure is picked up with no code change.
 - **A finished sentence CONSUMES the captive** (`Garrison.discard`, called from the component's
   own `simulation_step`): the unit is freed outright, producing nothing further but the
-  dominion it paid along the way and the [[work_detail|Work Detail]] cooldown reduction it
-  fires on the way out. This is what separates the Colonial route from the Anarchical one —
+  dominion it paid along the way. This is what separates the Colonial route from the Anarchical one —
   a Warlord converts a Terrestrial and keeps the unit in the world; a Compound spends it.
 - **The camp holds no Servants of its own** — it is a CLOSED garrison again (every mask
   cleared, no `pieces:` allowlist), because a prisoner it holds is never something that could

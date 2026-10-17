@@ -23,12 +23,6 @@ garrison:
   closed: true
   bunker: false
   sentence_length: 30
-abilities:
-  - max_charges: 1
-    cooldown: 1
-    alert: true
-    grants:
-      - work_detail
 infrastructure: 100
 ui:
   grid:
@@ -59,15 +53,16 @@ a sentence like a prisoner: they pay dominion each cycle and are consumed at the
 Unlike a prisoner, a Servant can be let out before then — Evacuate, or its card in the info
 panel, returns it to the game — while the captives beside it stay. A Servant is a very
 cost-inefficient source of dominion (200 energy for 150 dominion), which is the point: an option, not a
-route. On a sentence completing, the Compound reduces the cooldown of every ability
-pool on every edge-adjacent friendly structure by a percentage of its full duration ([[work_detail|Work
-Detail]]). Destroy it and its occupants go free, to the commander they were taken from —
+route. Destroy it and its occupants go free, to the commander they were taken from —
 rescuing them, not merely denying the income.
 
 See [colonial-dominion](../../systems/combat/colonial-dominion.md) for the mechanics and
 [unit-tasking](../../systems/commands/unit-tasking.md) for how a Stock Truck is kept fed.
 
 # Notes
+- **Work Detail removed 2026-10-17**: the Compound no longer cuts the cooldowns of the buildings
+  it touches (REJECTED — it overlapped dominion collection too much and added too much macroeconomic elasticity; see
+  [colonial-dominion](../../systems/combat/colonial-dominion.md) §The positional bonus — REMOVED).
 - **Reworked 2026-09-17**: conversion-on-deposit retired in favour of a SENTENCE — a captive
   is held as itself and consumed at the end of its term, and the passive Work Detail rate is
   now a per-completion cooldown-reduction event. The Servants-only allowlist (`garrison.pieces`)

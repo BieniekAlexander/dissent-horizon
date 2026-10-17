@@ -4,8 +4,7 @@ title: Retinue
 flavor:
   description: Friendly infantry standing with this Warlord bank dominion every cycle.
   verbose: |
-    A POSITIONAL passive, like the Colonials' [[work_detail|Work Detail]] and unlike anything
-    that is fired: it is on for as long as the Warlord is alive, and what it is worth depends
+    A POSITIONAL passive, unlike anything that is fired: it is on for as long as the Warlord is alive, and what it is worth depends
     entirely on where the Warlord is standing.
 
     Every friendly BIO unit inside its reach pays dominion once a cycle. The Warlord itself

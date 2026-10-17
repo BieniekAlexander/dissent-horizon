@@ -48,7 +48,7 @@ From the faction overviews. Blank means not yet designed.
 | Heal | Servants repair | field hospitals | | technicians repair | **absent** | |
 | Mobility | **intentionally lacking** | cheap helicopters | aircraft at low tech | portals | speed modifiers | |
 | Disable | Freeze | EMP | rocket defenses | | | |
-| Positional | Work Detail | blend into buildings | Relays heal nearby | portals | frenzy | |
+| Positional | — (Work Detail removed 2026-10-17) | blend into buildings | Relays heal nearby | portals | frenzy | |
 
 ## Known skews
 
