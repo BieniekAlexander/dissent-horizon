@@ -79,10 +79,12 @@ exposure), and [[blizzard|Blizzard]] (a field after a 10 s warning). (The Cryoge
 shares the cryo theme but deals damage rather than freezing.) It is two-sided: it locks an enemy down for the Bombard, or shields a friendly unit.
 → [shields](../../systems/combat/shields.md)
 
-### Mobility — absent, on purpose
-Colonial ground forces are slow and few of them fly. What stands in for mobility is reach without
-movement: Bombard fire wherever a spotter can see, Drop shipments, and the Caravel's heavy air
-transport.
+### Mobility — the Caravel
+A slow, strong transport helicopter (`cl_aircraftStrong_transport`): STRONG armour, room for 8
+occupancy of grounded units, unlocked at the Operations Center. It moves an army rather than
+outrunning one, so Colonial ground forces stay slow and the faction relocates in bulk, at the
+risk of losing a full load in one shot. TODO: its doc gives it the FAST speed class, which
+contradicts "slow".
 
 ### Garrison clearing — the Sleeper and the shell
 The Sleeper storms enemy-held garrisons (`flushes: true`). Bombard shells can clear a garrison
@@ -92,10 +94,11 @@ too.
 A stealthed light infantry unit. After Cell Activation it plants beacons and walks away, so the
 guns can be pointed at ground nobody is visibly watching.
 
-### Stealing — prisoners again
-The Stock Truck's capture takes enemy light BIO infantry out of the fight and turns it into
-dominion. Only the truck captures. Against the all-MECH Warden it finds nothing to take, so
-Colonial dominion there comes from Shelters alone (a known skew in matchups).
+### Stealing — the Annex
+The Annex (`cl_support1`) is where Colonial stealing lives: annexing what is not theirs.
+TODO: the Annex has no mechanic yet. A best guess at the shape — the Annex lets the Colonials
+take over enemy or neutral structures, turning ground they have pushed into their own. (The
+Stock Truck's capture of infantry is dominion generation, above, not stealing.)
 
 ### Power scaling — Work Detail
 Every sentence a Compound completes cuts 8% of the full cooldown of every ability pool on each
