@@ -178,38 +178,6 @@ func is_recharge_held(a_ability_id: StringName) -> bool:
 
 #endregion
 
-#region Positional support
-## The ability that identifies a piece as one whose garrison lends a per-completion cooldown
-## reduction to the buildings AROUND it — the Colonials' Work Detail, carried by the
-## Compound. See Garrison._emit_positional_bonus, the event this marks a host for.
-##
-## Named here rather than authored as a doc key because exactly one ability does this, and
-## a key on every ability doc for a mechanic one of them uses is a schema paying for a case
-## that does not exist. It becomes `support:` on the ability the day a second faction wants
-## its own version, exactly as Spot's reach will become a doc key the day a second spotter
-## does — see gdd/factions/colonial/abilities/spot.md.
-const SUPPORT_ABILITY: StringName = &"work_detail"
-
-
-## Reduce every pool's cooldown by `a_fraction` of its own FULL duration — a one-time
-## event, not a rate. A pool already at full charge is untouched: nothing is banked for a
-## later completion (see Garrison._emit_positional_bonus). Loops rather than a single
-## decrement so a fraction large enough to clear more than one boundary still lands
-## correctly, though every authored fraction today is well under that.
-func reduce_all_cooldowns(a_fraction: float) -> void:
-	for i: int in _charges.size():
-		var pool: Dictionary = groups[i]
-		if _charges[i] >= _max_charges(pool):
-			continue
-		_timers[i] -= a_fraction * float(_cooldown_ticks(pool))
-		while _timers[i] <= 0.0 and _charges[i] < _max_charges(pool):
-			_charges[i] += 1
-			_timers[i] += float(_cooldown_ticks(pool))
-
-
-#endregion
-
-
 #region Pool fields
 ## The three authored numbers, each read through one accessor so a missing or nonsensical
 ## value degrades the same way everywhere. The importer validates them; these clamps are

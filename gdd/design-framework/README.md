@@ -173,6 +173,11 @@ well-tested version of it can be studied. The reference column is the last colum
 Each bullet here is `REJECTED` in the §13.1 sense: turned down, with the reason it was turned
 down, so it is not proposed again.
 
+- **Work Detail, in any form** (2026-10-17) — the Compound lending cooldown reductions to the
+  buildings it touches, whether per sentence served or as a banked charge. It overlaps dominion
+  collection too much and adds too much macroeconomic elasticity. Removed from the game; see
+  [colonial-dominion](../systems/combat/colonial-dominion.md) §The positional bonus — REMOVED.
+
 - **Selling structures.** It complicates the economy, adds mechanical elasticity, walks back
   investments too cheaply, and would distort veterancy and the planned Marxist dominion route.
   Nothing implements it today; this is a constraint on what gets built.

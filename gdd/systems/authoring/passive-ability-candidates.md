@@ -43,7 +43,6 @@ check components are deliberately not on this list.
 
 | Mechanic | Ability | What converting bought |
 |---|---|---|
-| Compound speeds adjacent structures' cooldowns | `work_detail` | the card, the mechanic's first statement in a doc |
 | Warlord banks dominion from nearby infantry | `retinue` | the card, the reach reveal, and sources found by ABILITY rather than by piece id |
 | Kill bounty on destroyed enemies | `scavenge` | (was always one — the model the rest follow) |
 
@@ -105,10 +104,9 @@ not a ring.
 
 > **TODO — a heal aura is a passive ability whose behaviour is per-tick, and nothing in the
 > passive system ticks.** `retinue` is read by whoever needs it (`AnarchicalDominion`), which
-> works because it is a *query*. `work_detail` moved off that shape on 2026-09-17 — it is now
-> an EVENT the Compound pushes on a sentence completing (`Garrison._emit_positional_bonus`),
-> closer to what a heal aura would need than a query is. A heal aura still differs: it applies
-> every TICK rather than on a discrete completion, and today that is a bespoke node.
+> works because it is a *query*. (`work_detail`, the Compound's cooldown cut, was the one passive
+> pushed as an EVENT on a discrete completion; it was removed on 2026-10-17.) A heal aura
+> applies every TICK rather than on a completion, and today that is a bespoke node.
 >
 > This is the same seam as the merge question in
 > [ui/condition-cards](../ux/ui/condition-cards.md) §TODO, seen from the other end: if a passive

@@ -139,8 +139,7 @@ and the first predates the other two:
 2. **Buildings lose their weapons.** `Actor.can_use_weapons` is false for a
    structure whose commander is strained, so defences go quiet.
 3. **Buildings lose their abilities, active and passive alike.**
-   `Abilities.is_operational` is false on one, which refuses `is_ready` and `spend` and is
-   what turns off a positional passive like the Compound's Work Detail.
+   `Abilities.is_operational` is false on one, which refuses `is_ready` and `spend`.
 
 `Actor.is_unpowered()` is the single predicate all three read, and it is deliberately
 narrow:

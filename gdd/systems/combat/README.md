@@ -13,7 +13,7 @@ How entities hurt, hold and destroy each other.
 | [environmental-pieces.md](environmental-pieces.md) | PLANNED: neutral hazards that blow up when shot (power cells, a cryo dewar, an activation cask) and coin pickups (fuel cartridges, ordnance pods) |
 | [scavenging.md](scavenging.md) | wrecks left by destroyed grounded vehicles, and infantry that strip one to switch to a scavenged weapon |
 | [planted-explosives.md](planted-explosives.md) | PLANNED: the Sapper's plant ability, the fuse as a reaction window, and a charge held hostage by what it made |
-| [colonial-dominion.md](colonial-dominion.md) | the capture → deliver → sentence loop, and the Compound's positional bonus; calibration knobs still open |
+| [colonial-dominion.md](colonial-dominion.md) | the capture → deliver → sentence loop (the Compound's positional bonus is REJECTED and removed); calibration knobs still open |
 | [bombardment.md](bombardment.md) | the Colonial siege system: beacons, spotters, vision-by-proxy reach |
 | [weapon-cadence.md](weapon-cadence.md) | bursts, reloads and attack startup as one cycle: when kiting pays, clip size against travel, elasticity by stage, and the vulnerable states a cycle can impose |
 | [turrets.md](turrets.md) | weapons that aim on their own yaw: exact alignment, turn rate, the idle swing home |

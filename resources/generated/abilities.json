@@ -535,7 +535,7 @@
 		"reveals": "DOMINION",
 		"title": "Retinue",
 		"valence": "BOON",
-		"verbose": "A POSITIONAL passive, like the Colonials' [[work_detail|Work Detail]] and unlike anything\nthat is fired: it is on for as long as the Warlord is alive, and what it is worth depends\nentirely on where the Warlord is standing.\n\nEvery friendly BIO unit inside its reach pays dominion once a cycle. The Warlord itself\ndoes not count, and neither does a second Warlord — this is a claim on FOLLOWERS, so a\npile of Warlords with nobody to lead banks nothing.\n\nA unit standing in two Warlords' reaches is counted ONCE. Stacking Warlords on one squad\nis not a strategy; spreading them across the squads you already field is."
+		"verbose": "A POSITIONAL passive, unlike anything that is fired: it is on for as long as the Warlord is alive, and what it is worth depends\nentirely on where the Warlord is standing.\n\nEvery friendly BIO unit inside its reach pays dominion once a cycle. The Warlord itself\ndoes not count, and neither does a second Warlord — this is a claim on FOLLOWERS, so a\npile of Warlords with nobody to lead banks nothing.\n\nA unit standing in two Warlords' reaches is counted ONCE. Stacking Warlords on one squad\nis not a strategy; spreading them across the squads you already field is."
 	},
 	"scan": {
 		"active_grid": [],
@@ -625,24 +625,5 @@
 		"title": "Spot",
 		"valence": "NEUTRAL",
 		"verbose": "A Recruit walks within range of the chosen point, holds still while it calls the strike\nin, and leaves a [[beacon|Beacon]] standing there. It then STAYS on the beacon until a\nBombard fires on it — that commitment is what the artillery is paying for. The nearest\nloaded Bombard fires as soon as it can, unless you have switched the Bombard to manual.\n\nA Sleeper, once Cell Activation is researched, walks to the point itself, plants a beacon\non the ground over 3 seconds, and moves on. Its beacon stands until a Bombard is ordered onto it.\n\nA LOCAL ability: it is an order given to the spotter, not something the commander calls in,\nso it has no cell on the ORDNANCE card."
-	},
-	"work_detail": {
-		"active_grid": [],
-		"cast_by": "SINGLE",
-		"command": "",
-		"description": "Each sentence served here shaves 8% off the full cooldown of every ability pool on the buildings next door.",
-		"dominion": false,
-		"emits": "",
-		"factions": [],
-		"global_alert": false,
-		"grid": [],
-		"hud_button": false,
-		"levels": [],
-		"passive": true,
-		"range": 5.0,
-		"reveals": "",
-		"title": "Work Detail",
-		"valence": "BOON",
-		"verbose": "A POSITIONAL passive, and the only one in the game: it benefits the buildings the\nCompound TOUCHES rather than the Compound itself. Edge contact is what counts — a\nbuilding meeting it corner-to-corner shares no wall and gets nothing.\n\nThe bonus fires per COMPLETION, not per head held. The instant a captive's sentence\nends, every adjacent friendly building's ability pools each lose 8% of their own full\ncooldown — a fixed chunk of time you can count (\"three sentences off the next scan\"),\nnot a rate that speeds up while the Compound is full. A pool already at full charge\nbanks nothing from a completion it did not need.\n\nNothing is lent by a Compound that is still going up, by one its commander cannot\npower, or across the front line — only your own buildings are worked."
 	}
 }

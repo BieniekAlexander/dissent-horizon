@@ -37,7 +37,7 @@ world-building lore — see [[world-building#Haustoria]]).
 	- Heal - Servants repair structures and mechs
 	- Mobility - intentionally lacking
 	- Disable - freeze
-	- Positional - [[work_detail|Work Detail]]: a Compound speeds the ability cooldowns of every structure it touches, by 8% per interned Servant
+	- Positional - TODO: open. Work Detail (a Compound speeding the cooldowns of the buildings it touched) is REJECTED and removed (2026-10-17) — it overlapped dominion collection too much and added too much macroeconomic elasticity
 - Unique Mechanics
 	- Artillery spotting system
 	- Cryogenics as slowing and strengthening
