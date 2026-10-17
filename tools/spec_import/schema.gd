@@ -82,6 +82,7 @@ const TOP_LEVEL_ORDER: Array = [
 	"flushes",
 	"volatile",
 	"pickup",
+	"wreck",
 	# Root-node properties: neither belongs to a component.
 	"infrastructure",
 	"occupancy_size",
@@ -102,6 +103,7 @@ const TOP_LEVEL_ORDER: Array = [
 	# Faction docs.
 	"starts_with",
 	"sanctions",
+	"slots",
 	# Ability docs: what the ability IS, then the dominion unlock route it may
 	# have (`column`/`levels`). Neither kind is a game piece, so the component
 	# rule has nothing to say about them.
@@ -179,6 +181,7 @@ const NESTED_ORDER: Dictionary = {
 		"self_destruct",
 		"turret",
 		"turret_turn_rate",
+		"scavenged",
 		"range_from",
 		"reach",
 		"hits"
@@ -416,6 +419,7 @@ static func has_discriminator(spec: Dictionary) -> bool:
 		or spec.has("movement")
 		or spec.has("vision")
 		or is_pickup(spec)
+		or is_wreck(spec)
 		or spec.has("volatile")
 	)
 
@@ -425,6 +429,12 @@ static func has_discriminator(spec: Dictionary) -> bool:
 ## cells and no hit points.
 static func is_pickup(spec: Dictionary) -> bool:
 	return spec.get("pickup") is Dictionary
+
+
+## Whether the piece is a wreck token (`wreck:`): like a pickup, a body to see and to target
+## with no cells and no hit points (gdd/systems/combat/scavenging.md).
+static func is_wreck(spec: Dictionary) -> bool:
+	return spec.get("wreck") is Dictionary
 
 
 ## Whether the doc opts out of the default model, by waiving `has_mesh_visual`.

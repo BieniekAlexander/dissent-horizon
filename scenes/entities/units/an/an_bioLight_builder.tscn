@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=3 uid="uid://b8bcrcywyaj27"]
+[gd_scene load_steps=36 format=3 uid="uid://b8bcrcywyaj27"]
 
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_brve4"]
 [ext_resource type="Script" uid="uid://i5cpflyrc4jkh" path="res://scripts/entities/components/builds.gd" id="1_spec"]
@@ -29,6 +29,8 @@
 [ext_resource type="PackedScene" uid="uid://cx8i022ic1h02" path="res://scenes/components/avoidance_obstacle.tscn" id="21_qe7on"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="22_08m76"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="8_spec"]
+[ext_resource type="Script" uid="uid://b458bow20gdnj" path="res://scripts/entities/components/interactor.gd" id="scavenge_interactor"]
+[ext_resource type="Script" uid="uid://dnydcqi1gpid3" path="res://scripts/entities/components/interaction.gd" id="scavenge_interaction"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_t7gre"]
 height = 100.0
@@ -41,6 +43,12 @@ radius = 0.45
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
 radius = 0.154
 height = 1.05
+
+[sub_resource type="Resource" id="Interaction_scavenge"]
+script = ExtResource("scavenge_interaction")
+type = 3
+duration = 3.0
+metadata/_custom_type_script = "uid://dnydcqi1gpid3"
 
 [node name="Unit" type="CharacterBody3D" unique_id=1344909156 groups=["piece", "unit"]]
 script = ExtResource("1_brve4")
@@ -159,6 +167,22 @@ shape = ExtResource("5_spec")
 disabled = true
 debug_color = Color(0.85, 0.01, 0, 0.42)
 
+[node name="ScavengedBallisticWeapon" type="Node3D" parent="Loadout"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.683, 0.137)
+script = ExtResource("3_spec")
+scavenged = true
+split_time_ticks = 3
+reload_time_ticks = 12
+clip_size = 3
+projectile_scene = ExtResource("4_spec")
+melee_damage = 0.0
+target_mask = 2
+
+[node name="AttackRange" type="CollisionShape3D" parent="Loadout/ScavengedBallisticWeapon" groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("5_spec")
+disabled = true
+
 [node name="AggroRangeAir" parent="." unique_id=1555512449 instance=ExtResource("5_khhew")]
 
 [node name="DetectionRange" type="CollisionShape3D" parent="." unique_id=179514512 groups=["debug_shape_detection_range"]]
@@ -166,6 +190,10 @@ visible = false
 shape = ExtResource("7_spec")
 disabled = true
 debug_color = Color(0.7, 0.2, 0.9, 0.35)
+
+[node name="Interactor" type="Node" parent="."]
+script = ExtResource("scavenge_interactor")
+interactions = Array[ExtResource("scavenge_interaction")]([SubResource("Interaction_scavenge")])
 
 [editable path="Hurtbox"]
 [editable path="Selectable"]

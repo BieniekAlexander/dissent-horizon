@@ -15,6 +15,18 @@ sanctions:
   - blizzard
   - beacon
   - cryogenic_implosion
+slots:
+  dominion_generation: captures neutral or enemy infantry with the Stock Truck and interns them in a Compound
+  secondary_economy: "shipments: the Supply Beacon's Drop flies in units (TODO: energy shipments)"
+  disable: Freeze
+  mobility: Slow, strong transport helicopter
+  garrison_clearing: the Sleeper storms enemy-held garrisons
+  stealth: the Sleeper
+  stealing: Annex
+  power_scaling: Work Detail — sentences served at a Compound shorten the structure-ability cooldowns of the buildings it touches
+  scouting: Scan (a permanent observer) and the Watch Tower (medium detection, at the Compound)
+  constitution: Servants repair structures and mechs
+  infrastructure: the Compound (an internment camp)
 ---
 # Colonials
 
@@ -33,15 +45,82 @@ world-building lore — see [[world-building#Haustoria]]).
 	- Bombardment
 	- Supply Lines
 	- Cryogenics
-- Asymmetric Mechanics
-	- Heal - Servants repair structures and mechs
-	- Mobility - intentionally lacking
-	- Disable - freeze
-	- Positional - [[work_detail|Work Detail]]: a Compound speeds the ability cooldowns of every structure it touches, by 8% per interned Servant
+- Asymmetric Mechanics — see §Asymmetric mechanics below, one per faction slot
 - Unique Mechanics
 	- Artillery spotting system
 	- Cryogenics as slowing and strengthening
 	- Unit and energy shipments
+# Asymmetric mechanics
+
+The Colonial version of each faction slot ([matchups](../../design-framework/matchups.md)
+§Faction slots); the one-line form is `slots:` above. Drafted 2026-10-17 from the piece docs and
+system notes — TODO: review for correctness.
+
+### Dominion generation — prisoners
+The Stock Truck captures light BIO infantry by running it down — neutral Terrestrials from
+Shelters, or enemy soldiers — carries them in its cage, and deposits them at a
+[[cl_infrastructure|Compound]]. Each captive serves a 30 s sentence there, paying dominion as it
+serves (150 in all), one captive at a time, and is consumed at the end. A Servant can be interned
+too, as a deliberately inefficient fallback (200 energy for 150 dominion). Destroying a Compound
+frees its captives to the side they were taken from.
+→ [colonial-dominion](../../systems/combat/colonial-dominion.md)
+
+### Secondary economy — shipments
+The Supply Beacon (`cl_support2`) is a long-term investment that casts [[drop|Drop]]: units flown
+in to a point of the player's choosing, up to a pair of Matildas at the top level. It turns energy
+into presence without production time or travel. TODO: the energy half of "unit and energy
+shipments" is not designed.
+
+### Disable — Freeze
+A frozen piece is stunned and wrapped in 150 hp of ice that resists as STRONG armour, for 10 s or
+until the ice breaks; STRONG pieces cannot be frozen. Applied by the [[freeze|Freeze]] ordnance
+(any unit or structure), the Avalanche's frost field (units only, friend or foe, after 2 s of
+exposure), and [[blizzard|Blizzard]] (a field after a 10 s warning). (The Cryogenic Implosion superweapon
+shares the cryo theme but deals damage rather than freezing.) It is two-sided: it locks an enemy down for the Bombard, or shields a friendly unit.
+→ [shields](../../systems/combat/shields.md)
+
+### Mobility — the Caravel
+A slow, strong transport helicopter (`cl_aircraftStrong_transport`): STRONG armour, room for 8
+occupancy of grounded units, unlocked at the Operations Center. It moves an army rather than
+outrunning one, so Colonial ground forces stay slow and the faction relocates in bulk, at the
+risk of losing a full load in one shot. TODO: its doc gives it the FAST speed class, which
+contradicts "slow".
+
+### Garrison clearing — the Sleeper and the shell
+The Sleeper storms enemy-held garrisons (`flushes: true`). Bombard shells can clear a garrison
+too.
+
+### Stealth — the Sleeper
+A stealthed light infantry unit. After Cell Activation it plants beacons and walks away, so the
+guns can be pointed at ground nobody is visibly watching.
+
+### Stealing — the Annex
+The Annex (`cl_support1`) is where Colonial stealing lives: annexing what is not theirs.
+TODO: the Annex has no mechanic yet. A best guess at the shape — the Annex lets the Colonials
+take over enemy or neutral structures, turning ground they have pushed into their own. (The
+Stock Truck's capture of infantry is dominion generation, above, not stealing.)
+
+### Power scaling — Work Detail
+Every sentence a Compound completes cuts 8% of the full cooldown of every ability pool on each
+structure it touches, so a Compound worked hard by a short truck route makes the Colonial
+structure abilities come round faster as the match goes on — the Supply Beacon's Drop, the
+Bombard's charges, the Operations Center's casts. → [[work_detail|Work Detail]]
+
+### Scouting — eyes for the guns
+[[scan|Scan]] leaves a permanent observer (24-unit vision; level 2 also detects stealth within
+16). The Watch Tower carries medium detection and is unlocked by the Compound. Spotting is scouting
+with a payoff: a Recruit holding a beacon, a Sleeper's planted beacon, Beacon Drop and the
+Reverence's spotted area all make ground bombardable.
+
+### Constitution — durable and repaired
+Servants repair structures and mechs. Field Conditioning gives every BIO unit 25% more hit points
+and Reinforced Hulls the Sloop and Matilda the same, and a friendly Freeze doubles as a shield.
+
+### Infrastructure — the Compound
+The Compound provides the infrastructure (100) and is also the prison of the dominion loop and the
+home of Work Detail, so one building carries economy, dominion and power scaling at once — and is
+the target that hurts the most.
+
 # Specifics
 
 ## Tech Tree

@@ -60,6 +60,14 @@ weapons:
     clip_size: 1
     reach: {ground: ground_range_long, air: air_range_long}
     hits: [ground, air]
+  - name: ScavengedWeapon
+    emits: warlord_rocket
+    split_time: 0.75
+    reload_time: 0.75
+    clip_size: 1
+    scavenged: true
+    reach: {ground: ground_range_long, air: air_range_long}
+    hits: [ground, air]
 abilities:
   - max_charges: 1
     cooldown: 1

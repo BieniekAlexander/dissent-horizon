@@ -35,6 +35,14 @@ weapons:
   clip_size: 3
   reach: ground_range_medium
   hits: [ground]
+- name: ScavengedBallisticWeapon
+  emits: irregular_bullet
+  split_time: 0.1
+  reload_time: 0.4
+  clip_size: 3
+  scavenged: true
+  reach: ground_range_medium
+  hits: [ground]
 builds: [nt_extractor, an_commandCenter, an_airField, an_infrastructure, an_barracks, an_warFactory, an_support1, an_support2, an_support3, an_tech1, an_tech2]
 ui: {grid: [1, 1], factions: [anarchists]}
 ---

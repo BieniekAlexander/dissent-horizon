@@ -10,6 +10,18 @@ sanctions:
   - scavenge
   - global_emp
   - mortar
+slots:
+  dominion_generation: Retinue — a Warlord banks dominion from the infantry standing with it
+  secondary_economy: the Scavenge sanction — enemy kills pay back a share of their energy cost
+  disable: EMP — a MECH-only stun (Shock Trooper, Condor, Global EMP)
+  mobility: cheap, mobile helicopters
+  garrison_clearing: TODO
+  stealth: "cheap stealth: Informant, planted charges"
+  stealing: the Hijacker takes over enemy or neutral MECH units, expended doing it
+  power_scaling: scavenging — infantry strip wrecks for a better weapon; the Warlord attack-speed aura (upgrade)
+  scouting: TODO — no medium-tier detection source yet
+  constitution: "field hospitals (TODO: moving to a Collective Bio Heal upgrade)"
+  infrastructure: builds or occupies existing buildings (the Safehouse)
 ---
 # Anarchists
 
@@ -34,6 +46,7 @@ world-building lore — see [[world-building#Baladians]]).
 	- Disable - EMP
 	- Positioning - blending in with existing buildings
 - Unique Mechanics
+	- Scavenging: armed infantry strip vehicle wrecks for a better weapon ([[scavenging]])
 	- EMPs, Explosives, and Kamikaze
 	- Zero Hour Cash Bounty
 	- warlord unit AOE bonus

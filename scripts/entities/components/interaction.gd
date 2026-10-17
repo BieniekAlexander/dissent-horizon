@@ -33,6 +33,11 @@ enum Type {
 	## infrastructure, grid). Non-friendly rather than enemy-only — a derelict
 	## neutral vehicle is a legitimate prize.
 	HIJACK = 2,
+	## Strip a WRECK for parts: on completion the wreck is consumed and the actor's Loadout
+	## switches to its scavenged weapons, for good (see Interact._scavenge). Applicable to a
+	## wreck not yet taken — anyone's — when the actor carries a scavenged weapon it has not
+	## yet switched to. Rules: gdd/systems/combat/scavenging.md.
+	SCAVENGE = 3,
 }
 
 ## How an interaction's duration is derived (see required_ticks):
@@ -76,7 +81,7 @@ enum DurationType { CONSTANT = 0, BY_HP = 1 }
 ## (recently damaged): the actor moves into range but waits until the stagger wears off.
 ## Types not listed (DEPOSIT) proceed regardless. Consulted by
 ## Interact.blocked_by_stagger via the resolved interaction.
-const _STAGGER_BLOCKED_TYPES: Array[Type] = [Type.HIJACK]
+const _STAGGER_BLOCKED_TYPES: Array[Type] = [Type.HIJACK, Type.SCAVENGE]
 
 
 ## Whether this interaction's completion is blocked while the actor is staggered.
@@ -122,6 +127,7 @@ static func _build_evaluators() -> Dictionary:
 	return {
 		Type.DEPOSIT: _deposit_precondition,
 		Type.HIJACK: _hijack_precondition,
+		Type.SCAVENGE: _scavenge_precondition,
 	}
 
 
@@ -164,6 +170,25 @@ static func _hijack_precondition(
 			and PlantedCharge.of(a_message.target) == null
 			and a_message.target.defense != null
 			and a_message.target.defense.frame_type == Defense.FrameType.MECH
+		)
+		else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
+	)
+
+
+## Scavenge a wreck that is still there, whoever's vehicle it was, when the actor has a
+## scavenged weapon to switch to. A unit already upgraded is refused, so it never consumes a
+## wreck for nothing.
+static func _scavenge_precondition(
+	a_actor: Actor, a_message: CommandMessage
+) -> MoveCommand.PreconditionFailureCause:
+	var wreck: Wreck = Wreck.of(a_message.target)
+	return (
+		MoveCommand.PreconditionFailureCause.NONE
+		if (
+			wreck != null
+			and wreck.is_available()
+			and a_actor.weapon_inventory != null
+			and a_actor.weapon_inventory.can_scavenge()
 		)
 		else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	)

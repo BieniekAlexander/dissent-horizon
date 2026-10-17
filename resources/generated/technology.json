@@ -1064,6 +1064,15 @@
 		},
 		"requires": []
 	},
+	"nt_wreck": {
+		"build_time_ticks": 300,
+		"cost": {
+			"dominion": 0,
+			"energy": 100,
+			"infrastructure": 0
+		},
+		"requires": []
+	},
 	"rapid_rearmament": {
 		"build_time_ticks": 900,
 		"cost": {

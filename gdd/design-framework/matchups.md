@@ -39,16 +39,38 @@ open question on what faction identity does to the calibration norms.
 
 ## Faction slots
 
-From the faction overviews. Blank means not yet designed.
+**A slot is a mechanic every faction has its own version of** — the Slot tier of the
+[README](README.md) §Tiers. This table is the canonical list; each faction doc says what its
+version is under `slots:` in its front matter, keyed by the ids below. A value of `TODO` means
+not yet designed, and `ABSENT — …` a deliberate hole (with its matchup consequences, M1–M4).
 
-| | Colonial | Anarchist | Libertarian | Technocratic | Marxist | Theocratic |
-|---|---|---|---|---|---|---|
-| Minion | vulnerable vehicle | combat infantry | slow aircraft | vulnerable infantry | combat vehicle | vulnerable vehicle |
-| Dominion | intern captured infantry | Retinue (colocated infantry) | Opticon (sparse placement) | reactors with a byproduct | damage structures | capture Shelters |
-| Heal | Servants repair | field hospitals | | technicians repair | **absent** | |
-| Mobility | **intentionally lacking** | cheap helicopters | aircraft at low tech | portals | speed modifiers | |
-| Disable | Freeze | EMP | rocket defenses | | | |
-| Positional | Work Detail | blend into buildings | Relays heal nearby | portals | frenzy | |
+| Id | Slot | What the faction's version answers |
+|---|---|---|
+| `dominion_generation` | Dominion generation | how it earns dominion |
+| `secondary_economy` | Secondary economy | how it earns energy beyond extraction |
+| `disable` | Disable | how it shuts enemy pieces down |
+| `mobility` | Mobility | how it moves fast or crosses terrain |
+| `garrison_clearing` | Garrison clearing | how it flushes an enemy out of a building |
+| `stealth` | Stealth | how its pieces go unseen |
+| `stealing` | Stealing | how it takes enemy units, structures, resources or production (coverage parity matters: a BIO-only steal cannot touch the all-MECH Warden) |
+| `power_scaling` | Power scaling | how its power grows over a match through play (Zero Hour: GLA scrap, China horde, USA pilots) |
+| `scouting` | Scouting | how it finds things out — vision and detection; at least one medium detection source at low tech ([static-defence](static-defence.md) invariant 6) |
+| `constitution` | Constitution | how it keeps its pieces alive — healing, repair, regeneration, shields |
+| `infrastructure` | Infrastructure | how it provides infrastructure |
+
+Revised 2026-10-17. Minion, positional and static defence are no longer slots; heal became
+`constitution`, detection became `scouting`, and unit bonus became `power_scaling`.
+
+The per-faction view, drawn in Obsidian from the faction docs' `slots:`:
+
+```dataviewjs
+const ids = ["dominion_generation", "secondary_economy", "disable", "mobility", "garrison_clearing",
+	"stealth", "stealing", "power_scaling", "scouting", "constitution", "infrastructure"];
+const factions = ["colonial", "anarchical", "libertarian", "technocratic", "marxist", "theocratic"]
+	.map((f) => dv.page(`factions/${f}/${f}`)).filter((p) => p);
+dv.table(["", ...factions.map((p) => p.file.name)],
+	ids.map((id) => [id, ...factions.map((p) => (p.slots ?? {})[id] ?? "")]));
+```
 
 ## Known skews
 

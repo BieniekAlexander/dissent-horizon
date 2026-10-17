@@ -33,6 +33,14 @@ weapons:
     clip_size: 1
     reach: {ground: ground_range_medium, air: air_range_long}
     hits: [ground, air]
+  - name: ScavengedBallisticWeapon
+    emits: juggernaut_bullet
+    split_time: 0.2
+    reload_time: 0.2
+    clip_size: 1
+    scavenged: true
+    reach: {ground: ground_range_medium, air: air_range_long}
+    hits: [ground, air]
 ui: {grid: [3, 1], factions: [anarchists]}
 ---
 # Notes

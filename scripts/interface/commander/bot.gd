@@ -1364,11 +1364,8 @@ func type_targets_ground(a_type) -> bool:
 	var loadout := preview.get_node_or_null("Loadout") as Loadout
 	if loadout == null:
 		return false
-	for child: Node in loadout.get_children():
-		if (
-			child is Weapon
-			and (child as Weapon).target_mask & CollisionLayers.Mask.TARGETABLE_GROUND
-		):
+	for weapon: Weapon in loadout.get_weapons():
+		if weapon.target_mask & CollisionLayers.Mask.TARGETABLE_GROUND:
 			return true
 	return false
 

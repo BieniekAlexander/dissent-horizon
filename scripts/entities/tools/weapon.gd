@@ -52,6 +52,13 @@ var _ammo: int = 1  ## current amount of ammo left, before reload timer finishes
 ## Latched once the self-destruct blast has gone off, so no second death path sets off another.
 var _has_self_destructed: bool = false
 
+## A SCAVENGED weapon is the upgraded form of its carrier's armament: it is not live until the
+## carrier scavenges a wreck, and from then on it is the only kind that is — the ordinary
+## weapons beside it stop being live (Loadout.get_weapons). A whole weapon of its own rather
+## than a modifier on the ordinary one, so the two can differ in anything. Doc key
+## `scavenged: true`. Rules: gdd/systems/combat/scavenging.md.
+@export var scavenged: bool = false
+
 ## The reach at or below which this weapon is MELEE: it has to be in CONTACT with what it
 ## is hitting. One terrain cell (Map.CELL_SIZE) — the smallest distance this game measures
 ## anything in, so a weapon that cannot reach across a single cell is not shooting across a

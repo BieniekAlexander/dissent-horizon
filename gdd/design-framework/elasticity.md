@@ -135,7 +135,9 @@ force staggered commands, so attention cost rises faster than linearly.
 
 ## The knobs
 
-Sorted by which term they move.
+Sorted by which term they move. (These tune how much an option rewards execution; the shape of
+the effect itself — what it does, how long, who applies it, who it favours, how broadly — is
+[mechanics-design](mechanics-design.md).)
 
 ### Band knobs — how much is on the table
 

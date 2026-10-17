@@ -30,6 +30,8 @@ extends RefCounted
 ##                             ground: float  radius of its ground reach (0 = none)
 ##                             air: float     radius of its air reach (0 = none)
 ##                             clip_size: int, charged: bool, reload_ticks: int, turret: bool
+##                             scavenged: Dictionary  a second weapon, `Weapon.scavenged`, taking
+##                               these options over the first one's
 ##   builds: Array | true    `Builds.buildable_types` (true: one real tool's type), adding `Builds`
 ##   frame / armour: int     `Defense.frame_type` / `Defense.armour_type` (defaults BIO / LIGHT)
 ##   crush: int              `Movement.crush_class` (needs `speed`)
@@ -360,15 +362,30 @@ static func _add_garrison(a_piece: Actor, a_spec: Dictionary) -> void:
 static func _add_loadout(a_piece: Actor, a_weapon: Dictionary) -> void:
 	var loadout := Loadout.new()
 	loadout.name = "Loadout"
+	loadout.add_child(_make_weapon("Weapon", a_weapon))
+	# A second, SCAVENGED weapon that waits for the carrier to scavenge a wreck. It takes the
+	# first one's options, overridden by whatever the `scavenged:` dictionary names.
+	if a_weapon.has("scavenged"):
+		var upgraded: Weapon = _make_weapon(
+			"ScavengedWeapon", a_weapon.merged(a_weapon["scavenged"] as Dictionary, true)
+		)
+		upgraded.scavenged = true
+		loadout.add_child(upgraded)
+	a_piece.add_child(loadout)
+	# A piece that can shoot will pick a fight on its own, out to about as far as it reaches.
+	_add_aggro(a_piece, "AggroRangeGround", float(a_weapon.get("ground", 0.0)))
+	_add_aggro(a_piece, "AggroRangeAir", float(a_weapon.get("air", 0.0)))
+
+
+static func _make_weapon(a_name: String, a_weapon: Dictionary) -> Weapon:
 	var weapon := Weapon.new()
-	weapon.name = "Weapon"
+	weapon.name = a_name
 	weapon.clip_size = int(a_weapon.get("clip_size", 1))
 	weapon.charged = bool(a_weapon.get("charged", false))
 	weapon.turret = bool(a_weapon.get("turret", false))
 	weapon.reload_time_ticks = int(a_weapon.get("reload_ticks", 10))
 	# Harmless by default: a fake that shoots would kill what a test set up to be shot AT.
 	weapon.melee_damage = float(a_weapon.get("damage", 0.0))
-	loadout.add_child(weapon)
 	var ground: float = float(a_weapon.get("ground", 0.0))
 	var air: float = float(a_weapon.get("air", 0.0))
 	# Melee unless a test asks for a ranged gun: a blank projectile a fake fires is not an Entity,
@@ -391,10 +408,7 @@ static func _add_loadout(a_piece: Actor, a_weapon: Dictionary) -> void:
 	else:
 		# A weapon always looks for its reach shape: a gun that reaches nowhere has an empty one.
 		_add_reach(weapon, "AttackRange", 0.0)
-	a_piece.add_child(loadout)
-	# A piece that can shoot will pick a fight on its own, out to about as far as it reaches.
-	_add_aggro(a_piece, "AggroRangeGround", ground)
-	_add_aggro(a_piece, "AggroRangeAir", air)
+	return weapon
 
 
 ## A scene with nothing in it: enough for a weapon to count as ranged, and to launch into.

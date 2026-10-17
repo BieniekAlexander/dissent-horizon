@@ -180,7 +180,7 @@
 		],
 		"scene": "res://scenes/entities/units/an/an_bioLight_builder.tscn",
 		"tooltip": "Train Irregular — 100 energy, 5s",
-		"verbose": "Train Irregular — 100 energy, 5s\n80 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBuilds: Extractor, Stronghold, Hangar, Safehouse, Redoubt, Chop Shop, Hideout, Distress Signal, EMP Device, Stockpile, Clandestine Lab\nBallisticWeapon: 5 lead, reach 8"
+		"verbose": "Train Irregular — 100 energy, 5s\n80 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBuilds: Extractor, Stronghold, Hangar, Safehouse, Redoubt, Chop Shop, Hideout, Distress Signal, EMP Device, Stockpile, Clandestine Lab\nBallisticWeapon: 5 lead, reach 8\nScavengedBallisticWeapon (once scavenged): 5 lead, reach 8"
 	},
 	"command_tool_an_bioMedium_antiMech": {
 		"context": "TRAIN",
@@ -200,7 +200,7 @@
 		],
 		"scene": "res://scenes/entities/units/an/an_bioMedium_antiMech.tscn",
 		"tooltip": "Train Shock Trooper — 400 energy, 20s",
-		"verbose": "Train Shock Trooper — 400 energy, 20s\n90 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nArcWeapon: 12 electric, reach 8"
+		"verbose": "Train Shock Trooper — 400 energy, 20s\n90 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nArcWeapon: 12 electric, reach 8\nScavengedArcWeapon (once scavenged): 12 electric, reach 8"
 	},
 	"command_tool_an_bioMedium_dominionGen": {
 		"context": "TRAIN",
@@ -220,7 +220,7 @@
 		],
 		"scene": "res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn",
 		"tooltip": "Train Warlord — 250 energy, 8s",
-		"verbose": "Train Warlord — 250 energy, 8s\n160 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nWeapon: 40 explosive, reach 12"
+		"verbose": "Train Warlord — 250 energy, 8s\n160 HP · medium armour · bio frame\ngrounded, speed 1.65 · vision 16\nWeapon: 40 explosive, reach 12\nScavengedWeapon (once scavenged): 40 explosive, reach 12"
 	},
 	"command_tool_an_bioMedium_support": {
 		"context": "TRAIN",
@@ -260,7 +260,7 @@
 		],
 		"scene": "res://scenes/entities/units/an/an_bioStrong_antiLight.tscn",
 		"tooltip": "Train Juggernaut — 1000 energy, 20s",
-		"verbose": "Train Juggernaut — 1000 energy, 20s\nRequires: Stockpile\n90 HP · strong armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 12 lead, reach 8 ground / 12 air"
+		"verbose": "Train Juggernaut — 1000 energy, 20s\nRequires: Stockpile\n90 HP · strong armour · bio frame\ngrounded, speed 1.65 · vision 16\nBallisticWeapon: 12 lead, reach 8 ground / 12 air\nScavengedBallisticWeapon (once scavenged): 12 lead, reach 8 ground / 12 air"
 	},
 	"command_tool_an_commandCenter": {
 		"context": "BUILD",

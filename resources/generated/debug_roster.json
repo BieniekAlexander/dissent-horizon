@@ -989,6 +989,15 @@
 		"tool": ""
 	},
 	{
+		"faction": "neutral",
+		"id": "nt_wreck",
+		"is_fixture": false,
+		"label": "Wreck",
+		"producers": [],
+		"scene": "res://scenes/entities/tokens/nt/nt_wreck.tscn",
+		"tool": ""
+	},
+	{
 		"faction": "technocracy",
 		"id": "tc_bioLight_antiMech",
 		"is_fixture": false,
