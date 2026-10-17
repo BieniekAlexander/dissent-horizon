@@ -26,6 +26,7 @@ goals it serves and which tier it sits in. Piece stats live in the spec docs.
 | [auditing](auditing.md) | how to see where a concept applies, per faction and per match timeline: role tags, not a knowledge graph |
 | [ideas](ideas.md) | brainstormed proposals against the current roster, each named by the decision it creates |
 | [proposals](proposals.md) | undecided designs: command-center win condition, Colonial dominion, parked ideas |
+| [signature-mechanics](signature-mechanics.md) | the two faction-defining systems each faction should have, the tests a signature passes, and the knob matrix (effect, duration, source, valence, breadth) for shaping one |
 
 ---
 
