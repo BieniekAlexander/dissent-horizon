@@ -597,6 +597,12 @@ An emission is an ordered list of phases — motion, end clauses, payload cadenc
 nothing collides in flight unless a phase asks to.
 → **[`gdd/systems/combat/projectiles.md`](gdd/systems/combat/projectiles.md)**
 
+## Scavenging
+
+Destroyed grounded vehicles leave wrecks; infantry with a `scavenged: true` weapon strip one to
+switch to it for good. A weapon waiting on a scavenge is not live (`Loadout.get_weapons`).
+→ **[`gdd/systems/combat/scavenging.md`](gdd/systems/combat/scavenging.md)**
+
 ## Charged ammunition and airfield docking
 
 Charged clips, airfields, pads, runways, attack runs and rearming.

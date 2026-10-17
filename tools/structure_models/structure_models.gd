@@ -91,6 +91,7 @@ static func token_catalog() -> Dictionary:
 		EntityIds.NT_FUEL_CARTRIDGE: {"build": fuel_cartridge, "half": Vector2(0.15, 0.25)},
 		EntityIds.NT_FUEL_CACHE: {"build": fuel_cache, "half": Vector2(0.5, 0.7)},
 		EntityIds.NT_COURIER_POD: {"build": courier_pod, "half": Vector2(0.45, 0.7)},
+		EntityIds.NT_WRECK: {"build": wreck, "half": Vector2(0.45, 0.6)},
 	}
 
 
@@ -793,6 +794,35 @@ static func courier_pod(half: Vector2) -> Dictionary:
 		MeshPrimitives.cylinder(Vector2.ZERO, 0.06, 0.95, 1.05, 6), lean
 	)
 	return {Slot.BODY: shell, Slot.TRIM: scorch + fins, Slot.ACCENT: accent}
+
+
+## Wreck: what a destroyed vehicle leaves — a hull slewed nose-down on a scorched patch, its
+## turret knocked askew, a road wheel thrown clear and the fire still glowing inside.
+static func wreck(half: Vector2) -> Dictionary:
+	var scorch: PackedVector3Array = MeshPrimitives.frustum(
+		Vector2.ZERO, minf(half.x, half.y) - 0.02, minf(half.x, half.y) - 0.12, 0.0, 0.03, ROUND_SIDES
+	)
+	# Slewed about Y and pitched nose-down, so it reads as fallen rather than parked.
+	var slew: Transform3D = Transform3D(
+		Basis(Vector3.UP, 0.4) * Basis(Vector3.RIGHT, 0.12), Vector3(0.0, 0.03, 0.0)
+	)
+	var hull: PackedVector3Array = MeshPrimitives.transformed(
+		MeshPrimitives.box(Vector3(-0.22, 0.0, -0.36), Vector3(0.22, 0.2, 0.32)), slew
+	)
+	var turret: PackedVector3Array = MeshPrimitives.transformed(
+		MeshPrimitives.box(Vector3(-0.1, 0.2, -0.08), Vector3(0.14, 0.31, 0.14)),
+		slew * Transform3D(Basis(Vector3.UP, 0.7) * Basis(Vector3.FORWARD, 0.25), Vector3.ZERO)
+	)
+	var lying_wheel: Transform3D = Transform3D(
+		Basis(Vector3.FORWARD, PI * 0.5), Vector3(-0.32, 0.03, 0.38)
+	)
+	var wheel: PackedVector3Array = MeshPrimitives.transformed(
+		MeshPrimitives.cylinder(Vector2.ZERO, 0.08, -0.04, 0.04, 6), lying_wheel
+	)
+	var embers: PackedVector3Array = MeshPrimitives.transformed(
+		MeshPrimitives.box(Vector3(-0.12, 0.2, -0.3), Vector3(0.08, 0.23, -0.14)), slew
+	)
+	return {Slot.BODY: hull + turret, Slot.TRIM: scorch + wheel, Slot.ACCENT: embers}
 
 
 #endregion

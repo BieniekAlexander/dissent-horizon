@@ -424,7 +424,9 @@ static func debug_roster_json(registry: RefCounted) -> String:
 			continue
 		tracked_scenes[str(spec["scene"])] = true
 		var is_fixture: bool = SpecSchema.is_fixture(spec)
-		var is_placeable_token: bool = SpecSchema.is_pickup(spec) or spec.has("volatile")
+		var is_placeable_token: bool = (
+			SpecSchema.is_pickup(spec) or SpecSchema.is_wreck(spec) or spec.has("volatile")
+		)
 		if (
 			not is_fixture
 			and not is_placeable_token
@@ -906,9 +908,11 @@ static func _weapon_lines(registry: RefCounted, spec: Dictionary) -> Array:
 			lines
 			. append(
 				(
-					"%s: %s%s"
+					"%s%s: %s%s"
 					% [
 						str(w.get("name", "Weapon")),
+						# A scavenged weapon is not carried live until its unit scavenges a wreck.
+						" (once scavenged)" if bool(w.get("scavenged", false)) else "",
 						damage if not damage.is_empty() else "no damage authored",
 						", reach %s" % reach if not reach.is_empty() else "",
 					]

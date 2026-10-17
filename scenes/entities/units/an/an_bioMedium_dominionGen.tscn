@@ -1,4 +1,4 @@
-[gd_scene load_steps=41 format=3 uid="uid://cay5kr6vpi16w"]
+[gd_scene load_steps=44 format=3 uid="uid://cay5kr6vpi16w"]
 
 [ext_resource type="Script" uid="uid://cben1rmf76xst" path="res://scripts/entities/components/abilities.gd" id="1_spec"]
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_tikas"]
@@ -35,6 +35,8 @@
 [ext_resource type="CylinderShape3D" path="res://resources/generated/shapes/air_range_long.tres" id="6_spec"]
 [ext_resource type="PackedScene" uid="uid://d4hii8hrkdfqe" path="res://scenes/entities/projectiles/cl/sam_missile.tscn" id="7_spec"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="8_spec"]
+[ext_resource type="Script" uid="uid://b458bow20gdnj" path="res://scripts/entities/components/interactor.gd" id="scavenge_interactor"]
+[ext_resource type="Script" uid="uid://dnydcqi1gpid3" path="res://scripts/entities/components/interaction.gd" id="scavenge_interaction"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_1vyis"]
 radius = 0.3
@@ -54,6 +56,12 @@ radius = 4.0
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_hurtbox"]
 radius = 0.2
 height = 1.4
+
+[sub_resource type="Resource" id="Interaction_scavenge"]
+script = ExtResource("scavenge_interaction")
+type = 3
+duration = 3.0
+metadata/_custom_type_script = "uid://dnydcqi1gpid3"
 
 [node name="Unit2" type="CharacterBody3D" unique_id=416004826 groups=["piece", "unit"]]
 script = ExtResource("1_tikas")
@@ -140,6 +148,26 @@ shape = ExtResource("6_spec")
 disabled = true
 debug_color = Color(0.85, 0.01, 0, 0.42)
 
+[node name="ScavengedWeapon" type="Node3D" parent="Loadout"]
+script = ExtResource("4_qd6od")
+scavenged = true
+split_time_ticks = 23
+reload_time_ticks = 23
+clip_size = 1
+projectile_scene = ExtResource("5_qd6od")
+melee_damage = 0.0
+target_mask = 6
+
+[node name="AttackRangeGround" type="CollisionShape3D" parent="Loadout/ScavengedWeapon" groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("2_spec")
+disabled = true
+
+[node name="AttackRangeAir" type="CollisionShape3D" parent="Loadout/ScavengedWeapon" groups=["debug_shape_attack_range"]]
+visible = false
+shape = ExtResource("6_spec")
+disabled = true
+
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=1796090107]
 
 [node name="HPBar" parent="." unique_id=2065016310 instance=ExtResource("20_llkja")]
@@ -200,6 +228,10 @@ groups = Array[Dictionary]([{ "initial_charges": 1, "max_charges": 1, "cooldown_
 shape = ExtResource("5_spec")
 disabled = true
 debug_color = Color(0.7, 0.2, 0.9, 0.35)
+
+[node name="Interactor" type="Node" parent="."]
+script = ExtResource("scavenge_interactor")
+interactions = Array[ExtResource("scavenge_interaction")]([SubResource("Interaction_scavenge")])
 
 [editable path="Selectable"]
 [editable path="HPBar"]

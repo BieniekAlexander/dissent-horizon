@@ -154,7 +154,11 @@ static func _weapons(a_actor: Actor) -> String:
 	if a_actor.weapon_inventory == null:
 		return ""
 	var out: PackedStringArray = []
-	for weapon: Weapon in a_actor.weapon_inventory.get_weapons():
+	# Every weapon, live or not, so a waiting scavenged weapon's state is still compared; the
+	# marker is added only once scavenged, leaving every other piece's token as it was.
+	if a_actor.weapon_inventory.is_scavenged:
+		out.append("scavenged")
+	for weapon: Weapon in a_actor.weapon_inventory.all_weapons():
 		out.append(weapon.digest_token())
 	return ",".join(out)
 

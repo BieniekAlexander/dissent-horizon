@@ -276,11 +276,8 @@ static var _emission_radii: Dictionary = {}
 static func first_weapon(a_entity: Entity) -> Weapon:
 	if a_entity == null or a_entity.weapon_inventory == null:
 		return null
-	for child: Node in a_entity.weapon_inventory.get_children():
-		var weapon := child as Weapon
-		if weapon != null:
-			return weapon
-	return null
+	var weapons: Array = a_entity.weapon_inventory.get_weapons()
+	return weapons.front() as Weapon if not weapons.is_empty() else null
 
 
 #endregion
@@ -322,6 +319,10 @@ static func _attack_node(a_entity: Entity, a_air: bool) -> CollisionShape3D:
 	for node: CollisionShape3D in shape_nodes_in_group(a_entity, GROUPS[Kind.ATTACK]):
 		var weapon := node.get_parent() as Weapon
 		if weapon == null or node.shape == null:
+			continue
+		# A weapon still waiting on a scavenge (or retired by one) is not the piece's reach.
+		var loadout := weapon.get_parent() as Loadout
+		if loadout != null and not loadout.get_weapons().has(weapon):
 			continue
 		match String(node.name):
 			"AttackRangeAir":

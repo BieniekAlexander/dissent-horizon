@@ -160,7 +160,7 @@ const EMISSION_COMPONENTS: Array[Dictionary] = [
 static func tier(spec: Dictionary) -> Tier:
 	if SpecSchema.is_commandable(spec) or spec.has("defense") or spec.has("hp"):
 		return Tier.COMMANDABLE
-	if SpecSchema.is_fixture(spec) or SpecSchema.is_pickup(spec):
+	if SpecSchema.is_fixture(spec) or SpecSchema.is_pickup(spec) or SpecSchema.is_wreck(spec):
 		return Tier.FEATURE
 	return Tier.BODILESS
 
