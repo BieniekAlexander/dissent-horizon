@@ -19,10 +19,10 @@ slots:
   dominion_generation: captures neutral or enemy infantry with the Stock Truck and interns them in a Compound
   secondary_economy: "shipments: the Supply Beacon's Drop flies in units (TODO: energy shipments)"
   disable: Freeze
-  mobility: ABSENT — intentionally lacking
+  mobility: Slow, strong transport helicopter
   garrison_clearing: the Sleeper storms enemy-held garrisons
   stealth: the Sleeper
-  stealing: the Stock Truck captures light BIO infantry as prisoners
+  stealing: Annex
   power_scaling: Work Detail — sentences served at a Compound shorten the structure-ability cooldowns of the buildings it touches
   scouting: Scan (a permanent observer) and the Watch Tower (medium detection, at the Compound)
   constitution: Servants repair structures and mechs
