@@ -86,6 +86,10 @@ TODO: a weapon authored for the Sharpshooter later needs its scavenged twin (and
   (`tools/structure_models` → `assets/meshes/entities/tokens/nt_wreck.res`).
 - **A scavenged weapon** is a `weapons:` entry with `scavenged: true`. It may name the ordinary
   weapon's emission by id (`emits: irregular_bullet`) rather than repeat it inline.
+- **Its position is scene-authored, like every weapon's**, and the importer creates the new node
+  without one. Give it its twin's transform by hand, or its shots leave from the carrier's feet
+  (the launch-from-origin warning says so): the Warlord's scavenged rockets hit the ground until
+  this was fixed on 2026-10-17.
 - **The interaction is scene-authored**, like every Interaction: an `Interactor` node on the
   unit's scene holding a `SCAVENGE` Interaction with `duration = 3.0`. It carries no
   `interact_shape`: a wreck is not on a targetable layer, so a shape query cannot find it, and

@@ -171,6 +171,7 @@ shape = ExtResource("5_spec")
 disabled = true
 
 [node name="ScavengedBallisticWeapon" type="Node3D" parent="Loadout"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.585, 0.126)
 script = ExtResource("2_spec")
 scavenged = true
 split_time_ticks = 6
