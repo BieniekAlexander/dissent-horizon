@@ -292,7 +292,7 @@ PLANNED, approved by Alex 2026-10-15 to be revisited rather than built next:
 
 - **Tick cost for rollback.** Rollback wants a tick roughly ten times cheaper
   ([netplay](netplay.md) §Rollback, later). Threads alone will not get there on a machine with two
-  performance cores; sleepy updates are the other lever. A slower simulation rate (T-062) is
-  REJECTED for now.
+  performance cores; sleepy updates are the other lever. A slower simulation rate is
+  REJECTED for now ([combat/scan-and-vision-cost](../combat/scan-and-vision-cost.md) §Beyond both).
 - **The engine phase** — the physics step and RVO avoidance — stays serial; multi-threaded
   avoidance plays a different match per process ([terrain-and-navigation/navigation-and-pathing](../terrain-and-navigation/navigation-and-pathing.md)).

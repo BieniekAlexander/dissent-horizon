@@ -19,10 +19,11 @@ const ANARCHICAL: String = "res://scenes/factions/anarchical.tscn"
 ## is why the scenarios below still read that way. Its old scene is gone with the old id.
 const KAMIKAZE: String = "res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn"
 const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"
-## The scout-coverage harness's lone unit, meant to scout (gdd/tasks.md T-108): the cheapest
-## and fastest piece that builds nothing, the Libertarian Gatling Tank. Cheap is what matters —
-## BotScout prices a tour as the map's staleness against the unit's cost, so a dearer unit is
-## kept home before the map is covered; its gun does nothing on a map with no enemy.
+## The scout-coverage harness's lone unit, meant to scout (gdd/systems/ai/bot-architecture.md
+## §Scouting): the cheapest and fastest piece that builds nothing, the Libertarian Gatling
+## Tank. Cheap is what matters — BotScout prices a tour as the map's staleness against the
+## unit's cost, so a dearer unit is kept home before the map is covered; its gun does nothing
+## on a map with no enemy.
 const SCOUT: String = "res://scenes/entities/units/lb/lb_mechLight_antiLight1.tscn"
 const LIBERTARIAN: String = "res://scenes/factions/libertarian.tscn"
 
