@@ -72,8 +72,46 @@ static func measure(entity: Node3D) -> Dictionary:
 		"mesh_count": count,
 		"size": bounds.size if found else Vector3.ZERO,
 		"top": (bounds.position.y + bounds.size.y) if found else 0.0,
+		"bottom": bounds.position.y if found else 0.0,
+		"edge_top": _edge_top(entity, bounds) if found else 0.0,
 		"is_placeholder": found and not own_art,
 	}
+
+
+## The fraction of the model's smaller horizontal half-extent, in from each side, that counts as
+## its OUTER EDGE: a wall, an eave, a corner post. What a structure's selection box rises to.
+const EDGE_BAND_FRACTION: float = 0.2
+
+
+## The highest point of the model's OUTER EDGE: the highest vertex within EDGE_BAND_FRACTION of
+## the horizontal bounds `a_bounds`. A tower or a peak in the middle of a building stands above
+## it, which is the point — a box that tall would stand in front of whatever is behind the
+## building, while the camera's oblique ray still meets a box as tall as the walls wherever it
+## meets the model (gdd/systems/ux/ui/generated-visual-defaults.md §The numbers). Falls back to
+## the full top when no vertex data can be read (a mesh with no surfaces).
+static func _edge_top(entity: Node3D, a_bounds: AABB) -> float:
+	var band: float = minf(a_bounds.size.x, a_bounds.size.z) * 0.5 * EDGE_BAND_FRACTION
+	var low := Vector2(a_bounds.position.x, a_bounds.position.z)
+	var high := Vector2(a_bounds.end.x, a_bounds.end.z)
+	var best: float = -INF
+	for record: Dictionary in _visible_meshes(entity):
+		var mesh: Mesh = (record["node"] as MeshInstance3D).mesh
+		var xform: Transform3D = record["xform"]
+		for surface: int in mesh.get_surface_count():
+			var arrays: Array = mesh.surface_get_arrays(surface)
+			if arrays.is_empty() or arrays[Mesh.ARRAY_VERTEX] == null:
+				continue
+			for vertex: Vector3 in arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array:
+				var at: Vector3 = xform * vertex
+				var on_edge: bool = (
+					at.x <= low.x + band
+					or at.x >= high.x - band
+					or at.z <= low.y + band
+					or at.z >= high.y - band
+				)
+				if on_edge:
+					best = maxf(best, at.y)
+	return best if best > -INF else a_bounds.end.y
 
 
 ## The larger horizontal extent of the model — what "approximately how wide is this" means
@@ -214,6 +252,24 @@ static func needs_placeholder_mesh(entity: Node3D, measurement: Dictionary) -> b
 static func selection_is_owned(entity: Node3D) -> bool:
 	var node: Node = entity.get_node_or_null(SELECTION_SHAPE_PATH)
 	return node != null and node.has_meta(STAMP_SELECTION)
+
+
+## A selection shape the importer baked under a rule it has since RETIRED
+## (VisualDefaults.RETIRED_SELECTION_STAMPS): its stamp names the old rule. Ours, and made by a
+## rule nobody decided to keep, so it is re-derived — the one case an owned slot is rebaked. A
+## shape baked under the current rule and edited since keeps the current stamp and is left alone.
+static func selection_is_stale(entity: Node3D) -> bool:
+	var node: Node = entity.get_node_or_null(SELECTION_SHAPE_PATH)
+	return (
+		node != null
+		and node.has_meta(STAMP_SELECTION)
+		and VisualDefaults.RETIRED_SELECTION_STAMPS.has(String(node.get_meta(STAMP_SELECTION)))
+	)
+
+
+## The shape class a selection stamp names: the stamp is "<class>" or "<class>@<rule>".
+static func stamped_selection_class(a_stamp: String) -> String:
+	return a_stamp.get_slice("@", 0)
 
 
 static func hp_bar_is_owned(entity: Node3D) -> bool:

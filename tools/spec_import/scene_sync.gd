@@ -2660,12 +2660,20 @@ func _bake_placeholder_mesh(
 func _bake_selection_shape(
 	a_ctx: Ctx, a_visual_class: int, a_measurement: Dictionary, a_footprint: Vector2i
 ) -> void:
-	if not _wants_bake(
-		VisualMeasure.selection_is_cleared(a_ctx.inst), VisualMeasure.selection_is_owned(a_ctx.inst)
+	if (
+		not _wants_bake(
+			VisualMeasure.selection_is_cleared(a_ctx.inst),
+			VisualMeasure.selection_is_owned(a_ctx.inst)
+		)
+		and not VisualMeasure.selection_is_stale(a_ctx.inst)
 	):
 		return
 	var descriptor: Dictionary = VisualDefaults.selection_shape(
-		a_visual_class, a_measurement["size"], a_footprint
+		a_visual_class,
+		a_measurement["size"],
+		a_footprint,
+		float(a_measurement.get("bottom", 0.0)),
+		float(a_measurement.get("edge_top", -1.0))
 	)
 	var section: Dictionary = _section_for(a_ctx, VisualMeasure.SELECTION_SHAPE_PATH)
 	if section.is_empty():
@@ -2681,10 +2689,18 @@ func _bake_selection_shape(
 		String(descriptor["type"]), "selection", _raw_props(descriptor["props"])
 	)
 	a_ctx.doc.set_prop(section, "shape", 'SubResource("%s")' % shape_id)
+	if descriptor.has("center_y"):
+		a_ctx.doc.set_prop(
+			section,
+			"transform",
+			TscnDoc.fmt_transform(
+				Transform3D(Basis.IDENTITY, Vector3(0.0, float(descriptor["center_y"]), 0.0))
+			)
+		)
 	a_ctx.doc.set_prop(
 		section,
 		"metadata/%s" % VisualMeasure.STAMP_SELECTION,
-		TscnDoc.fmt_string(String(descriptor["type"]))
+		TscnDoc.fmt_string(String(descriptor["stamp"]))
 	)
 	a_ctx.dirty = true
 

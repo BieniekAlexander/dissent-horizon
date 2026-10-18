@@ -174,6 +174,43 @@ func test_structure_selection_uses_the_footprint_not_the_mesh() -> void:
 	assert_almost_eq(size.y, overhanging.y, 0.001)
 
 
+## A structure's box stands on the model's bottom and rises to its OUTER EDGE, not its peak: a
+## box as tall as a central tower would stand in front of whatever is behind the building.
+func test_structure_selection_rises_to_the_outer_edge_not_the_peak() -> void:
+	var towered: Vector3 = Vector3(4.0, 3.9, 4.0)
+	var shape: Dictionary = VisualDefaults.selection_shape(
+		VisualDefaults.VisualClass.STRUCTURE, towered, Vector2i(4, 4), 0.0, 1.6
+	)
+	var size: Vector3 = shape["props"]["size"]
+	assert_almost_eq(size.y, 1.6, 0.001, "as tall as the walls")
+	assert_almost_eq(float(shape["center_y"]), 0.8, 0.001, "standing on the ground")
+	assert_eq(shape["stamp"], VisualDefaults.STRUCTURE_SELECTION_STAMP)
+
+
+func test_a_structure_box_without_an_edge_reading_spans_the_model() -> void:
+	var shape: Dictionary = VisualDefaults.selection_shape(
+		VisualDefaults.VisualClass.STRUCTURE, Vector3(2.0, 2.5, 2.0), Vector2i(2, 2), 0.5
+	)
+	assert_almost_eq((shape["props"]["size"] as Vector3).y, 2.5, 0.001)
+	assert_almost_eq(float(shape["center_y"]), 1.75, 0.001, "from its bottom up")
+
+
+func test_a_low_edge_still_gets_a_clickable_box() -> void:
+	var shape: Dictionary = VisualDefaults.selection_shape(
+		VisualDefaults.VisualClass.STRUCTURE, Vector3(2.0, 2.0, 2.0), Vector2i(2, 2), 0.0, 0.05
+	)
+	assert_almost_eq((shape["props"]["size"] as Vector3).y, VisualDefaults.MIN_CLICK_HEIGHT, 0.001)
+
+
+func test_the_old_structure_rule_is_retired_and_the_new_one_is_not() -> void:
+	assert_has(VisualDefaults.RETIRED_SELECTION_STAMPS, "BoxShape3D")
+	assert_does_not_have(
+		VisualDefaults.RETIRED_SELECTION_STAMPS, VisualDefaults.STRUCTURE_SELECTION_STAMP
+	)
+	var retired: Array = VisualDefaults.RETIRED_SELECTION_STAMPS
+	assert_does_not_have(retired, "CylinderShape3D", "units keep theirs")
+
+
 func test_selection_shapes_are_always_trivial_primitives() -> void:
 	const TRIVIAL: Array = ["CylinderShape3D", "BoxShape3D", "SphereShape3D", "CapsuleShape3D"]
 	for visual_class: int in VisualDefaults.VisualClass.values():

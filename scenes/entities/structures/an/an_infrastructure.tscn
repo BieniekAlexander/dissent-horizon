@@ -21,13 +21,13 @@
 [ext_resource type="PackedScene" path="res://scenes/components/target_indicator.tscn" id="23_012p1"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="2_spec"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_kbk0k"]
-size = Vector3(2, 2, 2)
-
 [sub_resource type="BoxMesh" id="BoxMesh_yep1u"]
 size = Vector3(2, 2, 2)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+size = Vector3(4.0, 2.0, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
 size = Vector3(4.0, 2.0, 4.0)
 
 [node name="AnInfrastructure" type="CharacterBody3D" unique_id=1535050538 groups=["piece", "fixture", "structure"]]
@@ -80,9 +80,9 @@ range_bonus = 4.0
 [node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("13_j1uxf")]
 
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-shape = SubResource("BoxShape3D_kbk0k")
-metadata/_visual_default_selection = "BoxShape3D"
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
+shape = SubResource("BoxShape3D_selection")
+metadata/_visual_default_selection = "BoxShape3D@edge"
 
 [node name="Orders" type="Node" parent="."]
 script = ExtResource("2_spec")

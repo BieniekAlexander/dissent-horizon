@@ -27,11 +27,11 @@
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="24_spec"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/cl_defense_antiLight.res" id="model_cl_defense_antiLight"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
-size = Vector3(1.0, 2.0, 1.0)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
 size = Vector3(1.0, 2.03, 1.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
+size = Vector3(1.0, 1.85, 1.0)
 
 [node name="ClDefenseAntiLight" type="CharacterBody3D" groups=["piece", "fixture", "structure"]]
 collision_layer = 0
@@ -78,7 +78,8 @@ script = ExtResource("7_spec")
 
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("BoxShape3D_selection")
-metadata/_visual_default_selection = "BoxShape3D"
+metadata/_visual_default_selection = "BoxShape3D@edge"
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.925, 0.0)
 
 [node name="Orders" type="Node" parent="."]
 script = ExtResource("24_spec")
