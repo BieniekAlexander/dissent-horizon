@@ -56,8 +56,8 @@ const AMMO_FILLED: Texture2D = preload("res://assets/interface/ammo_filled.svg")
 const HOLD_FIRE_ICON: Texture2D = preload("res://assets/interface/status_hold_fire.svg")
 
 ## Over a structure its commander cannot power, whose weapons or abilities have gone dark
-## (Actor.is_unpowered). See _shows_unpowered.
-const UNPOWERED_ICON: Texture2D = preload("res://assets/interface/status_unpowered.svg")
+## (Actor.is_defective). See _shows_defective.
+const DEFECTIVE_ICON: Texture2D = preload("res://assets/interface/status_defective.svg")
 
 ## Over a BLUEPRINT whose purchase is still waiting for energy: the site is ordered, and nothing
 ## will start there until it is paid for. The one badge a blueprint carries, and only for its
@@ -268,8 +268,8 @@ func _update_status_icons(a_effects: Array[StatusEffect], a_hidden: bool) -> voi
 			icons.append([effect.indicator_icon, effect.indicator_blink_hz])
 	if _shows_hold_fire():
 		icons.append([HOLD_FIRE_ICON, 0.0])
-	if _shows_unpowered():
-		icons.append([UNPOWERED_ICON, 0.0])
+	if _shows_defective():
+		icons.append([DEFECTIVE_ICON, 0.0])
 	_place_status_icons(icons, a_hidden)
 
 
@@ -325,12 +325,12 @@ func _shows_hold_fire() -> bool:
 	)
 
 
-## The unpowered badge shows on a dark structure that has something to lose by it — weapons,
+## The defective badge shows on a dark structure that has something to lose by it — weapons,
 ## or an ability pool — and only to the LOCAL player's side: which turrets are dark is the
 ## enemy's to find out. Production is not switched off by the shortfall (it only slows), so a
 ## building that merely trains carries no badge.
-func _shows_unpowered() -> bool:
-	if not _host.is_unpowered():
+func _shows_defective() -> bool:
+	if not _host.is_defective():
 		return false
 	var viewer: Commander = _host.commander
 	if viewer == null or not viewer.shares_side_with(RTSController.PLAYER_COMMANDER_ID):

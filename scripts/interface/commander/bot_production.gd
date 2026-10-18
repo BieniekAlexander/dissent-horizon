@@ -147,7 +147,7 @@ func _propose_savings(a_wanted: Array, a_demand: Dictionary) -> void:
 
 
 ## THE INFRASTRUCTURE RUNG, for a faction whose provider is a TRAINED unit (the Technocratic
-## Surveyor; Bot.infrastructure_source_is_unit). While the bot is strained and none is already
+## Surveyor; Bot.infrastructure_source_is_unit). While the bot is in defection and none is already
 ## on its way, the first idle producer that can make one trains it ahead of anything else.
 ## Returns that producer, or null when nothing was ordered.
 ##
@@ -169,7 +169,7 @@ func _train_infrastructure_unit(a_idle_producers: Array) -> Actor:
 	return null
 
 
-## Whether an infrastructure unit of `a_type` is already queued or training: strain does not
+## Whether an infrastructure unit of `a_type` is already queued or training: defection does not
 ## lift until it is out and standing, so without this every think orders another.
 func _infrastructure_unit_on_its_way(a_type: StringName) -> bool:
 	for t: PurchaseTransaction in _bot.production_queue.pending():

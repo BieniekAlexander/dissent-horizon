@@ -143,7 +143,7 @@ time, so that ground not seen for a while counts as novel again.
 | Producing (`Production` has an active job) | full |
 | Idle, with energy that is not reserved (see Precision) | zero |
 | Idle because the commander is broke | **not eligible**. Being broke is Precision's concern, and should not be charged twice. |
-| Dark (`Actor.is_unpowered()`) | zero, and it also counts against Precision |
+| Dark (`Actor.is_defective()`) | zero, and it also counts against Precision |
 
 A standing order keeps a producer credited indefinitely. That is intended. The design already
 wants idle income to always have somewhere to go.
@@ -180,7 +180,7 @@ A raw figure would punish a big late-game economy for carrying the same *habit* 
 
 Also counted against spending discipline:
 
-- **Time spent strained** (`Commander.is_infrastructure_strained()`), weighted by the cost of
+- **Time spent in defection** (`Commander.is_in_defection()`), weighted by the cost of
   the structures that went dark. Buying buildings the grid cannot power is bought value thrown away.
 - TODO — `FUNDED` entries left waiting on a busy producer: the money is spent but produces
   nothing. Leaning: count it lightly, since a lack of production capacity is mostly Diligence's.

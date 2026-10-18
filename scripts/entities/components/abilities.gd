@@ -303,15 +303,15 @@ func declared_abilities() -> Array[StringName]:
 ## Whether this piece can use ANY of its abilities right now, before charges are consulted.
 ##
 ## THE ONE THING THAT CAN SWITCH A WHOLE POOL OFF: a structure whose commander is
-## infrastructure-strained is unpowered, and an unpowered building's abilities — passive and
+## in defection is defective, and a defective building's abilities — passive and
 ## active alike — do nothing until the shortfall is closed. Separate from `is_ready` because
-## the two failures have different remedies and the HUD says so (Blocker.UNPOWERED against
+## the two failures have different remedies and the HUD says so (Blocker.DEFECTIVE against
 ## Blocker.RECHARGING): one needs a power plant, the other needs only time.
 ##
 ## A pool on something with no host (a bare component in a test) is always operational.
 func is_operational() -> bool:
 	var host := get_parent() as Actor
-	return host == null or not host.is_unpowered()
+	return host == null or not host.is_defective()
 
 
 ## Whether a charge is available for it right now.

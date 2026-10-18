@@ -189,7 +189,7 @@ func _emit_positional_bonus() -> void:
 		host == null
 		or host.map == null
 		or not host.is_built
-		or host.is_unpowered()
+		or host.is_defective()
 		or not _grants_positional_bonus(host)
 	):
 		return

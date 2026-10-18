@@ -88,7 +88,7 @@ static func precondition_for(
 	# additive modifier queues an order that waiting will fulfil, and waiting does not close
 	# an infrastructure shortfall. See Abilities.is_operational.
 	if not pool.is_operational():
-		return PreconditionFailureCause.UNPOWERED
+		return PreconditionFailureCause.DEFECTIVE
 	# A SPENT CHARGE IS REFUSED, exactly as an unaffordable purchase is — unless the additive
 	# modifier is held, which is what asks for the order to be QUEUED and acted on when the
 	# charge comes up. Why: gdd/systems/commands/cooldowns-and-preconditions.md.

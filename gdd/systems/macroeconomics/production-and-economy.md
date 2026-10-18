@@ -130,22 +130,24 @@ commander holds the credit so the debit reaches the same one:
 Tests: `tests/test_InfrastructureContribution.gd`, `tests/test_UnfinishedConstruction.gd`
 §Infrastructure follows FINISHING, not starting.
 
-### Insufficient infrastructure
+### Defection
 
-`Commander.is_infrastructure_strained()` — upkeep exceeds capacity — has three effects,
+**Defection** is the game's name for a commander whose infrastructure upkeep exceeds its capacity, and a structure of that commander is **defective**. The code names follow it (`Commander.is_in_defection()`, `Actor.is_defective()`); it replaced *strained* and *unpowered*, which read as electrical, while infrastructure is not power for most factions. The terms are player-facing as well: the alert, the button state and the badge use them.
+
+`Commander.is_in_defection()` — upkeep exceeds capacity — has three effects,
 and the first predates the other two:
 
-1. **Production runs slow.** `Production.tick` applies a reduced rate while strained.
+1. **Production runs slow.** `Production.tick` applies a reduced rate while in defection.
 2. **Buildings lose their weapons.** `Actor.can_use_weapons` is false for a
-   structure whose commander is strained, so defences go quiet.
+   structure whose commander is in defection, so defences go quiet.
 3. **Buildings lose their abilities, active and passive alike.**
    `Abilities.is_operational` is false on one, which refuses `is_ready` and `spend` and is
    what turns off a positional passive like the Compound's Work Detail.
 
-`Actor.is_unpowered()` is the single predicate all three read, and it is deliberately
+`Actor.is_defective()` is the single predicate all three read, and it is deliberately
 narrow:
 
-- **Only STRUCTURES go dark.** Strain is a fact about buildings drawing more than the
+- **Only STRUCTURES go dark.** Defection is a fact about buildings drawing more than the
   network supplies; an army in the field does not stop shooting because a power plant was
   lost. A unit's own ability pool is untouched.
 - **The building is otherwise unaffected.** It stands, holds its grid cells, is still a
@@ -153,12 +155,12 @@ narrow:
   demolition is not.
 
 **It is refused, never deferred.** A cast blocked this way reports
-`PreconditionFailureCause.UNPOWERED` rather than `ABILITY_NO_CHARGES`, and the additive
+`PreconditionFailureCause.DEFECTIVE` rather than `ABILITY_NO_CHARGES`, and the additive
 modifier does not queue it — the two failures have different remedies, and only one of them
 is cleared by waiting. The HUD says so with its own blocker and tint
-(`CommandButtonState.Blocker.UNPOWERED` — see
+(`CommandButtonState.Blocker.DEFECTIVE` — see
 [command card and hotkeys](../ux/ui/command-card-and-hotkeys.md) §What a darkened button
-means). Tests: `tests/test_InfrastructureStrain.gd`.
+means). Tests: `tests/test_Defection.gd`.
 
 ---
 

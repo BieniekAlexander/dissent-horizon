@@ -144,7 +144,7 @@ func _band_color(a_band: Band) -> Color:
 
 ## The region past `min(required, provided)`: spare capacity (grey) or overdrawn upkeep
 ## (orange), carrying the same "approaching / over" states the resource card used to pulse —
-## steady past ResourcePressure.INFRASTRUCTURE_PRESSURE_FRACTION, pulsing once truly strained.
+## steady past ResourcePressure.INFRASTRUCTURE_PRESSURE_FRACTION, pulsing once truly in defection.
 ## The pulse is SELF-REFERENTIAL (toward a lightened version of its own colour) rather than
 ## toward white, so the flash reads as "this colour, brighter" rather than blowing out to a
 ## colour that means nothing on this bar.

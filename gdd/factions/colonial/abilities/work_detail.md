@@ -51,5 +51,5 @@ The same three things that switch off any structure's abilities, asked of the SU
 — the Compound whose sentence just completed, not the building being helped: it must be
 finished, and its commander's infrastructure must cover its upkeep (see
 [production and economy](../../../systems/macroeconomics/production-and-economy.md)
-§Insufficient infrastructure). Nothing beyond friendliness is asked of the building being
+§Defection). Nothing beyond friendliness is asked of the building being
 helped, matching the passive rate this replaces.

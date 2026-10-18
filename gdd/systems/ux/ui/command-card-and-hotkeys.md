@@ -462,10 +462,10 @@ same wherever it is asked.
 | `RECHARGING` | always waitable — see below | nothing, but time |
 | `NO_PAD` | desaturated blue | a WARNING, not a refusal — the aircraft will queue for a deck |
 | `NO_CASTER` | dim teal | the ability is yours; build (or replace) something that can cast it |
-| `UNPOWERED` | dim amber-brown | the caster is standing there dark — build an infrastructure provider |
+| `DEFECTIVE` | dim amber-brown | the caster is standing there dark — build an infrastructure provider |
 | `CURRENT` | pale grey | "you are here"; pressing it would do nothing, because it is already done |
 
-**`UNPOWERED` is not `RECHARGING` in another colour.** A dark building can be holding a full
+**`DEFECTIVE` is not `RECHARGING` in another colour.** A dark building can be holding a full
 pool and still cast nothing, so telling the player to wait for a charge they already have is
 the wrong instruction — and unlike every waitable blocker, waiting never clears this one. See
 [production and economy](../../macroeconomics/production-and-economy.md) §Insufficient

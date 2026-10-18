@@ -70,7 +70,7 @@ shape library and piece scenes, rates from the generator and route scripts, star
 **The common rules.** Starting units appear at the start point; the command centre and the two
 free extractors are dropped there at t = 0 (each extractor pays a site's 5/s and draws 50
 infrastructure). A build or training job pays its energy when it starts and waits until it can.
-A piece that draws infrastructure needs the spare; a provider never waits on strain. Ground
+A piece that draws infrastructure needs the spare; a provider never waits on defection. Ground
 units walk the shortest path over the walkable grid; fliers fly straight. Extraction sites and
 ponds are unknown until some unit's vision has covered them; shelters are known from t = 0 (the
 HEGEMONY reveal).

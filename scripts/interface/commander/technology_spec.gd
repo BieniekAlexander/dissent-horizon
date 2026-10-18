@@ -27,7 +27,7 @@ static var unmet_need_message_map: Dictionary = {
 var energy_cost: int
 var dominion_cost: int
 ## Infrastructure surplus required to produce this. Gates only
-## when > 0 — a 0-cost item is never blocked, even when the commander is strained.
+## when > 0 — a 0-cost item is never blocked, even when the commander is in defection.
 var infrastructure_cost: int
 # Cached prerequisite state, refreshed by Commander.proc_technology against
 # required_structures. Resource checks are layered on top in get_unmet_need,
@@ -71,7 +71,7 @@ func get_unmet_need(a_commander: Commander) -> UnmetNeed:
 	if a_commander.energy < energy_cost:
 		return UnmetNeed.NOT_ENOUGH_ENERGY
 	# Only gate on infrastructure when this actually costs infrastructure surplus; a 0-cost item must
-	# stay trainable even when the commander is strained (infrastructure surplus < 0).
+	# stay trainable even when the commander is in defection (infrastructure surplus < 0).
 	if infrastructure_cost > 0 and a_commander.infrastructure < infrastructure_cost:
 		return UnmetNeed.NOT_ENOUGH_INFRASTRUCTURE
 	if a_commander.dominion < dominion_cost:

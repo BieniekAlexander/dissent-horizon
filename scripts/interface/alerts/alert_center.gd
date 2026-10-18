@@ -40,7 +40,7 @@ var _next_poll_tick: int = 0
 var _throttles: Dictionary = {}
 ## commander id → AlertLatch, per state type
 var _float_latches: Dictionary = {}
-var _strain_latches: Dictionary = {}
+var _defection_latches: Dictionary = {}
 
 ## Superweapon casters, by piece instance id → {piece: WeakRef, owner: int, ability: StringName,
 ## built: bool, charges: int, title: String}
@@ -278,10 +278,10 @@ func _poll_economy(a_commander: Commander, a_now: int) -> void:
 		alert.key = id
 		raise(alert)
 
-	var strained: bool = a_commander.is_infrastructure_strained()
-	var latch := _latch(_strain_latches, id, AlertCatalog.Type.INFRASTRUCTURE_STRAINED)
-	if latch.update(strained, a_now):
-		var alert := Alert.make(AlertCatalog.Type.INFRASTRUCTURE_STRAINED, id, a_now)
+	var in_defection: bool = a_commander.is_in_defection()
+	var latch := _latch(_defection_latches, id, AlertCatalog.Type.DEFECTION)
+	if latch.update(in_defection, a_now):
+		var alert := Alert.make(AlertCatalog.Type.DEFECTION, id, a_now)
 		alert.key = id
 		raise(alert)
 

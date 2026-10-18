@@ -94,7 +94,7 @@ the ground.
 - **Manual orders are untouched.** A gun on automatic can still be ordered at any spotted
   ground, and a gun already holding a Bombard order is never taken for a beacon: spending its
   charge would silently cancel the shot the player asked for.
-- **A stunned or unpowered gun is passed over**, and so is one still being built.
+- **A stunned or defective gun is passed over**, and so is one still being built.
 - **Only a held beacon calls a shot.** A Beacon Drop's or a Sleeper's planted beacon has no
   spotter holding it and waits for an order. TODO: whether it should call its own shot too — it would need a holder
   that ticks (the beacon itself), and nothing has asked for it. The BOT gives that order
