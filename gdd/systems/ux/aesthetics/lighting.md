@@ -74,7 +74,7 @@ faster once the terrain stopped drawing twice.
 - TODO: **a rim or back light** for silhouette readability against dark ground — SC2's third
   light, or a fresnel term in the unit shader.
 - TODO: **per-map lighting presets** (time of day, biome) once biomes exist
-  ([README](README.md) §Art direction).
+  ([README](systems/ux/aesthetics/README.md) §Art direction).
 - TODO: **SSAO** as a Forward+ quality option; the Compatibility renderer has none, so nothing
   may depend on it.
 - TODO: whether the purple clear colour in project.godot is meant to show anywhere; the default

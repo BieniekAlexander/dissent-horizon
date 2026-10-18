@@ -5,7 +5,7 @@ type: system-note
 
 # Resource allotment
 
-**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md). The
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](systems/macroeconomics/pacing/README.md). The
 question (Alex, 2026-10-01): **12000 energy per alliance looks low.** How much should a map
 hold, judged against what armies and bases cost here and in two reference games?
 

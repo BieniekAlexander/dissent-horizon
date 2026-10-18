@@ -119,12 +119,11 @@ func test_a_unit_consumed_mid_occupy_tears_down_cleanly() -> void:
 	captive.current_command().get_updated_state(captive)
 	captive.current_command().apply_state(captive)
 	var hold := Garrison.new()
-	hold.sentence_length = 1.0
 	hold.bunker = false  # a prison, like the Compound
 	add_child_autofree(hold)
 	captive.get_parent().remove_child(captive)
 	hold.garrison(captive)
-	hold.simulation_step(2.0)
+	hold.discard(captive)  # what a finished sentence does (OccupantDominionGenerator)
 	assert_false(is_instance_valid(captive), "the sentence consumed it")
 	assert_eq(transport.movement._saved_avoidance_layers, 0, "and the host is back in avoidance")
 

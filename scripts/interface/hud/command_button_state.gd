@@ -51,10 +51,10 @@ enum Blocker {
 	## already offers its command, so "nobody can do this" cannot arise.
 	NO_CASTER,
 	## The caster is a building its commander cannot power — infrastructure upkeep exceeds
-	## capacity, so it is dark (see Actor.is_unpowered). A third remedy again: not a
+	## capacity, so it is dark (see Actor.is_defective). A third remedy again: not a
 	## purchase, not time, but an infrastructure provider. Never queueable — waiting does not
 	## close a shortfall.
-	UNPOWERED,
+	DEFECTIVE,
 	## "You are here" — a radio button for the option already showing. Not a refusal and not a
 	## lack: pressing it would simply do nothing, because it is already done. Its own blocker
 	## rather than a reuse of LOCKED, whose grey means "go and build something".
@@ -129,7 +129,7 @@ func shows_timer() -> bool:
 ##                aircraft will simply queue for a deck.
 ##   NO_CASTER    dim teal — the ability is yours and there is nothing to cast it with. A
 ##                third remedy again: not a building to unlock it, not time, but a PIECE.
-##   UNPOWERED    dim amber-brown — the caster is standing there dark. The remedy is an
+##   DEFECTIVE    dim amber-brown — the caster is standing there dark. The remedy is an
 ##                infrastructure provider, and no amount of waiting is one.
 ##   WAITABLE     amber without the modifier, lit with it — for any blocker waiting can clear
 ##                (an unmet price, a spent charge, a prerequisite on its way). The one colour
@@ -140,7 +140,7 @@ const TINT_AVAILABLE: Color = Color(1.0, 1.0, 1.0)
 const TINT_LOCKED: Color = Color(0.45, 0.45, 0.48)
 const TINT_NO_PAD: Color = Color(0.62, 0.74, 0.85)
 const TINT_NO_CASTER: Color = Color(0.45, 0.68, 0.66)
-const TINT_UNPOWERED: Color = Color(0.72, 0.60, 0.38)
+const TINT_DEFECTIVE: Color = Color(0.72, 0.60, 0.38)
 const TINT_CURRENT: Color = Color(0.70, 0.70, 0.74)
 const TINT_QUEUEABLE: Color = Color(1.0, 0.78, 0.35)
 
@@ -157,8 +157,8 @@ func tint() -> Color:
 			return TINT_NO_PAD
 		Blocker.NO_CASTER:
 			return TINT_NO_CASTER
-		Blocker.UNPOWERED:
-			return TINT_UNPOWERED
+		Blocker.DEFECTIVE:
+			return TINT_DEFECTIVE
 		Blocker.CURRENT:
 			return TINT_CURRENT
 	return TINT_AVAILABLE
@@ -299,10 +299,10 @@ func _classify_ability(
 		# rather than dominion — so a different blocker and a different colour.
 		blocker = Blocker.NO_CASTER
 		return
-	# UNPOWERED BEFORE CHARGES: a dark building can hold a full pool and still cast nothing,
+	# DEFECTIVE BEFORE CHARGES: a dark building can hold a full pool and still cast nothing,
 	# and telling the player to wait for a charge they already have is the wrong instruction.
 	if not readiest.is_operational():
-		blocker = Blocker.UNPOWERED
+		blocker = Blocker.DEFECTIVE
 		return
 	charges = readiest.charges_of(ability_id)
 	max_charges = readiest.max_charges_of(ability_id)

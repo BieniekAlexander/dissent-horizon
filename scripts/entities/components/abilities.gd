@@ -181,7 +181,8 @@ func is_recharge_held(a_ability_id: StringName) -> bool:
 #region Positional support
 ## The ability that identifies a piece as one whose garrison lends a per-completion cooldown
 ## reduction to the buildings AROUND it — the Colonials' Work Detail, carried by the
-## Compound. See Garrison._emit_positional_bonus, the event this marks a host for.
+## Compound. See OccupantDominionGenerator._emit_positional_bonus, the event this marks a
+## host for.
 ##
 ## Named here rather than authored as a doc key because exactly one ability does this, and
 ## a key on every ability doc for a mechanic one of them uses is a schema paying for a case
@@ -193,8 +194,8 @@ const SUPPORT_ABILITY: StringName = &"work_detail"
 
 ## Reduce every pool's cooldown by `a_fraction` of its own FULL duration — a one-time
 ## event, not a rate. A pool already at full charge is untouched: nothing is banked for a
-## later completion (see Garrison._emit_positional_bonus). Loops rather than a single
-## decrement so a fraction large enough to clear more than one boundary still lands
+## later completion (see OccupantDominionGenerator._emit_positional_bonus). Loops rather than
+## a single decrement so a fraction large enough to clear more than one boundary still lands
 ## correctly, though every authored fraction today is well under that.
 func reduce_all_cooldowns(a_fraction: float) -> void:
 	for i: int in _charges.size():
@@ -302,15 +303,15 @@ func declared_abilities() -> Array[StringName]:
 ## Whether this piece can use ANY of its abilities right now, before charges are consulted.
 ##
 ## THE ONE THING THAT CAN SWITCH A WHOLE POOL OFF: a structure whose commander is
-## infrastructure-strained is unpowered, and an unpowered building's abilities — passive and
+## in defection is defective, and a defective building's abilities — passive and
 ## active alike — do nothing until the shortfall is closed. Separate from `is_ready` because
-## the two failures have different remedies and the HUD says so (Blocker.UNPOWERED against
+## the two failures have different remedies and the HUD says so (Blocker.DEFECTIVE against
 ## Blocker.RECHARGING): one needs a power plant, the other needs only time.
 ##
 ## A pool on something with no host (a bare component in a test) is always operational.
 func is_operational() -> bool:
 	var host := get_parent() as Actor
-	return host == null or not host.is_unpowered()
+	return host == null or not host.is_defective()
 
 
 ## Whether a charge is available for it right now.

@@ -19,7 +19,8 @@ const TERRESTRIAL: Dictionary = {"speed": 1.0}
 ## A closed hold that sentences what is deposited in it.
 const COMPOUND: Dictionary = {
 	"structure": true,
-	"garrison": {"capacity": 6, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}
+	"occupant_dominion": true,
+	"garrison": {"capacity": 6, "frames": 0, "armours": 0, "movements": 0}
 }
 ## A structure with an OPEN garrison — one that holds units but interns nobody.
 ## An ordinary garrison: holds occupants, sentences nobody.
@@ -170,8 +171,8 @@ func test_an_unload_stops_when_the_compound_is_full():
 	var small_compound := _unit(
 		{
 			"structure": true,
-			"garrison":
-			{"capacity": 2, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}
+			"occupant_dominion": true,
+			"garrison": {"capacity": 2, "frames": 0, "armours": 0, "movements": 0}
 		},
 		1
 	)

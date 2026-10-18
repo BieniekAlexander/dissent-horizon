@@ -9,7 +9,8 @@ extends Control
 ## CAMPAIGN lists the authored missions. The list is DATA — `scenarios`, an array of
 ## ScenarioEntry — rather than one hand-wired button per scene: adding a mission is filling two
 ## fields on a new array row in the inspector. Buttons are duplicated from %ButtonTemplate, a
-## hidden node in the same scene, so restyling every button is editing ONE node.
+## hidden node in the same scene, so restyling every button is editing ONE node. Above the list,
+## the mission DIFFICULTY the chosen mission is opened at (Scenario.mission_difficulty).
 ##
 ## SKIRMISH is the SkirmishLobby. MULTIPLAYER hosts or joins a lobby by address
 ## (MultiplayerConnect) and hands it to the same SkirmishLobby, networked. REPLAYS lists every
@@ -56,6 +57,9 @@ var replay_directory: String = ReplayFile.DIRECTORY
 
 ## The page on screen.
 var page: Page = Page.MAIN
+## The difficulty a mission opens at, as picked on the Campaign page. MEDIUM until the player
+## picks: the middle tier is what a mission is first written and tuned against.
+var campaign_difficulty: Scenario.MissionDifficulty = Scenario.MissionDifficulty.MEDIUM
 
 @onready var _title_label: Label = %Title
 @onready var _main_page: VBoxContainer = %MainPage
@@ -66,6 +70,7 @@ var page: Page = Page.MAIN
 @onready var _lobby: SkirmishLobby = %SkirmishLobby
 @onready var _volume: HSlider = %Volume
 @onready var _jump_scope: OptionButton = %JumpScope
+@onready var _difficulty: OptionButton = %Difficulty
 ## The Multiplayer page: built in code, like the lobby it leads to.
 var _multiplayer: MultiplayerConnect = null
 
@@ -93,6 +98,7 @@ func _ready() -> void:
 	_volume.value = db_to_linear(AudioServer.get_bus_volume_db(bus)) if bus >= 0 else 1.0
 	_volume.value_changed.connect(_on_volume_changed)
 	_build_jump_scope()
+	_build_difficulty_picker()
 	show_page(Page.MAIN)
 
 
@@ -145,13 +151,16 @@ func button_labels() -> Array[String]:
 	return labels
 
 
-## Open `entry`'s scene, replacing the whole tree. Reports and does nothing when the entry
-## names no scene, or when the swap itself is refused.
+## Open `entry`'s scene at `campaign_difficulty`, replacing the whole tree. Reports and does
+## nothing when the entry names no scene, or when the swap itself is refused.
 func open(a_entry: ScenarioEntry) -> void:
 	if a_entry == null or not a_entry.is_valid():
 		push_error("MainMenu: asked to open an entry with no scene; ignoring.")
 		return
-	SceneManager.go_to_packed(a_entry.scene)
+	var root: Node = a_entry.scene.instantiate()
+	if root is Scenario:
+		(root as Scenario).mission_difficulty = campaign_difficulty
+	SceneManager.go_to_node(root)
 
 
 ## The replay panel's rows, top to bottom (newest first). Empty when there are no replays.
@@ -309,6 +318,27 @@ func _build_jump_scope() -> void:
 	_jump_scope.item_selected.connect(
 		func(i: int) -> void: GameSettings.set_alert_jump_scope(_jump_scope.get_item_id(i))
 	)
+
+
+## One item per difficulty a player chooses between; the choice is held for this menu only.
+func _build_difficulty_picker() -> void:
+	_difficulty.clear()
+	for tier: Scenario.MissionDifficulty in [
+		Scenario.MissionDifficulty.EASY,
+		Scenario.MissionDifficulty.MEDIUM,
+		Scenario.MissionDifficulty.HARD,
+	]:
+		_difficulty.add_item(Scenario.MissionDifficulty.find_key(tier).capitalize(), tier)
+	_difficulty.select(_difficulty.get_item_index(campaign_difficulty))
+	_difficulty.item_selected.connect(
+		func(i: int) -> void:
+			campaign_difficulty = _difficulty.get_item_id(i) as Scenario.MissionDifficulty
+	)
+
+
+## The difficulty control, for a test.
+func difficulty_control() -> OptionButton:
+	return _difficulty
 
 
 ## The jump-scope control, for a test.

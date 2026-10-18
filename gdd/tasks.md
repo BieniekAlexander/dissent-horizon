@@ -551,9 +551,14 @@ Hull and turret; an upgrade's model swap; later cosmetics. **Blocked** on the mo
 Built provisionally as KEEP (the local player still loses on owning nothing / no base), because every shipped mission was written against it.
 → [scenario-scripting/objectives-and-completion](systems/scenario-scripting/objectives-and-completion.md) §Win conditions
 
-### T-083 · The three tactics gaps #effort/medium #unscoped
-A target primitive for own/neutral targets, a `Build`-issuing rule action, and a flee verb (no such command exists).
-→ [scenario-scripting/tactics](systems/scenario-scripting/tactics.md)
+### T-106 · Trigger-decided mission commanders #effort/high #scoped #done
+A mission's enemy decides by triggers and tactic rules but perceives and acts as the skirmish Bot does: conditions with an alliance `perspective`, tactic rules on the slot's combat period, shared `SquadPolicy`s, every mission order through `BotActuator`, tactic claims at EXCLUSIVE, runtime Bot job switches, retreat and build as shared verbs, a `difficulty` expression input. Scoped 2026-10-10; every decision is recorded in the note.
+→ [scenario-scripting/tactics](systems/scenario-scripting/tactics.md) §Trigger-decided mission commanders
+
+> [!check] Status — 2026-10-11
+> Built, as the note's section records: alliance `perspective` on conditions and `EventCommandTarget`; a mission difficulty (EASY / MEDIUM / HARD only) picked on the Campaign page that the triggers read as `difficulty` and that never changes a bot slot's tier; `ConditionExpression`; tactics as `BotScheduler` jobs claiming EXCLUSIVE; `TacticRule.action` naming the shared policies plus `RetreatPolicy` and `BuildPolicy`; mission orders through their own `BotActuator`; `EventSetBotJobs`; tactic squads in the bot overlay.
+> Tests: 4444 passing, 0 failing.
+> **Not done:** no shipped mission uses any of it yet — authoring difficulty into the prologue's triggers is Alex's, later. `ConditionEntityKilled`, `ConditionScoutCoverage` and the resource thresholds do not honour a perspective (the dock says so).
 
 ## Authoring, tooling and code health
 

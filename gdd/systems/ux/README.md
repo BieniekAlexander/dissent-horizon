@@ -134,7 +134,7 @@ token has no such slot at all, which is different from being `EXEMPT`.
 |---|---|---|
 | Model | every piece and emission | `ASSET` rule `has_mesh_visual`; placeholders baked by [generated-visual-defaults](ui/generated-visual-defaults.md), per-slot detail from `tools/ui_audit.gd` |
 | Look per construction state | structure lifecycle | built — [construction-visuals](ui/construction-visuals.md) |
-| Look per condition (effects, veterancy, capacity, unpowered) | status effects, passives | built — [condition-visuals](ui/condition-visuals.md) |
+| Look per condition (effects, veterancy, capacity, defective) | status effects, passives | built — [condition-visuals](ui/condition-visuals.md) |
 | Selection shape, HP bar | every piece | built — [generated-visual-defaults](ui/generated-visual-defaults.md) |
 | HUD icon | every Actor (unit or structure) | `ASSET` rules `has_hud_icon` (`MISSING`: no picture, so the HUD draws the name) and `hud_icon_is_final` (`PLACEHOLDER`: a stock photograph). Found by convention, never declared — see [ui/piece-icons](ui/piece-icons.md) |
 | Visual per emission phase | `EmissionPhase` children | TODO: `EmissionPhase.visuals` exists, but an empty list means both "nothing belongs here" and "nobody made it"; it wants an `ASSET` rule with a per-phase waiver |

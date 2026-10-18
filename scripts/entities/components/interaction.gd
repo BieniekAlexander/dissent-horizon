@@ -16,11 +16,10 @@ extends Resource
 ## (Removing ABDUCT — abduction became a crush, see Garrison.can_capture — cost exactly that
 ## renumbering, done by hand across three scenes.)
 enum Type {
-	## Hand the actor's captives over to the target's [Garrison] (e.g. a Compound), which
-	## SENTENCES each one as it takes it (see Garrison.deposit_from). Applicable when the
-	## actor holds occupants and the target is a structure whose garrison sentences its
-	## occupants — i.e. names a positive `sentence_length` — and has room. Transfers as many
-	## as fit (partial allowed).
+	## Hand the actor's captives over to the target's [Garrison] (e.g. a Compound), whose
+	## prison SENTENCES each one as it takes it (OccupantDominionGenerator). Applicable when the
+	## actor holds occupants and the target is a structure carrying a prison with room.
+	## Transfers as many as fit (partial allowed, Garrison.transfer_from).
 	DEPOSIT = 0,
 	# 1 was PLANT, retired for the Plant ability (planted-explosives.md). Left unused rather
 	# than reused, for the renumbering reason above.
@@ -131,10 +130,9 @@ static func _build_evaluators() -> Dictionary:
 	}
 
 
-## Deposit into a structure whose garrison SENTENCES its occupants — one that names a
-## positive sentence_length (Garrison.can_intern) — when we are holding captives and
-## it has room. That is what marks a prison (a Compound) apart from an ordinary
-## garrison; prisoners are not dropped off in a safehouse.
+## Deposit into a structure carrying a prison (OccupantDominionGenerator.prison_of) when we are
+## holding captives and it has room. That is what marks a camp (a Compound) apart from an
+## ordinary garrison; prisoners are not dropped off in a safehouse.
 static func _deposit_precondition(
 	a_actor: Actor, a_message: CommandMessage
 ) -> MoveCommand.PreconditionFailureCause:
@@ -145,8 +143,8 @@ static func _deposit_precondition(
 			and a_message.target.structure_is_active()
 			and a_actor.garrison != null
 			and a_actor.garrison.garrisoned_count() > 0
-			and target_garrison(a_message.target) != null
-			and target_garrison(a_message.target).can_intern()
+			and OccupantDominionGenerator.prison_of(a_message.target) != null
+			and OccupantDominionGenerator.prison_of(a_message.target).can_intern()
 		)
 		else MoveCommand.PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	)

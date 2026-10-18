@@ -36,7 +36,7 @@ extends RefCounted
 ##   frame / armour: int     `Defense.frame_type` / `Defense.armour_type` (defaults BIO / LIGHT)
 ##   crush: int              `Movement.crush_class` (needs `speed`)
 ##   interactions: Array     `Interaction.Type`s, which adds an `Interactor`
-##   garrison: Dictionary    a `Garrison`: capacity: int, sentence_length: float, bunker: bool,
+##   garrison: Dictionary    a `Garrison`: capacity: int, bunker: bool,
 ##                             captures: bool (takes prisoners by contact; the truck's cage),
 ##                             flushable: bool (a flush kills everything inside),
 ##                             frames / armours / movements: int masks, ids: Array
@@ -88,7 +88,7 @@ const TRUCK: Dictionary = {
 }
 ## A structure that spawns residents.
 const SHELTER: Dictionary = {"structure": true, "shelter": true}
-## A closed hold that sentences captives and banks dominion for them.
+## A closed hold whose prison (`occupant_dominion`) sentences captives and banks dominion for them.
 const COMPOUND: Dictionary = {
 	"structure": true,
 	"occupant_dominion": true,
@@ -96,7 +96,6 @@ const COMPOUND: Dictionary = {
 	{
 		"capacity": 6,
 		"bunker": false,
-		"sentence_length": 30.0,
 		"frames": 0,
 		"armours": 0,
 		"movements": 0
@@ -340,7 +339,6 @@ static func _add_docking_bay(a_piece: Actor, a_spec: Dictionary) -> void:
 static func _add_garrison(a_piece: Actor, a_spec: Dictionary) -> void:
 	var garrison := Garrison.new()
 	garrison.capacity = int(a_spec.get("capacity", 1))
-	garrison.sentence_length = float(a_spec.get("sentence_length", 0.0))
 	garrison.unload_time = float(a_spec.get("unload_time", 0.0))
 	garrison.bunker = bool(a_spec.get("bunker", true))
 	garrison.captures = bool(a_spec.get("captures", false))

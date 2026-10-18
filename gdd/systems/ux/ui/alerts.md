@@ -58,7 +58,7 @@ sources ──► AlertCenter.raise ──► alert_raised      (every alert, fo
 | Ability charged | event | the caster's owner | yes | polled pools that author `alert: true` |
 | Stealthed enemy detected | event | every enemy who can now see it | yes | `ON_EXIT_STEALTH` into `REVEALED` |
 | Energy floating | state | the commander | no | polled |
-| Infrastructure strained | state | the commander | no | polled `is_infrastructure_strained()` |
+| Defection | state | the commander | no | polled `is_in_defection()` |
 | Superweapon begun / built / launched / destroyed | event | everyone but its owner | **never** | polled casters |
 | Superweapon ready | event | everyone | owner only | polled caster charges |
 
@@ -196,7 +196,7 @@ reminders every 60 s (energy) and 45 s (infrastructure).
 - **Sanction affordable**.
 - **Requisition**: a queued purchase cancelled because what it depended on was aborted (the
   orphaned-transaction question in the control-scheme decisions).
-- **Unpowered structures** — the infrastructure alert's consequence named per building.
+- **Defective structures** — the infrastructure alert's consequence named per building.
 - **Minimap pings** at each located alert (OpenRA radar pings, 0 A.D. `MinimapPing`).
 - **Suppress the sound when the place is on screen** (a common RTS courtesy).
 - **Voice lines** in place of tones, and per-alert-type sound.

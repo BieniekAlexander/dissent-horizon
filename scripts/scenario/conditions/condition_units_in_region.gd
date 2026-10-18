@@ -43,10 +43,14 @@ var _was_inside: bool = false
 
 
 #region Public API
+func honours_perspective() -> bool:
+	return true
+
+
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var units: Array = _matching_units(a_manager)
 	var any_inside: bool = units.any(
-		func(u: Actor) -> bool: return region_contains(u.global_position)
+		func(u: Actor) -> bool: return _is_inside(a_manager, u)
 	)
 	match check:
 		Check.ANY_INSIDE:
@@ -55,7 +59,7 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 			return (
 				not units.is_empty()
 				and units.all(
-					func(u: Actor) -> bool: return region_contains(u.global_position)
+					func(u: Actor) -> bool: return _is_inside(a_manager, u)
 				)
 			)
 		Check.ANY_ENTER:
@@ -76,7 +80,7 @@ func poll(a_manager: ScenarioTriggerManager) -> void:
 	super(a_manager)
 	if check == Check.ANY_ENTER or check == Check.ANY_EXIT:
 		_was_inside = _matching_units(a_manager).any(
-			func(u: Actor) -> bool: return region_contains(u.global_position)
+			func(u: Actor) -> bool: return _is_inside(a_manager, u)
 		)
 
 
@@ -107,8 +111,15 @@ func _matching_units(a_manager: ScenarioTriggerManager) -> Array:
 				n is Actor
 				and (n as Actor).is_in_group("unit")
 				and (unit_type == &"" or (n as Actor).id == unit_type)
+				and perceived_position(a_manager, n as Actor) != null
 			)
 	)
+
+
+## Whether `a_unit` stands in the region where this check's perspective takes it to be.
+func _is_inside(a_manager: ScenarioTriggerManager, a_unit: Actor) -> bool:
+	var at: Variant = perceived_position(a_manager, a_unit)
+	return at != null and region_contains(at)
 
 
 ## A region is the entire point of this check: without one, region_contains() would match

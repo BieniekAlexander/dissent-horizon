@@ -31,7 +31,8 @@ const MERCURY: Dictionary = {"speed": 2.0, "garrison": {"capacity": 4}}
 ## scene load in the run. See CLAUDE.md §Running and testing.
 const COMPOUND_PATH: Dictionary = {
 	"structure": true,
-	"garrison": {"capacity": 6, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}
+	"occupant_dominion": true,
+	"garrison": {"capacity": 6, "frames": 0, "armours": 0, "movements": 0}
 }
 const PLAYER: int = 1
 const ENEMY: int = 2

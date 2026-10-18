@@ -7,7 +7,7 @@ type: design-note
 
 Faction uniqueness makes some matchups skew. The rules below exist to catch a skew **while it
 is still a design choice** rather than after it has shipped. Goal G10 in the
-[framework](README.md).
+[framework](design-framework/README.md).
 
 ## Rules
 
@@ -40,7 +40,7 @@ open question on what faction identity does to the calibration norms.
 ## Faction slots
 
 **A slot is a mechanic every faction has its own version of** — the Slot tier of the
-[README](README.md) §Tiers. This table is the canonical list; each faction doc says what its
+[README](design-framework/README.md) §Tiers. This table is the canonical list; each faction doc says what its
 version is under `slots:` in its front matter, keyed by the ids below. A value of `TODO` means
 not yet designed, and `ABSENT — …` a deliberate hole (with its matchup consequences, M1–M4).
 

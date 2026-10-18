@@ -188,13 +188,13 @@ func test_floating_is_the_hud_surplus_line() -> void:
 	)
 
 
-func test_strained_infrastructure_is_told() -> void:
+func test_defection_is_told() -> void:
 	var own := _commanders[OWN] as Commander
 	own.infrastructure_required = own.infrastructure_provided + 1
 	_center.poll()
-	_center.set_tick(AlertCatalog.sustain_ticks(AlertCatalog.Type.INFRASTRUCTURE_STRAINED))
+	_center.set_tick(AlertCatalog.sustain_ticks(AlertCatalog.Type.DEFECTION))
 	_center.poll()
-	assert_eq(_of(_presented, AlertCatalog.Type.INFRASTRUCTURE_STRAINED).size(), 1)
+	assert_eq(_of(_presented, AlertCatalog.Type.DEFECTION).size(), 1)
 
 
 # --- Superweapons -----------------------------------------------------------------------

@@ -59,8 +59,8 @@ func targeting_needs_engagement() -> bool:
 ## SANCTION, not the cost of acquiring it: the same text is what the player wants to read
 ## while deciding whether to unlock it and later while deciding where to aim it.
 ##
-## Blank is fine and shows no tooltip at all (see VerboseTooltipButton), so an
-## un-described sanction degrades to the current behaviour rather than an empty popup.
+## Blank is an authoring gap: the button shows VerboseTooltipButton's stand-in and the HUD
+## reports it.
 @export_multiline var description: String = ""
 
 ## The long tier of the sanction's tooltip, shown while `ui_verbose` is held. Optional:

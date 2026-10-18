@@ -27,6 +27,10 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 
 
 #region Public API
+func honours_perspective() -> bool:
+	return true
+
+
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	# An unset group would otherwise count zero, which makes AT_MOST true on the first tick —
 	# an un-authored check that fires immediately is worse than one that never does.
@@ -74,12 +78,21 @@ func highlight_entities(a_manager: ScenarioTriggerManager) -> Array[Entity]:
 ## get_nodes_in_group only returns nodes currently in the tree, but a node killed this frame
 ## lingers there until the end of it. Dropping the ones already queued for deletion lets a
 ## "wipe out the wave" check resolve on the tick the last one dies rather than the tick after.
+## Under ALLIANCE only a placed thing the alliance knows of counts; a group member with no place
+## in the world (not a Node3D) is the scene's business, not something an alliance could see.
+func _is_known(a_manager: ScenarioTriggerManager, a_node: Node) -> bool:
+	if perspective == Perspective.OMNISCIENT:
+		return true
+	var placed := a_node as Node3D
+	return placed != null and perceived_position(a_manager, placed) != null
+
+
 func matching_nodes(a_manager: ScenarioTriggerManager) -> Array[Node]:
 	var result: Array[Node] = []
 	if group.is_empty() or a_manager == null or a_manager.get_tree() == null:
 		return result
 	for node: Node in a_manager.get_tree().get_nodes_in_group(group):
-		if not node.is_queued_for_deletion():
+		if not node.is_queued_for_deletion() and _is_known(a_manager, node):
 			result.append(node)
 	return result
 #endregion

@@ -70,7 +70,7 @@ shape library and piece scenes, rates from the generator and route scripts, star
 **The common rules.** Starting units appear at the start point; the command centre and the two
 free extractors are dropped there at t = 0 (each extractor pays a site's 5/s and draws 50
 infrastructure). A build or training job pays its energy when it starts and waits until it can.
-A piece that draws infrastructure needs the spare; a provider never waits on strain. Ground
+A piece that draws infrastructure needs the spare; a provider never waits on defection. Ground
 units walk the shortest path over the walkable grid; fliers fly straight. Extraction sites and
 ponds are unknown until some unit's vision has covered them; shelters are known from t = 0 (the
 HEGEMONY reveal).
@@ -261,8 +261,8 @@ Decided (Alex, 2026-10-05): the one-at-a-time row at a 30 s sentence.
 
 | Knob | Was | Now | Where |
 |---|---|---|---|
-| Processing | every captive serving at once | **one at a time**, the rest queue unpaid | `Garrison.SENTENCES_AT_ONCE` (1), `Garrison.paying_count()` |
-| Sentence | 60 s | **30 s** | `cl_infrastructure.md` `garrison.sentence_length` |
+| Processing | every captive serving at once | **one at a time**, the rest queue unpaid | `OccupantDominionGenerator.SENTENCES_AT_ONCE` (1), `OccupantDominionGenerator.paying_count()` |
+| Sentence | 60 s | **30 s** | `OccupantDominionGenerator.SENTENCE_SECONDS` |
 | Rate per captive serving | 10 per 5 s (2/s) | **25 per 5 s** (5/s), so V = **150** | `OccupantDominionGenerator.dominion_per_unit` |
 | Servant | 500 energy | **200 energy** (≈ 1.3 energy per dominion) | `cl_bioLight_builder.md` `build.cost.energy` |
 

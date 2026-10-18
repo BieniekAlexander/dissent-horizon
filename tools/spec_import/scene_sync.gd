@@ -1120,7 +1120,6 @@ func _sync_garrison(a_ctx: Ctx, a_g: Variant) -> void:
 		)
 	_sync_reach_by_piece(a_ctx, node, g)
 	_sync_occupiable_ids(a_ctx, node, g)
-	_sync_sentence_length(a_ctx, node, g)
 	if g.has("unload_time"):
 		var unload: float = float(g["unload_time"])
 		_set_prop(
@@ -1188,24 +1187,6 @@ func _sync_reach_by_piece(a_ctx: Ctx, a_node: Node, a_g: Dictionary) -> void:
 		target if same else current,
 		target,
 		"Dictionary[StringName, float]({%s})" % ", ".join(parts)
-	)
-
-
-## The `sentence_length:` key — how many seconds a deposited captive serves before this
-## garrison consumes it. Naming it (a positive number) is what makes the garrison a prison
-## (Garrison.can_intern), replacing the old `interns:` conversion marker — this is still the
-## one garrison key that changes which COMMANDS apply to the host.
-func _sync_sentence_length(a_ctx: Ctx, a_node: Node, a_g: Dictionary) -> void:
-	if not a_g.has("sentence_length"):
-		return
-	var seconds: float = float(a_g["sentence_length"])
-	_set_prop(
-		a_ctx,
-		"Garrison",
-		"sentence_length",
-		a_node.sentence_length if a_node != null else -1.0,
-		seconds,
-		TscnDoc.fmt_float(seconds)
 	)
 
 

@@ -71,7 +71,7 @@ func energy_is_above(a_threshold: int) -> bool:
 
 ## Infrastructure surplus below which the bot should stand up its faction infrastructure provider
 ## before expanding further — roughly one unit-producing structure's upkeep, so it
-## builds power proactively rather than waiting until it's already strained.
+## builds power proactively rather than waiting until it's already in defection.
 const INFRASTRUCTURE_PROVIDER_MARGIN: int = 40
 
 
@@ -1658,7 +1658,7 @@ func infrastructure_source_is_unit() -> bool:
 
 ## Buildable structures that supply infrastructure (their preview's infrastructure > 0 — e.g.
 ## the Colonial power plant, Anarchical safehouse). The generic
-## hook the economy uses to keep the commander out of infrastructure strain; the right
+## hook the economy uses to keep the commander out of defection; the right
 ## faction-specific provider falls out of each faction's buildable set automatically.
 func buildable_infrastructure_structure_types() -> Array:
 	return buildable_structure_types().filter(func(t): return _type_provides_infrastructure(t))

@@ -9,10 +9,10 @@ extends GutTest
 ##   * WHAT "adjacent" MEANS — SpaceUtils.edge_adjacent_structures, edges only. The
 ##     definition is expected to change (a radius, a supply line), so it is tested against
 ##     synthetic footprints rather than through the ability.
-##   * WHAT THE BONUS IS WORTH — Garrison._emit_positional_bonus / Abilities.reduce_all_
-##     cooldowns, and the three things that switch a supporter off. Sentence timing itself
-##     (when a completion fires) is tested in test_Garrison.gd; this file only asks what a
-##     completion, once fired, actually does to a neighbour's pool.
+##   * WHAT THE BONUS IS WORTH — OccupantDominionGenerator._emit_positional_bonus /
+##     Abilities.reduce_all_cooldowns, and the three things that switch a supporter off.
+##     Sentence timing itself (when a completion fires) is tested in test_Garrison.gd; this
+##     file only asks what a completion, once fired, actually does to a neighbour's pool.
 ##
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_WorkDetail.gd -gexit
@@ -154,8 +154,7 @@ func _compound(a_commander: Commander, a_origin: Vector2i) -> Actor:
 			"dimensions": Vector2i(2, 2),
 			"occupant_dominion": true,
 			"abilities": [{"grants": [Abilities.SUPPORT_ABILITY]}],
-			"garrison":
-			{"capacity": 6, "sentence_length": 30.0, "frames": 0, "armours": 0, "movements": 0}
+			"garrison": {"capacity": 6, "frames": 0, "armours": 0, "movements": 0}
 		}
 	)
 	_world.add_child(piece)
@@ -164,6 +163,10 @@ func _compound(a_commander: Commander, a_origin: Vector2i) -> Actor:
 	piece.commander = a_commander
 	_register(piece, a_origin)
 	return piece
+
+
+func _prison_of(a_piece: Actor) -> OccupantDominionGenerator:
+	return a_piece.get_node("DominionGenerator") as OccupantDominionGenerator
 
 
 func _pool_of(a_piece: Actor) -> Abilities:
@@ -189,8 +192,10 @@ func test_a_completion_takes_the_stated_percentage_off_the_full_cooldown() -> vo
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
 	var compound := _compound(_commander, Vector2i(6, 4))
 	var pool := _spent_pool(beneficiary)
-	compound.garrison._emit_positional_bonus()
-	assert_almost_eq(pool._timers[0], 100.0 * (1.0 - Garrison.SENTENCE_COOLDOWN_BONUS), 0.0001)
+	_prison_of(compound)._emit_positional_bonus()
+	assert_almost_eq(
+		pool._timers[0], 100.0 * (1.0 - OccupantDominionGenerator.SENTENCE_COOLDOWN_BONUS), 0.0001
+	)
 
 
 func test_two_adjacent_compounds_each_apply_their_own_completion() -> void:
@@ -198,10 +203,12 @@ func test_two_adjacent_compounds_each_apply_their_own_completion() -> void:
 	var north := _compound(_commander, Vector2i(4, 6))
 	var east := _compound(_commander, Vector2i(6, 4))
 	var pool := _spent_pool(beneficiary)
-	north.garrison._emit_positional_bonus()
-	east.garrison._emit_positional_bonus()
+	_prison_of(north)._emit_positional_bonus()
+	_prison_of(east)._emit_positional_bonus()
 	assert_almost_eq(
-		pool._timers[0], 100.0 * (1.0 - 2.0 * Garrison.SENTENCE_COOLDOWN_BONUS), 0.0001
+		pool._timers[0],
+		100.0 * (1.0 - 2.0 * OccupantDominionGenerator.SENTENCE_COOLDOWN_BONUS),
+		0.0001
 	)
 
 
@@ -210,7 +217,7 @@ func test_nothing_is_banked_once_the_pool_is_already_charged() -> void:
 	var compound := _compound(_commander, Vector2i(6, 4))
 	var pool := _pool_of(beneficiary)
 	pool._rebuild()  # starts fully charged; nothing spent
-	compound.garrison._emit_positional_bonus()
+	_prison_of(compound)._emit_positional_bonus()
 	assert_eq(pool.charges_of(&"scan"), 1, "already at capacity — the completion buys nothing")
 
 
@@ -219,7 +226,7 @@ func test_a_completion_can_finish_a_cooldown_outright() -> void:
 	var compound := _compound(_commander, Vector2i(6, 4))
 	var pool := _spent_pool(beneficiary)
 	pool._timers[0] = 5.0  # nearly recharged already
-	compound.garrison._emit_positional_bonus()
+	_prison_of(compound)._emit_positional_bonus()
 	assert_true(pool.is_ready(&"scan"), "8% of 100 clears the last 5 ticks")
 
 
@@ -227,7 +234,7 @@ func test_a_corner_compound_lends_nothing() -> void:
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
 	var compound := _compound(_commander, Vector2i(6, 6))
 	var pool := _spent_pool(beneficiary)
-	compound.garrison._emit_positional_bonus()
+	_prison_of(compound)._emit_positional_bonus()
 	assert_almost_eq(pool._timers[0], 100.0, 0.0001, "corner contact shares no wall")
 
 
@@ -235,7 +242,7 @@ func test_an_enemy_compound_lends_nothing() -> void:
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
 	var compound := _compound(_other, Vector2i(6, 4))
 	var pool := _spent_pool(beneficiary)
-	compound.garrison._emit_positional_bonus()
+	_prison_of(compound)._emit_positional_bonus()
 	assert_almost_eq(pool._timers[0], 100.0, 0.0001)
 
 
@@ -244,26 +251,26 @@ func test_an_unfinished_compound_lends_nothing() -> void:
 	var compound := _compound(_commander, Vector2i(6, 4))
 	compound.build_progress = Actor.INITIAL_BUILD_PROGRESS
 	var pool := _spent_pool(beneficiary)
-	compound.garrison._emit_positional_bonus()
+	_prison_of(compound)._emit_positional_bonus()
 	assert_almost_eq(pool._timers[0], 100.0, 0.0001)
 
 
-func test_an_unpowered_compound_lends_nothing() -> void:
+func test_an_defective_compound_lends_nothing() -> void:
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
 	var compound := _compound(_commander, Vector2i(6, 4))
 	_commander.add_infrastructure(-500)
-	assert_true(_commander.is_infrastructure_strained(), "the fixture is actually strained")
+	assert_true(_commander.is_in_defection(), "the fixture is actually in defection")
 	var pool := _spent_pool(beneficiary)
-	compound.garrison._emit_positional_bonus()
+	_prison_of(compound)._emit_positional_bonus()
 	assert_almost_eq(pool._timers[0], 100.0, 0.0001)
 
 
 func test_a_piece_that_does_not_grant_work_detail_lends_nothing() -> void:
-	# A structure with a Garrison but no Work Detail grant — a plain shelter, say — must not
-	# start handing out the bonus just because something in it got consumed.
+	# A prison with no Work Detail grant must not start handing out the bonus just because
+	# something in it got consumed.
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
 	var plain: Actor = FakePieces.structure(
-		{"dimensions": Vector2i(2, 2), "garrison": {"capacity": 4}}
+		{"dimensions": Vector2i(2, 2), "occupant_dominion": true, "garrison": {"capacity": 4}}
 	)
 	_world.add_child(plain)
 	plain.set_physics_process(false)
@@ -271,5 +278,5 @@ func test_a_piece_that_does_not_grant_work_detail_lends_nothing() -> void:
 	plain.commander = _commander
 	_register(plain, Vector2i(6, 4))
 	var pool := _spent_pool(beneficiary)
-	plain.garrison._emit_positional_bonus()
+	_prison_of(plain)._emit_positional_bonus()
 	assert_almost_eq(pool._timers[0], 100.0, 0.0001)

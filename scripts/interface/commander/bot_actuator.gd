@@ -1,14 +1,15 @@
 class_name BotActuator
 extends RefCounted
 
-## BotActuator — the ONLY place the bot mutates game state.
+## BotActuator — the ONLY place a computer commander mutates game state: the bot's managers,
+## and a mission's scripted orders (ScenarioTriggerManager.mission_actuator), each through its
+## own instance so their usage ledgers stay apart.
 ##
 ## The strategy managers (military / production / economy) decide WHAT to do by
 ## reading the Bot's perception; they call into this thin layer to actually issue
 ## commands. Keeping all command construction here means the decision code stays
-## pure and testable, and there's a single audited surface for "the bot did a
-## thing". Mirrors the proven programmatic command paths (EventCommandPoint /
-## EventIssueCommand): build a CommandMessage, wrap it in a Command, then
+## pure and testable, and there's a single audited surface for "a computer commander did a
+## thing". Every verb builds a CommandMessage, wraps it in a Command, then
 ## update_commands + load_destination so the nav target is primed.
 
 ## The one refusal the actuator raises itself: a type no tool produces is not a command's to
@@ -178,6 +179,36 @@ func attack(a_units: Array, a_target: Entity, a_persist: bool = true) -> void:
 		var cmd := Attack.new(msg)
 		u.update_commands(cmd)
 		u.load_destination(cmd)
+
+
+## Give `a_unit` an authored chain of orders, replacing what it was doing — a mission's scripted
+## route, built by EventCommand children. MISSION CODE ONLY: the bot never queues, because it
+## would have to decide how long a queue to build, while an author-written chain is a queue
+## already decided (tests/test_BotCommandCoverage.gd keeps this out of the bot's own modules).
+## The first order is asked its precondition like every other verb, and the chain is refused
+## whole when it fails. Returns whether the chain was issued.
+func issue_chain(a_unit: Actor, a_chain: Array[MoveCommand]) -> bool:
+	if a_chain.is_empty():
+		return false
+	var first: MoveCommand = a_chain[0]
+	if not _admits(first.get_script(), a_unit, first.message, "chain", a_unit.id):
+		return false
+	a_unit.update_commands(a_chain)
+	# Prime the nav target: a fresh agent defaults target_position to (0,0,0), so without this a
+	# destination at the map centre is silently dropped.
+	a_unit.load_destination(first)
+	return true
+
+
+## Whether `a_builder` may place a structure of `a_type` at `a_world_pos` right now, asked as
+## `build` asks it but without issuing or recording anything: what a policy reads before it
+## spends a builder's order on a site that is already taken.
+func would_build(a_builder: Actor, a_type: StringName, a_world_pos: Vector3) -> bool:
+	var tool := Tool.for_type(a_type)
+	if tool == null:
+		return false
+	var msg := CommandMessage.new(_map, null, tool, a_world_pos)
+	return Build.meets_precondition(a_builder, msg) == MoveCommand.PreconditionFailureCause.NONE
 
 
 ## Order a builder to place a structure of `type` at a world position. For an Extractor

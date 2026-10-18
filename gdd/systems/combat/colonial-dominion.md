@@ -29,14 +29,15 @@ buildings it supports.
 ## A captive serves a sentence
 
 **A deposit no longer converts a captive into a Servant.** The captive is held as itself for
-`sentence_length`, and pays dominion each cycle while it serves. The Compound's income therefore
+its sentence (`OccupantDominionGenerator.SENTENCE_SECONDS`), and pays dominion each cycle while it
+serves. The Compound's income therefore
 follows the arrival rate rather than climbing to capacity and staying there.
 
 **A Compound sentences ONE captive at a time (Alex, 2026-10-05).** The captive serving pays
 `dominion_per_unit` (25 per 5 s cycle, 5/s) for its 30 s term, 150 in all; the others wait their
 turn in arrival order, paying nothing, their terms not yet started. The places beyond the first
 are a QUEUE, not extra earners: they let a truck unload a full cage in one visit and keep the Compound
-busy between deliveries. `Garrison.SENTENCES_AT_ONCE` / `Garrison.paying_count()`.
+busy between deliveries. `OccupantDominionGenerator.SENTENCES_AT_ONCE` / `.paying_count()`.
 
 Why one at a time rather than all at once: with every captive serving at once, a Compound's
 income is its occupancy times the rate, so its capacity is a second rate knob tangled with the
@@ -47,7 +48,7 @@ The pitfall accepted: a Compound fed faster than one captive per 30 s backs up a
 deposits, so working two Shelters into one Compound wastes trucks — the player builds a second
 Compound instead, which is the decision this is meant to create.
 
-`sentence_length` is a constant. With one-at-a-time serving it sets the value of one captive and
+The sentence is a constant. With one-at-a-time serving it sets the value of one captive and
 how many captives per minute a Compound can turn over (two).
 
 **A finished sentence CONSUMES the captive.** The unit is removed from the game; the Compound
@@ -142,13 +143,13 @@ Tasking a truck on a Shelter is its own system, and the first consumer of it:
 
 ## Work order
 
-1. ✅ **Sentences.** `sentence_length` on the garrison, a per-occupant term, and consumption at
+1. ✅ **Sentences.** A per-occupant term, and consumption at
    the end of it. Retired `garrison.interns` as the deposit marker, and closed the Compound's
    garrison (the Servants-only allowlist gone). `CLAUDE.md` §Terminology's closed-garrison
    example changed in the same change, and the deferred item for the bot parking a spare Servant
-   for dominion — retired, because there is nowhere to park one now. `Garrison.deposit_from` /
-   `Garrison.simulation_step` / `scripts/entities/components/garrison.gd`.
-2. ✅ **The positional bonus.** Emitted on completion (`Garrison._emit_positional_bonus` →
+   for dominion — retired, because there is nowhere to park one now. Moved off the Garrison into
+   `OccupantDominionGenerator` on 2026-10-11, its rules made constants.
+2. ✅ **The positional bonus.** Emitted on completion (`OccupantDominionGenerator._emit_positional_bonus` →
    `Abilities.reduce_all_cooldowns`); the passive recharge-rate constant is retired and
    `work_detail`'s ability doc rewritten around the event.
 3. ✅ **Piece values.** Stock Truck (`armour: MEDIUM`; its speed has since returned to `QUICK`) via the spec doc and an
@@ -156,7 +157,7 @@ Tasking a truck on a Shelter is its own system, and the first consumer of it:
    Shelter is not yet part of the spec-doc schema (`tools/spec_import/README.md` §Doc schema).
 4. ✅ **Tasking.** [commands/unit-tasking](../commands/unit-tasking.md) — `TaskShelter`. The bot
    does not issue it yet (`tests/test_BotCommandCoverage.gd`).
-5. ✅ **Calibration** (2026-10-05). One-at-a-time sentencing, `sentence_length: 30` on the
+5. ✅ **Calibration** (2026-10-05). One-at-a-time sentencing, a 30 s sentence on the
    Compound, `dominion_per_unit` 25, the Servant at 200 energy — chosen from the sweep in
    [pacing/dominion-rate-analysis](../macroeconomics/pacing/dominion-rate-analysis.md).
 

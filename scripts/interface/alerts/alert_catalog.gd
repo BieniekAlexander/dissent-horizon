@@ -14,7 +14,7 @@ enum Type {
 	STRUCTURES_ATTACKED,
 	STEALTH_DETECTED,
 	ENERGY_FLOATING,
-	INFRASTRUCTURE_STRAINED,
+	DEFECTION,
 	SUPERWEAPON_BEGUN,
 	SUPERWEAPON_BUILT,
 	SUPERWEAPON_READY,
@@ -146,7 +146,7 @@ static var DEFINITIONS: Dictionary = {
 		"repeat_seconds": 60.0,
 		"text": "Unspent energy is piling up",
 	},
-	Type.INFRASTRUCTURE_STRAINED:
+	Type.DEFECTION:
 	{
 		"negative": true,
 		"kind": Kind.STATE,
@@ -157,7 +157,7 @@ static var DEFINITIONS: Dictionary = {
 		"suppress_seconds": 0.0,
 		"sustain_seconds": 1.0,
 		"repeat_seconds": 45.0,
-		"text": "Infrastructure over capacity",
+		"text": "Defection: infrastructure over capacity",
 	},
 	Type.SUPERWEAPON_BEGUN:
 	{

@@ -21,7 +21,7 @@ class FakeBot:
 	var demand: int = 0
 	var route: DominionRoute = null
 	var preview: Entity = null
-	var strained: bool = false
+	var in_defection: bool = false
 	var provider_is_unit: bool = true
 	var producers: Array = []
 
@@ -47,7 +47,7 @@ class FakeBot:
 		return preview
 
 	func needs_infrastructure_provider() -> bool:
-		return strained
+		return in_defection
 
 	func infrastructure_source_is_unit() -> bool:
 		return provider_is_unit
@@ -242,16 +242,16 @@ func _production(a_bot: FakeBot) -> Array:
 	return [autofree(production), autofree(actuator)]
 
 
-func test_a_strained_bot_trains_its_infrastructure_unit_first() -> void:
+func test_a_bot_in_defection_trains_its_infrastructure_unit_first() -> void:
 	var bot := _bot()
-	bot.strained = true
+	bot.in_defection = true
 	var producer := _producer()
 	var made: Array = _production(bot)
 	assert_eq((made[0] as BotProduction)._train_infrastructure_unit([producer]), producer)
 	assert_eq((made[1] as RecordingActuator).trained, [[producer, SURVEYOR]])
 
 
-func test_an_unstrained_bot_trains_no_infrastructure_unit() -> void:
+func test_a_bot_not_in_defection_trains_no_infrastructure_unit() -> void:
 	var bot := _bot()
 	var made: Array = _production(bot)
 	assert_null((made[0] as BotProduction)._train_infrastructure_unit([_producer()]))
@@ -260,7 +260,7 @@ func test_an_unstrained_bot_trains_no_infrastructure_unit() -> void:
 
 func test_a_structure_provider_is_left_to_the_economy() -> void:
 	var bot := _bot()
-	bot.strained = true
+	bot.in_defection = true
 	bot.provider_is_unit = false
 	var made: Array = _production(bot)
 	assert_null((made[0] as BotProduction)._train_infrastructure_unit([_producer()]))

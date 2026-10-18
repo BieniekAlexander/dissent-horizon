@@ -35,7 +35,7 @@
 [ext_resource type="Script" uid="uid://bybghbb1kr1fq" path="res://scripts/scenario/events/event_command_target.gd" id="30_4c05j"]
 [ext_resource type="PackedScene" uid="uid://cdgbo5xwji08j" path="res://scenes/scenarios/prologue/win_dialog.tscn" id="31_1v7fj"]
 [ext_resource type="PackedScene" uid="uid://tcx25lew0ufg" path="res://scenes/scenarios/prologue/s2/sanction_tutorial.tscn" id="33_4c05j"]
-[ext_resource type="PackedScene" uid="uid://b6oqu7bqdu6sy" path="res://scenes/entities/structures/cl/cl_infrastructure.tscn" id="36_hnwh1"]
+[ext_resource type="PackedScene" path="res://scenes/scenarios/prologue/cl_infrastructure_no_dominion.tscn" id="36_hnwh1"]
 [ext_resource type="Script" uid="uid://cmb6jbyknp4a4" path="res://scripts/scenario/conditions/condition_unit_count.gd" id="36_puxud"]
 [ext_resource type="PackedScene" uid="uid://cay5kr6vpi16w" path="res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn" id="36_wuk2q"]
 [ext_resource type="PackedScene" uid="uid://b8bcrcywyaj27" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="37_3gtty"]
@@ -751,7 +751,7 @@ texture = ExtResource("10_1wxwt")
 script = ExtResource("20_dwboj")
 commander_id = 1
 entity_scenes = Array[PackedScene]([ExtResource("37_3gtty")])
-count_expression = "6"
+count_expression = "3"
 garrison_host = NodePath("..")
 metadata/_custom_type_script = "uid://tm1rdm5spju8"
 
@@ -769,7 +769,7 @@ texture = ExtResource("10_1wxwt")
 script = ExtResource("20_dwboj")
 commander_id = 1
 entity_scenes = Array[PackedScene]([ExtResource("37_3gtty")])
-count_expression = "6"
+count_expression = "3"
 garrison_host = NodePath("..")
 metadata/_custom_type_script = "uid://tm1rdm5spju8"
 
@@ -847,13 +847,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, -20.500366)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.5, 0, -27.500366)
 
 [node name="Structure7" parent="." unique_id=133448847 groups=["garrison_tutorial_buildings"] instance=ExtResource("38_jswnn")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.5, 0, -27.500366)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.5, 0, -27.500366)
 
 [node name="Structure8" parent="." unique_id=518317611 groups=["garrison_tutorial_buildings"] instance=ExtResource("38_jswnn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.5, 0, 3.4996338)
 
 [node name="Structure9" parent="." unique_id=170911617 groups=["garrison_tutorial_buildings"] instance=ExtResource("38_jswnn")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.5, 0, 1.4996338)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.5, 0, 1.4996338)
 
 [node name="Structure4" parent="." unique_id=1674193489 groups=["garrison_tutorial_buildings"] instance=ExtResource("38_jswnn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 0, -20.500366)
@@ -862,4 +862,4 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 0, -20.500366)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.5, 1, 2.4996338)
 
 [node name="Structure3" parent="." unique_id=1421680683 groups=["garrison_tutorial_buildings"] instance=ExtResource("38_jswnn")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.5, 1, 5.499634)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.5, 1, 4.499634)

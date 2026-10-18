@@ -5,7 +5,7 @@ type: system-note
 
 # Tech investment
 
-**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md). Symbols follow
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](systems/macroeconomics/pacing/README.md). Symbols follow
 [timings](../../../design-framework/timings.md) §Symbols.
 
 ## What a tier buys: variance, not just mean

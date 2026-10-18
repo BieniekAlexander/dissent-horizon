@@ -457,18 +457,18 @@ func test_approaching_capacity_warns_steadily_in_the_spare_region() -> void:
 		-int(Commander.BASE_INFRASTRUCTURE * ResourcePressure.INFRASTRUCTURE_PRESSURE_FRACTION)
 	)
 	bar.commander = commander
-	assert_false(commander.is_infrastructure_strained(), "the fixture is not yet over capacity")
+	assert_false(commander.is_in_defection(), "the fixture is not yet over capacity")
 	assert_eq(bar._fill_regions()[1].color, ResourcePressure.INFRASTRUCTURE_PRESSURE_COLOR)
 
 
-func test_strained_infrastructure_oscillates_the_excess_region() -> void:
+func test_defection_oscillates_the_excess_region() -> void:
 	var bar := autofree(InfrastructureBar.new()) as InfrastructureBar
 	var commander := _make_commander()
 	# Past the default 500 visual threshold too, so required alone sets the bar's scale —
 	# the case where the excess region's own end_frac reaches the bar's right edge.
 	commander.add_infrastructure(-600)
 	bar.commander = commander
-	assert_true(commander.is_infrastructure_strained(), "the fixture is actually strained")
+	assert_true(commander.is_in_defection(), "the fixture is actually in defection")
 	var regions: Array[Dictionary] = bar._fill_regions()
 	assert_almost_eq(
 		regions[1].end_frac,
@@ -728,13 +728,13 @@ func test_a_purchase_costing_more_dominion_than_the_scale_grows_the_bar_to_fit()
 ## one exception: `_make_tasked_commander()` builds a real, live-tree Shelter/Compound/truck
 ## triple, added under an autofreed root so `_ready()` runs normally. Shelter and Compound
 ## sit at the SAME position, so transport never binds and the projected rate reduces to
-## `dominion_per_unit * min(shelter_rate * sentence_length, SENTENCES_AT_ONCE)` — see
+## `dominion_per_unit * min(shelter_rate * SENTENCE_SECONDS, SENTENCES_AT_ONCE)` — see
 ## test_ProjectedDominionRate.gd for the formula itself, including the transport-bound case;
 ## this file only needs SOME known positive rate to exercise the bar's own math.
 
 ## A commander with one truck tasked on a Shelter that feeds an adjacent Compound —
-## `EXPECTED_PROJECTED_RATE` dominion/s, by construction (8 dominion/occupant * min(0.1
-## captives/s * 5s term, 1 serving) = 8 * 0.5 = 4). Deliberately small enough that its
+## `EXPECTED_PROJECTED_RATE` dominion/s, by construction (8 dominion/occupant * min(1/60
+## captives/s * 30 s term, 1 serving) = 8 * 0.5 = 4). Deliberately small enough that its
 ## 60-second projection does not itself hit the bar's own clamp (see
 ## test_an_enormous_income_rate_fills_the_rest_of_the_bar_without_growing_it for that case).
 const EXPECTED_PROJECTED_RATE: float = 4.0
@@ -752,14 +752,13 @@ func _make_tasked_commander() -> Commander:
 	world.add_child(shelter)
 	shelter.set_physics_process(false)
 	shelter.top_level = true
-	(shelter.get_node("Shelter") as Shelter).spawn_interval = 10.0
+	(shelter.get_node("Shelter") as Shelter).spawn_interval = 60.0
 
 	var compound: Actor = FakePieces.make(FakePieces.COMPOUND) as Actor
 	world.add_child(compound)
 	compound.set_physics_process(false)
 	compound.top_level = true
 	compound.commander = commander
-	compound.garrison.sentence_length = 5.0
 	compound.garrison.capacity = 100
 	(compound.get_node("DominionGenerator") as OccupantDominionGenerator).dominion_per_unit = 8
 

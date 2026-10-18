@@ -435,12 +435,12 @@ func _decide() -> void:
 	# Before expanding further, make sure there's infrastructure headroom: if we're low on
 	# spare capacity, stand up the faction's infrastructure provider (power plant / safehouse)
 	# first. While one is needed we don't add more buildings — if it's not
-	# affordable yet we bank for it rather than digging the strain deeper.
-	# Strain does not fall until the provider is FINISHED, so this rung stays true for the
+	# affordable yet we bank for it rather than digging the defection deeper.
+	# Defection does not fall until the provider is FINISHED, so this rung stays true for the
 	# whole build — an in-flight job for the same type is what stops a second builder joining.
 	if _bot.needs_infrastructure_provider():
 		# A faction whose provider is a TRAINED unit (the Technocratic Surveyor) gets it from
-		# BotProduction, which trains one ahead of everything while strained. The economy's
+		# BotProduction, which trains one ahead of everything while in defection. The economy's
 		# part is the same as for a structure provider — no new buildings until it is up — so
 		# it banks. Only with nothing able to train the unit does it fall back to building a
 		# structure that supplies infrastructure (for the Technocracy, the Outpost, which also

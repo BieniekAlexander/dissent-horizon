@@ -64,11 +64,11 @@ const JOB_COMMANDS: int = 4
 const JOB_TRANSACTION: int = 5
 var training_queue: Array = []
 
-## Build-rate fraction applied while the owning commander is infrastructure-strained (upkeep
+## Build-rate fraction applied while the owning commander is in defection (upkeep
 ## exceeds capacity) — production runs at half speed.
-const STRAINED_RATE: float = 0.5
+const DEFECTION_RATE: float = 0.5
 
-## Fractional build progress carried across ticks so a sub-1.0 rate (the strained
+## Fractional build progress carried across ticks so a sub-1.0 rate (the defection
 ## penalty) still advances the integer countdown smoothly.
 var _progress_accum: float = 0.0
 
@@ -220,7 +220,7 @@ func cancel(a_index: int) -> bool:
 
 ## Ticks of work left here — the active job's remaining ticks, or 0 when free. Still a sum
 ## because the job list is still an array (see training_queue), and correct either way.
-## Deliberately ignores the infrastructure-strain rate, which applies to all of one commander's
+## Deliberately ignores the defection rate, which applies to all of one commander's
 ## producers equally and so can't change their relative order.
 func remaining_ticks() -> int:
 	var total: int = 0
@@ -244,7 +244,7 @@ func job_progress(a_i: int) -> float:
 func tick() -> bool:
 	if training_queue.is_empty():
 		return false
-	# Advance by the current build rate (1.0 normally, STRAINED_RATE while the
+	# Advance by the current build rate (1.0 normally, DEFECTION_RATE while the
 	# commander is over its infrastructure upkeep). The fractional accumulator turns a 0.5
 	# rate into "advance one tick of progress every other frame" = half speed.
 	_progress_accum += _build_rate()
@@ -266,15 +266,15 @@ func tick() -> bool:
 	return false
 
 
-## Normal speed, halved while the owning commander is infrastructure-strained.
+## Normal speed, halved while the owning commander is in defection.
 func _build_rate() -> float:
 	var entity: Entity = get_parent() as Entity
 	if (
 		entity != null
 		and entity.commander != null
-		and entity.commander.is_infrastructure_strained()
+		and entity.commander.is_in_defection()
 	):
-		return STRAINED_RATE
+		return DEFECTION_RATE
 	return 1.0
 
 

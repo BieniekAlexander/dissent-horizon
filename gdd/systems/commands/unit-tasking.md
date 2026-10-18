@@ -74,7 +74,7 @@ ignore a direct instruction and silently goes back to work.
   resident is seen on the next tick without anything having to announce it. A signal would
   only earn its keep the day something needs to react to an ARRIVAL rather than poll a state.
 - **A Compound says whether it can take a deposit and has room.** Both questions exist on the
-  garrison already (`Garrison.can_intern`, `has_room_for`/`can_garrison`).
+  garrison already (`OccupantDominionGenerator.prison_of`, `has_room_for`/`can_garrison`).
 - **The receiver keeps the task under a pushed command.** The mechanism that defers an order and
   resumes it is already there for rearming aircraft — `get_updated_state` returning a different
   command IS the general form of it (`CommandReceiver._process_commands`'s reactive-swap

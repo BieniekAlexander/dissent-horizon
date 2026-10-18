@@ -15,7 +15,7 @@ It is repeated here only as far as this game needs it.
 ## Pillars
 
 1. **Readable first.** Silhouette, then effects, then detail. Fights are decided by matchups,
-   so frame (bio/mech) and armour class must read at a glance (see [README](README.md) §Models).
+   so frame (bio/mech) and armour class must read at a glance (see [README](systems/ux/aesthetics/README.md) §Models).
 2. **Ideology made visible.** Each faction's look expresses its politics, including the
    contradiction in it. *(world-level)*
 3. **A lived-in world under occupation.** Maps hold earlier civilisation: legacy buildings,

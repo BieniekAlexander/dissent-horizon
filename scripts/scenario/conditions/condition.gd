@@ -18,6 +18,17 @@ extends Resource
 ## colliding with Resource's built-in `changed` signal.
 signal state_changed
 
+## Whose knowledge a check reads. OMNISCIENT (the default, and every shipped mission) reads the
+## live scene; ALLIANCE reads what `perspective_commander_id`'s alliance believes
+## (AlliancePerspective) — the fog-limited reading for a check that decides on a computer
+## commander's behalf. Only a check over pieces can honour it (honours_perspective); the owning
+## trigger warns when it is set on one that cannot.
+enum Perspective { OMNISCIENT, ALLIANCE }
+
+@export var perspective: Perspective = Perspective.OMNISCIENT
+## Any member of the alliance whose beliefs an ALLIANCE check reads.
+@export var perspective_commander_id: int = 1
+
 
 #region Public API
 ## Current truth, computed live. PULL subclasses inspect game state here; PUSH
@@ -67,6 +78,31 @@ func bind_trigger(a_trigger: GlobalTrigger) -> void:
 ## authored expressions. 0 when unbound, so an unowned condition still evaluates.
 func owner_fire_count() -> int:
 	return _trigger.fire_count if is_instance_valid(_trigger) else 0
+
+
+## Where this check takes `a_piece` to stand: live under OMNISCIENT, the alliance's belief
+## under ALLIANCE — null when the alliance knows of no such piece, and a check then leaves it out.
+func perceived_position(a_manager: ScenarioTriggerManager, a_piece: Node3D) -> Variant:
+	if perspective == Perspective.OMNISCIENT:
+		return a_piece.global_position
+	return AlliancePerspective.position_of(a_manager, perspective_commander_id, a_piece)
+
+
+## Whether this check reads `perspective` — one over pieces does; a timer or a resource
+## threshold has nothing an alliance could fail to see.
+func honours_perspective() -> bool:
+	return false
+
+
+## The authoring problem with `perspective`, or "": an ALLIANCE check that cannot honour it would
+## silently read the live scene.
+func perspective_warning() -> String:
+	if perspective == Perspective.OMNISCIENT or honours_perspective():
+		return ""
+	return (
+		"%s reads the live scene whatever its Perspective; set it back to OMNISCIENT"
+		% get_script().get_global_name()
+	)
 
 
 ## An editor-time problem with how this condition is authored, or "" when it is fine.

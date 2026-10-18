@@ -26,6 +26,9 @@ one page, `MainMenu.page`:
 | OPTIONS | master volume (not saved, `TODO`) and the alert jump key's scope (saved) |
 
 - **Arcade** is a disabled button labelled WIP: the mode is not built.
+- CAMPAIGN opens a mission at the difficulty picked above its list (EASY / MEDIUM / HARD, MEDIUM
+  until changed, not saved): the `difficulty` its triggers read, which leaves its bots as authored —
+  [scenario-scripting/tactics](../../scenario-scripting/tactics.md) §Trigger-decided mission commanders.
 - **Back** on every page, and Escape, return to MAIN. The lobby's Back is its own (it must stay
   locked while a map is generating).
 - **Quit** goes through `SceneManager.quit_game`, which announces `quit_requested` before
