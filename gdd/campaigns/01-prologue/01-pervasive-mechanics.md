@@ -78,13 +78,16 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
      enemy the east.
   8. **The south lane** (added 2026-10-18): a second west–east lane south of the main corridor,
      about 100 long and 16 wide, joined to the main corridor's west end. West to east:
-     - two more prison Compounds with the same chain of hazards, each holding a Warlord and 3
-       Irregulars of the player's (their garrisons raised from 3 to 4 to fit);
+     - two more prison Compounds, each holding a Warlord and 3 Irregulars of the player's (their
+       garrisons raised from 3 to 4 to fit), with the chain of hazards on their WEST side, the
+       side the player comes from: wrapped round the corner each grid-aligned Compound shows to
+       the west;
      - a guard post: 4 Recruits and 2 Clippers on Defend;
      - three neutral buildings together; beyond them 12 Recruits in three groups of 4, who
        attack-move west down the lane the moment a player's unit enters the buildings' region;
      - at the lane's end, 3 [SAM sites](../../factions/colonial/structures/cl_defense_antiAircraft.md)
-       with 2 Compounds among them, each holding 2 of the enemy's own Recruits (no hazards), and
+       with 2 Compounds among them, each holding 2 of the player's Irregulars (no hazards: the
+       player brings them down by force), and
        3 of the ally's [Ravens](../../factions/anarchical/units/an_aircraftLight_transport.md)
        parked on the ground. When all three SAM sites are down the Ravens become the player's.
 - **Statics:**

@@ -85,6 +85,16 @@ const PRISON_COMPOUNDS: Array[Vector2] = [Vector2(-65, 53), Vector2(-53, 53)]
 ## blast. Racks are 1x1 structures, so their offsets are cell centres.
 const RACK_OFFSETS: Array[Vector2] = [Vector2(2.5, -0.5), Vector2(2.5, 1.5)]
 const CELL_OFFSETS: Array[Vector2] = [Vector2(2.5, -1.4), Vector2(2.5, 2.4), Vector2(1.8, 2.3)]
+## The south lane's prisons have theirs on the WEST, the side the player comes from (Alex,
+## 2026-10-18): the lane runs at 45° to the grid, so a grid-aligned Compound shows a corner to the
+## west — grid (-2, +2) — and the chain wraps it. The racks stand one on each face beside that
+## corner, 1.4 apart; a cell sits in the corner and one against each face past each rack, each
+## 0.9 from a rack — the face cells' blasts are what finish the Compound at once: with them out
+## beyond the racks instead, the blasts left it at 66 of 750 and it burned for 8 s.
+const WEST_RACK_OFFSETS: Array[Vector2] = [Vector2(-2.5, 1.5), Vector2(-1.5, 2.5)]
+const WEST_CELL_OFFSETS: Array[Vector2] = [
+	Vector2(-2.4, 2.4), Vector2(-2.4, 0.6), Vector2(-0.6, 2.4)
+]
 ## The Recruits' clearing in SKIRMISH, which they defend.
 const OUTPOST := Vector2(-22, 48)
 const OUTPOST_GROUP: StringName = &"prologue_m1_outpost"
@@ -158,9 +168,9 @@ const ENEMY_WAVE_TARGET := Vector2(0, 0)
 ## - three neutral buildings together, and beyond them 12 Recruits in three groups of 4, who
 ##   attack-move down the lane at the player the moment a player's unit enters the buildings'
 ##   region;
-## - at the lane's end, 3 SAM sites with 2 Compounds among them (2 of the enemy's own Recruits
-##   in each, no hazards), and 3 of the ally's Ravens parked on the ground, which become the
-##   player's when all three SAM sites are down.
+## - at the lane's end, 3 SAM sites with 2 Compounds among them (2 of the player's Irregulars
+##   in each, no hazards — the player brings them down by force), and 3 of the ally's Ravens
+##   parked on the ground, which become the player's when all three SAM sites are down.
 const SOUTH_PRISONS: Array[Vector2] = [Vector2(8, -32), Vector2(20, -32)]
 const SOUTH_PRISON_CAPACITY: int = 4
 const LANE_GUARD := Vector2(36, -32)
@@ -179,7 +189,7 @@ const CHARGE_GROUP: StringName = &"prologue_m1_chargers"
 const CHARGE_TARGET := Vector2(-4, -32)
 const SAM_SITES: Array[Vector2] = [Vector2(76, -32), Vector2(85, -26.5), Vector2(86, -37.5)]
 const END_COMPOUNDS: Array[Vector2] = [Vector2(80, -28.5), Vector2(80, -35.5)]
-const END_COMPOUND_RECRUITS: int = 2
+const END_COMPOUND_PRISONERS: int = 2
 const RAVENS: int = 3
 const RAVENS_AT := Vector2(87, -32)
 const RAVEN_GROUP: StringName = &"prologue_m1_ravens"
@@ -222,14 +232,16 @@ func _ready() -> void:
 	for at: Vector2 in FIELD_COMPOUNDS:
 		_place(root, COMPOUND, ENEMY, at, "FieldCompound")
 	for at: Vector2 in SOUTH_PRISONS:
-		var held: Node3D = _prison(root, at, [[WARLORD, 1], [IRREGULAR, PRISONERS]])
+		var held: Node3D = _prison(
+			root, at, [[WARLORD, 1], [IRREGULAR, PRISONERS]], WEST_RACK_OFFSETS, WEST_CELL_OFFSETS
+		)
 		(held.get_node("Garrison") as Garrison).capacity = SOUTH_PRISON_CAPACITY
 	for entry: Array in LANE_BUILDINGS:
 		_place(root, entry[0], 0, entry[1], "LaneBuilding")
 	for at: Vector2 in SAM_SITES:
 		_place(root, SAM_SITE, ENEMY, at, "SamSite")
 	for at: Vector2 in END_COMPOUNDS:
-		_hold(root, at, "EndCompound", ENEMY, [[RECRUIT, END_COMPOUND_RECRUITS]])
+		_hold(root, at, "EndCompound", PLAYER, [[IRREGULAR, END_COMPOUND_PRISONERS]])
 	var house: Node3D = _place(root, BUILDING_SQUARE, 0, GARRISON_HOUSE, GARRISON_HOUSE_NAME)
 	house.name = GARRISON_HOUSE_NAME
 
@@ -336,11 +348,17 @@ func _place(
 ## prisoners back to the player (Garrison: a dead host's captives return to their own
 ## commander). The Compound is snapped to whole cells first, so the hazard offsets land on the
 ## cells beside its footprint.
-func _prison(a_root: Node, a_at: Vector2, a_contents: Array) -> Node3D:
+func _prison(
+	a_root: Node,
+	a_at: Vector2,
+	a_contents: Array,
+	a_racks: Array[Vector2] = RACK_OFFSETS,
+	a_cells: Array[Vector2] = CELL_OFFSETS
+) -> Node3D:
 	var compound: Node3D = _hold(a_root, a_at, "PrisonCompound", PLAYER, a_contents)
-	for offset: Vector2 in RACK_OFFSETS:
+	for offset: Vector2 in a_racks:
 		_place_at(a_root, BATTERY_RACK, compound.position + Vector3(offset.x, 0.0, offset.y))
-	for offset: Vector2 in CELL_OFFSETS:
+	for offset: Vector2 in a_cells:
 		_place_at(a_root, POWER_CELL, compound.position + Vector3(offset.x, 0.0, offset.y))
 	return compound
 
