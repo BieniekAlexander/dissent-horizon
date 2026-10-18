@@ -76,3 +76,11 @@ It counts **Nodes**, not Entities, since a group may hold anything; `highlight_e
 - Nodes **already queued for deletion don't count**. `get_nodes_in_group` still returns a `queue_free`d node until the end of the frame, so a "wipe out the wave" check would otherwise resolve a tick late.
 
 Note that `AT_MOST 0` is true *before the wave exists*, so a "clear the ambush" objective must be gated behind the spawning trigger — `prerequisites` is exactly that.
+
+## Spawning beside a group (`follow_group`)
+
+`EventSpawnEntities.follow_group` anchors a spawn on a LABELLED group's centre at the moment the event runs, instead of at a fixed point: reinforcements that fall on a squad wherever it walked to. `follow_offset` moves the anchor from that centre; with `follow_away_from` set, its `x` runs from that node through the centre and on (positive: further away) and its `y` across that line, so "12 beyond the squad, as seen from the building" stays beyond it whatever way it went. With nobody of the group in the world, the usual anchor (`spawn_position`, or the event's own position) is used. Added 2026-10-18 for prologue mission 1, whose Clippers must appear out of a garrisoned Warlord's reach.
+
+## Beats a rule can read (`ConditionTriggerFired`, `ConditionGarrisonOccupied`)
+
+A `TacticRule` takes ONE condition, so a squad that changes what it does as a mission's beats land reads each beat's TRIGGER — `ConditionTriggerFired`, true once the named `GlobalTrigger` has fired — and the trigger is where the beat's several conditions are combined. Rules are first-match, so the latest beat is listed first. `ConditionGarrisonOccupied` is true while a named host holds at least `count` of a commander's units: "the player has taken cover". Both find their subject by NAME (the trigger anywhere under the manager, the host in `"piece"`), as `ConditionEntityKilled` does, because a placed piece is reparented under its commander at runtime and a NodePath would not survive it.

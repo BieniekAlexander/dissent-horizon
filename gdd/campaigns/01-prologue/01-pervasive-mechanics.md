@@ -39,32 +39,43 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
 - **Starting force:** one [Warlord](../../factions/anarchical/units/an_bioMedium_dominionGen.md),
   in a clearing southwest of the ally's start.
 - **Map:** flat regions joined into one route, with hills too steep to cross everywhere else
-  (expanded 2026-10-18). The hills are about 3 high: a steep face, then a flat top nothing can
-  reach. Neutral buildings: none for now.
-  1. **Start:** the player's clearing, southwest of the ally's start. It does not open onto the main
+  (expanded 2026-10-18, and again the same day for the reordered beats). The hills are about 3
+  high: a steep face, then a flat top nothing can reach. The beats come in this order, and the
+  ally's squad — the Irregulars of the rescue — leads the player through the first four:
+  1. **Start:** the player's clearing, southwest of everything. It does not open onto the main
      corridor.
-  2. **West corridor:** north from the start, about 22 wide. Partway up, the **rescue**: when the
-     player walks into a trigger, 9 of the ally's Irregulars appear ahead of them and 5 enemy Recruits
-     further north, and the two attack each other. An invisible Scout reveals the fight, since the
-     ally does not share vision. The trigger is meant to leave the player just out of the fight's reach.
-     Both triggers moved 10 south on 2026-10-18; the probe after that had the player arrive about
-     27 from the nearest Recruit, against the Warlord's reach of 12 (TODO — tune). When the Recruits
-     are dead the Irregulars push north onto a second trigger, which ends the fight's reveal, sends
-     2 Clippers at them and reveals where they strike. The Clippers spawn 8 cells apart, but both
-     assault one point, so they close up within seconds.
-  3. **The prisons:** at its north end, two enemy
-     [Compounds](../../factions/colonial/structures/cl_infrastructure.md), each holding 3 of the
-     player's Irregulars with its prison switched off (`OccupantDominionGenerator.is_disabled`), so
-     they serve no sentence. [Power cells](../../factions/neutral/tokens/nt_powerCell.md) and
+  2. **The rescue**, in the west corridor north of the start (about 22 wide): when the player walks
+     into a trigger, 9 of the ally's Irregulars appear ahead of them and 5 enemy Recruits further
+     north, and the two attack each other. An invisible reveal shows the fight, since the ally does
+     not share vision, and goes dark once the Recruits are dead. The trigger is meant to leave the
+     player just out of the fight's reach; the last probe had the player arrive about 27 from the
+     nearest Recruit, against the Warlord's reach of 12 (TODO — tune).
+  3. **The prisons**, at the corridor's north end: the squad walks there and waits, clear of the
+     hazards. Two enemy [Compounds](../../factions/colonial/structures/cl_infrastructure.md) each
+     hold 3 of the player's Irregulars with the prison switched off
+     (`OccupantDominionGenerator.is_disabled`), so they serve no sentence.
+     [Power cells](../../factions/neutral/tokens/nt_powerCell.md) and
      [battery racks](../../factions/neutral/structures/nt_batteryRack.md) stand against each
-     Compound, close enough that blowing them up destroys it; a destroyed Compound hands its
-     prisoners back to the player.
-  4. **The first skirmish:** east of the prisons, northwest of the ally's start, 3 Recruits defending
-     a clearing (the game's Defend order).
-  5. **Down into the main corridor:** a passage south from the skirmish joins the main corridor just
-     east of the ally's Safehouses.
-  6. **Main corridor:** west–east, about 80 cells long and 18 wide; the ally holds the west end and
-     the enemy the east.
+     Compound as one chain: shooting any of them sets off all of them, and the blasts destroy the
+     Compound, which hands its prisoners back to the player. A right-click on a volatile piece is an
+     attack ([the-click-ladder](../../systems/commands/the-click-ladder.md), rung 9).
+  4. **The outpost**, a short walk east: the player's first fight, 3 Recruits defending a clearing
+     (the game's Defend order). The squad stays out of it: it moves on only once both prisons are
+     down AND the outpost is cleared.
+  5. **The garrison**, further east along a road: the squad waits beside a neutral building. When
+     the player puts a unit inside it, the squad walks on east, about 26 past the building, and
+     there 2 Clippers fall on it — spawned 12 beyond the squad, as seen from the building, and 8
+     apart (`EventSpawnEntities.follow_group`). That keeps them out of the garrisoned Warlord's
+     reach until the squad is dead (Alex, 2026-10-18); then they turn on the building and the
+     Warlord shoots them down. A reveal shows the player the squad's end. The player evacuates and
+     walks on. Leaving the building is not losing a base (`Garrison.is_borrowed`).
+  6. **The fork**, past the building: walking into it reveals all of it. East is open ground with 4
+     [Watch Towers](../../factions/colonial/structures/cl_defense_antiLight.md) and 2 Compounds
+     behind them that power them — plainly approachable, worth coming back for — and an empty lane
+     running on east past them (nothing placed there yet). South, a narrow passage drops into the
+     main corridor between the two sides' bases, on the ally's side.
+  7. **Main corridor:** west–east, about 80 long and 18 wide; the ally holds the west end and the
+     enemy the east.
 - **Statics:**
   - Ally (west): [Safehouses](../../factions/anarchical/structures/an_infrastructure.md), each
     garrisoned with [Irregulars](../../factions/anarchical/units/an_bioLight_builder.md) from the

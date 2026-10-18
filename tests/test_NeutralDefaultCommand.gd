@@ -119,10 +119,14 @@ func _volatile(a_commander_id: int) -> Actor:
 
 
 func test_a_neutral_volatile_piece_resolves_to_an_attack() -> void:
+	# An OWNED shooter, whatever PLAYER_COMMANDER_ID the run has left behind: a neutral shooter
+	# is on the cell's side.
+	_actor = _spawn(ACTOR, 1)
 	var cell: Actor = _volatile(0)
 	assert_eq(_resolve(cell), Attack, "setting off its blast is what a click on it means")
 	assert_eq(_cursor(cell), RTSController.ATTACK_CURSOR, "and the cursor says so")
 
 
 func test_a_volatile_piece_on_the_actors_side_is_not_shot() -> void:
-	assert_ne(_resolve(_volatile(RTSController.PLAYER_COMMANDER_ID)), Attack)
+	_actor = _spawn(ACTOR, 1)
+	assert_ne(_resolve(_volatile(1)), Attack)

@@ -639,14 +639,21 @@ func eliminate() -> void:
 
 ## WHETHER THIS COMMANDER STILL HAS A BASE: at least one structure in play, or a purchase still
 ## on the production queue — a funded Build whose builder is walking is a comeback in flight. A
-## PLANNED structure is not a foothold. gdd/systems/ai/bot-architecture.md §When a side is
-## beaten.
+## PLANNED structure is not a foothold, and nor is a neutral building held only while this
+## commander's units sit in it (Garrison.is_borrowed): walking out of it again is not losing a
+## base (found 2026-10-18, when leaving cover in prologue mission 1 lost the mission).
+## gdd/systems/ai/bot-architecture.md §When a side is beaten.
 func has_production_base() -> bool:
 	if production_queue != null and not production_queue.is_empty():
 		return true
 	return _owned_commandables().any(
 		func(c: Actor) -> bool:
-			return c.structure_is_active() and not c.is_queued_for_deletion() and not c.is_planned
+			return (
+				c.structure_is_active()
+				and not c.is_queued_for_deletion()
+				and not c.is_planned
+				and not (c.garrison != null and c.garrison.is_borrowed())
+			)
 	)
 
 

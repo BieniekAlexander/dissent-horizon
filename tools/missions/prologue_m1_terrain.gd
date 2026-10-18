@@ -16,10 +16,13 @@ extends SceneTree
 ## is ringed by steep ground, so nothing can climb onto it. A gentle swell along the map
 ## (HILL_SWELL) keeps ridge lines from reading as rulers.
 ##
-## The route, decided 2026-10-18 (Alex): the player starts in START, walks north up WEST to the
-## prison Compounds in NORTH, east through EAST_PASSAGE to the Recruits in SKIRMISH, then south
-## down SOUTH_PASSAGE into MAIN, the west–east corridor the waves fight in, beside the ally's
-## Safehouses. START does not open onto MAIN. `_verify_route` checks exactly that.
+## The route, decided 2026-10-18 (Alex) and extended the same day: the player starts in START,
+## walks north up WEST (the rescue fight) to the prison Compounds in NORTH, east through
+## EAST_PASSAGE to the Recruits in SKIRMISH, on along GARRISON_ROAD past the building the player
+## takes cover in, into FORK. From FORK, the Watch Towers' TOWER_FIELD lies east — open ground,
+## with BEYOND, an empty lane, past it — and the narrow SOUTH_PASSAGE drops into MAIN, the
+## west–east corridor the waves fight in. START does not open onto MAIN. `_verify_route` checks
+## exactly that.
 ##
 ## TODO — cover, chokes and high ground inside the regions are undecided.
 
@@ -30,13 +33,17 @@ const TILE_CATALOG: String = "res://resources/terrain/tile_catalog.tres"
 ## The walkable regions: name -> Rect2 in MissionLane's frame, position = (west edge, south edge),
 ## size = (length along, width across). Rect2 is used for its arithmetic only.
 const REGIONS: Dictionary = {
-	"MAIN": Rect2(-40, -9, 80, 18),
+	"MAIN": Rect2(-10, -9, 80, 18),
 	"START": Rect2(-70, -36, 20, 18),
 	"WEST": Rect2(-72, -18, 22, 62),
 	"NORTH": Rect2(-72, 44, 26, 18),
 	"EAST_PASSAGE": Rect2(-46, 48, 16, 10),
 	"SKIRMISH": Rect2(-32, 36, 20, 24),
-	"SOUTH_PASSAGE": Rect2(-24, 9, 8, 27),
+	"GARRISON_ROAD": Rect2(-12, 44, 22, 12),
+	"FORK": Rect2(10, 30, 30, 34),
+	"TOWER_FIELD": Rect2(40, 36, 26, 24),
+	"BEYOND": Rect2(66, 42, 18, 12),
+	"SOUTH_PASSAGE": Rect2(20, 9, 5, 21),
 }
 ## Where the flood fill of walkable ground starts.
 const ROUTE_START: String = "START"

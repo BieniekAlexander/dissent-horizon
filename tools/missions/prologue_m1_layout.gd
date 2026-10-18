@@ -53,34 +53,44 @@ const PRISONERS: int = 3
 ## Recruits holding the skirmish clearing.
 const OUTPOST_RECRUITS: int = 3
 
-## Positions are (along, across) in MissionLane's frame, whose origin is the main corridor's
-## centre: it runs along ±40 and is ±9 across. The other regions are the terrain tool's REGIONS
-## (tools/missions/prologue_m1_terrain.gd). A 4x4 building is grid-aligned, so it spans about
-## ±2.8 along and across.
+## Positions are (along, across) in MissionLane's frame, whose origin lies near the west end of
+## MAIN, the waves' corridor: MAIN runs along -10..70 and is ±9 across. The other regions are
+## the terrain tool's REGIONS (tools/missions/prologue_m1_terrain.gd). A 4x4 building is
+## grid-aligned, so it spans about ±2.8 along and across.
 ##
-## The route: START (the player's Warlord) → WEST, north → NORTH (the prison Compounds) → EAST
-## PASSAGE → SKIRMISH (the Recruits) → SOUTH PASSAGE → MAIN, beside the ally's Safehouses.
+## The beats, in the order the player meets them (Alex, 2026-10-18):
+## 1. THE RESCUE, in WEST: the player walks north into the ally's fight with an ambush.
+## 2. THE PRISONS, in NORTH: the ally's squad leads the player to the prison Compounds and waits;
+##    the player blows them up with their hazards and gets their Irregulars back.
+## 3. THE OUTPOST, in SKIRMISH: a short walk east, the player's first fight, against Recruits
+##    holding their ground. The ally's squad stays out of it.
+## 4. THE GARRISON, on GARRISON_ROAD: the squad waits by a building; when the player takes cover
+##    in it, the squad walks on east and two Clippers fall on it, beyond the building's reach,
+##    then turn on the building, where the Warlord shoots them down.
+## 5. THE FORK: walking on east reveals the whole fork — the Watch Towers' field east, and the
+##    narrow passage south to MAIN, where the waves fight.
 const PLAYER_START := Vector2(-60, -27)
 ## The two prison Compounds in NORTH, the enemy's: their prisons are switched off, so the player's
 ## Irregulars inside serve no sentence and wait to be freed.
 const PRISON_COMPOUNDS: Array[Vector2] = [Vector2(-65, 53), Vector2(-53, 53)]
 ## Hazards around each prison Compound, as GRID offsets (world x, z) from its centre, so they sit
-## against its 4x4 footprint whatever its rotation in the lane frame: the blasts are small
-## (racks 2.5, cells 1), and only reach the Compound from beside it. Racks are 1x1 structures, so
-## their offsets are cell centres.
-const RACK_OFFSETS: Array[Vector2] = [Vector2(2.5, -0.5), Vector2(-2.5, 0.5)]
-const CELL_OFFSETS: Array[Vector2] = [Vector2(2.6, 1.4), Vector2(-2.6, -1.4), Vector2(0.5, 2.6)]
+## against its 4x4 footprint (cell centres ±1.5, edges ±2) whatever its rotation in the lane frame.
+## Laid out as ONE CHAIN (Alex, 2026-10-18): shooting any of them sets off all of them. The two
+## racks stand side by side on one face, 2 apart, inside each other's 2.5 blast and against the
+## Compound; every cell stands within about 1 of a rack or of a cell that is, inside a cell's 1
+## blast. Racks are 1x1 structures, so their offsets are cell centres.
+const RACK_OFFSETS: Array[Vector2] = [Vector2(2.5, -0.5), Vector2(2.5, 1.5)]
+const CELL_OFFSETS: Array[Vector2] = [Vector2(2.5, -1.4), Vector2(2.5, 2.4), Vector2(1.8, 2.3)]
 ## The Recruits' clearing in SKIRMISH, which they defend.
 const OUTPOST := Vector2(-22, 48)
+const OUTPOST_GROUP: StringName = &"prologue_m1_outpost"
 
-## THE RESCUE, in the WEST corridor (its centre line at along -61, ±11 wide). When the
-## player walks north into AMBUSH_TRIGGER, the ally's RESCUERS appear ahead of them and the enemy's
+## THE RESCUE, in the WEST corridor (its centre line at along -61, ±11 wide). When the player
+## walks north into AMBUSH_TRIGGER, the ally's RESCUERS appear ahead of them and the enemy's
 ## AMBUSHERS further north, and the two attack each other; a reveal shows the player the fight,
-## since the ally does not share its vision. The trigger's south edge (centre - radius) is where
-## the player arrives, which sets how far it stands from the fight (the Warlord's reach is 12).
-## Once the ambushers are dead the rescuers push north into STRIKE_TRIGGER, which ends the
-## fight's reveal, sends STRIKERS at them and reveals where the Clippers hit. Both triggers moved
-## 10 south on 2026-10-18 (Alex); the spawns stayed. Positions are first guesses, not tuned.
+## since the ally does not share its vision, and goes dark when the ambushers are dead. The
+## trigger's south edge (centre - radius) is where the player arrives, which sets how far it
+## stands from the fight (the Warlord's reach is 12). Positions are first guesses, not tuned.
 const AMBUSH_TRIGGER := Vector2(-61, 4)
 const AMBUSH_TRIGGER_RADIUS: float = 10.0
 const RESCUERS: int = 9
@@ -90,25 +100,51 @@ const AMBUSHERS_AT := Vector2(-61, 26)
 const FIGHT_REVEAL_AT := Vector2(-61, 17)
 const FIGHT_REVEAL_RADIUS: float = 12.0
 const FIGHT_REVEAL: StringName = &"prologue_m1_fight_reveal"
-const STRIKE_TRIGGER := Vector2(-61, 24)
-const STRIKE_TRIGGER_RADIUS: float = 6.0
-const STRIKERS: int = 2
-const STRIKERS_AT := Vector2(-50, 58)
-## Cells between neighbouring strikers at spawn, in a line west–east through STRIKERS_AT.
-const STRIKER_SPACING: float = 8.0
-const STRIKE_REVEAL_RADIUS: float = 10.0
-const STRIKE_REVEAL: StringName = &"prologue_m1_strike_reveal"
 const RESCUE_GROUP: StringName = &"prologue_m1_rescuers"
 const AMBUSH_GROUP: StringName = &"prologue_m1_ambushers"
-const STRIKE_GROUP: StringName = &"prologue_m1_strikers"
-const ALLY_SAFEHOUSES: Array[Vector2] = [Vector2(-30, 4.5), Vector2(-30, -4.5), Vector2(-36, 0)]
-const ALLY_WAVE_SPAWN := Vector2(-25, 0)
-const WATCH_TOWERS: Array[Vector2] = [Vector2(26, 5), Vector2(26, -5), Vector2(31, 0)]
-const COMPOUNDS: Array[Vector2] = [Vector2(35, 4.5), Vector2(35, -4.5)]
-const ENEMY_WAVE_SPAWN := Vector2(22, 0)
+
+## Where the ally's squad waits for the player at the prisons: south of the Compounds, clear of
+## their hazards' blasts (the racks throw 2.5).
+const PRISON_HOLD := Vector2(-59, 41)
+## The building the player takes cover in, neutral until they do, and where the squad waits for
+## them: past it, on the side the squad will walk on to.
+const GARRISON_HOUSE := Vector2(-2, 50)
+const GARRISON_HOUSE_NAME: String = "GarrisonHouse"
+const GARRISON_HOLD := Vector2(5, 47)
+## Where the squad walks on to once the player is inside, and how far past the squad the Clippers
+## appear, measured away from the building. A garrisoned Warlord reaches 12 from the building's
+## hull, a Clipper 8 from its target: the squad stands 26 out, and the Clippers fight it from
+## beyond, so the Warlord cannot shoot them down before they have killed the squad (Alex,
+## 2026-10-18). Two Clippers, CLIPPER_SPACING apart across the line.
+const ADVANCE_AT := Vector2(24, 50)
+## How close the first of the squad must come to ADVANCE_AT for the Clippers to appear.
+const ADVANCE_RADIUS: float = 4.0
+const CLIPPERS_PAST_SQUAD: float = 12.0
+const CLIPPER_SPACING: float = 8.0
+const CLIPPER_GROUP: StringName = &"prologue_m1_clippers"
+const ADVANCE_REVEAL_RADIUS: float = 14.0
+const ADVANCE_REVEAL: StringName = &"prologue_m1_advance_reveal"
+## Walking on east from the building reveals the whole fork.
+const FORK_TRIGGER := Vector2(14, 50)
+const FORK_TRIGGER_RADIUS: float = 4.0
+const FORK_REVEAL_AT := Vector2(25, 47)
+const FORK_REVEAL_RADIUS: float = 22.0
+## The Watch Towers' field east of the fork, and the two Compounds behind them that power them.
+const FIELD_TOWERS: Array[Vector2] = [
+	Vector2(46, 41), Vector2(46, 55), Vector2(51, 45), Vector2(51, 51)
+]
+const FIELD_COMPOUNDS: Array[Vector2] = [Vector2(60, 44.5), Vector2(60, 51.5)]
+
+## MAIN, where the waves fight: the ally's Safehouses at the west end, the enemy's statics at the
+## east end, and the passage from the fork coming in between them, on the ally's side.
+const ALLY_SAFEHOUSES: Array[Vector2] = [Vector2(0, 4.5), Vector2(0, -4.5), Vector2(-6, 0)]
+const ALLY_WAVE_SPAWN := Vector2(5, 0)
+const WATCH_TOWERS: Array[Vector2] = [Vector2(56, 5), Vector2(56, -5), Vector2(61, 0)]
+const COMPOUNDS: Array[Vector2] = [Vector2(65, 4.5), Vector2(65, -4.5)]
+const ENEMY_WAVE_SPAWN := Vector2(52, 0)
 ## Where each side's waves assault: the other side's statics.
-const ALLY_WAVE_TARGET := Vector2(28, 0)
-const ENEMY_WAVE_TARGET := Vector2(-30, 0)
+const ALLY_WAVE_TARGET := Vector2(58, 0)
+const ENEMY_WAVE_TARGET := Vector2(0, 0)
 
 var _counts: Dictionary = {}
 
@@ -143,6 +179,12 @@ func _ready() -> void:
 		_place(root, COMPOUND, ENEMY, at, "Compound")
 	for at: Vector2 in PRISON_COMPOUNDS:
 		_prison(root, at)
+	for at: Vector2 in FIELD_TOWERS:
+		_place(root, WATCH_TOWER, ENEMY, at, "FieldTower")
+	for at: Vector2 in FIELD_COMPOUNDS:
+		_place(root, COMPOUND, ENEMY, at, "FieldCompound")
+	var house: Node3D = _place(root, BUILDING_SQUARE, 0, GARRISON_HOUSE, GARRISON_HOUSE_NAME)
+	house.name = GARRISON_HOUSE_NAME
 
 	var manager := ScenarioTriggerManager.new()
 	manager.name = "ScenarioTriggerManager"
@@ -166,7 +208,7 @@ func _ready() -> void:
 	_assault(manager, "AllyWaveTactic", ALLY_WAVE, ALLY_WAVE_TARGET)
 	_assault(manager, "EnemyWaveTactic", ENEMY_WAVE, ENEMY_WAVE_TARGET)
 	_outpost(manager)
-	_rescue(manager)
+	_beats(manager, house)
 
 	_save(root)
 	get_tree().quit(0)
@@ -283,6 +325,7 @@ func _outpost(a_manager: Node) -> void:
 	spawn.commander_id = ENEMY
 	spawn.entity_scenes = [load(RECRUIT) as PackedScene]
 	spawn.count_expression = str(OUTPOST_RECRUITS)
+	spawn.spawn_groups = [OUTPOST_GROUP]
 	trigger.add_child(spawn)
 	spawn.position = MissionLane.to_world(OUTPOST.x, OUTPOST.y)
 	var orders := EventIssueCommand.new()
@@ -295,8 +338,10 @@ func _outpost(a_manager: Node) -> void:
 	defend.position = Vector3.ZERO
 
 
-## The rescue sequence (see AMBUSH_TRIGGER): two triggers and three tactics.
-func _rescue(a_manager: Node) -> void:
+## The beats after the opening (see PLAYER_START): five triggers, the squad's tactic and the
+## enemy's two.
+func _beats(a_manager: Node, a_house: Node3D) -> void:
+	# 1. The rescue: the player walks into it; the fight's reveal ends with the ambushers.
 	var ambush := GlobalTrigger.new()
 	ambush.name = "RescueAmbush"
 	ambush.conditions = [_units_in(PLAYER, "AmbushRegion")]
@@ -305,34 +350,126 @@ func _rescue(a_manager: Node) -> void:
 	_spawn(ambush, "Rescuers", ALLY, IRREGULAR, RESCUERS, RESCUERS_AT, RESCUE_GROUP)
 	_spawn(ambush, "Ambushers", ENEMY, RECRUIT, AMBUSHERS, AMBUSHERS_AT, AMBUSH_GROUP)
 	_reveal(ambush, "RevealFight", FIGHT_REVEAL_AT, FIGHT_REVEAL_RADIUS, FIGHT_REVEAL)
+	var won := GlobalTrigger.new()
+	won.name = "AmbushBeaten"
+	won.conditions = [_group_at_most(AMBUSH_GROUP, 0)]
+	won.prerequisites = [ambush]
+	a_manager.add_child(won)
+	_end_reveal(won, "EndFightReveal", FIGHT_REVEAL)
 
+	# 2–3. The squad moves on once the prisons are down and the outpost is cleared — not before
+	# the outpost falls, or it would walk into the player's first fight (Alex: it stays out).
+	var move_on := GlobalTrigger.new()
+	move_on.name = "SquadMovesOn"
+	move_on.conditions = [
+		_killed("PrisonCompound1"), _killed("PrisonCompound2"), _group_at_most(OUTPOST_GROUP, 0)
+	]
+	move_on.prerequisites = [won]
+	a_manager.add_child(move_on)
+
+	# 4. The garrison: the player takes cover and the squad walks on; when it gets there the
+	# Clippers fall on it from beyond it, out of the building's reach — spawned where the squad
+	# IS, not when the player garrisons, or they would appear beside the building (found
+	# 2026-10-18: spawned at the squad's waiting place, one came within 12 of it). A reveal shows
+	# the player the squad's end.
+	var cover := GlobalTrigger.new()
+	cover.name = "PlayerTakesCover"
+	var occupied := ConditionGarrisonOccupied.new()
+	occupied.host_name = GARRISON_HOUSE_NAME
+	occupied.commander_id = PLAYER
+	cover.conditions = [occupied]
+	cover.prerequisites = [move_on]
+	a_manager.add_child(cover)
 	var strike := GlobalTrigger.new()
-	strike.name = "RescueStrike"
-	strike.conditions = [_units_in(ALLY, "StrikeRegion")]
-	strike.prerequisites = [ambush]
+	strike.name = "ClippersStrike"
+	strike.conditions = [_units_in(ALLY, "AdvanceRegion")]
+	strike.prerequisites = [cover]
 	a_manager.add_child(strike)
-	_region(strike, "StrikeRegion", STRIKE_TRIGGER, STRIKE_TRIGGER_RADIUS)
-	var end_fight := EventEndReveal.new()
-	end_fight.name = "EndFightReveal"
-	end_fight.reveal_label = FIGHT_REVEAL
-	strike.add_child(end_fight)
-	# One spawn per striker, STRIKER_SPACING apart, rather than STRIKERS at one point.
-	for i: int in STRIKERS:
-		var offset: float = (float(i) - float(STRIKERS - 1) * 0.5) * STRIKER_SPACING
-		var at := STRIKERS_AT + Vector2(offset, 0.0)
-		_spawn(strike, "Striker%d" % (i + 1), ENEMY, CLIPPER, 1, at, STRIKE_GROUP)
-	_reveal(strike, "RevealStrike", STRIKE_TRIGGER, STRIKE_REVEAL_RADIUS, STRIKE_REVEAL)
+	_region(strike, "AdvanceRegion", ADVANCE_AT, ADVANCE_RADIUS)
+	for i: int in 2:
+		var spawn := EventSpawnEntities.new()
+		spawn.name = "Clipper%d" % (i + 1)
+		spawn.commander_id = ENEMY
+		spawn.entity_scenes = [load(CLIPPER) as PackedScene]
+		spawn.count_expression = "1"
+		spawn.spawn_groups = [CLIPPER_GROUP]
+		spawn.follow_group = RESCUE_GROUP
+		spawn.follow_away_from = a_house
+		spawn.follow_offset = Vector2(CLIPPERS_PAST_SQUAD, (float(i) - 0.5) * CLIPPER_SPACING)
+		strike.add_child(spawn)
+		spawn.position = MissionLane.to_world(ADVANCE_AT.x, ADVANCE_AT.y)
+	_reveal(cover, "RevealAdvance", ADVANCE_AT, ADVANCE_REVEAL_RADIUS, ADVANCE_REVEAL)
+	var squad_lost := GlobalTrigger.new()
+	squad_lost.name = "SquadLost"
+	squad_lost.conditions = [_group_at_most(RESCUE_GROUP, 0)]
+	squad_lost.prerequisites = [cover]
+	a_manager.add_child(squad_lost)
+	_end_reveal(squad_lost, "EndAdvanceReveal", ADVANCE_REVEAL)
 
-	# The rescuers fight the ambushers while any stand, then push north up the corridor.
-	var still_fighting := ConditionGroupCount.new()
-	still_fighting.group = AMBUSH_GROUP
-	still_fighting.comparison = ConditionGroupCount.Comparison.AT_LEAST
-	still_fighting.count = 1
-	var rescuers: ScenarioTactic = _assault(a_manager, "RescuerTactic", RESCUE_GROUP, AMBUSHERS_AT)
-	(rescuers.get_child(0) as TacticRule).condition = still_fighting
-	_add_assault_rule(rescuers, "PushNorth", STRIKE_TRIGGER)
+	# 5. The fork: walking on east shows all of it.
+	var fork := GlobalTrigger.new()
+	fork.name = "ForkReveal"
+	fork.conditions = [_units_in(PLAYER, "ForkRegion")]
+	a_manager.add_child(fork)
+	_region(fork, "ForkRegion", FORK_TRIGGER, FORK_TRIGGER_RADIUS)
+	_reveal(fork, "RevealFork", FORK_REVEAL_AT, FORK_REVEAL_RADIUS, &"prologue_m1_fork_reveal")
+
+	# The squad: fight the ambush; then lead to the prisons and wait; then wait by the building;
+	# then walk on. First matching rule wins, so the latest beat is listed first.
+	var squad := ScenarioTactic.new()
+	squad.name = "SquadTactic"
+	squad.unit_group = RESCUE_GROUP
+	a_manager.add_child(squad)
+	_add_rule(
+		squad, "Fight", TacticRule.Action.ASSAULT, AMBUSHERS_AT, _group_at_least(AMBUSH_GROUP)
+	)
+	_add_rule(squad, "WalkOn", TacticRule.Action.ASSAULT, ADVANCE_AT, _fired(cover.name))
+	_add_rule(squad, "WaitAtHouse", TacticRule.Action.HOLD, GARRISON_HOLD, _fired(move_on.name))
+	_add_rule(squad, "WaitAtPrisons", TacticRule.Action.HOLD, PRISON_HOLD)
 	_assault(a_manager, "AmbusherTactic", AMBUSH_GROUP, RESCUERS_AT)
-	_assault(a_manager, "StrikerTactic", STRIKE_GROUP, STRIKE_TRIGGER)
+	# The Clippers kill the squad, then turn on the building.
+	var clippers := ScenarioTactic.new()
+	clippers.name = "ClipperTactic"
+	clippers.unit_group = CLIPPER_GROUP
+	a_manager.add_child(clippers)
+	var squad_alive: Condition = _group_at_least(RESCUE_GROUP)
+	_add_rule(clippers, "KillSquad", TacticRule.Action.ASSAULT, ADVANCE_AT, squad_alive)
+	_add_rule(clippers, "AttackHouse", TacticRule.Action.ASSAULT, GARRISON_HOUSE)
+
+
+func _group_at_least(a_group: StringName) -> ConditionGroupCount:
+	var condition := ConditionGroupCount.new()
+	condition.group = a_group
+	condition.comparison = ConditionGroupCount.Comparison.AT_LEAST
+	condition.count = 1
+	return condition
+
+
+func _group_at_most(a_group: StringName, a_count: int) -> ConditionGroupCount:
+	var condition := ConditionGroupCount.new()
+	condition.group = a_group
+	condition.comparison = ConditionGroupCount.Comparison.AT_MOST
+	condition.count = a_count
+	return condition
+
+
+func _killed(a_name: String) -> ConditionEntityKilled:
+	var condition := ConditionEntityKilled.new()
+	condition.entity_name = a_name
+	return condition
+
+
+func _fired(a_trigger_name: String) -> ConditionTriggerFired:
+	var condition := ConditionTriggerFired.new()
+	condition.trigger_name = a_trigger_name
+	return condition
+
+
+func _end_reveal(a_trigger: Node, a_name: String, a_label: StringName) -> void:
+	var end := EventEndReveal.new()
+	end.name = a_name
+	end.reveal_label = a_label
+	a_trigger.add_child(end)
 
 
 ## "Any of `a_commander`'s units inside the region `a_region` under the trigger".
@@ -448,16 +585,24 @@ func _assault(
 	tactic.name = a_name
 	tactic.unit_group = a_group
 	a_manager.add_child(tactic)
-	_add_assault_rule(tactic, "Assault", a_target)
+	_add_rule(tactic, "Assault", TacticRule.Action.ASSAULT, a_target)
 	return tactic
 
 
-## Append a rule to `a_tactic` assaulting lane position `a_target`. Rules are tried in order, so a
-## rule added after a conditional one is what the squad does once that condition stops holding.
-func _add_assault_rule(a_tactic: ScenarioTactic, a_name: String, a_target: Vector2) -> void:
+## Append a rule to `a_tactic`: `a_action` at lane position `a_target`, while `a_condition` holds
+## (null: always). Rules are tried in order, so a rule added after a conditional one is what the
+## squad does once that condition stops holding.
+func _add_rule(
+	a_tactic: ScenarioTactic,
+	a_name: String,
+	a_action: TacticRule.Action,
+	a_target: Vector2,
+	a_condition: Condition = null
+) -> void:
 	var rule := TacticRule.new()
 	rule.name = a_name
-	rule.action = TacticRule.Action.ASSAULT
+	rule.action = a_action
+	rule.condition = a_condition
 	a_tactic.add_child(rule)
 	var point := Marker3D.new()
 	point.name = "Target"
