@@ -10,8 +10,12 @@ extends RefCounted
 ## Shared by the terrain tool (PLAY_SIZE) and the layout builder (to_world), so the lane's size
 ## is stated once.
 
-## The play rectangle, in diamonds: `.x` the lane's on-screen height, `.y` its length.
-const PLAY_SIZE: Vector2i = Vector2i(20, 100)
+## The play rectangle, in diamonds: `.x` the lane's on-screen height, `.y` its length — about
+## 80 x 30 world units. The flat CORRIDOR is the middle 18 of that height; the rest is hillside
+## too steep to cross (tools/missions/prologue_m1_terrain.gd).
+const PLAY_SIZE: Vector2i = Vector2i(21, 57)
+## Half the corridor's width across the lane, in world units: the flat ground between the hills.
+const CORRIDOR_HALF_WIDTH: float = 9.0
 
 
 ## The lane's half-length along it, in world units: a half-extent of PLAY_SIZE.y in t is
@@ -31,3 +35,9 @@ static func to_world(a_along: float, a_across: float, a_height: float = 0.0) -> 
 	var t: float = a_along * sqrt(2.0)
 	var s: float = -a_across * sqrt(2.0)
 	return Vector3((s + t) * 0.5, a_height, (s - t) * 0.5)
+
+
+## The lane coordinates (along, across) of Map-local world position `a_world`: the inverse of
+## to_world, ignoring height.
+static func to_lane(a_world: Vector3) -> Vector2:
+	return Vector2((a_world.x - a_world.z) / sqrt(2.0), -(a_world.x + a_world.z) / sqrt(2.0))

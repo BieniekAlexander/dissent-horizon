@@ -28,7 +28,6 @@ const CLIPPER: String = "res://scenes/entities/units/cl/cl_aircraftLight_antiLig
 const WATCH_TOWER: String = "res://scenes/entities/structures/cl/cl_defense_antiLight.tscn"
 const COMPOUND: String = "res://scenes/entities/structures/cl/cl_infrastructure.tscn"
 const BUILDING_SQUARE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
-const BUILDING_LONG: String = "res://scenes/entities/structures/nt/nt_building_long.tscn"
 
 ## Commander ids, in slot order.
 const PLAYER: int = 1
@@ -44,19 +43,18 @@ const WAVE_SECONDS: String = "10 + min(fires, 1) * 35"
 ## Irregulars garrisoned in each starting Safehouse.
 const SAFEHOUSE_GARRISON: int = 3
 
-## Positions are (along, across) in lane coordinates (MissionLane): along runs west → east,
-## the lane is about ±70 long and ±14 wide.
-const PLAYER_START := Vector2(-44, 0)
-const ALLY_SAFEHOUSES: Array[Vector2] = [Vector2(-58, 7), Vector2(-58, -7), Vector2(-64, 0)]
-const ALLY_WAVE_SPAWN := Vector2(-50, 0)
-const NEUTRAL_SQUARES: Array[Vector2] = [Vector2(-24, 8), Vector2(24, -8)]
-const NEUTRAL_LONGS: Array[Vector2] = [Vector2(-8, -8), Vector2(8, 8)]
-const WATCH_TOWERS: Array[Vector2] = [Vector2(46, 8), Vector2(46, -8), Vector2(52, 0)]
-const COMPOUNDS: Array[Vector2] = [Vector2(60, 7), Vector2(60, -7)]
-const ENEMY_WAVE_SPAWN := Vector2(64, 0)
+## Positions are (along, across) in lane coordinates (MissionLane): along runs west → east over
+## about ±40; the flat corridor is ±9 across, between the hills. A 4x4 building is grid-aligned,
+## so it spans about ±2.8 along and across the lane.
+const PLAYER_START := Vector2(-19, 0)
+const ALLY_SAFEHOUSES: Array[Vector2] = [Vector2(-30, 4.5), Vector2(-30, -4.5), Vector2(-36, 0)]
+const ALLY_WAVE_SPAWN := Vector2(-25, 0)
+const WATCH_TOWERS: Array[Vector2] = [Vector2(26, 5), Vector2(26, -5), Vector2(31, 0)]
+const COMPOUNDS: Array[Vector2] = [Vector2(35, 4.5), Vector2(35, -4.5)]
+const ENEMY_WAVE_SPAWN := Vector2(22, 0)
 ## Where each side's waves assault: the other side's statics.
-const ALLY_WAVE_TARGET := Vector2(50, 0)
-const ENEMY_WAVE_TARGET := Vector2(-58, 0)
+const ALLY_WAVE_TARGET := Vector2(28, 0)
+const ENEMY_WAVE_TARGET := Vector2(-30, 0)
 
 var _counts: Dictionary = {}
 
@@ -85,10 +83,6 @@ func _ready() -> void:
 	_place(root, WARLORD, PLAYER, PLAYER_START, "Warlord")
 	for at: Vector2 in ALLY_SAFEHOUSES:
 		_safehouse(root, at)
-	for at: Vector2 in NEUTRAL_SQUARES:
-		_place(root, BUILDING_SQUARE, 0, at)
-	for at: Vector2 in NEUTRAL_LONGS:
-		_place(root, BUILDING_LONG, 0, at)
 	for at: Vector2 in WATCH_TOWERS:
 		_place(root, WATCH_TOWER, ENEMY, at, "WatchTower")
 	for at: Vector2 in COMPOUNDS:
@@ -101,7 +95,7 @@ func _ready() -> void:
 		manager,
 		"AllyWaves",
 		ALLY,
-		[IRREGULAR, IRREGULAR, IRREGULAR, IRREGULAR, WARLORD],
+		[IRREGULAR, IRREGULAR, IRREGULAR, WARLORD, WARLORD],
 		ALLY_WAVE,
 		ALLY_WAVE_SPAWN
 	)
@@ -109,7 +103,7 @@ func _ready() -> void:
 		manager,
 		"EnemyWaves",
 		ENEMY,
-		[RECRUIT, RECRUIT, RECRUIT, RECRUIT, CLIPPER],
+		[RECRUIT, RECRUIT, RECRUIT, CLIPPER, CLIPPER],
 		ENEMY_WAVE,
 		ENEMY_WAVE_SPAWN
 	)

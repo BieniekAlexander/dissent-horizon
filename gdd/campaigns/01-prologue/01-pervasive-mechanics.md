@@ -37,8 +37,9 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
     waves, the statics and the wave tactics below.
 - **Starting force:** one [Warlord](../../factions/anarchical/units/an_bioMedium_dominionGen.md),
   on the west side ahead of the allied Safehouses.
-- **Map:** one long west–east lane with impassable edges. The ally starts on the west, the enemy on
-  the east. Neutral buildings line the lane, so there is somewhere to garrison.
+- **Map:** one west–east corridor, about 80 cells long and 18 wide, between hills too steep to
+  cross on either side (revised 2026-10-18). The ally starts on the west, the enemy on the east.
+  No neutral buildings for now.
 - **Statics:**
   - Ally (west): [Safehouses](../../factions/anarchical/structures/an_infrastructure.md), each
     garrisoned with [Irregulars](../../factions/anarchical/units/an_bioLight_builder.md) from the
@@ -49,10 +50,12 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
     what the later cut-the-power beat destroys.
 - **Waves:** on a repeating timer, each side spawns a wave near its start and sends it down the
   lane at the other side, where it keeps re-engaging (a `ScenarioTactic` per wave).
-  - Ally waves: Irregulars and Warlords.
-  - Enemy waves: [Recruits](../../factions/colonial/units/cl_bioLight_antiLight.md) and
+  - Ally waves: 3 Irregulars and 2 Warlords.
+  - Enemy waves: 3 [Recruits](../../factions/colonial/units/cl_bioLight_antiLight.md) and 2
     [Clippers](../../factions/colonial/units/cl_aircraftLight_antiLight.md). The Clipper is in the
     retired Petrel's place; the Warlord, which hits air, is its counter.
+  - A wave's order is one group order, so it moves at its slowest member's speed and the Clippers
+    keep pace with the Recruits ([ai/squads-and-relations](../../systems/ai/squads-and-relations.md)).
 - **Ending:** losing every unit fails the mission. There is no win condition yet. TODO — the
   objectives below predate this setup and are to be reconciled with it.
 - **Bombards:** none placed yet. TODO — how the Bombards are used is deferred to a separate session.
