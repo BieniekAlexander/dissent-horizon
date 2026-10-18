@@ -46,11 +46,12 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
   2. **West corridor:** north from the start, about 22 wide. Partway up, the **rescue**: when the
      player walks into a trigger, 9 of the ally's Irregulars appear ahead of them and 5 enemy Recruits
      further north, and the two attack each other. An invisible Scout reveals the fight, since the
-     ally does not share vision. The trigger is placed so the player arrives just out of the fight's
-     reach (first probe: 16.5 from the nearest Recruit against the Warlord's reach of 12, so no shots
-     yet; TODO — move the Recruits' spawn about 3 south if a shot or two is wanted). When the
-     Recruits are dead the Irregulars push north onto a second trigger, which ends the fight's
-     reveal, sends 2 Clippers at them and reveals where they strike.
+     ally does not share vision. The trigger is meant to leave the player just out of the fight's reach.
+     Both triggers moved 10 south on 2026-10-18; the probe after that had the player arrive about
+     27 from the nearest Recruit, against the Warlord's reach of 12 (TODO — tune). When the Recruits
+     are dead the Irregulars push north onto a second trigger, which ends the fight's reveal, sends
+     2 Clippers at them and reveals where they strike. The Clippers spawn 8 cells apart, but both
+     assault one point, so they close up within seconds.
   3. **The prisons:** at its north end, two enemy
      [Compounds](../../factions/colonial/structures/cl_infrastructure.md), each holding 3 of the
      player's Irregulars with its prison switched off (`OccupantDominionGenerator.is_disabled`), so

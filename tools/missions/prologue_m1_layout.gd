@@ -77,11 +77,11 @@ const OUTPOST := Vector2(-22, 48)
 ## player walks north into AMBUSH_TRIGGER, the ally's RESCUERS appear ahead of them and the enemy's
 ## AMBUSHERS further north, and the two attack each other; a reveal shows the player the fight,
 ## since the ally does not share its vision. The trigger's south edge (centre - radius) is where
-## the player arrives: AMBUSH_TRIGGER's is about 14 from where the fight settles, just past the
-## Warlord's reach of 12, so it gets a shot or two off at most. Once the ambushers are dead the
-## rescuers push north into STRIKE_TRIGGER, which ends the fight's reveal, sends STRIKERS at them,
-## and reveals where the Clippers hit. Positions are first guesses, not tuned.
-const AMBUSH_TRIGGER := Vector2(-61, 14)
+## the player arrives, which sets how far it stands from the fight (the Warlord's reach is 12).
+## Once the ambushers are dead the rescuers push north into STRIKE_TRIGGER, which ends the
+## fight's reveal, sends STRIKERS at them and reveals where the Clippers hit. Both triggers moved
+## 10 south on 2026-10-18 (Alex); the spawns stayed. Positions are first guesses, not tuned.
+const AMBUSH_TRIGGER := Vector2(-61, 4)
 const AMBUSH_TRIGGER_RADIUS: float = 10.0
 const RESCUERS: int = 9
 const RESCUERS_AT := Vector2(-61, 9)
@@ -90,10 +90,12 @@ const AMBUSHERS_AT := Vector2(-61, 26)
 const FIGHT_REVEAL_AT := Vector2(-61, 17)
 const FIGHT_REVEAL_RADIUS: float = 12.0
 const FIGHT_REVEAL: StringName = &"prologue_m1_fight_reveal"
-const STRIKE_TRIGGER := Vector2(-61, 34)
+const STRIKE_TRIGGER := Vector2(-61, 24)
 const STRIKE_TRIGGER_RADIUS: float = 6.0
 const STRIKERS: int = 2
 const STRIKERS_AT := Vector2(-50, 58)
+## Cells between neighbouring strikers at spawn, in a line west–east through STRIKERS_AT.
+const STRIKER_SPACING: float = 8.0
 const STRIKE_REVEAL_RADIUS: float = 10.0
 const STRIKE_REVEAL: StringName = &"prologue_m1_strike_reveal"
 const RESCUE_GROUP: StringName = &"prologue_m1_rescuers"
@@ -314,7 +316,11 @@ func _rescue(a_manager: Node) -> void:
 	end_fight.name = "EndFightReveal"
 	end_fight.reveal_label = FIGHT_REVEAL
 	strike.add_child(end_fight)
-	_spawn(strike, "Strikers", ENEMY, CLIPPER, STRIKERS, STRIKERS_AT, STRIKE_GROUP)
+	# One spawn per striker, STRIKER_SPACING apart, rather than STRIKERS at one point.
+	for i: int in STRIKERS:
+		var offset: float = (float(i) - float(STRIKERS - 1) * 0.5) * STRIKER_SPACING
+		var at := STRIKERS_AT + Vector2(offset, 0.0)
+		_spawn(strike, "Striker%d" % (i + 1), ENEMY, CLIPPER, 1, at, STRIKE_GROUP)
 	_reveal(strike, "RevealStrike", STRIKE_TRIGGER, STRIKE_REVEAL_RADIUS, STRIKE_REVEAL)
 
 	# The rescuers fight the ambushers while any stand, then push north up the corridor.
