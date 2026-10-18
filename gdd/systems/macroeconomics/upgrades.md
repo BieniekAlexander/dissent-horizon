@@ -19,7 +19,7 @@ with Alex, 2026-09-30.
 - **Research is a job in the global production queue.** A research purchase is an ordinary TRAIN
   purchase: priced from `technology.json`, charged on submit, waiting out a shortfall, cancelled
   with a refund, run on the structure's `Production` component, and slowed while the commander
-  is infrastructure-strained. It shares everything with training except the ending: when the job
+  is in defection. It shares everything with training except the ending: when the job
   finishes, `Production._complete_research` calls `Commander.complete_upgrade` and nothing
   spawns. `researches:` merges into the same `producible_types` list as `trains:`.
 - **Researching does not make a structure a unit producer.** Code asking "does this train

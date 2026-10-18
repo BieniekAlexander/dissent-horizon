@@ -6,7 +6,7 @@ type: design-note
 # Proposals
 
 Designs under consideration. Nothing here is built. Goals are numbered as in the
-[framework](README.md).
+[framework](design-framework/README.md).
 
 ---
 

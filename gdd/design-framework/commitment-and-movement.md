@@ -97,7 +97,7 @@ factions answer it differently:
   infrastructure garrisons infantry).
 
 TODO: calibrate the crossing times — foot, transport route and scout — against the defender's
-response time. Tied to the reinforcement-distance item in the [framework](README.md).
+response time. Tied to the reinforcement-distance item in the [framework](design-framework/README.md).
 
 ---
 

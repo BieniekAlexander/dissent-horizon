@@ -5,7 +5,7 @@ type: system-note
 
 # Building roles
 
-**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md).
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](systems/macroeconomics/pacing/README.md).
 
 **The "what next?" decision is a comparison of marginal values**, and each thing a structure
 confers has its own curve for the Nth copy:

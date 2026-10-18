@@ -28,10 +28,10 @@ enum PreconditionFailureCause {
 	## never deferred by the additive modifier — waiting will not conjure a pad.
 	NO_FREE_PAD,
 	## The caster is a structure its commander cannot power: infrastructure upkeep exceeds
-	## capacity, so the building is dark (see Actor.is_unpowered). Its own cause rather
+	## capacity, so the building is dark (see Actor.is_defective). Its own cause rather
 	## than ABILITY_NO_CHARGES, whose remedy is only time — this one is cleared by building an
 	## infrastructure provider, and never by waiting.
-	UNPOWERED,
+	DEFECTIVE,
 	## A cast that acts on one unit, pointed at nothing it may act on. Its own cause because
 	## the remedy is WHERE the player points, which no other cause says. Never deferred.
 	NO_VALID_TARGET,
@@ -98,7 +98,7 @@ static var precondition_message_map: Dictionary = {
 	PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE: "Unspecified failure",
 	PreconditionFailureCause.COMMAND_PENDING_TOOL: "Select an Option",
 	PreconditionFailureCause.TARGET_NOT_SPOTTED: "No eyes on that ground",
-	PreconditionFailureCause.UNPOWERED: "Not enough infrastructure to power it",
+	PreconditionFailureCause.DEFECTIVE: "Defective: not enough infrastructure",
 	PreconditionFailureCause.NO_VALID_TARGET: "No valid target",
 	PreconditionFailureCause.SITE_PLANNED: "Already planned there",
 	PreconditionFailureCause.NO_NAVMESH_ACCESS: "Nowhere for the unit to appear",

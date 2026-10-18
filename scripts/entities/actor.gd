@@ -285,7 +285,7 @@ func load_destination(a_command: MoveCommand) -> void:
 ## Why: gdd/systems/combat/aerial-operations/attack-runs.md §The attack run, and
 ## gdd/systems/combat/target-acquisition.md.
 func can_use_weapons() -> bool:
-	if is_unpowered():
+	if is_defective():
 		return false
 	# A called-in aircraft's guns are cold until it is on station (Sortie).
 	var sortie: Sortie = Sortie.of(self)
@@ -294,18 +294,18 @@ func can_use_weapons() -> bool:
 	return aerial == null or aerial.is_airborne()
 
 
-## True while this piece is a STRUCTURE its commander cannot power (infrastructure strained):
+## True while this piece is a STRUCTURE whose commander is in defection (not enough infrastructure):
 ## its weapons and abilities are off. Units are untouched. production-and-economy.md
-## §Insufficient infrastructure.
+## §Defection.
 ##
 ## `ownership` is checked before `commander`: an OUT-OF-TREE instance never ran its @onready.
-## Nothing unowned is unpowered.
-func is_unpowered() -> bool:
+## Nothing unowned is defective.
+func is_defective() -> bool:
 	return (
 		is_in_group("structure")
 		and ownership != null
 		and commander != null
-		and commander.is_infrastructure_strained()
+		and commander.is_in_defection()
 	)
 
 

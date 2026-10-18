@@ -39,7 +39,7 @@ static func meets_precondition(
 	# A DARK BUILDING CASTS NOTHING. Never deferred, unlike a spent charge: waiting closes a
 	# cooldown, not an infrastructure shortfall. See Abilities.is_operational.
 	if not abilities.is_operational():
-		return PreconditionFailureCause.UNPOWERED
+		return PreconditionFailureCause.DEFECTIVE
 	# A SPENT POOL IS REFUSED unless the additive modifier is held, which is what asks for the
 	# cast to be queued and fired when the charge comes up. The button greys either way (see
 	# actor_is_recharging). Why: gdd/systems/commands/cooldowns-and-preconditions.md.

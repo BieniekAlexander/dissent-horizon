@@ -255,11 +255,11 @@ func test_an_unfinished_compound_lends_nothing() -> void:
 	assert_almost_eq(pool._timers[0], 100.0, 0.0001)
 
 
-func test_an_unpowered_compound_lends_nothing() -> void:
+func test_an_defective_compound_lends_nothing() -> void:
 	var beneficiary := _structure(_commander, Vector2i(4, 4), [&"scan"])
 	var compound := _compound(_commander, Vector2i(6, 4))
 	_commander.add_infrastructure(-500)
-	assert_true(_commander.is_infrastructure_strained(), "the fixture is actually strained")
+	assert_true(_commander.is_in_defection(), "the fixture is actually in defection")
 	var pool := _spent_pool(beneficiary)
 	_prison_of(compound)._emit_positional_bonus()
 	assert_almost_eq(pool._timers[0], 100.0, 0.0001)

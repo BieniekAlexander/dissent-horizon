@@ -35,8 +35,8 @@ func before_each() -> void:
 
 func _bombard() -> Actor:
 	# The gun costs 75 infrastructure of upkeep, and a commander with only
-	# BASE_INFRASTRUCTURE cannot cover two of them — an unpowered building casts nothing
-	# (see tests/test_InfrastructureStrain.gd), which is not what is under test here.
+	# BASE_INFRASTRUCTURE cannot cover two of them — a defective building casts nothing
+	# (see tests/test_Defection.gd), which is not what is under test here.
 	_commander.add_infrastructure(1000)
 	var gun: Actor = FakePieces.structure(GUN)
 	_commander.add_child(gun)

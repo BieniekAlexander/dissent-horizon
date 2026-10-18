@@ -110,7 +110,7 @@ one will do.
   | any (def)  | cycle every one you own      | every one you own           |
   | idle only  | cycle the idle ones          | every idle one you own      |
 
-Shift (next_command_additive) adds to the selection instead of replacing it, on every
+Shift (`modifier_additive`) adds to the selection instead of replacing it, on every
 cell — a third axis, orthogonal to both.
 
 **Every selector is GLOBAL.** Scope used to be a third axis (on screen / everywhere) and

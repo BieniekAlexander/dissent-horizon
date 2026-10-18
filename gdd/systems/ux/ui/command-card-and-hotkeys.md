@@ -462,10 +462,10 @@ same wherever it is asked.
 | `RECHARGING` | always waitable — see below | nothing, but time |
 | `NO_PAD` | desaturated blue | a WARNING, not a refusal — the aircraft will queue for a deck |
 | `NO_CASTER` | dim teal | the ability is yours; build (or replace) something that can cast it |
-| `UNPOWERED` | dim amber-brown | the caster is standing there dark — build an infrastructure provider |
+| `DEFECTIVE` | dim amber-brown | the caster is standing there dark — build an infrastructure provider |
 | `CURRENT` | pale grey | "you are here"; pressing it would do nothing, because it is already done |
 
-**`UNPOWERED` is not `RECHARGING` in another colour.** A dark building can be holding a full
+**`DEFECTIVE` is not `RECHARGING` in another colour.** A dark building can be holding a full
 pool and still cast nothing, so telling the player to wait for a charge they already have is
 the wrong instruction — and unlike every waitable blocker, waiting never clears this one. See
 [production and economy](../../macroeconomics/production-and-economy.md) §Insufficient
@@ -540,7 +540,7 @@ entirely. **Two axes, one per modifier, both ABSOLUTE**, and they compose
 | any member (default) | cycle every one you own, least-recently-selected | every one you own |
 | idle only (`modifier_narrow`, Alt) | cycle the idle ones | every idle one you own |
 
-Plus Shift (`command_additive`) to add rather than replace, on every cell.
+Plus Shift (`modifier_additive`) to add rather than replace, on every cell.
 
 **Every selector searches the whole map.** Scope was a third axis (on screen / global) and was
 dropped: the on-screen half already has a gesture, since a box drag resolves wherever it ends,
@@ -579,7 +579,7 @@ the feature that fixes that, and it does not exist.
 
 `RTSController.CameraFollow` (WHEN_NEEDED / NEVER) gates it. It is a **preference, not a mode**
 — it changes how the interface always behaves rather than what the game will do this match, so
-unlike requisition mode it earns no HUD indicator. It has no persistent home: the project has
+it earns no HUD indicator. It has no persistent home: the project has
 no settings system (no `ConfigFile`, nothing under `user://`), so it is a runtime property
 awaiting one.
 

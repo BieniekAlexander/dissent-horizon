@@ -5,7 +5,7 @@ type: system-note
 
 # Dominion and ordnance
 
-**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md). The grid's rules are
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](systems/macroeconomics/pacing/README.md). The grid's rules are
 [sanction-grid](../sanctions/sanction-grid.md). This note is about what dominion should be
 *worth*.
 

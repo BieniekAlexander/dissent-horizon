@@ -149,11 +149,11 @@ var dominion: int = 0
 ## those into capacity (infrastructure_provided) and upkeep (infrastructure_required) so
 ## the HUD can show used/total. Every commander starts with a base 100 capacity; entities add/remove
 ## their contribution at runtime via add_infrastructure / remove_infrastructure. When upkeep exceeds
-## capacity the commander is "strained" — production runs at reduced speed.
+## capacity the commander is in defection — production runs at reduced speed.
 const BASE_INFRASTRUCTURE: int = 100
 var infrastructure_provided: int = BASE_INFRASTRUCTURE
 var infrastructure_required: int = 0
-## Spare capacity (capacity minus upkeep); negative when strained.
+## Spare capacity (capacity minus upkeep); negative when in defection.
 var infrastructure:
 	get:
 		return infrastructure_provided - infrastructure_required
@@ -241,7 +241,7 @@ func _apply_infrastructure(a_infrastructure: int, a_sign: int) -> void:
 
 ## True when upkeep exceeds capacity. Production structures build at reduced speed
 ## while this holds (see Production.tick).
-func is_infrastructure_strained() -> bool:
+func is_in_defection() -> bool:
 	return infrastructure_required > infrastructure_provided
 
 
@@ -276,7 +276,7 @@ func _init() -> void:
 ## Unmet needs the production queue can WAIT OUT: the spendable pools. A purchase
 ## blocked only by these is queued, not refused. Infrastructure is in the list because it is
 ## upkeep, not a price — it never prevents a purchase, it only slows production once
-## strained. Anything else (a missing prerequisite structure) is a hard refusal at
+## in defection. Anything else (a missing prerequisite structure) is a hard refusal at
 ## order time, since waiting can't resolve it.
 static func is_deferrable_need(need: TechnologySpec.UnmetNeed) -> bool:
 	return (

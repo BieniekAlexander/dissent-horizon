@@ -5,7 +5,7 @@ type: design-note
 
 # Micro-scaled effectiveness
 
-Goal G9 in the [framework](README.md): **many units gain well-tuned, marginal effectiveness
+Goal G9 in the [framework](design-framework/README.md): **many units gain well-tuned, marginal effectiveness
 from small micro decisions.** Common in every faction's roster, never on every unit, and
 designed thoroughly rather than left to emerge. This is the design space with the most room
 for new ideas.

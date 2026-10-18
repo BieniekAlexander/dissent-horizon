@@ -5,7 +5,7 @@ type: system-note
 
 # Structure costs
 
-**Applied (Alex, 2026-10-01)**, as a starting point for playtesting. Part of [pacing](README.md). The question (Alex,
+**Applied (Alex, 2026-10-01)**, as a starting point for playtesting. Part of [pacing](systems/macroeconomics/pacing/README.md). The question (Alex,
 2026-10-01): Colonial structures cost Zero Hour prices while units cost about half of Zero
 Hour's, so a base takes twice the share of a player's energy it does there
 ([resource-allotment](resource-allotment.md)). Revisit the prices, with half of Zero Hour as a

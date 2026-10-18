@@ -457,18 +457,18 @@ func test_approaching_capacity_warns_steadily_in_the_spare_region() -> void:
 		-int(Commander.BASE_INFRASTRUCTURE * ResourcePressure.INFRASTRUCTURE_PRESSURE_FRACTION)
 	)
 	bar.commander = commander
-	assert_false(commander.is_infrastructure_strained(), "the fixture is not yet over capacity")
+	assert_false(commander.is_in_defection(), "the fixture is not yet over capacity")
 	assert_eq(bar._fill_regions()[1].color, ResourcePressure.INFRASTRUCTURE_PRESSURE_COLOR)
 
 
-func test_strained_infrastructure_oscillates_the_excess_region() -> void:
+func test_defection_oscillates_the_excess_region() -> void:
 	var bar := autofree(InfrastructureBar.new()) as InfrastructureBar
 	var commander := _make_commander()
 	# Past the default 500 visual threshold too, so required alone sets the bar's scale —
 	# the case where the excess region's own end_frac reaches the bar's right edge.
 	commander.add_infrastructure(-600)
 	bar.commander = commander
-	assert_true(commander.is_infrastructure_strained(), "the fixture is actually strained")
+	assert_true(commander.is_in_defection(), "the fixture is actually in defection")
 	var regions: Array[Dictionary] = bar._fill_regions()
 	assert_almost_eq(
 		regions[1].end_frac,

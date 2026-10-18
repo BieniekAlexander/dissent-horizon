@@ -4,13 +4,13 @@ extends GutTest
 ## has its BUILDINGS switched off — no weapons, and no abilities either, active or passive.
 ##
 ## The building is otherwise untouched. It still stands, still holds its grid cells, is
-## still a target, and still produces (at the reduced rate strain already imposed). Units
-## are not affected at all: strain is a fact about buildings drawing more than the network
+## still a target, and still produces (at the reduced rate defection already imposed). Units
+## are not affected at all: defection is a fact about buildings drawing more than the network
 ## supplies, not about an army in the field.
 ##
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd \
-##     -gtest=res://tests/test_InfrastructureStrain.gd -gexit
+##     -gtest=res://tests/test_Defection.gd -gexit
 
 const TURRET_SCENE: Dictionary = FakePieces.BUILDING
 const UNIT_SCENE: Dictionary = FakePieces.BUILDER
@@ -26,10 +26,10 @@ func before_each() -> void:
 	add_child_autofree(_commander)
 
 
-## Push the commander into strain by adding upkeep it cannot cover.
-func _strain() -> void:
+## Push the commander into defection by adding upkeep it cannot cover.
+func _push_into_defection() -> void:
 	_commander.add_infrastructure(-(Commander.BASE_INFRASTRUCTURE + 1))
-	assert_true(_commander.is_infrastructure_strained(), "the fixture is actually strained")
+	assert_true(_commander.is_in_defection(), "the fixture is actually in defection")
 
 
 func _piece(a_options: Dictionary) -> Actor:
@@ -53,73 +53,73 @@ func _with_pool(a_piece: Actor) -> Abilities:
 # --- Who goes dark -----------------------------------------------------------------
 
 
-func test_a_structure_is_unpowered_while_its_commander_is_strained() -> void:
+func test_a_structure_is_defective_while_its_commander_is_in_defection() -> void:
 	var turret := _piece(TURRET_SCENE)
-	assert_false(turret.is_unpowered(), "powered while the network covers it")
-	_strain()
-	assert_true(turret.is_unpowered())
+	assert_false(turret.is_defective(), "not defective while the network covers it")
+	_push_into_defection()
+	assert_true(turret.is_defective())
 
 
-func test_a_unit_is_never_unpowered() -> void:
+func test_a_unit_is_never_defective() -> void:
 	var unit := _piece(UNIT_SCENE)
-	_strain()
-	assert_false(unit.is_unpowered(), "strain is about buildings, not the army")
+	_push_into_defection()
+	assert_false(unit.is_defective(), "defection is about buildings, not the army")
 
 
-func test_an_unowned_structure_is_never_unpowered() -> void:
+func test_an_unowned_structure_is_never_defective() -> void:
 	# Neutral map furniture has no commander to be short of anything.
 	var turret: Actor = FakePieces.make(TURRET_SCENE)
 	add_child_autofree(turret)
 	turret.set_physics_process(false)
-	assert_false(turret.is_unpowered())
+	assert_false(turret.is_defective())
 
 
 # --- Weapons -----------------------------------------------------------------------
 
 
-func test_an_unpowered_structure_cannot_use_its_weapons() -> void:
+func test_an_defective_structure_cannot_use_its_weapons() -> void:
 	var turret := _piece(TURRET_SCENE)
 	assert_true(turret.can_use_weapons(), "armed while powered")
-	_strain()
+	_push_into_defection()
 	assert_false(turret.can_use_weapons())
 
 
 func test_closing_the_shortfall_switches_the_weapons_back_on() -> void:
 	var turret := _piece(TURRET_SCENE)
-	_strain()
+	_push_into_defection()
 	_commander.add_infrastructure(Commander.BASE_INFRASTRUCTURE + 1)
-	assert_false(_commander.is_infrastructure_strained())
+	assert_false(_commander.is_in_defection())
 	assert_true(turret.can_use_weapons())
 
 
 # --- Abilities ---------------------------------------------------------------------
 
 
-func test_an_unpowered_pool_is_not_operational() -> void:
+func test_an_defective_pool_is_not_operational() -> void:
 	var pool := _with_pool(_piece(TURRET_SCENE))
 	assert_true(pool.is_operational(), "operational while powered")
-	_strain()
+	_push_into_defection()
 	assert_false(pool.is_operational())
 
 
-func test_a_full_pool_on_an_unpowered_structure_is_not_ready() -> void:
+func test_a_full_pool_on_an_defective_structure_is_not_ready() -> void:
 	# The distinction the HUD draws: charges are there, and the ability still cannot fire.
 	var pool := _with_pool(_piece(TURRET_SCENE))
-	_strain()
+	_push_into_defection()
 	assert_eq(pool.charges_of(POOLED_ABILITY), 1, "the charge is still in the pool")
 	assert_false(pool.is_ready(POOLED_ABILITY))
 
 
-func test_an_unpowered_pool_cannot_be_spent() -> void:
+func test_an_defective_pool_cannot_be_spent() -> void:
 	var pool := _with_pool(_piece(TURRET_SCENE))
-	_strain()
+	_push_into_defection()
 	assert_false(pool.spend(POOLED_ABILITY), "nothing is half-fired")
 	assert_eq(pool.charges_of(POOLED_ABILITY), 1, "and the charge is not consumed")
 
 
 func test_a_units_pool_is_unaffected() -> void:
 	var pool := _with_pool(_piece(UNIT_SCENE))
-	_strain()
+	_push_into_defection()
 	assert_true(pool.is_operational())
 	assert_true(pool.is_ready(POOLED_ABILITY))
 
@@ -129,11 +129,11 @@ func test_the_refusal_names_the_shortfall_rather_than_a_cooldown() -> void:
 	# this one never does.
 	var turret := _piece(TURRET_SCENE)
 	_with_pool(turret)
-	_strain()
+	_push_into_defection()
 	var message := CommandMessage.new(null, null, null, Vector3.ZERO)
 	message.ability_type = POOLED_ABILITY
 	assert_eq(
-		Ability.meets_precondition(turret, message), MoveCommand.PreconditionFailureCause.UNPOWERED
+		Ability.meets_precondition(turret, message), MoveCommand.PreconditionFailureCause.DEFECTIVE
 	)
 
 
@@ -142,10 +142,10 @@ func test_the_refusal_is_not_deferred_by_the_additive_modifier() -> void:
 	# queue the cast.
 	var turret := _piece(TURRET_SCENE)
 	_with_pool(turret)
-	_strain()
+	_push_into_defection()
 	var message := CommandMessage.new(null, null, null, Vector3.ZERO)
 	message.ability_type = POOLED_ABILITY
 	message.defer_if_unaffordable = true
 	assert_eq(
-		Ability.meets_precondition(turret, message), MoveCommand.PreconditionFailureCause.UNPOWERED
+		Ability.meets_precondition(turret, message), MoveCommand.PreconditionFailureCause.DEFECTIVE
 	)

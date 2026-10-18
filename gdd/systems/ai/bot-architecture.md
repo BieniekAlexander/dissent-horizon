@@ -1237,7 +1237,7 @@ Compound, routine for a Lab before any site is explored. It still holds while a 
 pending.
 
 **A trained infrastructure provider** (the Technocratic Surveyor, `Bot.infrastructure_source_is_unit`).
-`BotProduction._train_infrastructure_unit` trains one ahead of everything while the bot is strained
+`BotProduction._train_infrastructure_unit` trains one ahead of everything while the bot is in defection
 and none is on its way, exempt from the reserve like the economy's infrastructure rung, which banks
 meanwhile. Only with nothing able to train the unit does the economy fall back to building a
 structure that supplies infrastructure. Without this the bot never trained a provider — it is

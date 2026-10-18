@@ -15,7 +15,7 @@ extends RefCounted
 const ENERGY_SURPLUS_THRESHOLD: int = 5000
 
 ## Fraction of infrastructure capacity at which the excess region starts warning. Below the
-## strain line, so the warning arrives before the buildings do go dark rather than with them.
+## defection line, so the warning arrives before the buildings do go dark rather than with them.
 const INFRASTRUCTURE_PRESSURE_FRACTION: float = 0.8
 
 ## Seconds for one full pulse. Slow enough to read as a STATE rather than as an alarm — a

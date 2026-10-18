@@ -103,7 +103,7 @@ class World:
 
     def can_pay(self, kind: str) -> bool:
         draw = max(0, -self.p[kind]["infrastructure"])
-        # A piece that draws nothing is never held up by strain (the Relay a strained
+        # A piece that draws nothing is never held up by defection (the Relay a commander in defection
         # Libertarian needs most of all).
         return self.energy >= self.p[kind]["energy"] and (draw == 0 or self.infra_spare >= draw)
 
