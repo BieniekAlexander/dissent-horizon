@@ -1098,6 +1098,7 @@ func _on_commander_changed(a_old_commander: Commander, a_new_commander: Commande
 		if (
 			_avoidance_obstacle != null
 			and not (deployable != null and deployable.hold_obstacle_layers(obstacle_layers))
+			and not movement_component.is_planted()
 		):
 			_avoidance_obstacle.avoidance_layers = obstacle_layers
 		if movement != null:
@@ -1422,10 +1423,19 @@ func simulation_step(_a_delta: float) -> void:
 	if movement != null:
 		var command: MoveCommand = current_command()
 		movement.update_avoidance_priority(command != null and command.holds_ground(self))
+		# A unit performing an action is planted: out of RVO, an obstacle to everyone.
+		movement.set_planted(_is_acting())
 	# Immediately after the height above: whether this piece is an air or a ground target is
 	# a question about the Y just written, so the two must not be a tick apart.
 	refresh_targetable_altitude()
 	_tick_crush()
+
+
+## Whether this tick was spent performing an action — anything the command tick reports other
+## than standing idle or walking (ActionTracker). What plants a unit in RVO (Movement.set_planted).
+func _is_acting() -> bool:
+	var action: ActionTracker.Action = action_tracker.current_action()
+	return action != ActionTracker.Action.IDLE and action != ActionTracker.Action.MOVING
 
 
 #region Crush

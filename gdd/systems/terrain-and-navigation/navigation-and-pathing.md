@@ -262,6 +262,9 @@ tells no player anything. Do not "unify" the two paths; the asymmetry is the poi
 
 *Moved out of `movement.gd::update_avoidance_priority`.*
 
+The firer's tier is now moot in practice: a unit firing is PLANTED, out of RVO altogether
+(§Who avoids whom). The ranking still decides between travellers and standers.
+
 RVO is reciprocal: two equal-priority agents each take half the responsibility for not
 colliding. When one of them is standing still and never moves, that half is never paid,
 so the mover has to keep re-steering and ends up arcing around it. That is the whole of
@@ -287,3 +290,57 @@ nobody (see the list above). Otherwise it is keyed on is_navigation_finished() r
 on having a command, so a unit stopped for any other reason yields alike, and regains its
 rank the tick it starts moving again. A unit whose path is still being
 computed reads as standing for that one tick, which is harmless.
+
+## Who avoids whom
+
+Decided 2026-10-18 (Alex). Three relations, by who the other unit is and what it is doing:
+
+| the other unit | how a mover treats it | does the other unit give way? |
+|---|---|---|
+| a teammate, idle or walking | reciprocal RVO, ranked as above | yes — a stander yields to a traveller |
+| ANY other commander's unit, allies included | a one-sided obstacle (its obstacle channel) | no — it never moves aside for you |
+| any unit PERFORMING AN ACTION, your own included | a one-sided obstacle (the standing channel) | no — it is out of RVO entirely |
+
+The bits are `AvoidanceAgent3D`'s class doc. An ally is an obstacle and never a reciprocal
+partner: it does not step aside for the player's units and they walk round it.
+
+### An acting unit is planted
+
+A unit whose tick was spent performing an action — firing, building, repairing, unloading,
+interacting, stunned: anything `ActionTracker` reports other than IDLE or MOVING
+(`Actor._is_acting`) — is PLANTED for that tick (`Movement.set_planted`). Its agent broadcasts
+on no layer and masks none, so nobody does reciprocal RVO with it and nothing pushes it, and its
+obstacle moves onto `STANDING_OBSTACLE_BIT`, which every agent of every team masks, so units
+walk round it whoever owns them. This replaces the firer's ENGAGED priority as what keeps a
+firing unit in place: before, only a unit holding ground to FIRE outranked travellers, and a
+builder or a repairer standing on someone's line was shoved aside like an idle one.
+
+Planting stands down for a piece whose `Movement` is switched off (a deployed piece plants
+itself, `Deployable._stand`) and for one an Occupy has silenced (`suppress_avoidance_layers`),
+which would otherwise fight it over the same layers. Unplanting puts the obstacle back on its
+owner's channel as read at that moment, so an ownership change while planted lands right.
+
+### A blocked unit
+
+RVO alone does not resolve a mover against a one-sided obstacle in two cases, both measured
+on 2026-10-18 with a headless scenario probe (a Recruit walking 16 units past or onto another):
+
+- **Dead on the line.** With the obstacle exactly on the mover's line, RVO's answer is
+  symmetric and comes out as zero: the mover stopped pressed against the obstacle (0.40 apart,
+  the sum of the radii) and stayed there for the rest of the run. 0.01 off the line it went
+  round. Grid-snapped orders make exact lines common.
+- **On the goal.** Ordered onto a point an ally stood on, the mover pressed against it for the
+  whole run and never arrived, so its order never ended.
+
+`Movement` counts a tick BLOCKED when it asked avoidance for at least `BLOCKED_MIN_REQUEST` of
+its speed and was handed back under `BLOCKED_FRACTION` of what it asked (`_count_blocked`, on
+the velocity before the turn limit, so a pivot in place is not a refusal). After
+`BLOCKED_TICKS` in a row, a unit within `BLOCKED_ARRIVAL_DISTANCE` of its goal takes the goal as
+reached; one further away steers 45° to one side for `SIDESTEP_TICKS`, which breaks the
+symmetry. Measured after: both cases resolve — the mover goes round at 0.41, and the order onto
+an occupied point ends 0.6 short of it. Tests pin the state (`tests/test_AvoidancePlanting.gd`).
+
+**Not changed:** an idle TEAMMATE dead on a mover's line is pushed along ahead of it rather
+than stepping aside — 8.4 units over a 16-unit walk in the probe, and a five-unit group pushed
+one 8.3 with brief overlaps. That is the stander-yields rule above taken to its degenerate case.
+TODO — whether a stander should be an obstacle too, or yield sideways, is undecided.

@@ -15,7 +15,13 @@ extends NavigationAgent3D
 ##    around the enemy's obstacle unilaterally without triggering reciprocal RVO.
 ##    The obstacle's layers are wired in Actor._on_commander_changed.
 ##
-## 3. PER-PAIR EXCEPTIONS (follow mechanic). Godot's RVO has no per-instance
+## 3. PLANTED (a unit performing an action). A unit that is acting — firing, building,
+##    repairing, unloading, interacting — leaves RVO entirely: it broadcasts nothing and masks
+##    nothing, so nobody does reciprocal RVO with it and nothing pushes it, while Movement
+##    moves its obstacle onto the STANDING channel, so every agent of every team, its own
+##    included, steers round it one-sided (Alex, 2026-10-18). See set_planted.
+##
+## 4. PER-PAIR EXCEPTIONS (follow mechanic). Godot's RVO has no per-instance
 ##    exclusion list; each excepted agent borrows a unique bit from the high pool
 ##    (bits POOL_START..31) and broadcasts only that bit; the partner clears it
 ##    from its mask. All other agents still mask every pool bit so they keep
@@ -72,6 +78,9 @@ var _team_bit: int = 0
 var _unique_bit: int = 0
 ## Set of AvoidanceAgent3D this agent is currently ignoring (mutually).
 var _exceptions: Dictionary = {}  # AvoidanceAgent3D -> true
+
+## Whether this agent is PLANTED (see the class doc, 3): out of RVO both ways.
+var _is_planted: bool = false
 
 ## Foreign obstacle bits (see obstacle_bit()) currently excluded from this agent's
 ## mask because Actor._update_crush_avoidance_exclusions() found at least one
@@ -158,6 +167,24 @@ func clear_avoidance_exceptions() -> void:
 #endregion
 
 
+#region Planting
+## Take this agent out of RVO (`a_planted`) or put it back: planted, it broadcasts on no layer
+## and masks none. Its OBSTACLE is Movement's to move onto the standing channel. Idempotent.
+func set_planted(a_planted: bool) -> void:
+	if a_planted == _is_planted:
+		return
+	_is_planted = a_planted
+	avoidance_layers = _broadcast_bit()
+	_apply_mask()
+
+
+func is_planted() -> bool:
+	return _is_planted
+
+
+#endregion
+
+
 #region Crush exclusion
 ## Set which foreign obstacle bits (see obstacle_bit()) to drop from avoidance_mask
 ## because every nearby enemy currently on that channel is one this agent can crush
@@ -179,6 +206,8 @@ func set_crush_excluded_obstacles(a_mask: int) -> void:
 ## The layer bit this agent broadcasts on: its unique pool bit while excepted,
 ## otherwise its team bit.
 func _broadcast_bit() -> int:
+	if _is_planted:
+		return 0
 	return _unique_bit if _unique_bit != 0 else _team_bit
 
 
@@ -194,11 +223,14 @@ func _foreign_obstacle_mask() -> int:
 	return _ALL_OBSTACLES & ~_own_obstacle_bit()
 
 
-## avoidance_mask = own team bit (same-team reciprocal RVO)
+## avoidance_mask = nothing while planted; otherwise
+##               own team bit (same-team reciprocal RVO)
 ##               + all foreign obstacle bits (cross-team one-sided avoidance)
 ##               + all pool bits (so excepted agents remain visible)
 ##               - broadcast bit of every agent we're ignoring.
 func _current_mask() -> int:
+	if _is_planted:
+		return 0
 	var m: int = _team_bit | _foreign_obstacle_mask() | _POOL_MASK
 	for other: Variant in _exceptions.keys():
 		if is_instance_valid(other):
@@ -229,7 +261,7 @@ func _ensure_unique_bit() -> void:
 		)
 		return
 	_unique_bit = _free_bits.pop_back()
-	avoidance_layers = _unique_bit
+	avoidance_layers = _broadcast_bit()
 
 
 ## Return our unique bit to the pool once we have no exceptions left.
@@ -237,7 +269,7 @@ func _maybe_release_bit() -> void:
 	if _unique_bit != 0 and _exceptions.is_empty():
 		_free_bits.append(_unique_bit)
 		_unique_bit = 0
-		avoidance_layers = _team_bit
+		avoidance_layers = _broadcast_bit()
 
 
 func _notification(a_what: int) -> void:
