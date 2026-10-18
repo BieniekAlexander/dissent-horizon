@@ -11,7 +11,7 @@ extends AbstractEvent
 ## there. Revealing an objective wants the latter; sketching in a piece of map the player has
 ## merely heard about wants the former.
 ##
-## The vision source is a Scout: an invisible, unselectable, collision-free entity whose
+## The vision source is a Scout: an invisible, untargetable, unselectable entity whose
 ## VisionRange cylinder clears fog for its owner exactly as a unit's does. Spawned directly
 ## (initialize → position) rather than through Map.add_entity, whose unit-placement path
 ## samples a collision radius the Scout deliberately hasn't got — the same reason
@@ -129,10 +129,28 @@ static func spawn_vision(
 	if scout == null:
 		return null
 	Lifespan.attach(scout, a_lifespan_seconds)
+	_make_unseen(scout)
 	_resize_vision(scout, a_radius)
 	scout.initialize(a_map, a_commander)
 	scout.global_position = Vector3(a_point.x, a_map.terrain_height_at(a_point), a_point.y)
 	return scout
+
+
+## Make a reveal's drone a pure vision source (Alex, 2026-10-18): nothing drawn — no model, no
+## altitude marker — and nothing to shoot, since a target nobody can see would only draw fire at
+## empty air. The Scan sanction's drone, the same scene, keeps all of it: a scan's eye is a real
+## piece the opponent can find and shoot down (EventRadarScan). Runs before the drone enters the
+## tree, so its @onready `defense` and `hurtbox` resolve to null.
+static func _make_unseen(a_scout: Actor) -> void:
+	for path: String in ["AltitudeIndicator", "Defense", "Hurtbox"]:
+		var node: Node = a_scout.get_node_or_null(path)
+		if node != null:
+			a_scout.remove_child(node)
+			node.free()
+	for path: String in ["MeshVisual", "StatusVisuals"]:
+		var visual := a_scout.get_node_or_null(path) as Node3D
+		if visual != null:
+			visual.visible = false
 
 
 ## Widen a Scout's VisionRange to `a_radius`.

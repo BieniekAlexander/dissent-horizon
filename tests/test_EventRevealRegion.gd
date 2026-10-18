@@ -98,6 +98,21 @@ func test_the_area_is_a_cylinder_of_the_configured_radius() -> void:
 	assert_almost_eq(_vision_shape(scout).radius, 10.0, 0.001)
 
 
+func test_a_reveal_drone_is_neither_drawn_nor_a_target() -> void:
+	var drone: Actor = FakePieces.unit(
+		{"vision": 12.0, "hp": 50.0, "aerial": true, "mesh": true, "status_visuals": true}
+	)
+	drone.add_child(AltitudeIndicator.new())
+	drone.get_child(-1).name = "AltitudeIndicator"
+	EventRevealRegion._make_unseen(drone)
+	add_child_autofree(drone)
+	assert_null(drone.get_node_or_null("AltitudeIndicator"), "no marker under it")
+	assert_false((drone.get_node("MeshVisual") as Node3D).visible, "no model")
+	assert_false((drone.get_node("StatusVisuals") as Node3D).visible, "no badges")
+	assert_false(drone.is_attackable(), "nothing to shoot")
+	assert_not_null(drone.get_node_or_null("VisionRange"), "but it still sees")
+
+
 func test_resizing_one_area_does_not_resize_the_scout_scene() -> void:
 	# A PackedScene's sub-resources are SHARED across its instances, so writing the radius in
 	# place would resize the Radar Scan sanction's scouts and every other reveal along with

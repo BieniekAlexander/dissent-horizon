@@ -3344,17 +3344,26 @@ static func _resolve_target_command(actor: Entity, message: CommandMessage) -> V
 				return branch
 
 	# Hostile, weapon-matched target. Above the rally fallback so a combatant structure whose
-	# can_rally() would otherwise swallow the click still takes an explicit attack order.
+	# can_rally() would otherwise swallow the click still takes an explicit attack order. A
+	# VOLATILE piece counts as hostile whoever owns it: shooting it to set off its blast is the
+	# only thing a right-click on one could mean (Alex, 2026-10-18).
 	if (
 		target is Entity
 		and (target as Entity).is_attackable()
-		and actor.is_enemy_of(target)
+		and (actor.is_enemy_of(target) or _is_volatile_target(actor, target))
 		and actor.weapon_inventory != null
 		and actor.weapon_inventory.weapon_for_target(target) != null
 	):
 		return Attack
 
 	return MoveCommand
+
+
+## Whether `a_target` is a volatile piece `a_actor` may shoot unprovoked: one with a blast to set
+## off (Volatile), and not on the actor's own side — a player's own cell is not a target of a
+## default click. gdd/systems/commands/the-click-ladder.md, rung 9.
+static func _is_volatile_target(a_actor: Entity, a_target: Entity) -> bool:
+	return Volatile.of(a_target) != null and not a_actor.is_friendly_to(a_target)
 
 
 ## The command class to arm for a whole SELECTION, which is what the player actually has
