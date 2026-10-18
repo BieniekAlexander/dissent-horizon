@@ -81,6 +81,9 @@ var _trigger_manager: ScenarioTriggerManager
 ## so a listener knows friendly fire from an attack — AlertCenter, which must not tell a player
 ## their base is under attack by their own splash. Not cleared: read it in the occurrence.
 var last_hit_by_commander_id: int = -1
+## Where a piece that dies OUT of the world is heard (sound_position): set by whatever takes it
+## out and kills it there — a flush (Garrison.flush), to its host's position. Null otherwise.
+var dies_at: Variant = null
 #endregion
 
 #region Identity
@@ -1269,6 +1272,14 @@ func die() -> void:
 	_on_death()
 
 
+## Where a sound this piece makes is heard: where it stands, or for a piece out of the world, the
+## spot it was last held (`dies_at`, which a flush sets). Null when it has no place at all.
+func sound_position() -> Variant:
+	if is_inside_tree():
+		return global_position
+	return dies_at
+
+
 func _on_death() -> void:
 	# Fire the death reaction FIRST, while map / global_position / commander are
 	# still valid (the teardown + queue_free below would invalidate them). This is
@@ -1276,8 +1287,10 @@ func _on_death() -> void:
 	# after its commander bookkeeping, which leaves those references intact.
 	_fire_entity_occurrence(EntityOccurrence.ON_DEATH)
 	# The main loop rather than get_tree(): a piece may die out of the world (a flushed
-	# occupant) and is still heard.
-	EntityDeathSounds.play_for(id, Engine.get_main_loop() as SceneTree)
+	# occupant) and is still heard — where it was held.
+	var heard_at: Variant = sound_position()
+	if heard_at != null:
+		EntityDeathSounds.play_for(id, Engine.get_main_loop() as SceneTree, heard_at, commander_id)
 
 	# Structure-flavored grid teardown: any entity that occupies the terrain grid
 	# (registered via Structure → Map.add_structure) must release its cells so the

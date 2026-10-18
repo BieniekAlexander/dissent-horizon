@@ -51,6 +51,9 @@ const ACCENTS: Dictionary = {
 #region Properties
 ## Which commander's alerts to show. RTSController supplies the HUD's own perspective.
 var viewer: Callable = func() -> int: return RTSController.PLAYER_COMMANDER_ID
+## Whether a world point is on the HUD's screen right now. Defaults to this viewport's camera; a
+## test supplies its own.
+var in_view: Callable = _on_screen
 
 var _center: AlertCenter = null
 var _player: AudioStreamPlayer = null
@@ -138,6 +141,8 @@ func history() -> Array[Alert]:
 func present(a_alert: Alert) -> void:
 	if a_alert.viewer_id != int(viewer.call()):
 		return
+	if is_seen_already(a_alert):
+		return
 	_show_toast(a_alert)
 	_play_sound(a_alert)
 	if a_alert.has_position:
@@ -154,7 +159,34 @@ func present(a_alert: Alert) -> void:
 #endregion
 
 
+## Whether `a_alert` is a WARNING whose cause the player is looking at: news of harm
+## (AlertCatalog.is_negative) located on screen. Such an alert is not shown at all — no toast, no
+## sound, no jump-history entry — since the player can see it happening (Alex, 2026-10-18).
+## Applied here, at the HUD, because only the HUD has a camera: AlertCenter's presented channel
+## is every commander's, the bots' included, and must not depend on where one player looks. The
+## throttle has already admitted it, so its hold still opens — a fight watched on screen stays
+## quiet for its hold after the camera moves away (alerts.md §Throttling).
+func is_seen_already(a_alert: Alert) -> bool:
+	return (
+		a_alert.has_position
+		and AlertCatalog.is_negative(a_alert.type)
+		and bool(in_view.call(a_alert.position))
+	)
+
+
+#endregion
+
+
 #region Private helpers
+## On this viewport's screen: in front of its camera and inside the visible rectangle.
+func _on_screen(a_at: Vector3) -> bool:
+	var camera: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
+	if camera == null or camera.is_position_behind(a_at):
+		return false
+	var rect := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	return rect.has_point(camera.unproject_position(a_at))
+
+
 func _on_presented(a_alert: Alert) -> void:
 	present(a_alert)
 

@@ -433,8 +433,11 @@ func flush(a_by: Actor = null) -> int:
 	if not flushable:
 		return 0
 	var flushed: Array[Actor] = _garrisoned.duplicate()
+	var host := get_parent() as Actor
 	for unit: Actor in flushed:
 		if is_instance_valid(unit):
+			# Heard dying where it was held: detach clears the link world_position follows.
+			unit.dies_at = host.world_position() if host != null else null
 			detach(unit)
 			unit.kill(a_by)
 	_garrisoned.clear()

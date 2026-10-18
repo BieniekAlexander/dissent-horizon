@@ -180,3 +180,26 @@ one of them is what adds its slot kinds here.
 
 - REJECTED — a separate asset catalog with its own asset ids and a hand-kept status column: a
   second id scheme beside the piece ids, and a status the importer already derives.
+
+
+## World sounds
+
+**A sound the world makes is heard only near the camera, and never under fog** (Alex,
+2026-10-18), after every death on the map was heard everywhere. A world sound is a consequence of
+what happens on the map — a death today; weapon fire, impacts and construction when they get
+sounds. A sound that answers the player (a selection or order bark, an alert) is not one.
+`WorldSound.gain_at` is the one rule, and every world sound asks it:
+
+- **Near the camera:** full volume anywhere on screen, fading linearly to silence over a margin of
+  15% of the viewport's shorter side past each edge (`WorldSound.MARGIN_FRACTION`). Measured on
+  screen, so zooming out hears more of the map, as it shows more.
+- **Not under fog:** silent at a point the displayed fog hides, or a death would tell the player
+  where an unseen enemy stands. The viewer's own pieces are always heard, and a lifted fog hides
+  nothing (`Fog.active_sight_test`).
+- **No camera, no sound:** a headless run hears nothing.
+- A piece that dies out of the world is heard where it was held: a garrisoned piece at its host
+  (`Actor.sound_position`), a flushed occupant where its host stood (`Entity.dies_at`, which
+  `Garrison.flush` sets).
+
+Presentation only: it reads the camera and the displayed fog, never the simulation. Tests:
+`tests/test_WorldSound.gd`.

@@ -241,6 +241,13 @@ func world_position() -> Vector3:
 	return host.world_position() if host != null else global_position
 
 
+## Held inside a host, a piece is heard where the host stands.
+func sound_position() -> Variant:
+	if is_garrisoned():
+		return world_position()
+	return super()
+
+
 func has_command() -> bool:
 	return current_command() != null
 

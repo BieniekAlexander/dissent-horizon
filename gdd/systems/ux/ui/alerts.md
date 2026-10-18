@@ -129,10 +129,12 @@ The research, and what was taken from it:
 - **Temporal, presentation side**: `AlertFeed` plays no sound within 1 s of the last unless the
   new one is louder, and folds a repeat of the newest toast into a "×n" count.
 
-**A fight that never pauses is announced again after 90 s.** Pure 0 A.D. holds would keep a
+**A fight that never pauses is announced again after 45 s.** Pure 0 A.D. holds would keep a
 siege one alert forever, since every hit restarts the hold; each hold therefore also remembers
-when it OPENED, keeps that through every transfer, and ends `max_hold_seconds` (90) later
-however busy it is. Decided 2026-10-10, over leaving it silent and over OpenRA's plain cooldown.
+when it OPENED, keeps that through every transfer, and ends `max_hold_seconds` later however busy
+it is. Decided 2026-10-10, over leaving it silent and over OpenRA's plain cooldown. For the four
+attack types a hold ends after 15 s without a hit nearby (`suppress_seconds`) or 45 s after it
+opened (`max_hold_seconds`) — halved from 30 s / 90 s on 2026-10-18 (Alex).
 
 ## Global alerts — the superweapon convention
 
@@ -175,13 +177,20 @@ Rudimentary by design (T-102 lists what a real pass would add).
   enemy, a dry pond — and **ALL** visits every located alert, completions and charged abilities
   too. The feed remembers four times the cycle's depth, so a run of completions cannot push the
   last attacks out of the negative cycle.
+- **A warning the player is looking at is not shown** (Alex, 2026-10-18): a negative alert
+  (`AlertCatalog.is_negative` — an attack, a detected enemy, a dry pond) whose position is on
+  screen gets no toast, no sound and no jump-history entry (`AlertFeed.is_seen_already`). It is
+  applied at the HUD, because only the HUD has a camera: the presented channel is every
+  commander's, the bots' included, and does not depend on where one player looks. The throttle
+  has already admitted it, so **its hold still opens** — a fight watched on screen stays quiet for
+  its hold after the camera moves away (chosen over skipping the hold for on-screen alerts).
 - **Perspective**: the HUD shows the local player's alerts, or when spectating or watching a
   replay, the watched commander's — the T-037 item "alerts follow the perspective".
 
 ## Tuning
 
-`TODO`: every number in `AlertCatalog` is a first guess: 30 s holds over 30 cells (about a
-command centre's vision) for attacks, 20 s / 20 cells for detection, 90 s longest hold,
+`TODO`: every number in `AlertCatalog` is a first guess: attack holds of 15 s quiet / 45 s
+longest over 30 cells (about a command centre's vision), 20 s / 20 cells / 90 s for detection,
 reminders every 60 s (energy) and 45 s (infrastructure).
 
 ## Not built — tracked by other games, worth considering
