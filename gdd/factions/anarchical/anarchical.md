@@ -15,11 +15,11 @@ slots:
   secondary_economy: the Scavenge sanction — enemy kills pay back a share of their energy cost
   disable: EMP — a MECH-only stun (Shock Trooper, Condor, Global EMP)
   mobility: cheap, mobile helicopters
-  garrison_clearing: TODO
-  stealth: "cheap stealth: Informant, planted charges"
+  garrison_clearing: toxin tractor
+  stealth: informant ordnance
   stealing: the Hijacker takes over enemy or neutral MECH units, expended doing it
   power_scaling: scavenging — infantry strip wrecks for a better weapon; the Warlord attack-speed aura (upgrade)
-  scouting: TODO — no medium-tier detection source yet
+  scouting: by virtue of having cheap infantry
   constitution: "field hospitals (TODO: moving to a Collective Bio Heal upgrade)"
   infrastructure: builds or occupies existing buildings (the Safehouse)
 ---
