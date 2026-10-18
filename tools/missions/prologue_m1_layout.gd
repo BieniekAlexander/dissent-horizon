@@ -72,6 +72,33 @@ const RACK_OFFSETS: Array[Vector2] = [Vector2(2.5, -0.5), Vector2(-2.5, 0.5)]
 const CELL_OFFSETS: Array[Vector2] = [Vector2(2.6, 1.4), Vector2(-2.6, -1.4), Vector2(0.5, 2.6)]
 ## The Recruits' clearing in SKIRMISH, which they defend.
 const OUTPOST := Vector2(-22, 48)
+
+## THE RESCUE, in the WEST corridor (its centre line at along -61, ±11 wide). When the
+## player walks north into AMBUSH_TRIGGER, the ally's RESCUERS appear ahead of them and the enemy's
+## AMBUSHERS further north, and the two attack each other; a reveal shows the player the fight,
+## since the ally does not share its vision. The trigger's south edge (centre - radius) is where
+## the player arrives: AMBUSH_TRIGGER's is about 14 from where the fight settles, just past the
+## Warlord's reach of 12, so it gets a shot or two off at most. Once the ambushers are dead the
+## rescuers push north into STRIKE_TRIGGER, which ends the fight's reveal, sends STRIKERS at them,
+## and reveals where the Clippers hit. Positions are first guesses, not tuned.
+const AMBUSH_TRIGGER := Vector2(-61, 14)
+const AMBUSH_TRIGGER_RADIUS: float = 10.0
+const RESCUERS: int = 9
+const RESCUERS_AT := Vector2(-61, 9)
+const AMBUSHERS: int = 5
+const AMBUSHERS_AT := Vector2(-61, 26)
+const FIGHT_REVEAL_AT := Vector2(-61, 17)
+const FIGHT_REVEAL_RADIUS: float = 12.0
+const FIGHT_REVEAL: StringName = &"prologue_m1_fight_reveal"
+const STRIKE_TRIGGER := Vector2(-61, 34)
+const STRIKE_TRIGGER_RADIUS: float = 6.0
+const STRIKERS: int = 2
+const STRIKERS_AT := Vector2(-50, 58)
+const STRIKE_REVEAL_RADIUS: float = 10.0
+const STRIKE_REVEAL: StringName = &"prologue_m1_strike_reveal"
+const RESCUE_GROUP: StringName = &"prologue_m1_rescuers"
+const AMBUSH_GROUP: StringName = &"prologue_m1_ambushers"
+const STRIKE_GROUP: StringName = &"prologue_m1_strikers"
 const ALLY_SAFEHOUSES: Array[Vector2] = [Vector2(-30, 4.5), Vector2(-30, -4.5), Vector2(-36, 0)]
 const ALLY_WAVE_SPAWN := Vector2(-25, 0)
 const WATCH_TOWERS: Array[Vector2] = [Vector2(26, 5), Vector2(26, -5), Vector2(31, 0)]
@@ -137,6 +164,7 @@ func _ready() -> void:
 	_assault(manager, "AllyWaveTactic", ALLY_WAVE, ALLY_WAVE_TARGET)
 	_assault(manager, "EnemyWaveTactic", ENEMY_WAVE, ENEMY_WAVE_TARGET)
 	_outpost(manager)
+	_rescue(manager)
 
 	_save(root)
 	get_tree().quit(0)
@@ -265,6 +293,98 @@ func _outpost(a_manager: Node) -> void:
 	defend.position = Vector3.ZERO
 
 
+## The rescue sequence (see AMBUSH_TRIGGER): two triggers and three tactics.
+func _rescue(a_manager: Node) -> void:
+	var ambush := GlobalTrigger.new()
+	ambush.name = "RescueAmbush"
+	ambush.conditions = [_units_in(PLAYER, "AmbushRegion")]
+	a_manager.add_child(ambush)
+	_region(ambush, "AmbushRegion", AMBUSH_TRIGGER, AMBUSH_TRIGGER_RADIUS)
+	_spawn(ambush, "Rescuers", ALLY, IRREGULAR, RESCUERS, RESCUERS_AT, RESCUE_GROUP)
+	_spawn(ambush, "Ambushers", ENEMY, RECRUIT, AMBUSHERS, AMBUSHERS_AT, AMBUSH_GROUP)
+	_reveal(ambush, "RevealFight", FIGHT_REVEAL_AT, FIGHT_REVEAL_RADIUS, FIGHT_REVEAL)
+
+	var strike := GlobalTrigger.new()
+	strike.name = "RescueStrike"
+	strike.conditions = [_units_in(ALLY, "StrikeRegion")]
+	strike.prerequisites = [ambush]
+	a_manager.add_child(strike)
+	_region(strike, "StrikeRegion", STRIKE_TRIGGER, STRIKE_TRIGGER_RADIUS)
+	var end_fight := EventEndReveal.new()
+	end_fight.name = "EndFightReveal"
+	end_fight.reveal_label = FIGHT_REVEAL
+	strike.add_child(end_fight)
+	_spawn(strike, "Strikers", ENEMY, CLIPPER, STRIKERS, STRIKERS_AT, STRIKE_GROUP)
+	_reveal(strike, "RevealStrike", STRIKE_TRIGGER, STRIKE_REVEAL_RADIUS, STRIKE_REVEAL)
+
+	# The rescuers fight the ambushers while any stand, then push north up the corridor.
+	var still_fighting := ConditionGroupCount.new()
+	still_fighting.group = AMBUSH_GROUP
+	still_fighting.comparison = ConditionGroupCount.Comparison.AT_LEAST
+	still_fighting.count = 1
+	var rescuers: ScenarioTactic = _assault(a_manager, "RescuerTactic", RESCUE_GROUP, AMBUSHERS_AT)
+	(rescuers.get_child(0) as TacticRule).condition = still_fighting
+	_add_assault_rule(rescuers, "PushNorth", STRIKE_TRIGGER)
+	_assault(a_manager, "AmbusherTactic", AMBUSH_GROUP, RESCUERS_AT)
+	_assault(a_manager, "StrikerTactic", STRIKE_GROUP, STRIKE_TRIGGER)
+
+
+## "Any of `a_commander`'s units inside the region `a_region` under the trigger".
+func _units_in(a_commander: int, a_region: String) -> ConditionUnitsInRegion:
+	var condition := ConditionUnitsInRegion.new()
+	condition.commander_id = a_commander
+	condition.check = ConditionUnitsInRegion.Check.ANY_INSIDE
+	condition.region_shape_path = NodePath(a_region)
+	return condition
+
+
+## A round region under `a_trigger` at lane position `a_at`. Round, because the lane runs at 45°
+## to the grid and a cylinder looks the same from any angle.
+func _region(a_trigger: Node3D, a_name: String, a_at: Vector2, a_radius: float) -> void:
+	var region := CollisionShape3D.new()
+	region.name = a_name
+	var cylinder := CylinderShape3D.new()
+	cylinder.radius = a_radius
+	cylinder.height = 4.0
+	region.shape = cylinder
+	a_trigger.add_child(region)
+	region.position = MissionLane.to_world(a_at.x, a_at.y)
+
+
+## `a_count` of `a_scene` for `a_commander` at lane position `a_at`, labelled `a_group`.
+func _spawn(
+	a_trigger: Node,
+	a_name: String,
+	a_commander: int,
+	a_scene: String,
+	a_count: int,
+	a_at: Vector2,
+	a_group: StringName
+) -> void:
+	var spawn := EventSpawnEntities.new()
+	spawn.name = a_name
+	spawn.commander_id = a_commander
+	spawn.entity_scenes = [load(a_scene) as PackedScene]
+	spawn.count_expression = str(a_count)
+	spawn.spawn_groups = [a_group]
+	a_trigger.add_child(spawn)
+	spawn.position = MissionLane.to_world(a_at.x, a_at.y)
+
+
+## A standing reveal for the player at lane position `a_at`, named `a_label` so it can be ended.
+func _reveal(
+	a_trigger: Node, a_name: String, a_at: Vector2, a_radius: float, a_label: StringName
+) -> void:
+	var reveal := EventRevealRegion.new()
+	reveal.name = a_name
+	reveal.clears_fog = true
+	reveal.commander_id = PLAYER
+	reveal.radius = a_radius
+	reveal.reveal_label = a_label
+	a_trigger.add_child(reveal)
+	reveal.position = MissionLane.to_world(a_at.x, a_at.y)
+
+
 ## A neutral building that the ally owns as a Safehouse from the first frame, with Irregulars
 ## inside: two STARTING events parked under it, run in order (ScenarioTriggerManager.
 ## run_starting_events) — convert it, then fill it.
@@ -315,15 +435,24 @@ func _wave(
 
 
 ## Keep every unit labelled `a_group` assaulting `a_target`, re-engaging when it goes idle.
-func _assault(a_manager: Node, a_name: String, a_group: StringName, a_target: Vector2) -> void:
+func _assault(
+	a_manager: Node, a_name: String, a_group: StringName, a_target: Vector2
+) -> ScenarioTactic:
 	var tactic := ScenarioTactic.new()
 	tactic.name = a_name
 	tactic.unit_group = a_group
 	a_manager.add_child(tactic)
+	_add_assault_rule(tactic, "Assault", a_target)
+	return tactic
+
+
+## Append a rule to `a_tactic` assaulting lane position `a_target`. Rules are tried in order, so a
+## rule added after a conditional one is what the squad does once that condition stops holding.
+func _add_assault_rule(a_tactic: ScenarioTactic, a_name: String, a_target: Vector2) -> void:
 	var rule := TacticRule.new()
-	rule.name = "Assault"
+	rule.name = a_name
 	rule.action = TacticRule.Action.ASSAULT
-	tactic.add_child(rule)
+	a_tactic.add_child(rule)
 	var point := Marker3D.new()
 	point.name = "Target"
 	rule.add_child(point)

@@ -39,10 +39,18 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
 - **Starting force:** one [Warlord](../../factions/anarchical/units/an_bioMedium_dominionGen.md),
   in a clearing southwest of the ally's start.
 - **Map:** flat regions joined into one route, with hills too steep to cross everywhere else
-  (expanded 2026-10-18). Neutral buildings: none for now.
+  (expanded 2026-10-18). The hills are about 3 high: a steep face, then a flat top nothing can
+  reach. Neutral buildings: none for now.
   1. **Start:** the player's clearing, southwest of the ally's start. It does not open onto the main
      corridor.
-  2. **West corridor:** north from the start.
+  2. **West corridor:** north from the start, about 22 wide. Partway up, the **rescue**: when the
+     player walks into a trigger, 9 of the ally's Irregulars appear ahead of them and 5 enemy Recruits
+     further north, and the two attack each other. An invisible Scout reveals the fight, since the
+     ally does not share vision. The trigger is placed so the player arrives just out of the fight's
+     reach (first probe: 16.5 from the nearest Recruit against the Warlord's reach of 12, so no shots
+     yet; TODO — move the Recruits' spawn about 3 south if a shot or two is wanted). When the
+     Recruits are dead the Irregulars push north onto a second trigger, which ends the fight's
+     reveal, sends 2 Clippers at them and reveals where they strike.
   3. **The prisons:** at its north end, two enemy
      [Compounds](../../factions/colonial/structures/cl_infrastructure.md), each holding 3 of the
      player's Irregulars with its prison switched off (`OccupantDominionGenerator.is_disabled`), so

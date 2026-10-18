@@ -32,6 +32,13 @@ The vision source is a `Scout`: invisible, unselectable, collision-free, its `Vi
 
 Either mode opens a circle at the event's own position, or one over every Node3D in `target_group`. A group rather than a list of node references because the set is usually a category the scene already names ("the camps still standing"), so a member added, moved or removed later needs no change to the event.
 
+**A standing reveal can be ended by name.** `reveal_label` puts each Scout the event places in
+that group, and `EventEndReveal` frees every Scout under a label; the fog withdraws a vision source
+the tick it leaves `"los"`, so the circle closes. Added 2026-10-18 for prologue mission 1, whose
+fight reveal goes dark when the story moves north — `lifespan_seconds` would have had to guess when
+that is. Like the lifespan, the label is greyed out in explored-only mode. Tests:
+`tests/test_EventEndReveal.gd`.
+
 **`_resize_vision` duplicates the shape before writing the radius** — a PackedScene's sub-resources are shared across its instances, so writing in place would resize every other Scout in the game.
 
 ## Objectives are green, in both views

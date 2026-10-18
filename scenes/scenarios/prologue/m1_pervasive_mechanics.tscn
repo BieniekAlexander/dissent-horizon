@@ -1,46 +1,50 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/scenario.gd" id="1_lbnqq"]
-[ext_resource type="Script" path="res://scripts/interface/commander/player_slot.gd" id="2_61w7k"]
-[ext_resource type="PackedScene" path="res://scenes/factions/anarchical.tscn" id="3_87mp0"]
-[ext_resource type="PackedScene" path="res://scenes/factions/colonial.tscn" id="4_wmkji"]
-[ext_resource type="Script" path="res://scripts/maps/map.gd" id="5_0lqqv"]
-[ext_resource type="Resource" path="res://resources/terrain/prologue_m1_terrain.tres" id="6_q5c4a"]
-[ext_resource type="ArrayMesh" path="res://resources/terrain/prologue_m1_terrain_surface.res" id="7_tkoux"]
-[ext_resource type="Script" path="res://scripts/maps/terrain/terrain_surface.gd" id="8_ouyxe"]
-[ext_resource type="Shader" path="res://scripts/rendering/shaders/terrain_surface.gdshader" id="9_gkabw"]
-[ext_resource type="PackedScene" path="res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn" id="10_c1fpo"]
-[ext_resource type="PackedScene" path="res://scenes/entities/structures/nt/nt_building_square.tscn" id="11_8dl3g"]
-[ext_resource type="Script" path="res://scripts/scenario/events/event_convert_building.gd" id="12_asfab"]
-[ext_resource type="Script" path="res://scripts/scenario/events/event_spawn_entities.gd" id="13_1t6k7"]
-[ext_resource type="PackedScene" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="14_dvfmw"]
-[ext_resource type="PackedScene" path="res://scenes/entities/structures/cl/cl_defense_antiLight.tscn" id="15_qs3ar"]
-[ext_resource type="PackedScene" path="res://scenes/entities/structures/cl/cl_infrastructure.tscn" id="16_sbnxv"]
-[ext_resource type="PackedScene" path="res://scenes/entities/structures/nt/nt_batteryRack.tscn" id="17_uy0bk"]
-[ext_resource type="PackedScene" path="res://scenes/entities/tokens/nt/nt_powerCell.tscn" id="18_q6omr"]
-[ext_resource type="Script" path="res://scripts/scenario/scenario_trigger_manager.gd" id="19_g3qt7"]
-[ext_resource type="Script" path="res://scripts/scenario/global_trigger.gd" id="20_jx351"]
-[ext_resource type="Script" path="res://scripts/scenario/conditions/condition.gd" id="21_gf17r"]
-[ext_resource type="Script" path="res://scripts/scenario/conditions/condition_timer.gd" id="22_raxg4"]
-[ext_resource type="PackedScene" path="res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn" id="23_a6oc2"]
-[ext_resource type="PackedScene" path="res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn" id="24_jr0ch"]
-[ext_resource type="Script" path="res://scripts/scenario/scenario_tactic.gd" id="25_pnc80"]
-[ext_resource type="Script" path="res://scripts/scenario/tactic_rule.gd" id="26_hn7id"]
-[ext_resource type="Script" path="res://scripts/scenario/events/event_issue_command.gd" id="27_mekk3"]
-[ext_resource type="Script" path="res://scripts/scenario/events/event_command_point.gd" id="28_qf4wk"]
+[ext_resource type="Script" path="res://scripts/scenario.gd" id="1_0lqqv"]
+[ext_resource type="Script" path="res://scripts/interface/commander/player_slot.gd" id="2_q5c4a"]
+[ext_resource type="PackedScene" path="res://scenes/factions/anarchical.tscn" id="3_tkoux"]
+[ext_resource type="PackedScene" path="res://scenes/factions/colonial.tscn" id="4_ouyxe"]
+[ext_resource type="Script" path="res://scripts/maps/map.gd" id="5_gkabw"]
+[ext_resource type="Resource" path="res://resources/terrain/prologue_m1_terrain.tres" id="6_c1fpo"]
+[ext_resource type="ArrayMesh" path="res://resources/terrain/prologue_m1_terrain_surface.res" id="7_8dl3g"]
+[ext_resource type="Script" path="res://scripts/maps/terrain/terrain_surface.gd" id="8_asfab"]
+[ext_resource type="Shader" path="res://scripts/rendering/shaders/terrain_surface.gdshader" id="9_1t6k7"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn" id="10_dvfmw"]
+[ext_resource type="PackedScene" path="res://scenes/entities/structures/nt/nt_building_square.tscn" id="11_qs3ar"]
+[ext_resource type="Script" path="res://scripts/scenario/events/event_convert_building.gd" id="12_sbnxv"]
+[ext_resource type="Script" path="res://scripts/scenario/events/event_spawn_entities.gd" id="13_uy0bk"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="14_q6omr"]
+[ext_resource type="PackedScene" path="res://scenes/entities/structures/cl/cl_defense_antiLight.tscn" id="15_g3qt7"]
+[ext_resource type="PackedScene" path="res://scenes/entities/structures/cl/cl_infrastructure.tscn" id="16_jx351"]
+[ext_resource type="PackedScene" path="res://scenes/entities/structures/nt/nt_batteryRack.tscn" id="17_gf17r"]
+[ext_resource type="PackedScene" path="res://scenes/entities/tokens/nt/nt_powerCell.tscn" id="18_raxg4"]
+[ext_resource type="Script" path="res://scripts/scenario/scenario_trigger_manager.gd" id="19_a6oc2"]
+[ext_resource type="Script" path="res://scripts/scenario/global_trigger.gd" id="20_jr0ch"]
+[ext_resource type="Script" path="res://scripts/scenario/conditions/condition.gd" id="21_pnc80"]
+[ext_resource type="Script" path="res://scripts/scenario/conditions/condition_timer.gd" id="22_hn7id"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn" id="23_mekk3"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn" id="24_qf4wk"]
+[ext_resource type="Script" path="res://scripts/scenario/scenario_tactic.gd" id="25_u2hjr"]
+[ext_resource type="Script" path="res://scripts/scenario/tactic_rule.gd" id="26_1sgvh"]
+[ext_resource type="Script" path="res://scripts/scenario/events/event_issue_command.gd" id="27_6xnme"]
+[ext_resource type="Script" path="res://scripts/scenario/events/event_command_point.gd" id="28_r32v5"]
+[ext_resource type="Script" path="res://scripts/scenario/conditions/condition_units_in_region.gd" id="29_glse2"]
+[ext_resource type="Script" path="res://scripts/scenario/events/event_reveal_region.gd" id="30_0duxq"]
+[ext_resource type="Script" path="res://scripts/scenario/events/event_end_reveal.gd" id="31_nhjqn"]
+[ext_resource type="Script" path="res://scripts/scenario/conditions/condition_group_count.gd" id="32_pgyre"]
 
-[sub_resource type="Resource" id="Resource_u2hjr"]
-script = ExtResource("2_61w7k")
+[sub_resource type="Resource" id="Resource_hegk3"]
+script = ExtResource("2_q5c4a")
 is_bot = false
-faction = ExtResource("3_87mp0")
+faction = ExtResource("3_tkoux")
 alliance = 1
 difficulty = 0
 starting_energy = 0
 starting_dominion = 0
 
-[sub_resource type="Resource" id="Resource_1sgvh"]
-script = ExtResource("2_61w7k")
-faction = ExtResource("3_87mp0")
+[sub_resource type="Resource" id="Resource_12nwp"]
+script = ExtResource("2_q5c4a")
+faction = ExtResource("3_tkoux")
 alliance = 1
 shares_vision_with_allies = false
 difficulty = 0
@@ -48,20 +52,20 @@ disabled_bot_jobs = Array[StringName]([&"deployment", &"posture", &"targeting", 
 starting_energy = 0
 starting_dominion = 0
 
-[sub_resource type="Resource" id="Resource_6xnme"]
-script = ExtResource("2_61w7k")
-faction = ExtResource("4_wmkji")
+[sub_resource type="Resource" id="Resource_hhunv"]
+script = ExtResource("2_q5c4a")
+faction = ExtResource("4_ouyxe")
 alliance = 2
 difficulty = 0
 disabled_bot_jobs = Array[StringName]([&"deployment", &"posture", &"targeting", &"military", &"escort", &"sanction", &"abilities", &"kamikaze", &"preservation", &"opportunist", &"economy", &"production", &"research", &"scout"])
 starting_energy = 0
 starting_dominion = 0
 
-[sub_resource type="NavigationMesh" id="NavigationMesh_r32v5"]
+[sub_resource type="NavigationMesh" id="NavigationMesh_lvn1k"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_glse2"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_e671n"]
 render_priority = 0
-shader = ExtResource("9_gkabw")
+shader = ExtResource("9_1t6k7")
 shader_parameter/terrain_rect = null
 shader_parameter/height_rect = null
 shader_parameter/height_range = null
@@ -112,228 +116,352 @@ shader_parameter/play_axis_b = null
 shader_parameter/play_half = null
 shader_parameter/play_bounds_enabled = null
 
-[sub_resource type="Resource" id="Resource_0duxq"]
-script = ExtResource("22_raxg4")
+[sub_resource type="Resource" id="Resource_lk1wb"]
+script = ExtResource("22_hn7id")
 mode = 1
 seconds_expression = "10 + min(fires, 1) * 35"
 
-[sub_resource type="Resource" id="Resource_nhjqn"]
-script = ExtResource("22_raxg4")
+[sub_resource type="Resource" id="Resource_rft80"]
+script = ExtResource("22_hn7id")
 mode = 1
 seconds_expression = "10 + min(fires, 1) * 35"
 
-[node name="PrologueMission1" type="Node3D" unique_id=1091942256]
-script = ExtResource("1_lbnqq")
-player_slots = Array[ExtResource("2_61w7k")]([SubResource("Resource_u2hjr"), SubResource("Resource_1sgvh"), SubResource("Resource_6xnme")])
+[sub_resource type="Resource" id="Resource_gqjmg"]
+script = ExtResource("29_glse2")
+region_shape_path = NodePath("AmbushRegion")
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_yor7y"]
+height = 4.0
+radius = 10.0
+
+[sub_resource type="Resource" id="Resource_pqt02"]
+script = ExtResource("29_glse2")
+commander_id = 2
+region_shape_path = NodePath("StrikeRegion")
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_y8jch"]
+height = 4.0
+radius = 6.0
+
+[sub_resource type="Resource" id="Resource_ytw7b"]
+script = ExtResource("32_pgyre")
+group = &"prologue_m1_ambushers"
+
+[node name="PrologueMission1" type="Node3D" unique_id=2097774926]
+script = ExtResource("1_0lqqv")
+player_slots = Array[ExtResource("2_q5c4a")]([SubResource("Resource_hegk3"), SubResource("Resource_12nwp"), SubResource("Resource_hhunv")])
 debug_allowed = true
 
-[node name="Map" type="Node3D" parent="." unique_id=1452250326]
-script = ExtResource("5_0lqqv")
-terrain_data = ExtResource("6_q5c4a")
-terrain_source_mesh = ExtResource("7_tkoux")
+[node name="Map" type="Node3D" parent="." unique_id=279131085]
+script = ExtResource("5_gkabw")
+terrain_data = ExtResource("6_c1fpo")
+terrain_source_mesh = ExtResource("7_8dl3g")
 
-[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" unique_id=236339119 groups=["navigation_mesh_source_group"]]
-navigation_mesh = SubResource("NavigationMesh_r32v5")
+[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" unique_id=467656639 groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_lvn1k")
 
-[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion" unique_id=617154496]
+[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion" unique_id=517101432]
 collision_layer = 128
 collision_mask = 0
 
-[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=310189113]
+[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=453411235]
 
-[node name="TerrainSurface" type="MeshInstance3D" parent="Map/NavigationRegion/Body" unique_id=1550832180]
-script = ExtResource("8_ouyxe")
-material = SubResource("ShaderMaterial_glse2")
+[node name="TerrainSurface" type="MeshInstance3D" parent="Map/NavigationRegion/Body" unique_id=1347747111]
+script = ExtResource("8_asfab")
+material = SubResource("ShaderMaterial_e671n")
 
-[node name="Warlord1" parent="." unique_id=416004826 instance=ExtResource("10_c1fpo")]
+[node name="Warlord1" parent="." unique_id=416004826 instance=ExtResource("10_dvfmw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.828427, 0, 59.39697)
 default_commander_id = 1
 
-[node name="Safehouse1" parent="." unique_id=1588153302 instance=ExtResource("11_8dl3g")]
+[node name="Safehouse1" parent="." unique_id=1588153302 instance=ExtResource("11_qs3ar")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.8890872, 0, 15.909903)
 
-[node name="ConvertToSafehouse" type="Sprite3D" parent="Safehouse1" unique_id=72927408]
-script = ExtResource("12_asfab")
+[node name="ConvertToSafehouse" type="Sprite3D" parent="Safehouse1" unique_id=1275089586]
+script = ExtResource("12_sbnxv")
 commander_id = 2
 
-[node name="StartingGarrison" type="Sprite3D" parent="Safehouse1" unique_id=448636050 node_paths=PackedStringArray("garrison_host")]
-script = ExtResource("13_1t6k7")
-entity_scenes = Array[PackedScene]([ExtResource("14_dvfmw")])
+[node name="StartingGarrison" type="Sprite3D" parent="Safehouse1" unique_id=315586431 node_paths=PackedStringArray("garrison_host")]
+script = ExtResource("13_uy0bk")
+entity_scenes = Array[PackedScene]([ExtResource("14_q6omr")])
 count_expression = "3"
 garrison_host = NodePath("..")
 
-[node name="Safehouse2" parent="." unique_id=2077623031 instance=ExtResource("11_8dl3g")]
+[node name="Safehouse2" parent="." unique_id=5329830 instance=ExtResource("11_qs3ar")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4748738, 0, 22.273863)
 
-[node name="ConvertToSafehouse" type="Sprite3D" parent="Safehouse2" unique_id=39251962]
-script = ExtResource("12_asfab")
+[node name="ConvertToSafehouse" type="Sprite3D" parent="Safehouse2" unique_id=571096812]
+script = ExtResource("12_sbnxv")
 commander_id = 2
 
-[node name="StartingGarrison" type="Sprite3D" parent="Safehouse2" unique_id=1009414348 node_paths=PackedStringArray("garrison_host")]
-script = ExtResource("13_1t6k7")
-entity_scenes = Array[PackedScene]([ExtResource("14_dvfmw")])
+[node name="StartingGarrison" type="Sprite3D" parent="Safehouse2" unique_id=376398204 node_paths=PackedStringArray("garrison_host")]
+script = ExtResource("13_uy0bk")
+entity_scenes = Array[PackedScene]([ExtResource("14_q6omr")])
 count_expression = "3"
 garrison_host = NodePath("..")
 
-[node name="Safehouse3" parent="." unique_id=1535258939 instance=ExtResource("11_8dl3g")]
+[node name="Safehouse3" parent="." unique_id=1525538156 instance=ExtResource("11_qs3ar")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.9497476, 0, 23.334524)
 
-[node name="ConvertToSafehouse" type="Sprite3D" parent="Safehouse3" unique_id=1057858905]
-script = ExtResource("12_asfab")
+[node name="ConvertToSafehouse" type="Sprite3D" parent="Safehouse3" unique_id=635389278]
+script = ExtResource("12_sbnxv")
 commander_id = 2
 
-[node name="StartingGarrison" type="Sprite3D" parent="Safehouse3" unique_id=1801995743 node_paths=PackedStringArray("garrison_host")]
-script = ExtResource("13_1t6k7")
-entity_scenes = Array[PackedScene]([ExtResource("14_dvfmw")])
+[node name="StartingGarrison" type="Sprite3D" parent="Safehouse3" unique_id=1741983742 node_paths=PackedStringArray("garrison_host")]
+script = ExtResource("13_uy0bk")
+entity_scenes = Array[PackedScene]([ExtResource("14_q6omr")])
 count_expression = "3"
 garrison_host = NodePath("..")
 
-[node name="WatchTower1" parent="." unique_id=2064685234 instance=ExtResource("15_qs3ar")]
+[node name="WatchTower1" parent="." unique_id=406809975 instance=ExtResource("15_g3qt7")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.35534, 0, -24.04163)
 default_commander_id = 3
 
-[node name="WatchTower2" parent="." unique_id=2043684051 instance=ExtResource("15_qs3ar")]
+[node name="WatchTower2" parent="." unique_id=1107970 instance=ExtResource("15_g3qt7")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.426407, 0, -16.970562)
 default_commander_id = 3
 
-[node name="WatchTower3" parent="." unique_id=1623905070 instance=ExtResource("15_qs3ar")]
+[node name="WatchTower3" parent="." unique_id=220013922 instance=ExtResource("15_g3qt7")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.426407, 0, -24.04163)
 default_commander_id = 3
 
-[node name="Compound1" parent="." unique_id=656624236 instance=ExtResource("16_sbnxv")]
+[node name="Compound1" parent="." unique_id=656624236 instance=ExtResource("16_jx351")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.072853, 0, -30.052038)
 default_commander_id = 3
 
-[node name="Compound2" parent="." unique_id=553263009 instance=ExtResource("16_sbnxv")]
+[node name="Compound2" parent="." unique_id=921143311 instance=ExtResource("16_jx351")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.436813, 0, -23.688078)
 default_commander_id = 3
 
-[node name="PrisonCompound1" parent="." unique_id=1631761581 instance=ExtResource("16_sbnxv")]
+[node name="PrisonCompound1" parent="." unique_id=1129486479 instance=ExtResource("16_jx351")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63, 0, 6)
 default_commander_id = 3
 
 [node name="DominionGenerator" parent="PrisonCompound1" index="9" unique_id=1157560813]
 is_disabled = true
 
-[node name="Prisoners" type="Sprite3D" parent="PrisonCompound1" unique_id=1873174969 node_paths=PackedStringArray("garrison_host")]
-script = ExtResource("13_1t6k7")
+[node name="Prisoners" type="Sprite3D" parent="PrisonCompound1" unique_id=1074324463 node_paths=PackedStringArray("garrison_host")]
+script = ExtResource("13_uy0bk")
 commander_id = 1
-entity_scenes = Array[PackedScene]([ExtResource("14_dvfmw")])
+entity_scenes = Array[PackedScene]([ExtResource("14_q6omr")])
 count_expression = "3"
 garrison_host = NodePath("..")
 
-[node name="nt_batteryRack1" parent="." unique_id=2135411783 instance=ExtResource("17_uy0bk")]
+[node name="nt_batteryRack1" parent="." unique_id=964629639 instance=ExtResource("17_gf17r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.5, 0, 5.5)
 
-[node name="nt_batteryRack2" parent="." unique_id=749715935 instance=ExtResource("17_uy0bk")]
+[node name="nt_batteryRack2" parent="." unique_id=1250051780 instance=ExtResource("17_gf17r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65.5, 0, 6.5)
 
-[node name="nt_powerCell1" parent="." unique_id=1703982858 instance=ExtResource("18_q6omr")]
+[node name="nt_powerCell1" parent="." unique_id=763603523 instance=ExtResource("18_raxg4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.4, 0, 7.4)
 
-[node name="nt_powerCell2" parent="." unique_id=1687216160 instance=ExtResource("18_q6omr")]
+[node name="nt_powerCell2" parent="." unique_id=449864688 instance=ExtResource("18_raxg4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65.6, 0, 4.6)
 
-[node name="nt_powerCell3" parent="." unique_id=205907180 instance=ExtResource("18_q6omr")]
+[node name="nt_powerCell3" parent="." unique_id=377121572 instance=ExtResource("18_raxg4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.5, 0, 8.6)
 
-[node name="PrisonCompound2" parent="." unique_id=974789571 instance=ExtResource("16_sbnxv")]
+[node name="PrisonCompound2" parent="." unique_id=58135184 instance=ExtResource("16_jx351")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54, 0, -2)
 default_commander_id = 3
 
 [node name="DominionGenerator" parent="PrisonCompound2" index="9" unique_id=1157560813]
 is_disabled = true
 
-[node name="Prisoners" type="Sprite3D" parent="PrisonCompound2" unique_id=213955374 node_paths=PackedStringArray("garrison_host")]
-script = ExtResource("13_1t6k7")
+[node name="Prisoners" type="Sprite3D" parent="PrisonCompound2" unique_id=598474262 node_paths=PackedStringArray("garrison_host")]
+script = ExtResource("13_uy0bk")
 commander_id = 1
-entity_scenes = Array[PackedScene]([ExtResource("14_dvfmw")])
+entity_scenes = Array[PackedScene]([ExtResource("14_q6omr")])
 count_expression = "3"
 garrison_host = NodePath("..")
 
-[node name="nt_batteryRack3" parent="." unique_id=1618045361 instance=ExtResource("17_uy0bk")]
+[node name="nt_batteryRack3" parent="." unique_id=1320613380 instance=ExtResource("17_gf17r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.5, 0, -2.5)
 
-[node name="nt_batteryRack4" parent="." unique_id=35209924 instance=ExtResource("17_uy0bk")]
+[node name="nt_batteryRack4" parent="." unique_id=1849720054 instance=ExtResource("17_gf17r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.5, 0, -1.5)
 
-[node name="nt_powerCell4" parent="." unique_id=625730484 instance=ExtResource("18_q6omr")]
+[node name="nt_powerCell4" parent="." unique_id=1687080677 instance=ExtResource("18_raxg4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.4, 0, -0.6)
 
-[node name="nt_powerCell5" parent="." unique_id=334688160 instance=ExtResource("18_q6omr")]
+[node name="nt_powerCell5" parent="." unique_id=809090941 instance=ExtResource("18_raxg4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.6, 0, -3.4)
 
-[node name="nt_powerCell6" parent="." unique_id=1118377526 instance=ExtResource("18_q6omr")]
+[node name="nt_powerCell6" parent="." unique_id=1388984072 instance=ExtResource("18_raxg4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.5, 0, 0.5999999)
 
-[node name="ScenarioTriggerManager" type="Node" parent="." unique_id=1971818033]
-script = ExtResource("19_g3qt7")
+[node name="ScenarioTriggerManager" type="Node" parent="." unique_id=1226824063]
+script = ExtResource("19_a6oc2")
 
-[node name="AllyWaves" type="Sprite3D" parent="ScenarioTriggerManager" unique_id=97831765]
-script = ExtResource("20_jx351")
-conditions = Array[ExtResource("21_gf17r")]([SubResource("Resource_0duxq")])
+[node name="AllyWaves" type="Sprite3D" parent="ScenarioTriggerManager" unique_id=1179981909]
+script = ExtResource("20_jr0ch")
+conditions = Array[ExtResource("21_pnc80")]([SubResource("Resource_lk1wb")])
 one_shot = false
 
-[node name="Spawn" type="Sprite3D" parent="ScenarioTriggerManager/AllyWaves" unique_id=252360609]
+[node name="Spawn" type="Sprite3D" parent="ScenarioTriggerManager/AllyWaves" unique_id=1856070671]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.828427, 0, 15.556349)
-script = ExtResource("13_1t6k7")
-entity_scenes = Array[PackedScene]([ExtResource("14_dvfmw"), ExtResource("14_dvfmw"), ExtResource("14_dvfmw"), ExtResource("10_c1fpo"), ExtResource("10_c1fpo")])
+script = ExtResource("13_uy0bk")
+entity_scenes = Array[PackedScene]([ExtResource("14_q6omr"), ExtResource("14_q6omr"), ExtResource("14_q6omr"), ExtResource("10_dvfmw"), ExtResource("10_dvfmw")])
 count_expression = "1"
 spawn_groups = Array[StringName]([&"prologue_m1_ally_wave"])
 
-[node name="EnemyWaves" type="Sprite3D" parent="ScenarioTriggerManager" unique_id=839725314]
-script = ExtResource("20_jx351")
-conditions = Array[ExtResource("21_gf17r")]([SubResource("Resource_nhjqn")])
+[node name="EnemyWaves" type="Sprite3D" parent="ScenarioTriggerManager" unique_id=1828171492]
+script = ExtResource("20_jr0ch")
+conditions = Array[ExtResource("21_pnc80")]([SubResource("Resource_rft80")])
 one_shot = false
 
-[node name="Spawn" type="Sprite3D" parent="ScenarioTriggerManager/EnemyWaves" unique_id=2129269307]
+[node name="Spawn" type="Sprite3D" parent="ScenarioTriggerManager/EnemyWaves" unique_id=489589532]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.062447, 0, -17.67767)
-script = ExtResource("13_1t6k7")
+script = ExtResource("13_uy0bk")
 commander_id = 3
-entity_scenes = Array[PackedScene]([ExtResource("23_a6oc2"), ExtResource("23_a6oc2"), ExtResource("23_a6oc2"), ExtResource("24_jr0ch"), ExtResource("24_jr0ch")])
+entity_scenes = Array[PackedScene]([ExtResource("23_mekk3"), ExtResource("23_mekk3"), ExtResource("23_mekk3"), ExtResource("24_qf4wk"), ExtResource("24_qf4wk")])
 count_expression = "1"
 spawn_groups = Array[StringName]([&"prologue_m1_enemy_wave"])
 
-[node name="AllyWaveTactic" type="Node" parent="ScenarioTriggerManager" unique_id=1630921736]
-script = ExtResource("25_pnc80")
+[node name="AllyWaveTactic" type="Node" parent="ScenarioTriggerManager" unique_id=1406059077]
+script = ExtResource("25_u2hjr")
 unit_group = &"prologue_m1_ally_wave"
 
-[node name="Assault" type="Sprite3D" parent="ScenarioTriggerManager/AllyWaveTactic" unique_id=1739626715]
-script = ExtResource("26_hn7id")
+[node name="Assault" type="Sprite3D" parent="ScenarioTriggerManager/AllyWaveTactic" unique_id=861786986]
+script = ExtResource("26_1sgvh")
 action = 3
 point_path = NodePath("Target")
 
-[node name="Target" type="Marker3D" parent="ScenarioTriggerManager/AllyWaveTactic/Assault" unique_id=623683511]
+[node name="Target" type="Marker3D" parent="ScenarioTriggerManager/AllyWaveTactic/Assault" unique_id=2603498]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.305088, 0, -21.920311)
 
-[node name="EnemyWaveTactic" type="Node" parent="ScenarioTriggerManager" unique_id=351013821]
-script = ExtResource("25_pnc80")
+[node name="EnemyWaveTactic" type="Node" parent="ScenarioTriggerManager" unique_id=2147144823]
+script = ExtResource("25_u2hjr")
 unit_group = &"prologue_m1_enemy_wave"
 
-[node name="Assault" type="Sprite3D" parent="ScenarioTriggerManager/EnemyWaveTactic" unique_id=611258817]
-script = ExtResource("26_hn7id")
+[node name="Assault" type="Sprite3D" parent="ScenarioTriggerManager/EnemyWaveTactic" unique_id=423195396]
+script = ExtResource("26_1sgvh")
 action = 3
 point_path = NodePath("Target")
 
-[node name="Target" type="Marker3D" parent="ScenarioTriggerManager/EnemyWaveTactic/Assault" unique_id=499251348]
+[node name="Target" type="Marker3D" parent="ScenarioTriggerManager/EnemyWaveTactic/Assault" unique_id=1371860344]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.70710677, 0, 19.091883)
 
-[node name="RecruitOutpost" type="Sprite3D" parent="ScenarioTriggerManager" unique_id=941713089]
-script = ExtResource("20_jx351")
+[node name="RecruitOutpost" type="Sprite3D" parent="ScenarioTriggerManager" unique_id=2134383323]
+script = ExtResource("20_jr0ch")
 
-[node name="Spawn" type="Sprite3D" parent="ScenarioTriggerManager/RecruitOutpost" unique_id=234063863]
+[node name="Spawn" type="Sprite3D" parent="ScenarioTriggerManager/RecruitOutpost" unique_id=46606451]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.991379, 0, -20.506096)
-script = ExtResource("13_1t6k7")
+script = ExtResource("13_uy0bk")
 commander_id = 3
-entity_scenes = Array[PackedScene]([ExtResource("23_a6oc2")])
+entity_scenes = Array[PackedScene]([ExtResource("23_mekk3")])
 count_expression = "3"
 
-[node name="Orders" type="Sprite3D" parent="ScenarioTriggerManager/RecruitOutpost/Spawn" unique_id=712512986]
-script = ExtResource("27_mekk3")
+[node name="Orders" type="Sprite3D" parent="ScenarioTriggerManager/RecruitOutpost/Spawn" unique_id=1919888033]
+script = ExtResource("27_6xnme")
 
-[node name="Defend" type="Sprite3D" parent="ScenarioTriggerManager/RecruitOutpost/Spawn/Orders" unique_id=2042309231]
-script = ExtResource("28_qf4wk")
+[node name="Defend" type="Sprite3D" parent="ScenarioTriggerManager/RecruitOutpost/Spawn/Orders" unique_id=1209455145]
+script = ExtResource("28_r32v5")
 command_type = "defend"
+
+[node name="RescueAmbush" type="Sprite3D" parent="ScenarioTriggerManager" unique_id=1875530416]
+script = ExtResource("20_jr0ch")
+conditions = Array[ExtResource("21_pnc80")]([SubResource("Resource_gqjmg")])
+
+[node name="AmbushRegion" type="CollisionShape3D" parent="ScenarioTriggerManager/RescueAmbush" unique_id=232120807]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.526913, 0, 31.112698)
+shape = SubResource("CylinderShape3D_yor7y")
+
+[node name="Rescuers" type="Sprite3D" parent="ScenarioTriggerManager/RescueAmbush" unique_id=1832741938]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.991379, 0, 34.64823)
+script = ExtResource("13_uy0bk")
+entity_scenes = Array[PackedScene]([ExtResource("14_q6omr")])
+count_expression = "9"
+spawn_groups = Array[StringName]([&"prologue_m1_rescuers"])
+
+[node name="Ambushers" type="Sprite3D" parent="ScenarioTriggerManager/RescueAmbush" unique_id=1856083637]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.01219, 0, 22.627417)
+script = ExtResource("13_uy0bk")
+commander_id = 3
+entity_scenes = Array[PackedScene]([ExtResource("23_mekk3")])
+count_expression = "5"
+spawn_groups = Array[StringName]([&"prologue_m1_ambushers"])
+
+[node name="RevealFight" type="Sprite3D" parent="ScenarioTriggerManager/RescueAmbush" unique_id=1710689008]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.64823, 0, 28.991379)
+script = ExtResource("30_0duxq")
+radius = 12.0
+clears_fog = true
+reveal_label = &"prologue_m1_fight_reveal"
+
+[node name="RescueStrike" type="Sprite3D" parent="ScenarioTriggerManager" unique_id=1306742378 node_paths=PackedStringArray("prerequisites")]
+script = ExtResource("20_jr0ch")
+conditions = Array[ExtResource("21_pnc80")]([SubResource("Resource_pqt02")])
+prerequisites = [NodePath("../RescueAmbush")]
+
+[node name="StrikeRegion" type="CollisionShape3D" parent="ScenarioTriggerManager/RescueStrike" unique_id=1502922092]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.66905, 0, 16.970562)
+shape = SubResource("CylinderShape3D_y8jch")
+
+[node name="EndFightReveal" type="Sprite3D" parent="ScenarioTriggerManager/RescueStrike" unique_id=1045927983]
+script = ExtResource("31_nhjqn")
+reveal_label = &"prologue_m1_fight_reveal"
+
+[node name="Strikers" type="Sprite3D" parent="ScenarioTriggerManager/RescueStrike" unique_id=552706065]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.861435, 0, -7.7781744)
+script = ExtResource("13_uy0bk")
+commander_id = 3
+entity_scenes = Array[PackedScene]([ExtResource("24_qf4wk")])
+count_expression = "2"
+spawn_groups = Array[StringName]([&"prologue_m1_strikers"])
+
+[node name="RevealStrike" type="Sprite3D" parent="ScenarioTriggerManager/RescueStrike" unique_id=2056443923]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.66905, 0, 16.970562)
+script = ExtResource("30_0duxq")
+radius = 10.0
+clears_fog = true
+reveal_label = &"prologue_m1_strike_reveal"
+
+[node name="RescuerTactic" type="Node" parent="ScenarioTriggerManager" unique_id=299779823]
+script = ExtResource("25_u2hjr")
+unit_group = &"prologue_m1_rescuers"
+
+[node name="Assault" type="Sprite3D" parent="ScenarioTriggerManager/RescuerTactic" unique_id=552015391]
+script = ExtResource("26_1sgvh")
+condition = SubResource("Resource_ytw7b")
+action = 3
+point_path = NodePath("Target")
+
+[node name="Target" type="Marker3D" parent="ScenarioTriggerManager/RescuerTactic/Assault" unique_id=1393676038]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.01219, 0, 22.627417)
+
+[node name="PushNorth" type="Sprite3D" parent="ScenarioTriggerManager/RescuerTactic" unique_id=842797391]
+script = ExtResource("26_1sgvh")
+action = 3
+point_path = NodePath("Target")
+
+[node name="Target" type="Marker3D" parent="ScenarioTriggerManager/RescuerTactic/PushNorth" unique_id=1442901369]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.66905, 0, 16.970562)
+
+[node name="AmbusherTactic" type="Node" parent="ScenarioTriggerManager" unique_id=321576768]
+script = ExtResource("25_u2hjr")
+unit_group = &"prologue_m1_ambushers"
+
+[node name="Assault" type="Sprite3D" parent="ScenarioTriggerManager/AmbusherTactic" unique_id=569881043]
+script = ExtResource("26_1sgvh")
+action = 3
+point_path = NodePath("Target")
+
+[node name="Target" type="Marker3D" parent="ScenarioTriggerManager/AmbusherTactic/Assault" unique_id=1392459119]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.991379, 0, 34.64823)
+
+[node name="StrikerTactic" type="Node" parent="ScenarioTriggerManager" unique_id=431893223]
+script = ExtResource("25_u2hjr")
+unit_group = &"prologue_m1_strikers"
+
+[node name="Assault" type="Sprite3D" parent="ScenarioTriggerManager/StrikerTactic" unique_id=572598915]
+script = ExtResource("26_1sgvh")
+action = 3
+point_path = NodePath("Target")
+
+[node name="Target" type="Marker3D" parent="ScenarioTriggerManager/StrikerTactic/Assault" unique_id=1744837012]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.66905, 0, 16.970562)
 
 [editable path="PrisonCompound1"]
 [editable path="PrisonCompound1/Hurtbox"]

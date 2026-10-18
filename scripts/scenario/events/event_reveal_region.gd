@@ -50,12 +50,17 @@ const _SCOUT_SCENE: PackedScene = preload("res://scenes/entities/nt_aircraftLigh
 ## Seconds the cleared fog lasts; negative is forever (see Lifespan.attach).
 ## Only meaningful with `clears_fog` on — marking ground explored is permanent by nature.
 @export var lifespan_seconds: float = -1.0
+
+## A name for this reveal's vision sources, so a later EventEndReveal can take them down. Each
+## Scout this event places joins this group. Empty leaves them unnamed, ended only by
+## `lifespan_seconds`. Only meaningful with `clears_fog` on.
+@export var reveal_label: StringName = &""
 #endregion
 
 
 #region Tool
 func _validate_property(a_property: Dictionary) -> void:
-	if a_property.name == "lifespan_seconds" and not clears_fog:
+	if a_property.name in ["lifespan_seconds", "reveal_label"] and not clears_fog:
 		# Nothing persists in the explored-only mode, so a duration would be a lie.
 		a_property.usage |= PROPERTY_USAGE_READ_ONLY
 
@@ -108,7 +113,9 @@ func _clear_fog_at(a_points: Array[Vector2], a_manager: ScenarioTriggerManager) 
 	if commander == null or map == null:
 		return
 	for point: Vector2 in a_points:
-		spawn_vision(commander, map, point, radius, lifespan_seconds)
+		var scout: Actor = spawn_vision(commander, map, point, radius, lifespan_seconds)
+		if scout != null and not reveal_label.is_empty():
+			scout.add_to_group(reveal_label)
 
 
 ## One Scout giving `a_commander` vision of radius `a_radius` at `a_point`, gone after

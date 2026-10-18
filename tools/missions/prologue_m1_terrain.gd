@@ -32,7 +32,7 @@ const TILE_CATALOG: String = "res://resources/terrain/tile_catalog.tres"
 const REGIONS: Dictionary = {
 	"MAIN": Rect2(-40, -9, 80, 18),
 	"START": Rect2(-70, -36, 20, 18),
-	"WEST": Rect2(-66, -18, 10, 62),
+	"WEST": Rect2(-72, -18, 22, 62),
 	"NORTH": Rect2(-72, 44, 26, 18),
 	"EAST_PASSAGE": Rect2(-46, 48, 16, 10),
 	"SKIRMISH": Rect2(-32, 36, 20, 24),
@@ -48,8 +48,11 @@ const ROUTE_END: String = "MAIN"
 ## Hill rise per world unit of run away from the nearest region. 1.0 is a 45° face, so a
 ## hillside cell's corner spread is far past TerrainGrid.MAX_SLOPE_DIFF.
 const HILL_SLOPE: float = 1.2
-## The hills' height cap, so the far corners are hills rather than towers over the camera.
-const HILL_CAP: float = 8.0
+## The hills' height cap, so the far corners are hills rather than towers over the camera. At
+## 3 (Alex, 2026-10-18) a hill tops out 2.5 units past its region's edge, so most hill country
+## is a flat-topped mesa: walkable ground, but ringed by its steep face, so nothing reaches it
+## (`_verify_route` checks that).
+const HILL_CAP: float = 3.0
 ## How far the slope swells and dips along the map, as a fraction of HILL_SLOPE, and over what
 ## wavelength in world units. Kept small enough that the slope never falls below 1.0.
 const HILL_SWELL: float = 0.15
