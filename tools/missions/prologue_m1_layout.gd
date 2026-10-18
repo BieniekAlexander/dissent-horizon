@@ -30,6 +30,10 @@ const COMPOUND: String = "res://scenes/entities/structures/cl/cl_infrastructure.
 const BUILDING_SQUARE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
 const POWER_CELL: String = "res://scenes/entities/tokens/nt/nt_powerCell.tscn"
 const BATTERY_RACK: String = "res://scenes/entities/structures/nt/nt_batteryRack.tscn"
+const SAM_SITE: String = "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn"
+const RAVEN: String = "res://scenes/entities/units/an/an_aircraftLight_transport.tscn"
+const BUILDING_LONG: String = "res://scenes/entities/structures/nt/nt_building_long.tscn"
+const BUILDING_SHACK: String = "res://scenes/entities/structures/nt/nt_building_shack.tscn"
 
 ## Commander ids, in slot order.
 const PLAYER: int = 1
@@ -146,6 +150,40 @@ const ENEMY_WAVE_SPAWN := Vector2(52, 0)
 const ALLY_WAVE_TARGET := Vector2(58, 0)
 const ENEMY_WAVE_TARGET := Vector2(0, 0)
 
+## THE SOUTH LANE (Alex, 2026-10-18), along -10..90 and -40..-24 across, joined to MAIN's west
+## end by a link. West to east:
+## - two more prison Compounds, with the same chain of hazards, each holding a Warlord and 3
+##   Irregulars of the player's — 4 occupants, so their garrisons are raised from 3 to 4;
+## - a guard post: 4 Recruits and 2 Clippers holding their ground (Defend);
+## - three neutral buildings together, and beyond them 12 Recruits in three groups of 4, who
+##   attack-move down the lane at the player the moment a player's unit enters the buildings'
+##   region;
+## - at the lane's end, 3 SAM sites with 2 Compounds among them (2 of the enemy's own Recruits
+##   in each, no hazards), and 3 of the ally's Ravens parked on the ground, which become the
+##   player's when all three SAM sites are down.
+const SOUTH_PRISONS: Array[Vector2] = [Vector2(8, -32), Vector2(20, -32)]
+const SOUTH_PRISON_CAPACITY: int = 4
+const LANE_GUARD := Vector2(36, -32)
+const LANE_GUARD_GROUP: StringName = &"prologue_m1_lane_guard"
+const LANE_BUILDINGS: Array = [
+	[BUILDING_SQUARE, Vector2(49, -28)],
+	[BUILDING_LONG, Vector2(49, -36)],
+	[BUILDING_SHACK, Vector2(55, -32)],
+]
+const BUILDINGS_TRIGGER := Vector2(51, -32)
+const BUILDINGS_TRIGGER_RADIUS: float = 9.0
+const CHARGERS_AT: Array[Vector2] = [Vector2(64, -27.5), Vector2(68, -32), Vector2(64, -36.5)]
+const CHARGERS_PER_GROUP: int = 4
+const CHARGE_GROUP: StringName = &"prologue_m1_chargers"
+## Where the charge attack-moves to: down the lane, to its west end.
+const CHARGE_TARGET := Vector2(-4, -32)
+const SAM_SITES: Array[Vector2] = [Vector2(76, -32), Vector2(85, -26.5), Vector2(86, -37.5)]
+const END_COMPOUNDS: Array[Vector2] = [Vector2(80, -28.5), Vector2(80, -35.5)]
+const END_COMPOUND_RECRUITS: int = 2
+const RAVENS: int = 3
+const RAVENS_AT := Vector2(87, -32)
+const RAVEN_GROUP: StringName = &"prologue_m1_ravens"
+
 var _counts: Dictionary = {}
 
 
@@ -178,11 +216,20 @@ func _ready() -> void:
 	for at: Vector2 in COMPOUNDS:
 		_place(root, COMPOUND, ENEMY, at, "Compound")
 	for at: Vector2 in PRISON_COMPOUNDS:
-		_prison(root, at)
+		_prison(root, at, [[IRREGULAR, PRISONERS]])
 	for at: Vector2 in FIELD_TOWERS:
 		_place(root, WATCH_TOWER, ENEMY, at, "FieldTower")
 	for at: Vector2 in FIELD_COMPOUNDS:
 		_place(root, COMPOUND, ENEMY, at, "FieldCompound")
+	for at: Vector2 in SOUTH_PRISONS:
+		var held: Node3D = _prison(root, at, [[WARLORD, 1], [IRREGULAR, PRISONERS]])
+		(held.get_node("Garrison") as Garrison).capacity = SOUTH_PRISON_CAPACITY
+	for entry: Array in LANE_BUILDINGS:
+		_place(root, entry[0], 0, entry[1], "LaneBuilding")
+	for at: Vector2 in SAM_SITES:
+		_place(root, SAM_SITE, ENEMY, at, "SamSite")
+	for at: Vector2 in END_COMPOUNDS:
+		_hold(root, at, "EndCompound", ENEMY, [[RECRUIT, END_COMPOUND_RECRUITS]])
 	var house: Node3D = _place(root, BUILDING_SQUARE, 0, GARRISON_HOUSE, GARRISON_HOUSE_NAME)
 	house.name = GARRISON_HOUSE_NAME
 
@@ -209,6 +256,7 @@ func _ready() -> void:
 	_assault(manager, "EnemyWaveTactic", ENEMY_WAVE, ENEMY_WAVE_TARGET)
 	_outpost(manager)
 	_beats(manager, house)
+	_south_lane(manager)
 
 	_save(root)
 	get_tree().quit(0)
@@ -283,28 +331,38 @@ func _place(
 	return piece
 
 
-## An enemy Compound in NORTH holding PRISONERS of the player's Irregulars, its prison switched off
-## (OccupantDominionGenerator.is_disabled, on its DominionGenerator node — an override inside the
-## instance, so the instance is made editable), with power cells and battery racks against it.
-## Destroying it frees the prisoners back to the player (Garrison: a dead host's captives return
-## to their own commander). The Compound is snapped to whole cells first, so the hazard offsets
-## land on the cells beside its footprint.
-func _prison(a_root: Node, a_at: Vector2) -> void:
-	var compound: Node3D = _place(a_root, COMPOUND, ENEMY, a_at, "PrisonCompound")
-	compound.position = Vector3(roundf(compound.position.x), 0.0, roundf(compound.position.z))
-	a_root.set_editable_instance(compound, true)
-	(compound.get_node("DominionGenerator") as OccupantDominionGenerator).is_disabled = true
-	var prisoners := EventSpawnEntities.new()
-	prisoners.name = "Prisoners"
-	prisoners.commander_id = PLAYER
-	prisoners.entity_scenes = [load(IRREGULAR) as PackedScene]
-	prisoners.count_expression = str(PRISONERS)
-	prisoners.garrison_host = compound as Actor
-	compound.add_child(prisoners)
+## An enemy prison Compound holding `a_contents` of the player's units (see _hold), with power
+## cells and battery racks against it as one chain (RACK_OFFSETS). Destroying it frees the
+## prisoners back to the player (Garrison: a dead host's captives return to their own
+## commander). The Compound is snapped to whole cells first, so the hazard offsets land on the
+## cells beside its footprint.
+func _prison(a_root: Node, a_at: Vector2, a_contents: Array) -> Node3D:
+	var compound: Node3D = _hold(a_root, a_at, "PrisonCompound", PLAYER, a_contents)
 	for offset: Vector2 in RACK_OFFSETS:
 		_place_at(a_root, BATTERY_RACK, compound.position + Vector3(offset.x, 0.0, offset.y))
 	for offset: Vector2 in CELL_OFFSETS:
 		_place_at(a_root, POWER_CELL, compound.position + Vector3(offset.x, 0.0, offset.y))
+	return compound
+
+
+## An enemy Compound at `a_at` named `a_name`, holding `a_contents` — [scene, count] pairs —
+## owned by `a_inside`, its prison switched off (OccupantDominionGenerator.is_disabled, on its
+## DominionGenerator node — an override inside the instance, so the instance is made editable),
+## so nobody inside serves a sentence. The occupants are STARTING events parked under it.
+func _hold(a_root: Node, a_at: Vector2, a_name: String, a_inside: int, a_contents: Array) -> Node3D:
+	var compound: Node3D = _place(a_root, COMPOUND, ENEMY, a_at, a_name)
+	compound.position = Vector3(roundf(compound.position.x), 0.0, roundf(compound.position.z))
+	a_root.set_editable_instance(compound, true)
+	(compound.get_node("DominionGenerator") as OccupantDominionGenerator).is_disabled = true
+	for entry: Array in a_contents:
+		var inside := EventSpawnEntities.new()
+		inside.name = "Inside%s" % (entry[0] as String).get_file().get_basename()
+		inside.commander_id = a_inside
+		inside.entity_scenes = [load(entry[0]) as PackedScene]
+		inside.count_expression = str(entry[1])
+		inside.garrison_host = compound as Actor
+		compound.add_child(inside)
+	return compound
 
 
 ## A neutral piece at Map-local world position `a_world`.
@@ -313,29 +371,99 @@ func _place_at(a_root: Node, a_scene: String, a_world: Vector3) -> void:
 	piece.position = a_world
 
 
-## OUTPOST_RECRUITS of the enemy's Recruits holding the SKIRMISH clearing: spawned at the start (an
-## unconditional trigger) and ordered to Defend it — the game's own Defend command, so they hold
-## the ground and engage what comes into it.
+## OUTPOST_RECRUITS of the enemy's Recruits holding the SKIRMISH clearing (see _defenders).
 func _outpost(a_manager: Node) -> void:
+	_defenders(a_manager, "RecruitOutpost", OUTPOST, [[RECRUIT, OUTPOST_RECRUITS]], OUTPOST_GROUP)
+
+
+## The enemy's `a_contents` — [scene, count] pairs — holding the ground at `a_at`: spawned at the
+## start (an unconditional trigger), labelled `a_group`, and ordered to Defend it — the game's
+## own Defend command, so they hold the ground and engage what comes into it.
+func _defenders(
+	a_manager: Node, a_name: String, a_at: Vector2, a_contents: Array, a_group: StringName
+) -> void:
 	var trigger := GlobalTrigger.new()
-	trigger.name = "RecruitOutpost"
+	trigger.name = a_name
 	a_manager.add_child(trigger)
-	var spawn := EventSpawnEntities.new()
-	spawn.name = "Spawn"
-	spawn.commander_id = ENEMY
-	spawn.entity_scenes = [load(RECRUIT) as PackedScene]
-	spawn.count_expression = str(OUTPOST_RECRUITS)
-	spawn.spawn_groups = [OUTPOST_GROUP]
-	trigger.add_child(spawn)
-	spawn.position = MissionLane.to_world(OUTPOST.x, OUTPOST.y)
-	var orders := EventIssueCommand.new()
-	orders.name = "Orders"
-	spawn.add_child(orders)
-	var defend := EventCommandPoint.new()
-	defend.name = "Defend"
-	defend.command_type = "defend"
-	orders.add_child(defend)
-	defend.position = Vector3.ZERO
+	for entry: Array in a_contents:
+		var spawn := EventSpawnEntities.new()
+		spawn.name = "Spawn%s" % (entry[0] as String).get_file().get_basename()
+		spawn.commander_id = ENEMY
+		spawn.entity_scenes = [load(entry[0]) as PackedScene]
+		spawn.count_expression = str(entry[1])
+		spawn.spawn_groups = [a_group]
+		trigger.add_child(spawn)
+		spawn.position = MissionLane.to_world(a_at.x, a_at.y)
+		var orders := EventIssueCommand.new()
+		orders.name = "Orders"
+		spawn.add_child(orders)
+		var defend := EventCommandPoint.new()
+		defend.name = "Defend"
+		defend.command_type = "defend"
+		orders.add_child(defend)
+		defend.position = Vector3.ZERO
+
+
+## The south lane's encounters (see SOUTH_PRISONS): the guard post, the charge and its trigger,
+## and the Ravens handed to the player when the SAM sites fall.
+func _south_lane(a_manager: Node) -> void:
+	_defenders(
+		a_manager,
+		"LaneGuard",
+		LANE_GUARD,
+		[[RECRUIT, 4], [CLIPPER, 2]],
+		LANE_GUARD_GROUP,
+	)
+
+	var stationed := GlobalTrigger.new()
+	stationed.name = "ChargersStationed"
+	a_manager.add_child(stationed)
+	for i: int in CHARGERS_AT.size():
+		_spawn(
+			stationed,
+			"Chargers%d" % (i + 1),
+			ENEMY,
+			RECRUIT,
+			CHARGERS_PER_GROUP,
+			CHARGERS_AT[i],
+			CHARGE_GROUP
+		)
+	var charge := GlobalTrigger.new()
+	charge.name = "RecruitsCharge"
+	charge.conditions = [_units_in(PLAYER, "BuildingsRegion")]
+	a_manager.add_child(charge)
+	_region(charge, "BuildingsRegion", BUILDINGS_TRIGGER, BUILDINGS_TRIGGER_RADIUS)
+	# Until the charge, no rule matches and the Recruits stand where they were put.
+	var chargers := ScenarioTactic.new()
+	chargers.name = "ChargeTactic"
+	chargers.unit_group = CHARGE_GROUP
+	a_manager.add_child(chargers)
+	_add_rule(chargers, "Charge", TacticRule.Action.ASSAULT, CHARGE_TARGET, _fired(charge.name))
+
+	var parked := GlobalTrigger.new()
+	parked.name = "RavensParked"
+	a_manager.add_child(parked)
+	var ravens := EventSpawnEntities.new()
+	ravens.name = "Ravens"
+	ravens.commander_id = ALLY
+	ravens.entity_scenes = [load(RAVEN) as PackedScene]
+	ravens.count_expression = str(RAVENS)
+	ravens.spawn_groups = [RAVEN_GROUP]
+	ravens.spawn_landed = true
+	parked.add_child(ravens)
+	ravens.position = MissionLane.to_world(RAVENS_AT.x, RAVENS_AT.y)
+	var handover := GlobalTrigger.new()
+	handover.name = "RavensHandedOver"
+	var sams_down: Array[Condition] = []
+	for i: int in SAM_SITES.size():
+		sams_down.append(_killed("SamSite%d" % (i + 1)))
+	handover.conditions = sams_down
+	a_manager.add_child(handover)
+	var transfer := EventTransferOwnership.new()
+	transfer.name = "GiveRavens"
+	transfer.group = RAVEN_GROUP
+	transfer.commander_id = PLAYER
+	handover.add_child(transfer)
 
 
 ## The beats after the opening (see PLAYER_START): five triggers, the squad's tactic and the

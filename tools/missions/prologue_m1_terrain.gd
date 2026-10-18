@@ -21,8 +21,9 @@ extends SceneTree
 ## EAST_PASSAGE to the Recruits in SKIRMISH, on along GARRISON_ROAD past the building the player
 ## takes cover in, into FORK. From FORK, the Watch Towers' TOWER_FIELD lies east — open ground,
 ## with BEYOND, an empty lane, past it — and the narrow SOUTH_PASSAGE drops into MAIN, the
-## west–east corridor the waves fight in. START does not open onto MAIN. `_verify_route` checks
-## exactly that.
+## west–east corridor the waves fight in. From MAIN's west end LANE_LINK drops south into
+## SOUTH_LANE, a second west–east lane (added 2026-10-18). START does not open onto MAIN.
+## `_verify_route` checks exactly that.
 ##
 ## TODO — cover, chokes and high ground inside the regions are undecided.
 
@@ -44,6 +45,8 @@ const REGIONS: Dictionary = {
 	"TOWER_FIELD": Rect2(40, 36, 26, 24),
 	"BEYOND": Rect2(66, 42, 18, 12),
 	"SOUTH_PASSAGE": Rect2(20, 9, 5, 21),
+	"LANE_LINK": Rect2(-10, -24, 10, 15),
+	"SOUTH_LANE": Rect2(-10, -40, 100, 16),
 }
 ## Where the flood fill of walkable ground starts.
 const ROUTE_START: String = "START"

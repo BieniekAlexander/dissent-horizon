@@ -87,6 +87,13 @@ const DEFAULT_COUNT: int = 1
 ## spawned root, not on its components.
 @export var spawn_groups: Array[StringName] = []
 
+## Spawned aircraft start ON THE GROUND, already landed as a Land order leaves them
+## (Aerial.land_in_place), rather than in the air: "three transports parked among the SAM
+## sites" without them flying in under fire. Only an aircraft that can set down in a field (a
+## HOVERING one) does; the rest spawn as usual. A movement order lifts them.
+## Added for prologue mission 1 (Alex, 2026-10-18).
+@export var spawn_landed: bool = false
+
 @export_group("Follow a group")
 ## Spawn BESIDE A GROUP, wherever it has walked to: when set, the anchor is the centre of this
 ## group's Entities in the world when the event runs, moved by `follow_offset`. Neither
@@ -174,6 +181,8 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 			_garrison_all(commandables, [garrison_host], map, commander)
 		else:
 			map.add_entities(commandables, anchor_xz, commander)
+			if spawn_landed:
+				_land_all(commandables)
 
 	var spawned_hosts := _garrisonable(commandables)
 	for child: Node in get_children():
@@ -259,6 +268,13 @@ func resolve_spawn_anchor() -> Vector3:
 	if options.is_empty():
 		return spawn_position.global_position
 	return (AU.pick_random(options, SU.rng) as Node3D).global_position
+
+
+## Set every aircraft among `a_spawned` down where it stands (see spawn_landed).
+func _land_all(a_spawned: Array[Actor]) -> void:
+	for actor: Actor in a_spawned:
+		if is_instance_valid(actor) and actor.aerial != null:
+			actor.aerial.land_in_place()
 
 
 ## The anchor beside `follow_group` (see its doc), or null when the group has nobody in the

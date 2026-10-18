@@ -137,3 +137,38 @@ func test_a_follow_anchor_falls_back_when_the_squad_is_gone() -> void:
 	var event := _spawner()
 	event.follow_offset = Vector2(5, 0)
 	assert_almost_eq(event.resolve_spawn_anchor().x, -50.0, 0.001, "the event's own place")
+
+
+# --- EventTransferOwnership -----------------------------------------------------------------
+
+
+func test_a_transfer_hands_the_labelled_pieces_over_and_nothing_else() -> void:
+	var receiver := Commander.new()
+	receiver.id = 1
+	add_child_autofree(receiver)
+	var scenario := Scenario.new()
+	scenario.commanders = [receiver]
+	autofree(scenario)
+	_manager.scenario = scenario
+	var labelled: Actor = _piece(UNIT, 2)
+	labelled.add_to_group(SQUAD)
+	var other: Actor = _piece(UNIT, 2)
+	var event := EventTransferOwnership.new()
+	event.group = SQUAD
+	event.commander_id = 1
+	autofree(event)
+	event.execute(_manager)
+	assert_eq(labelled.commander, receiver, "the labelled piece changes hands")
+	assert_eq(other.commander_id, 2, "the rest stay where they were")
+
+
+# --- Aerial.land_in_place -------------------------------------------------------------------
+
+
+func test_an_aircraft_landed_in_place_is_down_and_stays_down() -> void:
+	var raven := _piece({"aerial": true, "speed": 4.0}, 2)
+	raven.aerial.land_in_place()
+	assert_true(raven.aerial.is_grounded_temp(), "on the ground from its first frame")
+	assert_false(raven.aerial.is_airborne())
+	assert_true(raven.aerial.is_permanently_grounded(), "and kept there until an order lifts it")
+	assert_false(raven.aerial.is_docked(), "in a field, not on a pad")

@@ -600,6 +600,25 @@ func land_permanently() -> void:
 		# LANDING, GROUNDED_TEMP: already heading to / at the ground; flag alone suffices.
 
 
+## Set this unit down where it stands immediately, with no descent, and keep it down until a
+## movement order lifts it — the state a Land order ends in (land_permanently), entered
+## directly. For an aircraft a scenario places already landed in a field
+## (EventSpawnEntities.spawn_landed): park_on_deck is for a PAD, and an aircraft on a deck with
+## no pad under it takes off at once (Docking.release_lost_dock). Only a HOVERING unit can.
+func land_in_place() -> void:
+	if mode != Movement.Mode.HOVERING:
+		return
+	_permanently_grounded = true
+	_pad_landing = false
+	_current_height_offset = 0.0
+	_landing_state = LandingState.GROUNDED_TEMP
+	_pending_land = false
+	_has_landing_target = false
+	_set_velocity(Vector3.ZERO)
+	_dive_rate = 0.0
+	_dive_committed = false
+
+
 ## Put this unit on a deck immediately, with no approach and no descent — the state a
 ## returning aircraft reaches at the END of land_at, entered directly.
 ##
