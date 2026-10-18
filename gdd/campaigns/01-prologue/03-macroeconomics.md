@@ -72,6 +72,7 @@ Each section is a different question, and each answer is something the player ha
 ## Constraints
 
 - Tech capped at Tier 1. The Clandestine Lab and its units (Condor, Hijacker) are excluded.
+- The [MLRS](../../factions/anarchical/units/an_mechMedium_artillery.md) is excluded. It needs a spotter, and spotting isn't part of the prologue; it's taught in the [spotting challenge](../challenges/02-spatial-counters-and-spotting.md).
 - No sanctions beyond the ones carried from mission 2, if any.
 - No upgrades.
 
@@ -84,5 +85,5 @@ TODO — link once it exists under `scenes/scenarios/`.
 - **Starting base.** Does the mission start with the Stronghold placed, or does it use the command centre drop? The drop is otherwise left out of the prologue.
 - **Win condition.** HEGEMONY (destroy every command centre), or a scripted list of sections?
 - **Sanctions.** Do mission 2's sanctions carry over, and does the Retinue still bank dominion here?
-- **The MLRS.** The [MLRS](../../factions/anarchical/units/an_mechMedium_artillery.md) is the natural Citadel tool, but it needs a spotter, and spotting lives in a challenge. Exclude the MLRS, or require the spotting challenge first?
+- **The plateau Bombards.** Bombards fire through spotters and beacons, and spotting isn't in the prologue. Should their fire be scripted, or should the section's problem come only from their position, not from their shelling?
 - **Requisition.** It's in the challenge series, but players will hit "can't afford it" here. Should the HUD point them at the challenge?

@@ -26,7 +26,6 @@ The Colonials are besieging an allied Anarchist position. The player's force is 
 - **Collected on the way:** each pinned-down cell adds one unit type, chosen so its counter role is obvious:
   - [Shock Troopers](../../factions/anarchical/units/an_bioMedium_antiMech.md) against Colonial vehicles
   - [Sharpshooters](../../factions/anarchical/units/an_bioLight_antiBio.md) against Colonial infantry
-  - [Sappers](../../factions/anarchical/units/an_bioLight_antiStructure.md) for the strike on the base
 - **Map:** a ruined town. Neutral buildings line the route, open ground between them is exposed, and the Colonial base sits at the far edge.
 - **Enemies:** the besieging Colonial army.
   - BIO: [Recruits](../../factions/colonial/units/cl_bioLight_antiLight.md) and [Badgers](../../factions/colonial/units/cl_bioLight_antiMech.md)
@@ -48,11 +47,11 @@ The Colonials are besieging an allied Anarchist position. The player's force is 
   - The next cell is pinned by Colonial infantry, and the freed Sharpshooters win there.
   - Then mixed groups that need the player to send the right units at the right targets.
 - **Twist:** crossing open ground under fire. Garrisoning a building lets the force survive and outrange the enemy, and leaving it at the right moment lets the force advance.
-- **Conclude:** the Sappers join, and the force fights to the Bombards and destroys them.
+- **Conclude:** the assembled force fights through to the Bombards and destroys them, using the counters it has learned against the defenders on the way.
 
 ## Constraints
 
-- No base, production, sanctions or ordnances.
+- No base, production, sanctions, ordnances or unit abilities. The Sapper is left out for this reason: its only way to damage anything is its Plant ability, which mission 2 teaches.
 - Enemy vehicles should not drive through player infantry. Crushing is game-wide but is taught in mission 2.
 - Keep counter matchups readable: one enemy type per encounter until the mixed beat.
 
@@ -65,4 +64,5 @@ TODO — link once it exists under `scenes/scenarios/`.
 - Does losing every unit fail the mission, or restart from the last freed cell?
 - How much of the damage table does the UI show (readouts, cursor hints), versus letting players learn from the results?
 - Destroyed Matildas leave wrecks that Anarchist infantry can scavenge. Scavenging isn't taught in the prologue, so suppress it here, or let it happen unexplained?
-- Do the Bombards need spotters to fire at the player? If so, spotting appears here before the challenge that teaches it.
+- Spotting isn't part of the prologue, but Bombards fire through spotters and beacons. Should the Bombards' shelling be scripted (at the allied position, never at the player), or should they not fire at all here?
+- Can the mission 1 roster destroy the Bombards in a reasonable time without Sappers, or does the strike target need tuning?

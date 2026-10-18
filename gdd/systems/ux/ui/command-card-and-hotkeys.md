@@ -579,7 +579,7 @@ the feature that fixes that, and it does not exist.
 
 `RTSController.CameraFollow` (WHEN_NEEDED / NEVER) gates it. It is a **preference, not a mode**
 — it changes how the interface always behaves rather than what the game will do this match, so
-unlike requisition mode it earns no HUD indicator. It has no persistent home: the project has
+it earns no HUD indicator. It has no persistent home: the project has
 no settings system (no `ConfigFile`, nothing under `user://`), so it is a runtime property
 awaiting one.
 

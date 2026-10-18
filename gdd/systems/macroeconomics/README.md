@@ -9,7 +9,7 @@ Resources, production, technology and unlock trees — the commander-level game.
 
 | Note | Covers |
 |---|---|
-| [production-and-economy.md](production-and-economy.md) | energy/infrastructure/dominion, the global production queue, requisition mode, economy readouts |
+| [production-and-economy.md](production-and-economy.md) | energy/infrastructure/dominion, the global production queue, requisition (the queue side), economy readouts |
 | [requisition-as-a-modifier.md](requisition-as-a-modifier.md) | the additive modifier that replaced the requisition toggle, and what it costs |
 | [sanctions/](sanctions/) | the dominion-funded sanction unlock grid and its payloads |
 | [upgrades.md](upgrades.md) | one-time commander-wide research at a structure: `kind: Upgrade`, `researches:`, what an upgrade modifies, and where upgrades are researched |

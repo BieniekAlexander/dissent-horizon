@@ -20,24 +20,26 @@ In the RTS canon, modifier keys almost universally mean **quantity and sequencin
 | Shift / Ctrl + buy | ×5, ×10 | StarCraft, Age of Empires, BAR |
 | Alt / Ctrl + queue click | insert at front, cancel from the back | Beyond All Reason, Zero-K |
 
-**This project spends its modifiers on two axes the canon doesn't use: ASSIGNMENT — how many
-actors an order goes to — and how COMMITTED it is.** Only Shift keeps the conventional meaning.
+**This project spends its modifiers on an axis the canon doesn't use: ASSIGNMENT — how many
+actors an order goes to.** Only Shift keeps a conventional meaning, and it also carries
+COMMITMENT: held on a purchase or an ability, it queues what can't be afforded yet rather than
+refusing it ([requisition-as-a-modifier](../../macroeconomics/requisition-as-a-modifier.md)).
 
 | Key                                | On a COMMAND                                                       | On a SELECTOR             | Axis                      |
 | ---------------------------------- | ------------------------------------------------------------------ | ------------------------- | ------------------------- |
-| Shift (`command_additive`)         | append instead of replace — and, on a PURCHASE, front of the queue | add to the selection      | sequencing — conventional |
+| Shift (`modifier_additive`)        | append instead of replace — and, on a PURCHASE or ability, queue it if it can't be afforded yet | add to the selection      | sequencing and commitment |
 | Alt (`modifier_narrow`)            | assign to ONE actor                                                | restrict to IDLE members  | restriction               |
 | Ctrl (`modifier_broaden`)          | assign to ALL selected actors                                      | take ALL members, not one | quantity                  |
-| Backspace (`purchase_requisition`) | toggle: unaffordable purchases queue instead of being refused      | —                         | **commitment**            |
 
 The two modifiers now agree in DIRECTION across both key spaces: `modifier_broaden` means
 "take all", `modifier_narrow` means "restrict". *What* is restricted differs — one actor
 versus idle-only members — but that it restricts never does, which is what lets a player
 predict either space from the other. This retires the recorded inconsistency below.
 
-Shift's second meaning IS the conventional insert-at-front idiom, applied where this project's
-queue lives (the commander's, not a structure's). The ×5 idiom is deliberately **unspent** —
-quantity is handled by clicking again, one click buying one unit.
+Shift's purchase meaning used to be the conventional insert-at-front idiom; that was given up
+to make Shift the requisition modifier ([requisition-as-a-modifier](../../macroeconomics/requisition-as-a-modifier.md)
+§What this superseded). The ×5 idiom is deliberately **unspent** — quantity is handled by
+clicking again, one click buying one unit.
 
 Narrow and broaden are **absolute, not relative**: Alt always yields one actor and Ctrl always
 yields all, whichever way a command's own default falls, so a modifier applied to a command
@@ -60,12 +62,13 @@ Anything that only *shows* you something is held, and springs back on release. A
 changes what the game will *do* is a toggle with a visible indicator.
 
 - Held: `ui_verbose` (/) deep tooltips, `show_help` (F4) overlay.
-- Toggled: `purchase_requisition` (Backspace), whose indicator IS its toggle button on the
-  economy stack. `show_debug_info` (`;`) toggles the debug view — a developer surface, gated
-  on `Scenario.debug_allowed`, whose indicator is the view itself.
+- Toggled: `show_debug_info` (`;`) toggles the debug view — a developer surface, gated
+  on `Scenario.debug_allowed`, whose indicator is the view itself. Requisition used to be the
+  game-facing toggle here; it is now held Shift, so it has no mode to forget.
 
 **A MODE is not a PREFERENCE, and only a mode earns an indicator.** A mode changes what the
-game will do this match, so forgetting you are in one loses matches — requisition mode is one.
+game will do this match, so forgetting you are in one loses matches — requisition mode was one,
+which is part of why it became a modifier.
 A preference changes how the interface always behaves and belongs in a settings screen with no
 in-match tell: `RTSController.CameraFollow`, which decides whether a selector may move the
 camera onto an off-screen pick, is the first of these. The project has no settings system yet
@@ -74,8 +77,8 @@ waiting for one.
 
 The stated reason (`help_overlay.gd`) is that hold-to-reveal has **no state to get stuck in** —
 release and the screen is clear, so a player can't lose a match behind a panel they forgot was
-open. The corollary is that a toggle must earn its indicator: requisition mode has a banner
-precisely because you can forget you're in it.
+open. The corollary is that a toggle must earn its indicator, precisely because you can forget
+you're in it. (Requisition avoided needing one by becoming a held modifier rather than a mode.)
 
 ### II. Every information surface has exactly two tiers, on one key
 
@@ -250,10 +253,9 @@ docs rather than hand-maintained (`ControlBinding.grid_collisions`).
 | `isometric_camera_zoom_in/out` | Wheel, `=` / `-` | clamped 0.5×–2× of authored framing |
 | `isometric_camera_left/right/up/down` | Arrows | edge-panning has **no action** — cursor proximity |
 | `isometric_camera_rotate_left/right` | *(unbound)* | implemented, no key |
-| `command_additive` | Shift | append instead of replace; front of the queue for a purchase |
+| `modifier_additive` | Shift | append instead of replace; on a purchase or ability, queue it if it can't be afforded yet |
 | `modifier_narrow` | Alt (macOS: Command) | one actor; past the screen edge on a selector |
 | `modifier_broaden` | Ctrl (macOS: Option) | all actors; all rather than one idle on a selector |
-| `purchase_requisition` | Backspace | toggle requisition mode |
 | `ui_verbose` | `/` | hold for the deep tier |
 | `show_help` | F4 | hold for the overlay |
 | `show_debug_info` | `;` | toggle the debug view (scenarios with `debug_allowed`) |
@@ -322,11 +324,9 @@ Worth deciding deliberately rather than by accretion.
   lands, that card shows the union of the selection's trainables.
 - **Camera rotation is implemented but unbound.** Deciding it's not wanted is as good an outcome
   as binding it; leaving it half-present is not.
-- **Requisition is far from the hand.** Backspace is unambiguous and collision-proof, but it is a
-  mode toggled mid-fight. Whether a mode is the right shape at all — versus per-purchase intent —
-  is worth revisiting once it has some play behind it. Its indicator is no longer a banner: the
-  toggle button on `EconomyStack` both shows the mode and flips it, which puts it where its
-  consequences are and frees top-centre for objectives and toasts.
+- ~~**Requisition is far from the hand.**~~ **Resolved.** The Backspace toggle was replaced by
+  holding Shift on the purchase, so requisition is per-purchase intent rather than a mode —
+  [requisition-as-a-modifier](../../macroeconomics/requisition-as-a-modifier.md).
 - ~~**The queue has no HUD home.**~~ **Resolved.** `ProductionRail` holds the bottom-centre slot while
   nothing is selected, and the Details pane on the PRODUCTION page (hud-layout §Production); committed energy and a clearance estimate sit on `EconomyStack` with the resources. The
   rule that settled it: a HUD element is persistent iff it answers a question you can ask with

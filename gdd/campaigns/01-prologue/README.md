@@ -13,7 +13,7 @@ The prologue is kept small on purpose so new players aren't overwhelmed. Skills 
 | # | Doc | Teaches | Story hook (draft) |
 | --- | --- | --- | --- |
 | 1 | [Pervasive mechanics](01-pervasive-mechanics.md) | Unit control, garrisoning, the counter system | In the middle of a Colonial siege on allied Anarchists, a small force fights through the battle, picks up survivors and strikes the besiegers' base |
-| 2 | [Game-specific mechanics](02-game-specific-mechanics.md) | Crushing, stealth, dominion generation, ordnances, garrison clearing | A defunct base with Distress Signals holds out while it banks dominion for Informant and Mortar Strike |
+| 2 | [Game-specific mechanics](02-game-specific-mechanics.md) | Unit abilities (via the Sapper), crushing, stealth, dominion generation, ordnances, garrison clearing | A defunct base with Distress Signals holds out while it banks dominion for Informant and Mortar Strike |
 | 3 | [Macroeconomics](03-macroeconomics.md) | Structure and unit production, resource collection, the tech tree, transports | Destroy the Colonial base; each part of it calls for a different tool |
 
 ## Narrative arc
@@ -33,7 +33,7 @@ Kept out of the prologue to avoid overloading it. Each is either a challenge or 
 | Mechanic | Where it goes |
 | --- | --- |
 | Modifier controls (Alt narrow, Ctrl broaden, Shift append), the F1–F3 selector matrix, control groups | [Challenge: controls](../challenges/01-controls.md) |
-| Spatial counters (outpacing projectiles, kiting, turrets), spotting | [Challenge: spatial counters and spotting](../challenges/02-spatial-counters-and-spotting.md) |
+| Spatial counters (outpacing projectiles, kiting, turrets), spotting. Spotting-dependent pieces, like the MLRS, are kept out of the prologue | [Challenge: spatial counters and spotting](../challenges/02-spatial-counters-and-spotting.md) |
 | Requisition | [Challenge: requisition](../challenges/03-requisition.md) |
 | Command centre drop and the free extractor drops | Main campaign or skirmish onboarding; the prologue starts players with a base (see mission 3's open questions) |
 | Anarchist signature mechanics (disable/EMP, scavenging), the Hijacker, Dignify, Ambush, Scavenge | Main campaign |
