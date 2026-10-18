@@ -165,7 +165,7 @@ The continuous gradients available here: range bands, vision, reinforcement dist
 proximity, terrain height. The discrete commitments: structures, and any radius with a hard
 edge. **Prefer smooth gradients wherever dynamic positioning is the goal**, and where a
 commitment must be discrete, make its value depend on what the opponent does — see
-[matchups](matchups.md) and the structure rule in [README](README.md).
+[matchups](matchups.md) and the structure rule in [README](design-framework/README.md).
 
 ---
 

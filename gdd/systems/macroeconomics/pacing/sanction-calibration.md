@@ -5,7 +5,7 @@ type: system-note
 
 # Sanction calibration
 
-**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md). This
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](systems/macroeconomics/pacing/README.md). This
 note turns [dominion-and-ordnance](dominion-and-ordnance.md)'s model into a first pass of
 numbers and a four-tier grid. The grid's rules are [sanction-grid](../sanctions/sanction-grid.md).
 Every number here is a **starting point for playtesting**, not a tuned value.

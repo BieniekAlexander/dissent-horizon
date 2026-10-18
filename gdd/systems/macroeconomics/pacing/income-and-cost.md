@@ -5,7 +5,7 @@ type: system-note
 
 # Income and cost
 
-**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md).
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](systems/macroeconomics/pacing/README.md).
 Gather rates, both permanent and temporary, are to be revisited as a whole and against each
 other (Alex, 2026-09-30). This note is the frame for that revisit. The greed and payback
 equations it leans on are [timings](../../../design-framework/timings.md) §The equations, and

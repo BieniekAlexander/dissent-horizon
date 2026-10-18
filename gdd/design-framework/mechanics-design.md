@@ -15,7 +15,7 @@ this note is for seeing which one a design is, and which knob would move it.
 It sits beside two other ways of measuring an option: [elasticity](elasticity.md) asks how much
 an option pays back extra execution, and [decisions](decisions.md) asks what decision it creates
 (commitment, information, payoff, scarcity). This one asks what the effect itself is shaped
-like. Breadth is the axis that meets the [README](README.md) §Tiers rule — complexity follows
+like. Breadth is the axis that meets the [README](design-framework/README.md) §Tiers rule — complexity follows
 prevalence.
 
 Brainstormed 2026-10-16.
@@ -104,7 +104,7 @@ Four mechanics profiled on the five axes.
   MECH-only, and they cap breadth on the receiving side. So a broad mechanic gets its breadth
   from producers and payoffs, not from receivers.
 - **Breadth buys complexity.** Complexity is proportional to prevalence
-  ([README](README.md) §Tiers): a mechanic broad enough to define a faction is met often enough
+  ([README](design-framework/README.md) §Tiers): a mechanic broad enough to define a faction is met often enough
   to afford more rules, and a narrow one should stay simple.
 - **EMP and drone attachment sit at opposite ends of the capability axis** — one removes what a
   unit can do, the other adds to it — which makes Anarchical against Libertarian a natural place

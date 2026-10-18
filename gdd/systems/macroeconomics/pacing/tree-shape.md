@@ -5,7 +5,7 @@ type: system-note
 
 # Tree shape
 
-**TODO — research. Only items marked Decided are settled.** Part of [pacing](README.md).
+**TODO — research. Only items marked Decided are settled.** Part of [pacing](systems/macroeconomics/pacing/README.md).
 
 ## Vocabulary
 

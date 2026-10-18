@@ -22,7 +22,7 @@ an edge in a mention graph.
 
 ## The three parts
 
-**1. A closed role vocabulary.** Roughly the concept index in [README](README.md) — a dozen or so
+**1. A closed role vocabulary.** Roughly the concept index in [README](design-framework/README.md) — a dozen or so
 entries, deliberately closed, because the audit only means something if two pieces claiming
 `reversal` mean the same thing by it. Each role gets a note saying what it is, what a good
 instance looks like, and which rules it must satisfy.
