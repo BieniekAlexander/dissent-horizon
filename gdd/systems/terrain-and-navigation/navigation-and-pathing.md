@@ -340,7 +340,23 @@ reached; one further away steers 45° to one side for `SIDESTEP_TICKS`, which br
 symmetry. Measured after: both cases resolve — the mover goes round at 0.41, and the order onto
 an occupied point ends 0.6 short of it. Tests pin the state (`tests/test_AvoidancePlanting.gd`).
 
-**Not changed:** an idle TEAMMATE dead on a mover's line is pushed along ahead of it rather
-than stepping aside — 8.4 units over a 16-unit walk in the probe, and a five-unit group pushed
-one 8.3 with brief overlaps. That is the stander-yields rule above taken to its degenerate case.
-TODO — whether a stander should be an obstacle too, or yield sideways, is undecided.
+### A unit dead on the line: a seeded jitter
+
+An idle TEAMMATE dead on a mover's line steps out of the way (Alex, 2026-10-18). Before, RVO's
+symmetric answer pushed it straight ahead of the mover — 8.4 units over a 16-unit walk in the
+probe — while 0.15 off the line it stepped aside 0.26 and the mover went round. So a mover
+whose heading runs through another unit's centre (within `CENTRE_LINE_LANE` of it, ahead and
+inside the agent's neighbour distance; checked one tick in `CENTRE_LINE_EVERY`) veers off by a
+small angle for `JITTER_TICKS` (`Movement._jitter_off_centre_line`). The angle and its side are
+drawn from `SU.rng`, the simulation's seeded stream, so a replay veers the same way; the veer is
+an exact sideways share of the heading (`JITTER_MIN`..`JITTER_MAX`, about 6–11°), not a
+rotation, so no trigonometry is involved (DMath). Measured after, dead on the line: the teammate
+steps 0.34 aside, the mover passes at 0.41, and two runs on one seed end identically. The same
+veer resolves an ally or an acting unit dead on the line before the blocked rule above is needed.
+
+**Not solved: a teammate in front of a GROUP.** Five teammates walking abreast, 0.5 apart, past
+an idle one still carry it 8.3 units ahead of them, with brief overlaps: the movers on either
+side box it in, so RVO's cheapest answer stays "ahead". Turning the push it is handed sideways
+was tried and made it worse (overlaps up, and the single-mover case clipped at 0.32), and was
+reverted. TODO — undecided: the group parting round it, or the idle unit leaving sideways by a
+path of its own.

@@ -109,3 +109,25 @@ func test_a_new_goal_forgets_the_block() -> void:
 	_refuse(Movement.BLOCKED_TICKS)
 	_movement._submit_target(Vector3(10, 0, 0))
 	assert_eq(_movement._blocked_ticks, 0)
+
+
+# --- Dead-centre jitter ---------------------------------------------------------------------
+
+
+func test_a_running_jitter_veers_without_changing_speed_and_then_ends() -> void:
+	_movement._jitter_ticks = Movement.JITTER_TICKS
+	_movement._jitter_share = 0.15
+	var ahead := Vector3(2.0, 0.0, 0.0)
+	var veered: Vector3 = _movement._jitter_off_centre_line(ahead)
+	assert_almost_eq(veered.length(), 2.0, 0.0001, "the same speed")
+	assert_gt(absf(veered.z), 0.0, "off the line")
+	assert_lt(absf(veered.z), veered.x, "by a small angle")
+	for i: int in Movement.JITTER_TICKS:
+		_movement._jitter_off_centre_line(ahead)
+	assert_eq(_movement._jitter_ticks, 0, "and it is over")
+
+
+func test_a_jitter_is_off_while_nothing_is_dead_ahead() -> void:
+	# Out of the tree there is nothing to find on the line, so the heading is left alone.
+	var ahead := Vector3(2.0, 0.0, 0.0)
+	assert_eq(_movement._jitter_off_centre_line(ahead), ahead)
