@@ -28,11 +28,17 @@ const CLIPPER: String = "res://scenes/entities/units/cl/cl_aircraftLight_antiLig
 const WATCH_TOWER: String = "res://scenes/entities/structures/cl/cl_defense_antiLight.tscn"
 const COMPOUND: String = "res://scenes/entities/structures/cl/cl_infrastructure.tscn"
 const BUILDING_SQUARE: String = "res://scenes/entities/structures/nt/nt_building_square.tscn"
+const POWER_CELL: String = "res://scenes/entities/tokens/nt/nt_powerCell.tscn"
+const BATTERY_RACK: String = "res://scenes/entities/structures/nt/nt_batteryRack.tscn"
 
 ## Commander ids, in slot order.
 const PLAYER: int = 1
 const ALLY: int = 2
 const ENEMY: int = 3
+
+## The bot brain jobs a scripted commander keeps: what it perceives (fields, sight of the map,
+## the trend of its army's value), never anything that orders a unit.
+const PERCEPTION_JOBS: Array[StringName] = [&"fields", &"scout_sight", &"momentum"]
 
 ## Wave labels: what each wave's ScenarioTactic watches.
 const ALLY_WAVE: StringName = &"prologue_m1_ally_wave"
@@ -42,11 +48,30 @@ const ENEMY_WAVE: StringName = &"prologue_m1_enemy_wave"
 const WAVE_SECONDS: String = "10 + min(fires, 1) * 35"
 ## Irregulars garrisoned in each starting Safehouse.
 const SAFEHOUSE_GARRISON: int = 3
+## The player's Irregulars held in each prison Compound, freed when it falls.
+const PRISONERS: int = 3
+## Recruits holding the skirmish clearing.
+const OUTPOST_RECRUITS: int = 3
 
-## Positions are (along, across) in lane coordinates (MissionLane): along runs west → east over
-## about ±40; the flat corridor is ±9 across, between the hills. A 4x4 building is grid-aligned,
-## so it spans about ±2.8 along and across the lane.
-const PLAYER_START := Vector2(-19, 0)
+## Positions are (along, across) in MissionLane's frame, whose origin is the main corridor's
+## centre: it runs along ±40 and is ±9 across. The other regions are the terrain tool's REGIONS
+## (tools/missions/prologue_m1_terrain.gd). A 4x4 building is grid-aligned, so it spans about
+## ±2.8 along and across.
+##
+## The route: START (the player's Warlord) → WEST, north → NORTH (the prison Compounds) → EAST
+## PASSAGE → SKIRMISH (the Recruits) → SOUTH PASSAGE → MAIN, beside the ally's Safehouses.
+const PLAYER_START := Vector2(-60, -27)
+## The two prison Compounds in NORTH, the enemy's: their prisons are switched off, so the player's
+## Irregulars inside serve no sentence and wait to be freed.
+const PRISON_COMPOUNDS: Array[Vector2] = [Vector2(-65, 53), Vector2(-53, 53)]
+## Hazards around each prison Compound, as GRID offsets (world x, z) from its centre, so they sit
+## against its 4x4 footprint whatever its rotation in the lane frame: the blasts are small
+## (racks 2.5, cells 1), and only reach the Compound from beside it. Racks are 1x1 structures, so
+## their offsets are cell centres.
+const RACK_OFFSETS: Array[Vector2] = [Vector2(2.5, -0.5), Vector2(-2.5, 0.5)]
+const CELL_OFFSETS: Array[Vector2] = [Vector2(2.6, 1.4), Vector2(-2.6, -1.4), Vector2(0.5, 2.6)]
+## The Recruits' clearing in SKIRMISH, which they defend.
+const OUTPOST := Vector2(-22, 48)
 const ALLY_SAFEHOUSES: Array[Vector2] = [Vector2(-30, 4.5), Vector2(-30, -4.5), Vector2(-36, 0)]
 const ALLY_WAVE_SPAWN := Vector2(-25, 0)
 const WATCH_TOWERS: Array[Vector2] = [Vector2(26, 5), Vector2(26, -5), Vector2(31, 0)]
@@ -87,6 +112,8 @@ func _ready() -> void:
 		_place(root, WATCH_TOWER, ENEMY, at, "WatchTower")
 	for at: Vector2 in COMPOUNDS:
 		_place(root, COMPOUND, ENEMY, at, "Compound")
+	for at: Vector2 in PRISON_COMPOUNDS:
+		_prison(root, at)
 
 	var manager := ScenarioTriggerManager.new()
 	manager.name = "ScenarioTriggerManager"
@@ -109,18 +136,30 @@ func _ready() -> void:
 	)
 	_assault(manager, "AllyWaveTactic", ALLY_WAVE, ALLY_WAVE_TARGET)
 	_assault(manager, "EnemyWaveTactic", ENEMY_WAVE, ENEMY_WAVE_TARGET)
+	_outpost(manager)
 
 	_save(root)
 	get_tree().quit(0)
 
 
-## A player slot. Bots are PASSIVE: everything the ally and enemy do is the mission's scripting.
+## A player slot. The bots are SCRIPTED ONLY: everything the ally and enemy do is the mission's
+## scripting, so every brain job that ACTS is switched off (PlayerSlot.disabled_bot_jobs) and only
+## PERCEPTION_JOBS run — a tactic steers through its bot's senses. PASSIVE alone is not that: a
+## passive brain still masses and defends its base, which sent the outpost Recruits after the
+## freed prisoners beside the enemy's Compounds (found 2026-10-18). Derived from BotBrain.JOB_NAMES
+## so a job added later starts off here too.
 func _slot(a_is_bot: bool, a_faction: String, a_team: int, a_shares_vision: bool) -> PlayerSlot:
 	var slot := PlayerSlot.new()
 	slot.is_bot = a_is_bot
 	slot.faction = load(a_faction)
 	slot.alliance = a_team
 	slot.difficulty = PlayerSlot.Difficulty.PASSIVE
+	if a_is_bot:
+		var acting: Array[StringName] = []
+		for job: StringName in BotBrain.JOB_NAMES:
+			if not PERCEPTION_JOBS.has(job):
+				acting.append(job)
+		slot.disabled_bot_jobs = acting
 	slot.starting_energy = 0
 	slot.starting_dominion = 0
 	slot.shares_vision_with_allies = a_shares_vision
@@ -170,6 +209,60 @@ func _place(
 	a_parent.add_child(piece, true)
 	piece.position = MissionLane.to_world(a_at.x, a_at.y)
 	return piece
+
+
+## An enemy Compound in NORTH holding PRISONERS of the player's Irregulars, its prison switched off
+## (OccupantDominionGenerator.is_disabled, on its DominionGenerator node — an override inside the
+## instance, so the instance is made editable), with power cells and battery racks against it.
+## Destroying it frees the prisoners back to the player (Garrison: a dead host's captives return
+## to their own commander). The Compound is snapped to whole cells first, so the hazard offsets
+## land on the cells beside its footprint.
+func _prison(a_root: Node, a_at: Vector2) -> void:
+	var compound: Node3D = _place(a_root, COMPOUND, ENEMY, a_at, "PrisonCompound")
+	compound.position = Vector3(roundf(compound.position.x), 0.0, roundf(compound.position.z))
+	a_root.set_editable_instance(compound, true)
+	(compound.get_node("DominionGenerator") as OccupantDominionGenerator).is_disabled = true
+	var prisoners := EventSpawnEntities.new()
+	prisoners.name = "Prisoners"
+	prisoners.commander_id = PLAYER
+	prisoners.entity_scenes = [load(IRREGULAR) as PackedScene]
+	prisoners.count_expression = str(PRISONERS)
+	prisoners.garrison_host = compound as Actor
+	compound.add_child(prisoners)
+	for offset: Vector2 in RACK_OFFSETS:
+		_place_at(a_root, BATTERY_RACK, compound.position + Vector3(offset.x, 0.0, offset.y))
+	for offset: Vector2 in CELL_OFFSETS:
+		_place_at(a_root, POWER_CELL, compound.position + Vector3(offset.x, 0.0, offset.y))
+
+
+## A neutral piece at Map-local world position `a_world`.
+func _place_at(a_root: Node, a_scene: String, a_world: Vector3) -> void:
+	var piece: Node3D = _place(a_root, a_scene, 0, Vector2.ZERO)
+	piece.position = a_world
+
+
+## OUTPOST_RECRUITS of the enemy's Recruits holding the SKIRMISH clearing: spawned at the start (an
+## unconditional trigger) and ordered to Defend it — the game's own Defend command, so they hold
+## the ground and engage what comes into it.
+func _outpost(a_manager: Node) -> void:
+	var trigger := GlobalTrigger.new()
+	trigger.name = "RecruitOutpost"
+	a_manager.add_child(trigger)
+	var spawn := EventSpawnEntities.new()
+	spawn.name = "Spawn"
+	spawn.commander_id = ENEMY
+	spawn.entity_scenes = [load(RECRUIT) as PackedScene]
+	spawn.count_expression = str(OUTPOST_RECRUITS)
+	trigger.add_child(spawn)
+	spawn.position = MissionLane.to_world(OUTPOST.x, OUTPOST.y)
+	var orders := EventIssueCommand.new()
+	orders.name = "Orders"
+	spawn.add_child(orders)
+	var defend := EventCommandPoint.new()
+	defend.name = "Defend"
+	defend.command_type = "defend"
+	orders.add_child(defend)
+	defend.position = Vector3.ZERO
 
 
 ## A neutral building that the ally owns as a Safehouse from the first frame, with Irregulars

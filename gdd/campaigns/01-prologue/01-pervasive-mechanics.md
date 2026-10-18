@@ -33,13 +33,29 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
     ([target-acquisition](../../systems/combat/target-acquisition.md) §Alliances), so its pieces show only
     inside the player's own vision. Allies share vision by default; this mission is the edge case.
   - **Enemy** — a Colonial bot on its own alliance.
-  - Both bots are **scripted only**: their brains stay passive, and everything they do is the
-    waves, the statics and the wave tactics below.
+  - Both bots are **scripted only**: everything they do is the scripting below. Their slots switch
+    off every brain job that acts (`PlayerSlot.disabled_bot_jobs`), keeping only perception. PASSIVE
+    alone is not enough: a passive brain still defends its base.
 - **Starting force:** one [Warlord](../../factions/anarchical/units/an_bioMedium_dominionGen.md),
-  on the west side ahead of the allied Safehouses.
-- **Map:** one west–east corridor, about 80 cells long and 18 wide, between hills too steep to
-  cross on either side (revised 2026-10-18). The ally starts on the west, the enemy on the east.
-  No neutral buildings for now.
+  in a clearing southwest of the ally's start.
+- **Map:** flat regions joined into one route, with hills too steep to cross everywhere else
+  (expanded 2026-10-18). Neutral buildings: none for now.
+  1. **Start:** the player's clearing, southwest of the ally's start. It does not open onto the main
+     corridor.
+  2. **West corridor:** north from the start.
+  3. **The prisons:** at its north end, two enemy
+     [Compounds](../../factions/colonial/structures/cl_infrastructure.md), each holding 3 of the
+     player's Irregulars with its prison switched off (`OccupantDominionGenerator.is_disabled`), so
+     they serve no sentence. [Power cells](../../factions/neutral/tokens/nt_powerCell.md) and
+     [battery racks](../../factions/neutral/structures/nt_batteryRack.md) stand against each
+     Compound, close enough that blowing them up destroys it; a destroyed Compound hands its
+     prisoners back to the player.
+  4. **The first skirmish:** east of the prisons, northwest of the ally's start, 3 Recruits defending
+     a clearing (the game's Defend order).
+  5. **Down into the main corridor:** a passage south from the skirmish joins the main corridor just
+     east of the ally's Safehouses.
+  6. **Main corridor:** west–east, about 80 cells long and 18 wide; the ally holds the west end and
+     the enemy the east.
 - **Statics:**
   - Ally (west): [Safehouses](../../factions/anarchical/structures/an_infrastructure.md), each
     garrisoned with [Irregulars](../../factions/anarchical/units/an_bioLight_builder.md) from the

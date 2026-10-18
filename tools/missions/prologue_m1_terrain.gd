@@ -1,35 +1,56 @@
 extends SceneTree
 
-## The PRIMARY source of prologue mission 1's terrain: one long west–east lane
+## The PRIMARY source of prologue mission 1's terrain
 ## (gdd/campaigns/01-prologue/01-pervasive-mechanics.md §Setup). Writes both artifacts that
 ## describe the surface — `TerrainData.heights` and the brushable surface mesh — from one
 ## computation, then proves they agree by re-baking the mesh and requiring the heights back
-## unchanged (CLAUDE.md §Regenerating data). Change the lane HERE and rerun; never edit the
-## two outputs apart.
+## unchanged (CLAUDE.md §Regenerating data). Change the map HERE and rerun; never edit the two
+## outputs apart.
 ##
 ##   godot --headless --path . -s res://tools/missions/prologue_m1_terrain.gd
 ##
-## The lane is the PLAY RECTANGLE itself: play bounds are impassable by construction, so its
-## long, narrow shape is what keeps the fight in one lane. `play_size` is in diamonds along the
-## screen axes — `.y` is the on-screen WIDTH (west–east), `.x` the on-screen HEIGHT — and one
-## diamond spans 2 units of s or t, so the lane is about √2·PLAY_SIZE.y world units long.
-## `MissionLane` (tools/missions/mission_lane.gd) turns lane coordinates into world positions
-## for the scene's layout.
+## The walkable ground is the union of REGIONS, flat rectangles in MissionLane's frame (along,
+## across); everything else is hillside that rises from the nearest region's edge at HILL_SLOPE,
+## up to HILL_CAP. The hills are impassable by their STEEPNESS — a cell whose corners spread more
+## than TerrainGrid.MAX_SLOPE_DIFF (tan 30°) is steep — and where they reach the cap the flat top
+## is ringed by steep ground, so nothing can climb onto it. A gentle swell along the map
+## (HILL_SWELL) keeps ridge lines from reading as rulers.
 ##
-## A flat corridor, MissionLane.CORRIDOR_HALF_WIDTH either side of the lane's centre line, between
-## hills that rise from its edges to the play bounds. The hills are made impassable by their
-## STEEPNESS, not their height: a cell whose corners spread more than TerrainGrid.MAX_SLOPE_DIFF
-## (tan 30°) is steep, and HILL_SLOPE keeps every hillside cell well past that, so there is no
-## walkable plateau on top either. A gentle swell along the lane (HILL_SWELL) keeps the ridge
-## line from reading as a ruler. TODO — cover, chokes and high ground are undecided.
+## The route, decided 2026-10-18 (Alex): the player starts in START, walks north up WEST to the
+## prison Compounds in NORTH, east through EAST_PASSAGE to the Recruits in SKIRMISH, then south
+## down SOUTH_PASSAGE into MAIN, the west–east corridor the waves fight in, beside the ally's
+## Safehouses. START does not open onto MAIN. `_verify_route` checks exactly that.
+##
+## TODO — cover, chokes and high ground inside the regions are undecided.
 
 const OUT_TRES: String = "res://resources/terrain/prologue_m1_terrain.tres"
 const OUT_MESH: String = "res://resources/terrain/prologue_m1_terrain_surface.res"
 const TILE_CATALOG: String = "res://resources/terrain/tile_catalog.tres"
-## Hill rise per world unit of run away from the corridor's edge. 1.0 is a 45° face, so every
+
+## The walkable regions: name -> Rect2 in MissionLane's frame, position = (west edge, south edge),
+## size = (length along, width across). Rect2 is used for its arithmetic only.
+const REGIONS: Dictionary = {
+	"MAIN": Rect2(-40, -9, 80, 18),
+	"START": Rect2(-70, -36, 20, 18),
+	"WEST": Rect2(-66, -18, 10, 62),
+	"NORTH": Rect2(-72, 44, 26, 18),
+	"EAST_PASSAGE": Rect2(-46, 48, 16, 10),
+	"SKIRMISH": Rect2(-32, 36, 20, 24),
+	"SOUTH_PASSAGE": Rect2(-24, 9, 8, 27),
+}
+## Where the flood fill of walkable ground starts.
+const ROUTE_START: String = "START"
+## Regions the route must never reach directly from START without the rest of the route between
+## them: checked as "START's flood, with SOUTH_PASSAGE walled off, does not reach MAIN".
+const ROUTE_GATE: String = "SOUTH_PASSAGE"
+const ROUTE_END: String = "MAIN"
+
+## Hill rise per world unit of run away from the nearest region. 1.0 is a 45° face, so a
 ## hillside cell's corner spread is far past TerrainGrid.MAX_SLOPE_DIFF.
 const HILL_SLOPE: float = 1.2
-## How far the slope swells and dips along the lane, as a fraction of HILL_SLOPE, and over what
+## The hills' height cap, so the far corners are hills rather than towers over the camera.
+const HILL_CAP: float = 8.0
+## How far the slope swells and dips along the map, as a fraction of HILL_SLOPE, and over what
 ## wavelength in world units. Kept small enough that the slope never falls below 1.0.
 const HILL_SWELL: float = 0.15
 const HILL_SWELL_WAVELENGTH: float = 17.0
@@ -42,11 +63,13 @@ func _initialize() -> void:
 	var dims: Vector2i = data.dimensions
 	var heights := PackedFloat32Array()
 	heights.resize(dims.x * dims.y)
+	var half: Vector2 = Vector2(dims - Vector2i.ONE) * 0.5
 	for j: int in dims.y:
 		for i: int in dims.x:
-			heights[j * dims.x + i] = _height_at(Vector2i(i, j), dims)
+			var lane: Vector2 = MissionLane.to_lane(Vector3(i - half.x, 0.0, j - half.y))
+			heights[j * dims.x + i] = _height_at(lane)
 	data.heights = heights
-	print("lane: play_size %s, corner grid %s" % [data.play_size, dims])
+	print("map: play_size %s, corner grid %s" % [data.play_size, dims])
 
 	# ---- PRIMARY and its mesh form, written from the one computation above ------------------
 	var mesh := ArrayMesh.new()
@@ -61,54 +84,94 @@ func _initialize() -> void:
 		return
 	print("wrote %s and %s" % [OUT_TRES.get_file(), OUT_MESH.get_file()])
 	var rebake_ok: bool = _verify_rebake_is_noop(heights)
-	quit(0 if rebake_ok and _verify_hills_are_impassable(data) else 1)
+	var route_ok: bool = _verify_route(data)
+	quit(0 if rebake_ok and route_ok else 1)
 
 
-## The ground height at corner `a_corner` of a `a_dims` corner grid: zero on the corridor, rising
-## by HILL_SLOPE per unit of distance past its edge. A corner is a point of the Map-local grid
-## centred on the origin, the same frame MissionLane works in.
-func _height_at(a_corner: Vector2i, a_dims: Vector2i) -> float:
-	var half: Vector2 = Vector2(a_dims - Vector2i.ONE) * 0.5
-	var lane: Vector2 = MissionLane.to_lane(Vector3(a_corner.x - half.x, 0.0, a_corner.y - half.y))
-	var past_edge: float = absf(lane.y) - MissionLane.CORRIDOR_HALF_WIDTH
+## How far `a_lane` lies outside every region, in world units; 0 inside any of them.
+static func region_distance(a_lane: Vector2) -> float:
+	var nearest: float = INF
+	for rect: Rect2 in REGIONS.values():
+		var dx: float = maxf(maxf(rect.position.x - a_lane.x, a_lane.x - rect.end.x), 0.0)
+		var dy: float = maxf(maxf(rect.position.y - a_lane.y, a_lane.y - rect.end.y), 0.0)
+		nearest = minf(nearest, Vector2(dx, dy).length())
+	return nearest
+
+
+## The ground height at `a_lane`: zero in a region, rising by HILL_SLOPE per unit of distance
+## from the nearest, up to HILL_CAP.
+func _height_at(a_lane: Vector2) -> float:
+	var past_edge: float = region_distance(a_lane)
 	if past_edge <= 0.0:
 		return 0.0
-	var swell: float = 1.0 + HILL_SWELL * DMath.sin(TAU * lane.x / HILL_SWELL_WAVELENGTH)
-	return past_edge * HILL_SLOPE * swell
+	var swell: float = 1.0 + HILL_SWELL * DMath.sin(TAU * a_lane.x / HILL_SWELL_WAVELENGTH)
+	return minf(past_edge * HILL_SLOPE * swell, HILL_CAP)
 
 
-## Every in-play cell whose centre lies a full cell past the corridor's edge must be too steep to
-## cross, and every cell wholly inside the corridor flat: the property the hills exist for, checked
-## against the game's own rule (TerrainGrid.MAX_SLOPE_DIFF) rather than assumed from HILL_SLOPE.
-## The cells the edge itself crosses are left out — part corridor, part hill.
-func _verify_hills_are_impassable(a_data: TerrainData) -> bool:
-	var grid_half: Vector2 = Vector2(a_data.grid_width(), a_data.grid_depth()) * 0.5
-	var walkable_hill: int = 0
-	var uneven_corridor: int = 0
-	var hill_cells: int = 0
-	for z: int in a_data.grid_depth():
-		for x: int in a_data.grid_width():
-			var cell := Vector2i(x, z)
-			if not a_data.is_cell_in_play(cell):
-				continue
-			var centre := Vector3(x + 0.5 - grid_half.x, 0.0, z + 0.5 - grid_half.y)
-			var past_edge: float = (
-				absf(MissionLane.to_lane(centre).y) - MissionLane.CORRIDOR_HALF_WIDTH
-			)
-			var spread: float = a_data.cell_height_spread(cell)
-			if past_edge >= 1.0:
-				hill_cells += 1
-				if spread <= TerrainGrid.MAX_SLOPE_DIFF:
-					walkable_hill += 1
-			elif past_edge <= -1.0 and spread != 0.0:
-				uneven_corridor += 1
+## The cells a unit could actually walk, flooded from ROUTE_START's centre through in-play,
+## not-steep cells (TerrainGrid.MAX_SLOPE_DIFF, the game's own rule), and the property that
+## makes the hills hills:
+## - nothing walkable is reached that lies a full cell outside every region (no way over a hill);
+## - every region's centre is reached (the route is whole);
+## - with ROUTE_GATE walled off, ROUTE_END is not reached (START does not open onto MAIN).
+func _verify_route(a_data: TerrainData) -> bool:
+	var reached: Dictionary = _flood(a_data, "")
+	var strays: int = 0
+	for cell: Vector2i in reached:
+		if region_distance(_cell_lane(a_data, cell)) >= 1.0:
+			strays += 1
+	var missing: Array[String] = []
+	for name: String in REGIONS:
+		if not reached.has(_lane_cell(a_data, (REGIONS[name] as Rect2).get_center())):
+			missing.append(name)
+	var gated: Dictionary = _flood(a_data, ROUTE_GATE)
+	var leaks: bool = gated.has(_lane_cell(a_data, (REGIONS[ROUTE_END] as Rect2).get_center()))
 	print(
 		(
-			"hills: %d hillside cells, %d of them walkable (must be 0); %d uneven corridor cells"
-			% [hill_cells, walkable_hill, uneven_corridor]
+			(
+				"route: %d walkable cells reached, %d of them outside the regions (must be 0); "
+				+ "unreached regions %s; %s reachable from %s without %s: %s (must be false)"
+			)
+			% [reached.size(), strays, missing, ROUTE_END, ROUTE_START, ROUTE_GATE, leaks]
 		)
 	)
-	return hill_cells > 0 and walkable_hill == 0 and uneven_corridor == 0
+	return strays == 0 and missing.is_empty() and not leaks
+
+
+## The walkable cells reachable from ROUTE_START, never entering region `a_wall` ("" = none).
+func _flood(a_data: TerrainData, a_wall: String) -> Dictionary:
+	var start: Vector2i = _lane_cell(a_data, (REGIONS[ROUTE_START] as Rect2).get_center())
+	var wall: Rect2 = REGIONS[a_wall] if REGIONS.has(a_wall) else Rect2()
+	var seen: Dictionary = {start: true}
+	var frontier: Array[Vector2i] = [start]
+	while not frontier.is_empty():
+		var cell: Vector2i = frontier.pop_back()
+		for step: Vector2i in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+			var next: Vector2i = cell + step
+			if seen.has(next) or not a_data.is_cell_in_play(next):
+				continue
+			if a_data.cell_height_spread(next) > TerrainGrid.MAX_SLOPE_DIFF:
+				continue
+			if not a_wall.is_empty() and wall.has_point(_cell_lane(a_data, next)):
+				continue
+			seen[next] = true
+			frontier.append(next)
+	return seen
+
+
+## The lane position of a cell's centre.
+func _cell_lane(a_data: TerrainData, a_cell: Vector2i) -> Vector2:
+	var grid_half: Vector2 = Vector2(a_data.grid_width(), a_data.grid_depth()) * 0.5
+	return MissionLane.to_lane(
+		Vector3(a_cell.x + 0.5 - grid_half.x, 0.0, a_cell.y + 0.5 - grid_half.y)
+	)
+
+
+## The cell under a lane position.
+func _lane_cell(a_data: TerrainData, a_lane: Vector2) -> Vector2i:
+	var grid_half: Vector2 = Vector2(a_data.grid_width(), a_data.grid_depth()) * 0.5
+	var world: Vector3 = MissionLane.to_world(a_lane.x, a_lane.y)
+	return Vector2i(floori(world.x + grid_half.x), floori(world.z + grid_half.y))
 
 
 ## Re-read both artifacts from disk, cache bypassed, bake the mesh into the resource as
