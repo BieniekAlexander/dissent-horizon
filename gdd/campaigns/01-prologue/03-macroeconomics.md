@@ -45,10 +45,10 @@ Each section is a different question, and each answer is something the player ha
 | --- | --- | --- |
 | Armour park | [Matildas](../../factions/colonial/units/cl_mechMedium_antiMech.md) and [Sloops](../../factions/colonial/units/cl_mechMedium_antiLight.md) | Anti-MECH: [Shock Troopers](../../factions/anarchical/units/an_bioMedium_antiMech.md) from the Redoubt, or [Kamikazes](../../factions/anarchical/units/an_aircraftLight_antiMech.md) from the Hangar |
 | Kill zone | Open ground covered by [Watch Towers](../../factions/colonial/structures/cl_defense_antiLight.md), where infantry on foot are cut down | A ground transport: a [Collective](../../factions/anarchical/units/an_mechLight_transport.md) early, or a [War Wagon](../../factions/anarchical/units/an_mechStrong_transport.md) after the Stockpile |
-| Plateau battery | [Bombards](../../factions/colonial/structures/cl_defense_antiStructure.md) on high ground with no ground route up | An air transport: the [Raven](../../factions/anarchical/units/an_aircraftLight_transport.md) |
+| Plateau battery | [Bombards](../../factions/colonial/structures/cl_defense_antiStructure.md) on high ground with no ground route up. TODO — how the Bombards are used is deferred to a separate session | An air transport: the [Raven](../../factions/anarchical/units/an_aircraftLight_transport.md) |
 | SAM screen | [SAM sites](../../factions/colonial/structures/cl_defense_antiAircraft.md) guarding the approach to the plateau | A ground force has to clear them before the Raven can fly in, which sequences the assault |
 | Barracks quarter | Massed Colonial infantry in garrisoned buildings | [Sharpshooters](../../factions/anarchical/units/an_bioLight_antiBio.md) or a [Juggernaut](../../factions/anarchical/units/an_bioStrong_antiLight.md) after the Stockpile, and the [Toxin Tractor](../../factions/anarchical/units/an_mechMedium_antiBio.md) to clear garrisons |
-| The Citadel | The [command centre](../../factions/colonial/structures/cl_commandCenter.md), with STRONG armour that resists everything | [Sappers](../../factions/anarchical/units/an_bioLight_antiStructure.md) delivered by transport, plus the Mortar Strike if mission 2's sanctions carry over |
+| The Citadel | The [command centre](../../factions/colonial/structures/cl_commandCenter.md), with STRONG armour that resists everything | [Sappers](../../factions/anarchical/units/an_bioLight_antiStructure.md) delivered by transport |
 
 ## Objectives
 
@@ -72,8 +72,8 @@ Each section is a different question, and each answer is something the player ha
 ## Constraints
 
 - Tech capped at Tier 1. The Clandestine Lab and its units (Condor, Hijacker) are excluded.
-- The [MLRS](../../factions/anarchical/units/an_mechMedium_artillery.md) is excluded. It needs a spotter, and spotting isn't part of the prologue; it's taught in the [spotting challenge](../challenges/02-spatial-counters-and-spotting.md).
-- No sanctions beyond the ones carried from mission 2, if any.
+- The [MLRS](../../factions/anarchical/units/an_mechMedium_artillery.md) is excluded. It needs a spotter, and spotting isn't part of the prologue; it's planned for the [challenge series](../challenges/README.md).
+- No sanctions. Missions are self-contained, so nothing from mission 2 carries over.
 - No upgrades.
 
 ## Scenario file
@@ -82,8 +82,4 @@ TODO — link once it exists under `scenes/scenarios/`.
 
 ## Open questions
 
-- **Starting base.** Does the mission start with the Stronghold placed, or does it use the command centre drop? The drop is otherwise left out of the prologue.
-- **Win condition.** HEGEMONY (destroy every command centre), or a scripted list of sections?
-- **Sanctions.** Do mission 2's sanctions carry over, and does the Retinue still bank dominion here?
-- **The plateau Bombards.** Bombards fire through spotters and beacons, and spotting isn't in the prologue. Should their fire be scripted, or should the section's problem come only from their position, not from their shelling?
-- **Requisition.** It's in the challenge series, but players will hit "can't afford it" here. Should the HUD point them at the challenge?
+None.

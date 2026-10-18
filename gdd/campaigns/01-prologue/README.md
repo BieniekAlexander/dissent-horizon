@@ -32,16 +32,20 @@ Kept out of the prologue to avoid overloading it. Each is either a challenge or 
 
 | Mechanic | Where it goes |
 | --- | --- |
-| Modifier controls (Alt narrow, Ctrl broaden, Shift append), the F1–F3 selector matrix, control groups | [Challenge: controls](../challenges/01-controls.md) |
-| Spatial counters (outpacing projectiles, kiting, turrets), spotting. Spotting-dependent pieces, like the MLRS, are kept out of the prologue | [Challenge: spatial counters and spotting](../challenges/02-spatial-counters-and-spotting.md) |
-| Requisition | [Challenge: requisition](../challenges/03-requisition.md) |
-| Command centre drop and the free extractor drops | Main campaign or skirmish onboarding; the prologue starts players with a base (see mission 3's open questions) |
+| Modifier controls (Alt narrow, Ctrl broaden, Shift append), the F1–F3 selector matrix, control groups | [Challenge series](../challenges/README.md) |
+| Spatial counters (outpacing projectiles, kiting, turrets), spotting. Spotting-dependent pieces, like the MLRS, are kept out of the prologue | [Challenge series](../challenges/README.md) |
+| Requisition | [Challenge series](../challenges/README.md) |
+| Command centre drop and the free extractor drops | Main campaign or skirmish onboarding; the prologue starts players with a base |
 | Anarchist signature mechanics (disable/EMP, scavenging), the Hijacker, Dignify, Ambush, Scavenge | Main campaign |
 | Shelters, static defence design, upgrades, aerial rearm, alliances, superweapons | Main campaign |
 
+## Decisions
+
+- **Missions are self-contained.** There is no metaprogression: no units, veterancy or sanctions carry over between missions. The story continues across them, but each mission's setup stands alone.
+- **No mechanic appears before it's explained.** Each mission's design is constrained so it can't. For example, mission 1 has no enemy ground vehicles, so there's no crushing and there are no wrecks to scavenge.
+- **Every mission uses scripted objectives**, not HEGEMONY, so each lesson is presented to the player.
+- **Bombard use is deferred.** TODO — how the Colonial Bombards behave in missions 1 and 3 is being worked out in a separate session.
+
 ## Open questions
 
-- [ ] Do survivors and veterancy carry over between missions? It ties the missions together, but it snowballs difficulty.
-- [ ] Is the challenge series unlocked after a particular prologue mission, or available from the start?
-- [ ] Is HEGEMONY the win condition in mission 3, or is it a scripted objective?
-- [ ] Some game-wide behaviours will happen before the mission that teaches them. Vehicles crush infantry in mission 1, and destroyed grounded vehicles leave wrecks that Anarchist infantry can scavenge. Suppress these in early missions, or let them happen and only explain them later?
+None.

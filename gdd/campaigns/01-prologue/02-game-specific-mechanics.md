@@ -81,11 +81,4 @@ TODO — link once it exists under `scenes/scenarios/`.
 
 ## Open questions
 
-- **Which units go stealthed.** [Informant 1](../../factions/anarchical/sanctions/informant.md) only targets Irregulars, and any BIO unit needs Informant 2. If stealthed Sappers make the critical strikes, the mission needs Informant 2 or a scripted grant.
-- **Planting and stealth.** Does planting a charge break a Sapper's stealth, the way attacking does? Detonating from range keeps the Sapper hidden either way. If planting does break stealth, the strikes rely on detonating at a distance.
-- **What the critical strikes hit.** Candidates:
-  - the Watch Towers themselves, which opens a route
-  - the Stock Trucks' Compound, which stops the captures
-- **Distress Signal prerequisite.** Distress Signals require a [Stockpile](../../factions/anarchical/structures/an_tech1.md) to build, which doesn't matter for scenario-placed ones. Does the defunct base show the Stockpile as ruined, for consistency?
-- **Choosing the caster.** With several Distress Signals, can the player pick which one casts? That decides whether the arrival-edge lesson is something the player can act on.
-- **Captured units.** Does a captured Irregular count as a loss, or can it be rescued (e.g. by destroying the Compound)?
+None.
