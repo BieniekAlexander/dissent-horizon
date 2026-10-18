@@ -540,7 +540,7 @@ entirely. **Two axes, one per modifier, both ABSOLUTE**, and they compose
 | any member (default) | cycle every one you own, least-recently-selected | every one you own |
 | idle only (`modifier_narrow`, Alt) | cycle the idle ones | every idle one you own |
 
-Plus Shift (`command_additive`) to add rather than replace, on every cell.
+Plus Shift (`modifier_additive`) to add rather than replace, on every cell.
 
 **Every selector searches the whole map.** Scope was a third axis (on screen / global) and was
 dropped: the on-screen half already has a gesture, since a box drag resolves wherever it ends,

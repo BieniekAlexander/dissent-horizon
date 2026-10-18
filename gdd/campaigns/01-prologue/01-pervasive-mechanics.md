@@ -7,6 +7,7 @@ Status: draft. The player arrives mid-battle with a small Anarchist force, grows
 - **Unit control:** selecting, box-selecting, move, attack, attack-move, stop
 - **Garrisoning:** entering and leaving a neutral building, and the protection and range a garrison gives
 - **The counter system:** Frame (BIO vs MECH) × Armour (Light, Medium, Strong) against damage types, including a matchup where one unit can barely hurt another
+- **Insufficient infrastructure:** destroying the structures that supply a commander's infrastructure leaves it **strained**, and its structures go **unpowered**, so defences lose their weapons and abilities. Units are unaffected. That's how a small force breaks into a defended base. Rules: [production-and-economy](../../systems/macroeconomics/production-and-economy.md) §Insufficient infrastructure.
 
 ## Reinforces
 
@@ -30,14 +31,16 @@ The Colonials are besieging an allied Anarchist position. The player's force is 
 - **Enemies:** the besieging Colonial army.
   - BIO: [Recruits](../../factions/colonial/units/cl_bioLight_antiLight.md) and [Badgers](../../factions/colonial/units/cl_bioLight_antiMech.md)
   - MECH: [Matildas](../../factions/colonial/units/cl_mechMedium_antiMech.md)
-  - The base: [Bombards](../../factions/colonial/structures/cl_defense_antiStructure.md) shelling the allied position, which suits the Colonials' siege theme
+  - The base: [Bombards](../../factions/colonial/structures/cl_defense_antiStructure.md) shelling the allied position, which suits the Colonials' siege theme, and [Watch Towers](../../factions/colonial/structures/cl_defense_antiLight.md) defending it
+  - The base's power: [Compounds](../../factions/colonial/structures/cl_infrastructure.md), the Colonial infrastructure providers, sitting outside the defended perimeter. Their supply is all that keeps the defences and Bombards powered.
 
 ## Objectives
 
 1. Break out of the opening position (unit control).
 2. Free the pinned-down cells (counters, each with the unit that solves it).
 3. Cross the exposed ground to reach the Colonial base (garrisoning).
-4. Destroy the Bombards (the critical blow).
+4. Destroy the Compounds to cut the base's power (infrastructure).
+5. Break into the darkened base and destroy the Bombards (the critical blow).
 
 ## Teaching beats
 
@@ -47,7 +50,10 @@ The Colonials are besieging an allied Anarchist position. The player's force is 
   - The next cell is pinned by Colonial infantry, and the freed Sharpshooters win there.
   - Then mixed groups that need the player to send the right units at the right targets.
 - **Twist:** crossing open ground under fire. Garrisoning a building lets the force survive and outrange the enemy, and leaving it at the right moment lets the force advance.
-- **Conclude:** the assembled force fights through to the Bombards and destroys them, using the counters it has learned against the defenders on the way.
+- **Conclude:**
+  - The base's defences are too strong to assault head-on.
+  - The force destroys the Compounds outside the perimeter instead. The Colonials' infrastructure becomes strained, and the defences and Bombards go unpowered: the unpowered badge appears over each, and they stop firing.
+  - The force walks in and destroys the Bombards, using the counters it has learned against the Colonial units still defending. Those units are unaffected by the power loss.
 
 ## Constraints
 
@@ -65,4 +71,6 @@ TODO — link once it exists under `scenes/scenarios/`.
 - How much of the damage table does the UI show (readouts, cursor hints), versus letting players learn from the results?
 - Destroyed Matildas leave wrecks that Anarchist infantry can scavenge. Scavenging isn't taught in the prologue, so suppress it here, or let it happen unexplained?
 - Spotting isn't part of the prologue, but Bombards fire through spotters and beacons. Should the Bombards' shelling be scripted (at the allied position, never at the player), or should they not fire at all here?
-- Can the mission 1 roster destroy the Bombards in a reasonable time without Sappers, or does the strike target need tuning?
+- Can the mission 1 roster destroy the Compounds and Bombards in a reasonable time without Sappers, or do those targets need tuning?
+- **The Citadel's infrastructure.** The Colonial command centre also provides infrastructure. Does the siege base have a Citadel (on the map, out of reach) or not, so that losing the Compounds is enough to strain it?
+- **Reading the strain.** Is the unpowered badge enough for the player to read why the defences went dark, or does the mission need a dialog or highlight?
