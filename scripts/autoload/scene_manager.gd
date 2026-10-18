@@ -121,6 +121,36 @@ func play_replay(a_path: String) -> String:
 	return ""
 
 
+## Load the saved game at `a_path`: its scenario, set up to re-simulate to the moment it was saved
+## (SaveGame). Returns why it cannot be loaded, or "" once the swap is asked for.
+## gdd/systems/commands/saved-games.md §Loading.
+func load_save(a_path: String) -> String:
+	var prepared: Dictionary = SaveGame.prepare_resume(a_path)
+	if prepared.has("refusal"):
+		return prepared["refusal"]
+	var scenario: Scenario = prepared["scenario"]
+	_resume()
+	scene_change_requested.emit(scenario.scene_file_path)
+	var result: Error = get_tree().change_scene_to_node(scenario)
+	if result != OK:
+		scenario.free()
+		return "Could not load the save: %s." % error_string(result)
+	return ""
+
+
+## Start `a_scenario`'s mission again from the beginning, at the same difficulty. Only an
+## authored scenario can be — one with a scene file; a lobby-built skirmish has none.
+func restart(a_scenario: Scenario) -> Error:
+	var path: String = a_scenario.scene_file_path if a_scenario != null else ""
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return ERR_UNAVAILABLE
+	var fresh := (load(path) as PackedScene).instantiate() as Scenario
+	if fresh == null:
+		return ERR_INVALID_DATA
+	fresh.mission_difficulty = a_scenario.mission_difficulty
+	return go_to_node(fresh)
+
+
 #endregion
 
 

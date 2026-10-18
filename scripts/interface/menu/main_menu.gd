@@ -27,11 +27,12 @@ extends Control
 ## tree-wide pause.
 
 #region Constants
-enum Page { MAIN, CAMPAIGN, PROLOGUE, SKIRMISH, MULTIPLAYER, REPLAYS, OPTIONS }
+enum Page { MAIN, CAMPAIGN, PROLOGUE, SKIRMISH, MULTIPLAYER, REPLAYS, OPTIONS, SAVES }
 
 ## The main page's buttons, in order: [name, label, page it opens (or -1), enabled].
 const MAIN_ENTRIES: Array = [
 	["Campaign", "Campaign", Page.CAMPAIGN, true],
+	["LoadGame", "Load Game", Page.SAVES, true],
 	["Arcade", "Arcade (WIP)", -1, false],
 	["Skirmish", "Skirmish", Page.SKIRMISH, true],
 	["Multiplayer", "Multiplayer", Page.MULTIPLAYER, true],
@@ -67,6 +68,10 @@ const MASTER_BUS: StringName = &"Master"
 
 ## Where the replay panel looks. A test points it elsewhere before the menu enters the tree.
 var replay_directory: String = ReplayFile.DIRECTORY
+## Where the Load Game page looks. A test points it elsewhere before the menu enters the tree.
+var save_directory: String = SaveGame.DIRECTORY
+## The Load Game page: built in code. gdd/systems/commands/saved-games.md §Menus.
+var saves_panel: SavesPanel = null
 
 ## The page on screen.
 var page: Page = Page.MAIN
@@ -110,6 +115,7 @@ func _ready() -> void:
 		(_pages[each] as Control).add_child(_back_button(parent_page(each)))
 	_lobby.back_requested.connect(show_page.bind(Page.MAIN))
 	_build_multiplayer_page()
+	_build_saves_page()
 	var bus: int = AudioServer.get_bus_index(MASTER_BUS)
 	_volume.value = db_to_linear(AudioServer.get_bus_volume_db(bus)) if bus >= 0 else 1.0
 	_volume.value_changed.connect(_on_volume_changed)
@@ -137,6 +143,8 @@ func show_page(a_page: Page) -> void:
 	page = a_page
 	for each: Page in _pages:
 		(_pages[each] as Control).visible = each == a_page
+	if a_page == Page.SAVES and saves_panel != null:
+		saves_panel.refresh()
 	if a_page == Page.REPLAYS:
 		_build_replay_list()
 	var first: Button = _first_button(_pages[a_page])
@@ -280,6 +288,26 @@ func _back_button(a_to: Page) -> Button:
 	button.visible = true
 	button.pressed.connect(show_page.bind(a_to))
 	return button
+
+
+## The Load Game page: a heading, the saves (SavesPanel, loading only) and a Back button.
+func _build_saves_page() -> void:
+	var page_node := VBoxContainer.new()
+	page_node.name = "SavesPage"
+	page_node.visible = false
+	page_node.add_theme_constant_override("separation", 16)
+	var heading := Label.new()
+	heading.text = "Load Game"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 26)
+	page_node.add_child(heading)
+	saves_panel = SavesPanel.new()
+	saves_panel.name = "SavesPanel"
+	saves_panel.directory = save_directory
+	page_node.add_child(saves_panel)
+	page_node.add_child(_back_button(Page.MAIN))
+	_main_page.get_parent().add_child(page_node)
+	_pages[Page.SAVES] = page_node
 
 
 ## One button per replay file, newest first; a line saying there are none when there are none.

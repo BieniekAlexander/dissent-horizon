@@ -105,6 +105,8 @@ func write_kept(a_path: String) -> Error:
 
 
 func _physics_process(_a_delta: float) -> void:
+	if _scenario != null:
+		_scenario.write_pending_save()
 	var period: int = maxi(roundi(DIGEST_PERIOD_SECONDS * TimeUtils.ticks_per_second()), 1)
 	if _scenario == null or _scenario.tick % period != 0:
 		return

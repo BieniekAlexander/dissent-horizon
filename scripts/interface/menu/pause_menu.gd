@@ -4,7 +4,8 @@ extends CanvasLayer
 ## The in-scenario pause screen. `show_pause_menu` (Escape) raises it, the same key drops it,
 ## and while it is up the simulation is held. It offers the way out of a running scenario:
 ## back to the title screen, through SceneManager — the same call the victory dialog's return
-## button makes — and, while the debug view is up, the match summary read from the match's event
+## button makes — saving the match and loading a saved one (SavesPanel), and, while the debug
+## view is up, the match summary read from the match's event
 ## log. Playback speed is not here: it is the spectator panel's and the debug menu's
 ## (PlaybackControls), so the world can be sped up without stopping it.
 ##
@@ -56,6 +57,9 @@ var _clock: SimulationClock = null
 var _match_log: MatchLog = null
 
 var _open: bool = false
+## Saving and loading (SavesPanel): built once the menu knows its scenario (bind). Null outside
+## one. gdd/systems/commands/saved-games.md §Menus.
+var saves_panel: SavesPanel = null
 
 ## Every AudioStreamPlayer in the game (the command barks, the death sounds) is left on its
 ## default bus, which is this one — so driving Master's volume is driving "the game sounds"
@@ -101,6 +105,13 @@ func _exit_tree() -> void:
 ## Give the menu the scenario's clock. Called by Scenario when it builds the menu; idempotent.
 func bind(a_manager: ScenarioTriggerManager) -> void:
 	_clock = a_manager.simulation_clock
+	if saves_panel == null and a_manager.scenario != null:
+		saves_panel = SavesPanel.new()
+		saves_panel.name = "SavesPanel"
+		saves_panel.scenario = a_manager.scenario
+		saves_panel.can_save = not a_manager.scenario.is_playback()
+		_return_button.get_parent().add_child(saves_panel)
+		_return_button.get_parent().move_child(saves_panel, _return_button.get_index())
 
 
 ## Give the menu the match's event log, which its summary reads.
@@ -130,6 +141,8 @@ func open() -> void:
 	_match_summary.visible = DebugMode.is_active() and _match_log != null
 	if _match_summary.visible:
 		_match_summary.present(_match_log, "Match so far")
+	if saves_panel != null:
+		saves_panel.refresh()
 	# So the menu is operable from the keyboard the moment it appears.
 	_return_button.grab_focus()
 

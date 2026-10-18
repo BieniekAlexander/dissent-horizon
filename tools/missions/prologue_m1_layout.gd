@@ -143,6 +143,9 @@ const FORK_TRIGGER := Vector2(14, 50)
 const FORK_TRIGGER_RADIUS: float = 4.0
 const FORK_REVEAL_AT := Vector2(25, 47)
 const FORK_REVEAL_RADIUS: float = 22.0
+## The autosave on the way down the narrow passage from the fork to the main corridor.
+const AUTOSAVE_AT := Vector2(22.5, 20)
+const AUTOSAVE_RADIUS: float = 3.0
 ## The Watch Towers' field east of the fork, and the two Compounds behind them that power them.
 const FIELD_TOWERS: Array[Vector2] = [
 	Vector2(46, 41), Vector2(46, 55), Vector2(51, 45), Vector2(51, 51)
@@ -559,6 +562,16 @@ func _beats(a_manager: Node, a_house: Node3D) -> void:
 	a_manager.add_child(fork)
 	_region(fork, "ForkRegion", FORK_TRIGGER, FORK_TRIGGER_RADIUS)
 	_reveal(fork, "RevealFork", FORK_REVEAL_AT, FORK_REVEAL_RADIUS, &"prologue_m1_fork_reveal")
+
+	# On the way down to the main corridor: the match is autosaved (Alex, 2026-10-18).
+	var autosave := GlobalTrigger.new()
+	autosave.name = "AutosaveToMainLane"
+	autosave.conditions = [_units_in(PLAYER, "AutosaveRegion")]
+	a_manager.add_child(autosave)
+	_region(autosave, "AutosaveRegion", AUTOSAVE_AT, AUTOSAVE_RADIUS)
+	var save := EventAutosave.new()
+	save.name = "Autosave"
+	autosave.add_child(save)
 
 	# The squad: fight the ambush; then lead to the prisons and wait; then wait by the building;
 	# then walk on. First matching rule wins, so the latest beat is listed first.

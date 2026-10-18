@@ -73,7 +73,8 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
      [Watch Towers](../../factions/colonial/structures/cl_defense_antiLight.md) and 2 Compounds
      behind them that power them — plainly approachable, worth coming back for — and an empty lane
      running on east past them (nothing placed there yet). South, a narrow passage drops into the
-     main corridor between the two sides' bases, on the ally's side.
+     main corridor between the two sides' bases, on the ally's side. Walking down it autosaves
+     ([saved-games](../../systems/commands/saved-games.md) §Autosaves).
   7. **Main corridor:** west–east, about 80 long and 18 wide; the ally holds the west end and the
      enemy the east.
   8. **The south lane** (added 2026-10-18): a second west–east lane south of the main corridor,

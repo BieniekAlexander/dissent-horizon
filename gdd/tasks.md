@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-115**
+> Next id: **T-116**
 
 # Tasks
 
@@ -162,6 +162,10 @@ Coarser is cheaper and blurs vision edges and the per-cell structure-sighting te
 → [combat/scan-and-vision-cost](systems/combat/scan-and-vision-cost.md) §Proposal: the fog of war
 
 ## Commands
+
+### T-115 · Saved games: the point-in-time snapshot #effort/high #unscoped
+Saves load by re-simulating the order log today. PLANNED: a background process re-simulates a save once into a full-state snapshot that loads at once, and the log is then dropped. Shares its state inventory with rollback netplay.
+→ [commands/saved-games](systems/commands/saved-games.md) §The snapshot, later
 
 ### T-031 · What deploying gains, and three order cases #effort/medium #needs-input
 Built as placeholders: an armour step as the bonus; a plain Attack/Stop while deploying waits behind it; a plain move while undeploying runs after it; weapons offline in both transitions; undeploy takes 1 s against "3 s in all cases". Also the Sharpshooter's deploy-only weapon and 15-unit reach.

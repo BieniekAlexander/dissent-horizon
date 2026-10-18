@@ -577,6 +577,10 @@ work is `simulation_step`, never `_physics_process`. PLANNED: a decide phase thr
 serial act phase, and references between pieces held as serials for rollback.
 → [`gdd/systems/commands/the-simulation-step.md`](gdd/systems/commands/the-simulation-step.md)
 
+Saved games — a save is the replay's order log plus the tick it was saved on; loading re-simulates
+to that tick, then the player plays on. One autosave, overwritten by `EventAutosave`.
+→ [`gdd/systems/commands/saved-games.md`](gdd/systems/commands/saved-games.md)
+
 Netplay — the same order stream exchanged between machines: lockstep now, built to carry forward to rollback.
 → [`gdd/systems/commands/netplay.md`](gdd/systems/commands/netplay.md)
 
