@@ -219,7 +219,7 @@ Those are the two directions a square-quad navmesh can represent exactly; every 
 
 The companion check is `tools/terrain_meshes/probe_pathing.gd`, which runs the same move twice — once with every other unit teleported away, once with them clustered around the start — and reports the A* path length beside the body's maximum offset from that path. Avoidance shows as a gap between the two runs; a corridor problem shows as identical runs with a path already longer than the straight line (measured on a 23-degree, 48.8-unit move: path x1.177 and body offset 0.37, **identical isolated and clustered**).
 
-**Firers outrank travellers, travellers outrank standers** (`Movement.update_avoidance_priority`, ticked from `Actor.simulation_step`). RVO is reciprocal: two equal-priority agents each take half the responsibility for not colliding, so a stationary neighbour that never pays its half leaves the mover re-steering — and arcing. Godot's `avoidance_priority` decides who yields (an agent does not adjust for LOWER-priority neighbours, which pushes the adjustment onto them), so a unit that is travelling is ranked above one that is standing still. Measured on the case above: lateral deviation 0.39 → **0.000**, arrival 95 → 87 ticks, closest approach between bodies unchanged at 0.41 (2× the 0.2 agent radius, so nothing clips).
+**Firers outrank travellers, travellers outrank standers** — SUPERSEDED 2026-10-18: travellers and standers now rank equal, see §Avoidance priority (`Movement.update_avoidance_priority`, ticked from `Actor.simulation_step`). RVO is reciprocal: two equal-priority agents each take half the responsibility for not colliding, so a stationary neighbour that never pays its half leaves the mover re-steering — and arcing. Godot's `avoidance_priority` decides who yields (an agent does not adjust for LOWER-priority neighbours, which pushes the adjustment onto them), so a unit that is travelling is ranked above one that is standing still. Measured on the case above: lateral deviation 0.39 → **0.000**, arrival 95 → 87 ticks, closest approach between bodies unchanged at 0.41 (2× the 0.2 agent radius, so nothing clips).
 
 - **The avoidance work is conserved, not removed.** Someone has to leave the line when a unit is standing on it; this chooses the bystander, which steps ~0.4 cells aside and stays there. That is the intended trade — a unit under orders should look like it is going where it was sent.
 - **A unit firing from where it stands outranks both, and yields to nobody** (`MoveCommand.holds_ground` — `Attack` and `FocusFire` in reach). This is an execution-elasticity choice, not a pathing one: a unit that has started shooting obstructs the friendly units behind it, so a player who wants them in range has to kite, concave or re-space — see [elasticity](../../design-framework/elasticity.md). TODO: acquisition ranks by target priority and then distance across the whole aggro range, so a unit with a low-priority target in reach walks on toward a higher-priority one out of reach rather than stopping to fire. Whether an in-reach target should win is undecided: winning makes units plant and obstruct sooner; losing keeps target priority absolute.
@@ -258,9 +258,23 @@ building each unit's own way rather than about reachability.)
 `Map.nearest_navmesh_point` before issuing them, which is correct — a bot clamping its own orders
 tells no player anything. Do not "unify" the two paths; the asymmetry is the point.
 
-## Avoidance priority: firers, then travellers, then standers
+## Avoidance priority: firers, then travellers and standers alike
 
 *Moved out of `movement.gd::update_avoidance_priority`.*
+
+**Superseded 2026-10-18 (Alex): an idle unit and a travelling one now rank EQUAL**
+(`AVOIDANCE_PRIORITY_STANDING == AVOIDANCE_PRIORITY_TRAVELLING`). The rule below put the whole
+of the avoiding on the stander, and a group walking past one carried it along in front of them —
+8.3 units over a 16-unit walk by five abreast, 8.7 by nine, with overlaps. Wanted instead: the
+idle unit largely stands its ground and the movers go round it; some pushing is fine but kept
+small. Equal ranks keep RVO reciprocal, half each, and measured (one idle Recruit, movers
+walking 16 units past it): one mover pushes it 0.15–0.23 and bows up to 0.26; five abreast push
+it about 1.0 and bow up to 0.28; nine push it 2.5 and bow 0.5; no overlaps in any, arrival
+within 4% of before. Ranking standers ABOVE travellers was measured too — no push at all, movers
+bowing 0.41 — and not taken: an idle unit nothing can move would wall off a one-cell choke.
+The cost accepted is the mover's bow this section was written to remove; the dead-centre jitter
+(§A unit dead on the line) keeps a mover from stalling on one. The history below is why the
+ranking once differed.
 
 The firer's tier is now moot in practice: a unit firing is PLANTED, out of RVO altogether
 (§Who avoids whom). The ranking still decides between travellers and standers.
@@ -297,7 +311,7 @@ Decided 2026-10-18 (Alex). Three relations, by who the other unit is and what it
 
 | the other unit | how a mover treats it | does the other unit give way? |
 |---|---|---|
-| a teammate, idle or walking | reciprocal RVO, ranked as above | yes — a stander yields to a traveller |
+| a teammate, idle or walking | reciprocal RVO, half each | a little — it mostly stands its ground |
 | ANY other commander's unit, allies included | a one-sided obstacle (its obstacle channel) | no — it never moves aside for you |
 | any unit PERFORMING AN ACTION, your own included | a one-sided obstacle (the standing channel) | no — it is out of RVO entirely |
 
@@ -354,9 +368,5 @@ rotation, so no trigonometry is involved (DMath). Measured after, dead on the li
 steps 0.34 aside, the mover passes at 0.41, and two runs on one seed end identically. The same
 veer resolves an ally or an acting unit dead on the line before the blocked rule above is needed.
 
-**Not solved: a teammate in front of a GROUP.** Five teammates walking abreast, 0.5 apart, past
-an idle one still carry it 8.3 units ahead of them, with brief overlaps: the movers on either
-side box it in, so RVO's cheapest answer stays "ahead". Turning the push it is handed sideways
-was tried and made it worse (overlaps up, and the single-mover case clipped at 0.32), and was
-reverted. TODO — undecided: the group parting round it, or the idle unit leaving sideways by a
-path of its own.
+A group walking past an idle teammate is §Avoidance priority's: since standers and travellers
+rank equal, the group goes round it and pushes it about 1 unit.

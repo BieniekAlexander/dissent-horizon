@@ -603,15 +603,18 @@ func enable_avoidance(a_commander_id: int) -> void:
 ## Avoidance priority for a unit standing its ground to fire. The engine's ceiling, so it
 ## gives way to nobody and the units behind it must be walked clear by the player.
 const AVOIDANCE_PRIORITY_ENGAGED: float = 1.0
-## Avoidance priority for a unit that is actually going somewhere. Only its ORDER against
-## the other two tiers matters; it sits between them.
+## Avoidance priority for a unit that is actually going somewhere.
 const AVOIDANCE_PRIORITY_TRAVELLING: float = 0.75
-## Avoidance priority for a unit that is standing still with nothing to hold ground for.
-const AVOIDANCE_PRIORITY_STANDING: float = 0.5
+## Avoidance priority for a unit that is standing still with nothing to hold ground for: the
+## SAME as a traveller's, so the two share the avoiding — RVO's reciprocal half each — and an
+## idle unit mostly stands its ground while movers go round it, giving way only a little
+## (Alex, 2026-10-18). It was ranked below travellers, which put the whole of the avoiding on
+## the stander: a group walking past carried an idle teammate 8.3 units ahead of it.
+const AVOIDANCE_PRIORITY_STANDING: float = AVOIDANCE_PRIORITY_TRAVELLING
 
 
-## Rank this unit in same-team RVO: ENGAGED above TRAVELLING above STANDING. Called every
-## tick from Actor.simulation_step, which says whether the current order is holding
+## Rank this unit in same-team RVO: ENGAGED above TRAVELLING and STANDING, which are equal.
+## Called every tick from Actor.simulation_step, which says whether the current order is holding
 ## ground (MoveCommand.holds_ground).
 ##
 ## Why it works this way:
