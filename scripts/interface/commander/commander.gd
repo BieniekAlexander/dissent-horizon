@@ -19,6 +19,10 @@ var alliance: int = -1
 ## k). 0 until Scenario fills it; read through allied_ids_mask(), which treats 0 as "alone".
 var _allied_ids: int = 0
 
+## Whether this commander's vision counts as its allies' own (PlayerSlot.shares_vision_with_allies).
+## Scenario copies it from the slot at build; a commander no scenario placed keeps the default.
+var shares_vision_with_allies: bool = true
+
 
 ## Place this commander in `a_alliance`, whose members are the commander ids set in
 ## `a_member_ids` (bit k = commander k). Scenario calls it once per commander at build.
@@ -43,6 +47,16 @@ func is_allied_with(a_commander_id: int) -> bool:
 	if a_commander_id <= 0:
 		return false
 	return (allied_ids_mask() >> a_commander_id) & 1 == 1
+
+
+## Whether commander `a_viewer_id` sees what this commander sees: itself always, an ally unless
+## this commander withholds its vision (shares_vision_with_allies), anyone else never. What the
+## fog counts as a viewer's own sight, and what decides whether an allied piece is drawn outside
+## the viewer's own vision.
+func lends_vision_to(a_viewer_id: int) -> bool:
+	if a_viewer_id == id:
+		return true
+	return shares_vision_with_allies and is_allied_with(a_viewer_id)
 
 
 ## Whether `a_commander_id` is on this commander's side — itself or an ally: whose pending

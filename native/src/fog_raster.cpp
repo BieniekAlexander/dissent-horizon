@@ -21,10 +21,11 @@ namespace dissent {
 
 namespace {
 
-// The script-side members update_sight reads off each vision source (Entity). Whose side a source
-// is on stays the script's rule (Entity.is_on_side_of), asked rather than re-derived here.
-const StringName &is_on_side_of_name() {
-	static const StringName name("is_on_side_of");
+// The script-side members update_sight reads off each vision source (Entity). Whose vision a source
+// lends to the viewer stays the script's rule (Entity.lends_vision_to: own, and an ally's unless it
+// withholds it), asked rather than re-derived here.
+const StringName &lends_vision_to_name() {
+	static const StringName name("lends_vision_to");
 	return name;
 }
 const StringName &grants_vision_name() {
@@ -147,7 +148,7 @@ void FogRaster::update_sight(const Array &p_sources, int p_viewer_id) {
 		if (entity == nullptr) {
 			continue;
 		}
-		if (!static_cast<bool>(entity->call(is_on_side_of_name(), p_viewer_id)) ||
+		if (!static_cast<bool>(entity->call(lends_vision_to_name(), p_viewer_id)) ||
 				!static_cast<bool>(entity->call(grants_vision_name()))) {
 			continue;
 		}

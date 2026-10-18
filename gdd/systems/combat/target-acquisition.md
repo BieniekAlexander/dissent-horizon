@@ -92,6 +92,15 @@ Decided 2026-09-24: the game has alliances. Built 2026-10-09 to these decisions 
   **friendly-target abilities** (`EventTargetUnit` Scope.OWN admits an ally's unit). Also the
   readouts that follow from shared sight: allied blueprints shown and refused as building
   sites, capacity pips on a selected allied unit, allied structures' ranges round a placement.
+- **An ally may withhold its vision** (`PlayerSlot.shares_vision_with_allies`, on by default;
+  Alex, 2026-10-18), for a mission whose ally fights beside the player without lending its sight
+  (prologue mission 1). Its sources then clear nothing in its allies' fog, and its pieces are
+  drawn for them only inside their own vision, as an enemy's are (`Entity.lends_vision_to`, which
+  the fog asks per source and per piece; the minimap follows the fog). It stays an ally in every
+  other respect, its stealth still hides nothing from its side, and the withholding is one way:
+  it still sees through its allies' sight unless they withhold theirs. TODO — a withholding
+  ally's blackboard still feeds `AlliancePerspective` for its alliance's ALLIANCE-perspective
+  checks; no mission reads that yet.
 - **What they do not share:** orders, garrisons and transports (`Occupy`, docking, `Embark`
   stay owner-only), resuming an ally's construction, and passive bonuses other than healing —
   the Compound's Work Detail cooldown cut reaches only its owner's buildings. **Dignify** stays own-only

@@ -3,10 +3,12 @@
 [ext_resource type="Script" uid="uid://d2jkq8h1ao4gc" path="res://scripts/interface/menu/main_menu.gd" id="1_menu"]
 [ext_resource type="Script" uid="uid://oj54nqgjbcll" path="res://scripts/interface/menu/scenario_entry.gd" id="2_entry"]
 [ext_resource type="Script" path="res://scripts/interface/menu/skirmish_lobby.gd" id="6_lobby"]
+[ext_resource type="PackedScene" path="res://scenes/scenarios/prologue/m1_pervasive_mechanics.tscn" id="7_m1"]
 
 [sub_resource type="Resource" id="Entry_prologue_1"]
 script = ExtResource("2_entry")
 title = "1. Pervasive Mechanics"
+scene = ExtResource("7_m1")
 
 [sub_resource type="Resource" id="Entry_prologue_2"]
 script = ExtResource("2_entry")

@@ -1,0 +1,268 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/scenario.gd" id="1_3dy5m"]
+[ext_resource type="Script" path="res://scripts/interface/commander/player_slot.gd" id="2_uxvjx"]
+[ext_resource type="PackedScene" path="res://scenes/factions/anarchical.tscn" id="3_djhfq"]
+[ext_resource type="PackedScene" path="res://scenes/factions/colonial.tscn" id="4_lbnqq"]
+[ext_resource type="Script" path="res://scripts/maps/map.gd" id="5_61w7k"]
+[ext_resource type="Resource" path="res://resources/terrain/prologue_m1_terrain.tres" id="6_87mp0"]
+[ext_resource type="ArrayMesh" path="res://resources/terrain/prologue_m1_terrain_surface.res" id="7_wmkji"]
+[ext_resource type="Script" path="res://scripts/maps/terrain/terrain_surface.gd" id="8_0lqqv"]
+[ext_resource type="Shader" path="res://scripts/rendering/shaders/terrain_surface.gdshader" id="9_q5c4a"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/an_bioMedium_dominionGen.tscn" id="10_tkoux"]
+[ext_resource type="PackedScene" path="res://scenes/entities/structures/nt/nt_building_square.tscn" id="11_ouyxe"]
+[ext_resource type="Script" path="res://scripts/scenario/events/event_convert_building.gd" id="12_gkabw"]
+[ext_resource type="Script" path="res://scripts/scenario/events/event_spawn_entities.gd" id="13_c1fpo"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="14_8dl3g"]
+[ext_resource type="PackedScene" path="res://scenes/entities/structures/nt/nt_building_long.tscn" id="15_asfab"]
+[ext_resource type="PackedScene" path="res://scenes/entities/structures/cl/cl_defense_antiLight.tscn" id="16_1t6k7"]
+[ext_resource type="PackedScene" path="res://scenes/entities/structures/cl/cl_infrastructure.tscn" id="17_dvfmw"]
+[ext_resource type="Script" path="res://scripts/scenario/scenario_trigger_manager.gd" id="18_qs3ar"]
+[ext_resource type="Script" path="res://scripts/scenario/global_trigger.gd" id="19_sbnxv"]
+[ext_resource type="Script" path="res://scripts/scenario/conditions/condition.gd" id="20_uy0bk"]
+[ext_resource type="Script" path="res://scripts/scenario/conditions/condition_timer.gd" id="21_q6omr"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn" id="22_g3qt7"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/cl/cl_aircraftLight_antiLight.tscn" id="23_jx351"]
+[ext_resource type="Script" path="res://scripts/scenario/scenario_tactic.gd" id="24_gf17r"]
+[ext_resource type="Script" path="res://scripts/scenario/tactic_rule.gd" id="25_raxg4"]
+
+[sub_resource type="Resource" id="Resource_a6oc2"]
+script = ExtResource("2_uxvjx")
+is_bot = false
+faction = ExtResource("3_djhfq")
+alliance = 1
+difficulty = 0
+starting_energy = 0
+starting_dominion = 0
+
+[sub_resource type="Resource" id="Resource_jr0ch"]
+script = ExtResource("2_uxvjx")
+faction = ExtResource("3_djhfq")
+alliance = 1
+shares_vision_with_allies = false
+difficulty = 0
+starting_energy = 0
+starting_dominion = 0
+
+[sub_resource type="Resource" id="Resource_pnc80"]
+script = ExtResource("2_uxvjx")
+faction = ExtResource("4_lbnqq")
+alliance = 2
+difficulty = 0
+starting_energy = 0
+starting_dominion = 0
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_hn7id"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mekk3"]
+render_priority = 0
+shader = ExtResource("9_q5c4a")
+shader_parameter/terrain_rect = null
+shader_parameter/height_rect = null
+shader_parameter/height_range = null
+shader_parameter/has_heights = null
+shader_parameter/has_overlay = null
+shader_parameter/tile_colors = null
+shader_parameter/tile_count = null
+shader_parameter/tile_has_texture = null
+shader_parameter/texture_scale = null
+shader_parameter/rock_light = null
+shader_parameter/rock_dark = null
+shader_parameter/meadow_color = null
+shader_parameter/trail_color = null
+shader_parameter/scree_color = null
+shader_parameter/shore_color = null
+shader_parameter/outline_color = null
+shader_parameter/outline_width = null
+shader_parameter/contour_interval = null
+shader_parameter/contour_offset = null
+shader_parameter/contour_strength = null
+shader_parameter/contour_pixels = null
+shader_parameter/relief_exaggeration = null
+shader_parameter/hypsometric_low = null
+shader_parameter/hypsometric_high = null
+shader_parameter/cavity_strength = null
+shader_parameter/cavity_mip = null
+shader_parameter/bank_gradient_min = null
+shader_parameter/bank_gradient_max = null
+shader_parameter/bank_darkening = null
+shader_parameter/noise_strength = null
+shader_parameter/grain_cells = null
+shader_parameter/grain_albedo = null
+shader_parameter/grain_bump = null
+shader_parameter/hachure_spacing = null
+shader_parameter/hachure_length = null
+shader_parameter/hachure_width = null
+shader_parameter/hachure_strength = null
+shader_parameter/hachure_gradient_min = null
+shader_parameter/hachure_gradient_max = null
+shader_parameter/specular_strength = null
+shader_parameter/specular_roughness = null
+shader_parameter/hachure_color = null
+shader_parameter/fog_rect = null
+shader_parameter/fog_enabled = null
+shader_parameter/play_center = null
+shader_parameter/play_axis_a = null
+shader_parameter/play_axis_b = null
+shader_parameter/play_half = null
+shader_parameter/play_bounds_enabled = null
+
+[sub_resource type="Resource" id="Resource_qf4wk"]
+script = ExtResource("21_q6omr")
+mode = 1
+seconds_expression = "10 + min(fires, 1) * 35"
+
+[sub_resource type="Resource" id="Resource_u2hjr"]
+script = ExtResource("21_q6omr")
+mode = 1
+seconds_expression = "10 + min(fires, 1) * 35"
+
+[node name="PrologueMission1" type="Node3D" unique_id=161270408]
+script = ExtResource("1_3dy5m")
+player_slots = Array[ExtResource("2_uxvjx")]([SubResource("Resource_a6oc2"), SubResource("Resource_jr0ch"), SubResource("Resource_pnc80")])
+debug_allowed = true
+
+[node name="Map" type="Node3D" parent="." unique_id=1270298650]
+script = ExtResource("5_61w7k")
+terrain_data = ExtResource("6_87mp0")
+terrain_source_mesh = ExtResource("7_wmkji")
+
+[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" unique_id=860014083 groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_hn7id")
+
+[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion" unique_id=1643307666]
+collision_layer = 128
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=159682790]
+
+[node name="TerrainSurface" type="MeshInstance3D" parent="Map/NavigationRegion/Body" unique_id=178026019]
+script = ExtResource("8_0lqqv")
+material = SubResource("ShaderMaterial_mekk3")
+
+[node name="Warlord1" parent="." unique_id=416004826 instance=ExtResource("10_tkoux")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.112698, 0, 31.112698)
+default_commander_id = 1
+
+[node name="Safehouse1" parent="." unique_id=1588153302 instance=ExtResource("11_ouyxe")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.96194, 0, 36.062447)
+
+[node name="ConvertToSafehouse" type="Sprite3D" parent="Safehouse1" unique_id=199192538]
+script = ExtResource("12_gkabw")
+commander_id = 2
+
+[node name="StartingGarrison" type="Sprite3D" parent="Safehouse1" unique_id=167827720 node_paths=PackedStringArray("garrison_host")]
+script = ExtResource("13_c1fpo")
+entity_scenes = Array[PackedScene]([ExtResource("14_8dl3g")])
+count_expression = "3"
+garrison_host = NodePath("..")
+
+[node name="Safehouse2" parent="." unique_id=1962496200 instance=ExtResource("11_ouyxe")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.062447, 0, 45.96194)
+
+[node name="ConvertToSafehouse" type="Sprite3D" parent="Safehouse2" unique_id=953595428]
+script = ExtResource("12_gkabw")
+commander_id = 2
+
+[node name="StartingGarrison" type="Sprite3D" parent="Safehouse2" unique_id=554512997 node_paths=PackedStringArray("garrison_host")]
+script = ExtResource("13_c1fpo")
+entity_scenes = Array[PackedScene]([ExtResource("14_8dl3g")])
+count_expression = "3"
+garrison_host = NodePath("..")
+
+[node name="Safehouse3" parent="." unique_id=1425005225 instance=ExtResource("11_ouyxe")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.254833, 0, 45.254833)
+
+[node name="ConvertToSafehouse" type="Sprite3D" parent="Safehouse3" unique_id=1078122439]
+script = ExtResource("12_gkabw")
+commander_id = 2
+
+[node name="StartingGarrison" type="Sprite3D" parent="Safehouse3" unique_id=2142680242 node_paths=PackedStringArray("garrison_host")]
+script = ExtResource("13_c1fpo")
+entity_scenes = Array[PackedScene]([ExtResource("14_8dl3g")])
+count_expression = "3"
+garrison_host = NodePath("..")
+
+[node name="nt_building_square1" parent="." unique_id=1148458215 instance=ExtResource("11_ouyxe")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.627417, 0, 11.313708)
+
+[node name="nt_building_square2" parent="." unique_id=1875679430 instance=ExtResource("11_ouyxe")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.627417, 0, -11.313708)
+
+[node name="nt_building_long1" parent="." unique_id=293584833 instance=ExtResource("15_asfab")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 11.313708)
+
+[node name="nt_building_long2" parent="." unique_id=51935756 instance=ExtResource("15_asfab")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -11.313708)
+
+[node name="WatchTower1" parent="." unique_id=1039830503 instance=ExtResource("16_1t6k7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.870058, 0, -38.183765)
+default_commander_id = 3
+
+[node name="WatchTower2" parent="." unique_id=920926923 instance=ExtResource("16_1t6k7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.183765, 0, -26.870058)
+default_commander_id = 3
+
+[node name="WatchTower3" parent="." unique_id=6999219 instance=ExtResource("16_1t6k7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.769554, 0, -36.769554)
+default_commander_id = 3
+
+[node name="Compound1" parent="." unique_id=656624236 instance=ExtResource("17_dvfmw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.476658, 0, -47.376156)
+default_commander_id = 3
+
+[node name="Compound2" parent="." unique_id=1370467577 instance=ExtResource("17_dvfmw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.376156, 0, -37.476658)
+default_commander_id = 3
+
+[node name="ScenarioTriggerManager" type="Node" parent="." unique_id=1981424491]
+script = ExtResource("18_qs3ar")
+
+[node name="AllyWaves" type="Sprite3D" parent="ScenarioTriggerManager" unique_id=1569002947]
+script = ExtResource("19_sbnxv")
+conditions = Array[ExtResource("20_uy0bk")]([SubResource("Resource_qf4wk")])
+one_shot = false
+
+[node name="Spawn" type="Sprite3D" parent="ScenarioTriggerManager/AllyWaves" unique_id=841977147]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.35534, 0, 35.35534)
+script = ExtResource("13_c1fpo")
+entity_scenes = Array[PackedScene]([ExtResource("14_8dl3g"), ExtResource("14_8dl3g"), ExtResource("14_8dl3g"), ExtResource("14_8dl3g"), ExtResource("10_tkoux")])
+count_expression = "1"
+spawn_groups = Array[StringName]([&"prologue_m1_ally_wave"])
+
+[node name="EnemyWaves" type="Sprite3D" parent="ScenarioTriggerManager" unique_id=1959553152]
+script = ExtResource("19_sbnxv")
+conditions = Array[ExtResource("20_uy0bk")]([SubResource("Resource_u2hjr")])
+one_shot = false
+
+[node name="Spawn" type="Sprite3D" parent="ScenarioTriggerManager/EnemyWaves" unique_id=2118526548]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.254833, 0, -45.254833)
+script = ExtResource("13_c1fpo")
+commander_id = 3
+entity_scenes = Array[PackedScene]([ExtResource("22_g3qt7"), ExtResource("22_g3qt7"), ExtResource("22_g3qt7"), ExtResource("22_g3qt7"), ExtResource("23_jx351")])
+count_expression = "1"
+spawn_groups = Array[StringName]([&"prologue_m1_enemy_wave"])
+
+[node name="AllyWaveTactic" type="Node" parent="ScenarioTriggerManager" unique_id=750276829]
+script = ExtResource("24_gf17r")
+unit_group = &"prologue_m1_ally_wave"
+
+[node name="Assault" type="Sprite3D" parent="ScenarioTriggerManager/AllyWaveTactic" unique_id=704272805]
+script = ExtResource("25_raxg4")
+action = 3
+point_path = NodePath("Target")
+
+[node name="Target" type="Marker3D" parent="ScenarioTriggerManager/AllyWaveTactic/Assault" unique_id=1041324111]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.35534, 0, -35.35534)
+
+[node name="EnemyWaveTactic" type="Node" parent="ScenarioTriggerManager" unique_id=2092433646]
+script = ExtResource("24_gf17r")
+unit_group = &"prologue_m1_enemy_wave"
+
+[node name="Assault" type="Sprite3D" parent="ScenarioTriggerManager/EnemyWaveTactic" unique_id=682453384]
+script = ExtResource("25_raxg4")
+action = 3
+point_path = NodePath("Target")
+
+[node name="Target" type="Marker3D" parent="ScenarioTriggerManager/EnemyWaveTactic/Assault" unique_id=1901797398]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.01219, 0, 41.01219)

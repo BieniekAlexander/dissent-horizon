@@ -41,6 +41,11 @@ const NUM_TEAMS: int = Commander.NUM_MAX_COMMANDERS - 1
 ## free-for-all slot. Scenario.assign_alliances turns this into Commander.alliance.
 ## gdd/systems/combat/target-acquisition.md §Alliances.
 @export_range(0, NUM_TEAMS) var alliance: int = 0
+## Whether this slot's vision counts as its allies' own. On by default — allies share vision —
+## and off for a mission whose ally fights beside the player without lending its sight; its
+## pieces then show to the player only inside the player's own vision, as an enemy's would.
+## Being allied is otherwise unchanged. gdd/systems/combat/target-acquisition.md §Alliances.
+@export var shares_vision_with_allies: bool = true
 
 ## Bot difficulty (see Difficulty). Ignored for a human slot.
 @export var difficulty: Difficulty = Difficulty.MEDIUM

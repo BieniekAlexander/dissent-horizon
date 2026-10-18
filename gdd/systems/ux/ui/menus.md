@@ -29,8 +29,8 @@ one page, `MainMenu.page`:
 - **Arcade** is a disabled button labelled WIP: the mode is not built. So is **Challenges** on
   the Campaign page: the [challenge series](../../../campaigns/challenges/README.md) is a stub.
 - A mission row with a title but no scene yet is a disabled button labelled "(WIP)"
-  (`ScenarioEntry.is_wip`); the three prologue rows are that until their scenes are built
-  (TODO). A row with neither title nor scene is skipped and reported.
+  (`ScenarioEntry.is_wip`); prologue missions 2 and 3 are that until their scenes are built
+  (TODO). Mission 1 opens its scene. A row with neither title nor scene is skipped and reported.
 - PROLOGUE opens a mission at the difficulty picked above its list (EASY / MEDIUM / HARD, MEDIUM
   until changed, not saved): the `difficulty` its triggers read, which leaves its bots as authored —
   [scenario-scripting/tactics](../../scenario-scripting/tactics.md) §Trigger-decided mission commanders.

@@ -131,6 +131,17 @@ func is_on_side_of(a_commander_id: int) -> bool:
 	return owning != null and owning.is_allied_with(a_commander_id)
 
 
+## Whether commander `a_viewer_id` sees what this entity sees, and sees this entity wherever it
+## is: its own commander always, an ally unless the owner withholds its vision
+## (Commander.lends_vision_to). Neutral lends nothing. Read by the fog for each vision source
+## (FogRaster.update_sight) and for each piece it draws.
+func lends_vision_to(a_viewer_id: int) -> bool:
+	if a_viewer_id == commander_id:
+		return true
+	var owning: Commander = commander
+	return owning != null and owning.lends_vision_to(a_viewer_id)
+
+
 ## The commander ids on this entity's side, as bits (bit k = commander k): what an aggro query
 ## leaves out (CollisionLayers.hostile_mask). 0 for a neutral piece, which has no side.
 func allied_commander_ids() -> int:

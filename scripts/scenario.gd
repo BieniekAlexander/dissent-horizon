@@ -848,7 +848,11 @@ func _assign_alliances() -> void:
 	for i: int in player_slots.size():
 		members[indices[i]] = int(members.get(indices[i], 0)) | (1 << (i + 1))
 	for i: int in player_slots.size():
-		(commanders[i + 1] as Commander).set_alliance(indices[i], members[indices[i]])
+		var commander: Commander = commanders[i + 1] as Commander
+		commander.set_alliance(indices[i], members[indices[i]])
+		commander.shares_vision_with_allies = (
+			(player_slots[i] as PlayerSlot).shares_vision_with_allies
+		)
 
 
 ## Each slot's alliance, 0 … Commander.NUM_MAX_COMMANDERS - 1, in slot order. Slots naming the

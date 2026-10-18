@@ -817,4 +817,47 @@ func test_a_neutral_building_grants_no_infrastructure_by_existing_or_being_garri
 
 		# The garrison frees the occupant it still holds when its host goes.
 		_discard(building)
+
+
 #endregion
+
+# --- A mission's starting Safehouse (EventConvertBuilding) ---------------------------------
+
+
+## A trigger manager reading `_neutral` and `_commander`, as a scenario's would.
+func _manager_for(a_source: Actor) -> ScenarioTriggerManager:
+	var scenario := Scenario.new()
+	scenario.commanders = [_neutral, _commander]
+	var manager := ScenarioTriggerManager.new()
+	manager.scenario = scenario
+	manager.reaction_source = a_source
+	autofree(scenario)
+	autofree(manager)
+	return manager
+
+
+func test_a_starting_event_converts_the_building_it_is_parked_under() -> void:
+	var building: Actor = _neutral_building(_family().front().id)
+	var event := EventConvertBuilding.new()
+	event.commander_id = 1
+	autofree(event)
+	event.execute(_manager_for(building))
+	_dismiss_known_errors()
+	assert_eq(building.id, EntityIds.AN_INFRASTRUCTURE, "it is a Safehouse now")
+	assert_same(building.commander, _commander, "owned by the event's commander")
+	assert_true(
+		_commander._structures_of(EntityIds.AN_INFRASTRUCTURE).contains(building), "on its books"
+	)
+	assert_true(building.garrison != null, "and keeps the garrison it is filled through")
+
+
+func test_a_starting_event_leaves_a_piece_that_is_not_a_neutral_building_alone() -> void:
+	var plain: Actor = Tool.for_id(&"fake_plain").packed_scene.instantiate() as Actor
+	add_child_autofree(plain)
+	var before: StringName = plain.id
+	var event := EventConvertBuilding.new()
+	event.commander_id = 1
+	autofree(event)
+	event.execute(_manager_for(plain))
+	assert_eq(plain.id, before, "nothing is built from it")
+	assert_push_error("not a neutral building")

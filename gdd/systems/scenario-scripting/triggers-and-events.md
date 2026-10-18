@@ -27,6 +27,8 @@ An `AbstractEvent` never runs itself; something has to call it, and **where you 
 
 The third is for state that simply IS so from the first frame — no condition, no lifecycle moment. The motivating case is a **starting garrison load**: drop an `EventSpawnEntities` under a Compound or a stock truck, point `garrison_host` at the host (`".."`), and its units are inside before the player's first order (see §Garrison occupancy). It runs after the navmesh's first sync (same gate the triggers wait on) and after editor-placed entities have auto-initialized, so each host already has its map and commander.
 
+**A starting Safehouse** is the same shape: under a neutral building, an `EventConvertBuilding` (it converts its parent into an Anarchical `an_infrastructure` for `commander_id`, through the builder's own conversion, `Build.convert_building`) and then an `EventSpawnEntities` with `garrison_host` `".."` to fill it — siblings run in child order. It exists so a mission need not pack an already-converted building, which would freeze the Safehouse's stats as they were when the scene was saved (prologue mission 1 opens this way).
+
 Only entities in the `"piece"` group are scanned, since a starting event belongs to a piece, and that loop is deliberately UNTYPED so a stray non-Entity node in the group is skipped rather than aborting scenario boot (see CLAUDE.md §Entity groups are for entities).
 
 An event parked anywhere else — under a plain `Node`, under a non-commandable entity — has no driver and **silently never runs**. That is the failure mode this table exists to prevent.

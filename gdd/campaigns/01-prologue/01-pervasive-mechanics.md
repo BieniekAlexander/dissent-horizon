@@ -1,6 +1,6 @@
 # Mission 1 — Pervasive mechanics
 
-Status: draft. The player arrives mid-battle with a small Anarchist force, grows it by rescuing pinned-down allies, and strikes the besieging Colonials' base. No base, no economy.
+Status: draft, first scene built for iteration. The player arrives mid-battle in a lane where allied and Colonial waves are already fighting, and strikes the besieging Colonials' base. No base, no economy.
 
 ## Teaches
 
@@ -23,19 +23,43 @@ The Colonials are besieging an allied Anarchist position. The player's force is 
 
 ## Setup
 
-- **Starting force:** a few [Irregulars](../../factions/anarchical/units/an_bioLight_builder.md). They are cheap, generalist BIO infantry, which makes them a good baseline to compare specialists against.
-- **Collected on the way:** each pinned-down cell adds one unit type, chosen so its counter role is obvious:
-  - [Shock Troopers](../../factions/anarchical/units/an_bioMedium_antiMech.md) against Colonial MECH targets, which here are structures
-  - [Sharpshooters](../../factions/anarchical/units/an_bioLight_antiBio.md) against Colonial infantry
-- **Map:** a ruined town. Neutral buildings line the route, open ground between them is exposed, and the Colonial base sits at the far edge.
-- **Enemies:** the besieging Colonial army.
-  - BIO: [Recruits](../../factions/colonial/units/cl_bioLight_antiLight.md) and [Badgers](../../factions/colonial/units/cl_bioLight_antiMech.md)
-  - MECH: Colonial structures. There are no enemy ground vehicles in this mission, so no wrecks and no crushing; both belong to mission 2.
-    - [Watch Towers](../../factions/colonial/structures/cl_defense_antiLight.md) pin the allied cells and defend the base.
-    - The base's [Bombards](../../factions/colonial/structures/cl_defense_antiStructure.md) shell the allied position, which suits the Colonials' siege theme. TODO — how the Bombards are used is deferred to a separate session.
-  - The base's power: [Compounds](../../factions/colonial/structures/cl_infrastructure.md), the Colonial infrastructure providers, sitting outside the defended perimeter. Their supply is all that keeps the defences and Bombards working.
+Decided 2026-10-18 (Alex), superseding the first draft's starting force, ruined-town map and
+pinned-down cells. Numbers here are illustration; the scene holds the real values.
+
+- **Commanders:**
+  - **Player** — Anarchical, alliance 1.
+  - **Ally** — an Anarchical bot on the player's alliance. It does **not** share vision with the
+    player: its slot turns off `PlayerSlot.shares_vision_with_allies`
+    ([target-acquisition](../../systems/combat/target-acquisition.md) §Alliances), so its pieces show only
+    inside the player's own vision. Allies share vision by default; this mission is the edge case.
+  - **Enemy** — a Colonial bot on its own alliance.
+  - Both bots are **scripted only**: their brains stay passive, and everything they do is the
+    waves, the statics and the wave tactics below.
+- **Starting force:** one [Warlord](../../factions/anarchical/units/an_bioMedium_dominionGen.md),
+  on the west side ahead of the allied Safehouses.
+- **Map:** one long west–east lane with impassable edges. The ally starts on the west, the enemy on
+  the east. Neutral buildings line the lane, so there is somewhere to garrison.
+- **Statics:**
+  - Ally (west): [Safehouses](../../factions/anarchical/structures/an_infrastructure.md), each
+    garrisoned with [Irregulars](../../factions/anarchical/units/an_bioLight_builder.md) from the
+    start.
+  - Enemy (east): [Watch Towers](../../factions/colonial/structures/cl_defense_antiLight.md), with
+    [Compounds](../../factions/colonial/structures/cl_infrastructure.md) behind them supplying
+    their infrastructure. Without the Compounds the enemy would start in defection; they are also
+    what the later cut-the-power beat destroys.
+- **Waves:** on a repeating timer, each side spawns a wave near its start and sends it down the
+  lane at the other side, where it keeps re-engaging (a `ScenarioTactic` per wave).
+  - Ally waves: Irregulars and Warlords.
+  - Enemy waves: [Recruits](../../factions/colonial/units/cl_bioLight_antiLight.md) and
+    [Clippers](../../factions/colonial/units/cl_aircraftLight_antiLight.md). The Clipper is in the
+    retired Petrel's place; the Warlord, which hits air, is its counter.
+- **Ending:** losing every unit fails the mission. There is no win condition yet. TODO — the
+  objectives below predate this setup and are to be reconciled with it.
+- **Bombards:** none placed yet. TODO — how the Bombards are used is deferred to a separate session.
 
 ## Objectives
+
+TODO — from the first draft, not yet reconciled with the 2026-10-18 setup above.
 
 1. Break out of the opening position (unit control).
 2. Free the pinned-down cells (counters, each with the unit that solves it).
@@ -44,6 +68,8 @@ The Colonials are besieging an allied Anarchist position. The player's force is 
 5. Break into the darkened base and destroy the Bombards (the critical blow).
 
 ## Teaching beats
+
+TODO — from the first draft, not yet reconciled with the 2026-10-18 setup above.
 
 - **Introduce:** move and attack with Irregulars against a small Recruit group. Then attack-move, as a second group arrives from the fog.
 - **Develop:** one counter at a time.
@@ -66,7 +92,10 @@ The Colonials are besieging an allied Anarchist position. The player's force is 
 
 ## Scenario file
 
-TODO — link once it exists under `scenes/scenarios/`.
+[`scenes/scenarios/prologue/m1_pervasive_mechanics.tscn`](../../../scenes/scenarios/prologue/m1_pervasive_mechanics.tscn).
+Its terrain is generated by `tools/missions/prologue_m1_terrain.gd` (the terrain's primary);
+the scene itself was laid down once by `tools/missions/prologue_m1_layout.gd` and is now the
+primary, edited in the editor.
 
 ## Open questions
 
