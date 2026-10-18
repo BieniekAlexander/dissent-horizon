@@ -26,10 +26,18 @@ const IRREGULAR: String = "res://scenes/entities/units/an/an_bioLight_builder.ts
 ## on a map with no enemy.
 const SCOUT: String = "res://scenes/entities/units/lb/lb_mechLight_antiLight1.tscn"
 const LIBERTARIAN: String = "res://scenes/factions/libertarian.tscn"
+const COLONIAL: String = "res://scenes/factions/colonial.tscn"
+const START_POINT: String = "res://scenes/scenarios/start_point.tscn"
 
-const OUT_DIR: String = "res://scenes/scenarios/test"
+## Test-owned, apart from the scenarios made for players (scenes/scenarios/): a harness must not
+## change when player-facing content does (gdd/systems/scenario-scripting/simulation-tests.md
+## §Where the harnesses live).
+const OUT_DIR: String = "res://scenes/harnesses"
 ## The scout-coverage map's width in cells; why this size is at its use.
 const SCOUT_MAP_CELLS: int = 60
+## The human-vs-bot harness's map width in cells, and where its two starts stand.
+const DUEL_MAP_CELLS: int = 48
+const DUEL_STARTS: Array[Vector2] = [Vector2(-14, -14), Vector2(14, 14)]
 
 
 func _ready() -> void:
@@ -37,6 +45,7 @@ func _ready() -> void:
 	_generate_kamikaze_cluster()
 	_generate_kamikaze_no_cluster()
 	_generate_scout_coverage()
+	_generate_human_vs_bot()
 	print("[generate_test_scenarios] done")
 	get_tree().quit()
 
@@ -132,6 +141,31 @@ func _generate_scout_coverage() -> void:
 	_save(root, "test_scout_coverage.tscn")
 
 
+# ─── SCENE 4: a human against a bot ──────────────────────────────────────────
+
+
+## A skirmish with the player's rig: slot 1 human, slot 2 a bot, each deploying its faction's
+## opening force at a start point. A HARNESS for tests that need a seated player (its HUD, its
+## fog, its orders), not a simulation: it asks nothing and has no expectations. Stands in for
+## booting the shipped skirmish template, which is player-facing.
+func _generate_human_vs_bot() -> void:
+	var root := Skirmish.new()
+	root.name = "HumanVsBot"
+	root.win_condition = Scenario.WinCondition.HEGEMONY
+	var human: PlayerSlot = _slot(PlayerSlot.Difficulty.HARD, 5000, COLONIAL)
+	human.is_bot = false
+	root.player_slots = [human, _slot(PlayerSlot.Difficulty.HARD, 5000, COLONIAL)]
+	var map: Map = _flat_map(DUEL_MAP_CELLS)
+	root.add_child(map)
+	for i: int in DUEL_STARTS.size():
+		var start := _instance(START_POINT) as Node3D
+		start.name = "StartPoint%d" % (i + 1)
+		map.add_child(start)
+		start.position = Vector3(DUEL_STARTS[i].x, 0.0, DUEL_STARTS[i].y)
+
+	_save(root, "human_vs_bot.tscn")
+
+
 # ─── BUILDERS ────────────────────────────────────────────────────────────────
 
 
@@ -160,10 +194,19 @@ func _expect(
 ## Instantiate `scene_path` under `root` as a placed scenario entity owned by commander
 ## `commander_id`, at world XZ `xz` (terrain is flat at y = 0).
 func _place(a_root: Node, a_scene_path: String, a_commander_id: int, a_xz: Vector2) -> void:
-	var inst := (load(a_scene_path) as PackedScene).instantiate()
+	# Instanced the way the editor does, so packing writes only real overrides: a plain
+	# instantiate() leaves no base state to compare against, and the pack then stores the piece
+	# scene's derived groups and root script on every placed instance
+	# (tests/test_DerivedGroupsStayOnPieces.gd).
+	var inst := _instance(a_scene_path)
 	inst.default_commander_id = a_commander_id
-	a_root.add_child(inst)
+	a_root.add_child(inst, true)
 	(inst as Node3D).position = Vector3(a_xz.x, 0.0, a_xz.y)
+
+
+## An instance of `a_scene_path` carrying its scene's edit state; see `_place`.
+func _instance(a_scene_path: String) -> Node:
+	return (load(a_scene_path) as PackedScene).instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
 
 
 ## A flat Map of `a_cells` × `a_cells` navigable cells.

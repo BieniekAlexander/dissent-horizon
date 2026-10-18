@@ -152,8 +152,8 @@ func _validate_property(a_property: Dictionary) -> void:
 	# HEIGHT_MAP IS NOT AN AUTHORING SURFACE once terrain_data drives the terrain: it is a
 	# derived runtime artifact, rebuilt from `heights` at every load. Hidden outright rather
 	# than greyed out, so the inspector shows one terrain source and not two. It stays a
-	# normal editable export on the five maps that have no terrain_data and still author it
-	# directly (tutorial, skirmish_tournament_desert, the kamikaze pair, test_scout_coverage).
+	# normal editable export on the maps that have no terrain_data and still author it
+	# directly (the kamikaze pair, test_scout_coverage).
 	if a_property.name == "height_map" and terrain_data != null:
 		a_property.usage &= ~PROPERTY_USAGE_STORAGE
 		a_property.usage &= ~PROPERTY_USAGE_EDITOR

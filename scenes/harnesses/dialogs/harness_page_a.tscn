@@ -2,13 +2,11 @@
 
 [ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
 
-[node name="QueuingOrders" type="VBoxContainer"]
+[node name="HarnessPageA" type="VBoxContainer"]
 layout_mode = 3
 anchors_preset = 0
 script = ExtResource("1_page")
-title = "Keep moving"
-body = "Good. Orders queue up — hold Shift while ordering to add a waypoint instead of replacing the current one.
-
-Push on to the overlook to the east."
-acknowledge_text = "On our way"
+title = "Harness Page A"
+body = "A dialog page owned by the tests. Its copy means nothing and may be edited freely."
+acknowledge_text = "Understood"
 metadata/_custom_type_script = "uid://b60p17fa5hvfc"

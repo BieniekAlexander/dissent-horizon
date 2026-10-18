@@ -9,9 +9,8 @@ extends GutTest
 ## behind whatever the choice led to.
 
 # Any DialogPage will do — the secondary is a property of the ScenarioDialog, not of the
-# page it carries. (This named s1's win_dialog.tscn, which no longer exists; the shared
-# welcome page is what the other dialog tests use.)
-const PAGE := "res://scenes/dialogs/welcome.tscn"
+# page it carries. A test-owned one, like the other dialog tests use.
+const PAGE := "res://scenes/harnesses/dialogs/harness_page_a.tscn"
 
 
 func _dialog(a_secondary: String = "") -> ScenarioDialog:

@@ -44,9 +44,8 @@ const SENTENCE_COOLDOWN_BONUS: float = 0.08
 @export var dominion_per_unit: int = 25
 
 ## The whole prison switched off: the host takes no deposits, sentences nobody and banks
-## nothing, so what it holds stays until freed. The one-off a mission sets on its own inherited
-## camp scene (scenes/scenarios/prologue/cl_infrastructure_no_dominion.tscn), where the enemy's
-## prisoners are the player's to free. The game's own camp never sets it.
+## nothing, so what it holds stays until freed. The one-off a mission sets on its own camp,
+## where the enemy's prisoners are the player's to free. The game's own camp never sets it.
 @export var is_disabled: bool = false
 
 ## Seconds remaining on each occupant's sentence, keyed by unit, in arrival order. The first

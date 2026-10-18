@@ -45,11 +45,11 @@ signal local_player_changed(a_commander: Commander)
 enum WinCondition { NONE, MISSION, HEGEMONY }
 @export var win_condition: WinCondition = WinCondition.MISSION
 
-## THE MISSION'S DIFFICULTY — what the player picked on the Campaign page, read by the mission's
-## triggers as the `difficulty` of a scenario expression. It is ONLY that: a mission is made harder
-## by triggers authored against it, never by changing how its bots play, so every bot slot keeps
-## its authored tier whatever is picked. MEDIUM for a scenario nobody picked for (a skirmish, a
-## mission run from the editor).
+## THE MISSION'S DIFFICULTY — what the player picked above a campaign's mission list, read by
+## the mission's triggers as the `difficulty` of a scenario expression. It is ONLY that: a
+## mission is made harder by triggers authored against it, never by changing how its bots play,
+## so every bot slot keeps its authored tier whatever is picked. MEDIUM for a scenario nobody
+## picked for (a skirmish, a mission run from the editor).
 ## gdd/systems/scenario-scripting/tactics.md §Trigger-decided mission commanders.
 ##
 ## The values are what an expression compares against ("difficulty >= 2"), so they are fixed.

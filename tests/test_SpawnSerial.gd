@@ -5,7 +5,7 @@ extends GutTest
 
 ## A small scenario the test boots as a harness; what it contains does not matter, only that
 ## two boots of it agree.
-const HARNESS: String = "res://scenes/scenarios/test/test_kamikaze_cluster.tscn"
+const HARNESS: String = "res://scenes/harnesses/test_kamikaze_cluster.tscn"
 const BOOT_TICKS: int = 5
 
 

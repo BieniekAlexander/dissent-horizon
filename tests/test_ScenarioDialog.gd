@@ -10,8 +10,10 @@ extends GutTest
 ## on _ready; that warning is expected and unrelated to what's under test here.
 
 ## Two distinct page scenes, so tests can tell "the right page" from "a page".
-const PAGE: PackedScene = preload("res://scenes/dialogs/welcome.tscn")
-const PAGE_B: PackedScene = preload("res://scenes/dialogs/giving_orders.tscn")
+## Test-owned pages, never the help copy a player reads (simulation-tests.md §Where the
+## harnesses live).
+const PAGE: PackedScene = preload("res://scenes/harnesses/dialogs/harness_page_a.tscn")
+const PAGE_B: PackedScene = preload("res://scenes/harnesses/dialogs/harness_page_b.tscn")
 
 var _manager: ScenarioTriggerManager
 
@@ -113,7 +115,7 @@ func test_view_instantiates_the_page_it_is_given() -> void:
 	assert_true(view.is_showing(), "the view puts the dialog on screen")
 	var page := view.current_page_instance() as DialogPage
 	assert_not_null(page, "the page scene is brought into the game")
-	assert_eq(page.title, "Field Command")
+	assert_eq(page.title, "Harness Page A")
 
 
 func test_view_queues_dialogs_and_each_holds_separately() -> void:

@@ -1156,7 +1156,7 @@ The limit is exact in float32 because a pond's rim is sunk by exactly the limit 
 but unbuildable; at tan 30° unrounded, the stored heights rounded a hair past it, and every
 pond and lake shelf rim silently turned impassable (about two points of traversable ground).
 
-TODO: hand-authored and saved terrains (`s1`, `blue_hole`, `skirmish_map`, `generated_639364842`,
+TODO: hand-authored and saved terrains (`skirmish_map`, `generated_639364842`,
 the `mesh_*` test terrains) are not regenerated. When the limit doubled (1.0), some of their
 cliffs became walkable — Alex accepted losing them; when it fell to tan 30°, 1.4–2.8% of their
 walkable cells (none on the flat, disc and plateau meshes) turned steep. **Every pond on a map

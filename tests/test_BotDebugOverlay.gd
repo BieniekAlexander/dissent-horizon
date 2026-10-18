@@ -8,7 +8,7 @@ extends GutTest
 ## Boots the scout-coverage SimulationScenario (a lone bot that scouts), lets the brain build its
 ## managers + scout grid, then toggles the gates (the debug view + the bot-view toggle).
 
-const SCENE: String = "res://scenes/scenarios/test/test_scout_coverage.tscn"
+const SCENE: String = "res://scenes/harnesses/test_scout_coverage.tscn"
 
 var _scenario: Scenario
 var _overlay: BotDebugOverlay

@@ -6,7 +6,7 @@ extends GutTest
 ## from, and its playback plays from the same one.
 ## gdd/systems/commands/netplay.md §The model.
 
-const HARNESS: String = "res://scenes/scenarios/test/test_kamikaze_cluster.tscn"
+const HARNESS: String = "res://scenes/harnesses/test_kamikaze_cluster.tscn"
 const SEED: int = 7
 const LOCAL: int = 2
 const REMOTE: int = 1

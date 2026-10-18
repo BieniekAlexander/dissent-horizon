@@ -12,7 +12,7 @@ extends GutTest
 ##   godot --headless --fixed-fps 30 -s addons/gut/gut_cmdln.gd \
 ##     -gtest=res://tests/test_EnvironmentalPiecesInPlay.gd -gexit
 
-const HARNESS: String = "res://scenes/scenarios/test/test_kamikaze_cluster.tscn"
+const HARNESS: String = "res://scenes/harnesses/test_kamikaze_cluster.tscn"
 const CELL_SCENE: String = "res://scenes/entities/tokens/nt/nt_powerCell.tscn"
 const CARTRIDGE_SCENE: String = "res://scenes/entities/tokens/nt/nt_fuelCartridge.tscn"
 const SOLDIER_SCENE: String = "res://scenes/entities/units/nt/nt_bioLight_terrestrial.tscn"

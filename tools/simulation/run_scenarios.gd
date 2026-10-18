@@ -1,6 +1,6 @@
 extends Node
 
-## Headless runner for the editor-authored [SimulationScenario] scenes (scenes/scenarios/test/).
+## Headless runner for the editor-authored [SimulationScenario] scenes (scenes/harnesses/).
 ##
 ## These ask DESIGN questions — does the bot commit the drone to a cluster and hold it off a
 ## lone target, does a lone scout cover the map — so they are deliberately NOT in the GUT
@@ -20,9 +20,9 @@ extends Node
 ## CPU can do rather than at 30 ticks per wall second. Exit code is 1 if any expectation failed.
 
 const SCENES: Array[String] = [
-	"res://scenes/scenarios/test/test_kamikaze_cluster.tscn",
-	"res://scenes/scenarios/test/test_kamikaze_no_cluster.tscn",
-	"res://scenes/scenarios/test/test_scout_coverage.tscn",
+	"res://scenes/harnesses/test_kamikaze_cluster.tscn",
+	"res://scenes/harnesses/test_kamikaze_no_cluster.tscn",
+	"res://scenes/harnesses/test_scout_coverage.tscn",
 ]
 
 ## Physics frames allowed beyond a scenario's own `max_ticks` before the runner gives up on it.
@@ -35,7 +35,7 @@ const BOOT_SLACK_FRAMES: int = 600
 ## simulation's determinism), and the old `pending()` in GUT was only hiding it behind a gate
 ## it should not have been in. See gdd/systems/ai/selfplay-harness.md §Determinism.
 const KNOWN_FLAKY: Array[String] = [
-	"res://scenes/scenarios/test/test_kamikaze_cluster.tscn",
+	"res://scenes/harnesses/test_kamikaze_cluster.tscn",
 ]
 
 var _failed: int = 0

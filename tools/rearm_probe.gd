@@ -11,7 +11,7 @@ extends Node3D
 ## Run with:
 ##   godot --headless res://tools/rearm_probe.tscn -- [unit_scene] [start_distance]
 
-const SCENARIO: String = "res://scenes/scenarios/test/nav_straight_line.tscn"
+const SCENARIO: String = "res://scenes/harnesses/nav_straight_line.tscn"
 const AIRFIELD: String = "res://scenes/entities/structures/cl/cl_airField.tscn"
 const MAX_TICKS: int = 1600
 const SAMPLE_EVERY: int = 10

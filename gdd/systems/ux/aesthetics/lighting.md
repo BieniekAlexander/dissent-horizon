@@ -53,8 +53,8 @@ normals pointed down. Maps still carry no lighting by design: lighting belongs t
 ## Sun shadows, deferred
 
 **No light casts shadows** (Alex, 2026-10-15): `shadow_enabled` is off on the default rig's key
-sun and on every scenario's own sun (blue_hole, skirmish_tournament_desert and the two
-mesh-terrain test scenarios). Their other shadow settings stay as they were, so turning one back
+sun and on every scenario's own sun (the two mesh-terrain test scenarios; blue_hole and
+skirmish_tournament_desert carried one too until they were removed on 2026-10-17). Their other shadow settings stay as they were, so turning one back
 on is a single property.
 
 **TODO — revisit what the sun's shadows are worth.** Measured on an i5-1245U's Iris Xe,

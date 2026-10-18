@@ -27,7 +27,7 @@ class StubCondition:
 		state_changed.emit()
 
 
-const PAGE: PackedScene = preload("res://scenes/dialogs/welcome.tscn")
+const PAGE: PackedScene = preload("res://scenes/harnesses/dialogs/harness_page_a.tscn")
 const OBJECTIVE_VIEW: PackedScene = preload("res://scenes/interface/objective_view.tscn")
 
 var _manager: ScenarioTriggerManager

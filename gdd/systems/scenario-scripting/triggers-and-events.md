@@ -8,7 +8,7 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
 
-The tutorial/mission layer. All of it is built ON the trigger system rather than beside it — an objective IS a `GlobalTrigger`, so AND/OR composition, region scoping and chaining come for free. Reference scenario: `scenes/scenarios/tutorial.tscn` (four steps: select a unit → move to a region → move to a second region → clear an area). Its contents are authored, so nothing unit-tests them.
+The tutorial/mission layer. All of it is built ON the trigger system rather than beside it — an objective IS a `GlobalTrigger`, so AND/OR composition, region scoping and chaining come for free. Reference scenarios: the prologue missions ([`gdd/campaigns/01-prologue/`](../../campaigns/01-prologue/README.md); TODO: not built yet). Their contents are authored, so nothing unit-tests them.
 
 Expressions read the mission's `difficulty`, `ConditionExpression` gates a trigger on one, and
 `EventSetBotJobs` switches bot jobs mid-mission — [tactics](tactics.md) §Trigger-decided
