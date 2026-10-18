@@ -159,11 +159,15 @@ const JOB_NAMES: Array[StringName] = [
 	&"scout",
 ]
 ## Jobs this brain leaves off: a mission running the economy and production while it authors
-## the military itself (gdd/systems/ai/squads-and-relations.md §Squads). Set before the jobs
-## are registered; empty runs them all.
+## the military itself (gdd/systems/ai/squads-and-relations.md §Squads). Set from the slot
+## before the jobs are registered, and switched mid-mission by set_job_enabled; empty runs them
+## all. This brain's own copy: a slot's array belongs to a shared PlayerSlot resource.
 var disabled_jobs: Array[StringName] = []
 ## Whether the jobs have been handed to the session's scheduler.
 var _registered: bool = false
+## The scheduler the jobs were handed to, so a job switched mid-mission can be withdrawn or
+## handed back.
+var _scheduler: BotScheduler = null
 
 
 ## Set the tier and the parameters it selects together, so the two can never disagree.
@@ -239,8 +243,35 @@ func register_jobs(a_scheduler: BotScheduler) -> void:
 	if _registered or not _ensure_managers():
 		return
 	_registered = true
+	_scheduler = a_scheduler
 	for job: BotJob in enabled_jobs():
 		a_scheduler.register(job)
+
+
+## Switch the job named `a_job` on or off from now on — a mission handing the military to its
+## own scripting and back (EventSetBotJobs). A job switched off is withdrawn from the scheduler;
+## switched back on, it is handed back due at once. Returns false for a name no job has.
+func set_job_enabled(a_job: StringName, a_enabled: bool) -> bool:
+	if not JOB_NAMES.has(a_job):
+		return false
+	var was_enabled: bool = not disabled_jobs.has(a_job)
+	if a_enabled == was_enabled:
+		return true
+	var remaining: Array[StringName] = disabled_jobs.filter(
+		func(name: StringName) -> bool: return name != a_job
+	)
+	if not a_enabled:
+		remaining.append(a_job)
+	disabled_jobs = remaining
+	if _scheduler != null:
+		for job: BotJob in _jobs:
+			if job.name != a_job:
+				continue
+			if a_enabled:
+				_scheduler.register(job)
+			else:
+				_scheduler.unregister(job)
+	return true
 
 
 ## Run every job once, to completion, in scheduling order — a whole decision pass in one call,
@@ -672,11 +703,7 @@ func _tick_preservation() -> int:
 		if not (cmd is Attack or cmd is AttackMove):
 			continue
 		unit.update_commands(null)
-		var garrison_host: Actor = bot.nearest_garrison_for(unit)
-		if garrison_host != null:
-			_actuator.garrison_into(unit, garrison_host)
-		else:
-			_actuator.move([unit], _preservation_retreat_dest(unit))
+		RetreatPolicy.new(bot, _actuator).issue([unit])
 	return units.size() * PRESERVATION_UNIT_WORK_UNITS
 
 
@@ -692,12 +719,3 @@ func _no_effective_targets_in_aggro(a_unit: Actor) -> bool:
 		if bot.unit_effectiveness_vs(a_unit.id, enemy) > 0.0:
 			return false
 	return true
-
-
-## Retreat destination for [unit]: nearest own structure, or base centroid as
-## fallback when the bot has no structures left.
-func _preservation_retreat_dest(a_unit: Actor) -> Vector3:
-	var nearest: Actor = bot.nearest_own_structure(a_unit.global_position)
-	if nearest != null:
-		return nearest.global_position
-	return bot.home_centroid()

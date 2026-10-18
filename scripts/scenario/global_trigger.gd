@@ -179,9 +179,9 @@ func _get_configuration_warnings() -> PackedStringArray:
 	for condition: Condition in conditions:
 		if condition == null:
 			continue
-		var problem: String = condition.configuration_warning()
-		if not problem.is_empty():
-			warnings.append(problem)
+		for problem: String in [condition.configuration_warning(), condition.perspective_warning()]:
+			if not problem.is_empty():
+				warnings.append(problem)
 	return warnings
 
 

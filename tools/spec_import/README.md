@@ -340,13 +340,6 @@ garrison:
   pieces: [an_bioLight_builder]         # ALLOWLIST of piece ids, checked on top of the three masks.
                                # Omitted = no identity restriction (NOT "nobody" — unlike a
                                # mask, an id list can never be exhaustive)
-  sentence_length: 45                   # a captive DEPOSITED here serves this many seconds,
-                               # paying dominion per cycle, before being CONSUMED. Naming it
-                               # (a positive number) is what makes a garrison a prison
-                               # (Garrison.can_intern) — DEPOSIT offers no other target. The
-                               # Compound is the case: `closed: true` (deposit is the only way
-                               # in) plus `sentence_length:`, and no `pieces:` — a captive
-                               # is held as itself, never converted
   unload_time: 1               # a CARRIER's seconds per captive when it deposits: the first
                                # goes over when the deposit completes, one per interval after.
                                # Omitted = the whole load at once

@@ -104,6 +104,7 @@ static func header_for(a_scenario: Scenario, a_version: String) -> Dictionary:
 		"scenario": a_scenario.scene_file_path,
 		"map": map.scene_file_path if map != null else "",
 		"seed": a_scenario.rng_seed,
+		"mission_difficulty": int(a_scenario.mission_difficulty),
 		"slots": slots,
 		"version": a_version,
 	}

@@ -128,6 +128,12 @@ func believes(a_instance_id: int) -> bool:
 	return _entries.has(a_instance_id)
 
 
+## Where the piece with `a_instance_id` was last seen, or null when it is not believed.
+func last_known_location(a_instance_id: int) -> Variant:
+	var entry: Entry = _entries.get(a_instance_id) as Entry
+	return entry.last_known_location if entry != null else null
+
+
 ## Whether the piece with `a_instance_id` was in view at the last update: a CONFIRMED belief
 ## rather than a remembered one.
 func is_in_view(a_instance_id: int) -> bool:

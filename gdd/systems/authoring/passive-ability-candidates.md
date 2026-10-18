@@ -106,7 +106,7 @@ not a ring.
 > **TODO — a heal aura is a passive ability whose behaviour is per-tick, and nothing in the
 > passive system ticks.** `retinue` is read by whoever needs it (`AnarchicalDominion`), which
 > works because it is a *query*. `work_detail` moved off that shape on 2026-09-17 — it is now
-> an EVENT the Compound pushes on a sentence completing (`Garrison._emit_positional_bonus`),
+> an EVENT the Compound pushes on a sentence completing (`OccupantDominionGenerator._emit_positional_bonus`),
 > closer to what a heal aura would need than a query is. A heal aura still differs: it applies
 > every TICK rather than on a discrete completion, and today that is a bespoke node.
 >

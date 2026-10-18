@@ -257,25 +257,15 @@ func test_a_commander_with_no_generators_reports_no_dominion_source() -> void:
 func _make_occupant_dominion_source(
 	a_commander: Commander, a_dominion_per_unit: int, a_occupant_count: int
 ) -> Actor:
-	var host := autofree(Actor.new()) as Actor
-	var garrison := Garrison.new()
-	garrison.name = "Garrison"
-	host.add_child(garrison)
-	var generator := OccupantDominionGenerator.new()
-	generator.name = "DominionGenerator"
-	generator.dominion_per_unit = a_dominion_per_unit
-	host.add_child(generator)
-	a_commander.add_child(host)
+	var host: Actor = FakePieces.make(FakePieces.COMPOUND) as Actor
+	# In the tree first, so the prison subscribes to its garrison (OccupantDominionGenerator._ready).
+	add_child_autofree(host)
+	host.ownership.commander = a_commander
+	var prison := host.get_node("DominionGenerator") as OccupantDominionGenerator
+	prison.dominion_per_unit = a_dominion_per_unit
 	for i: int in a_occupant_count:
-		garrison._garrisoned.append(autofree(Actor.new()) as Actor)
+		host.garrison.garrison(autofree(FakePieces.unit()) as Actor)
 	return host
-
-
-func test_the_rate_scales_with_how_many_are_actually_held() -> void:
-	var commander := _make_commander()
-	_make_occupant_dominion_source(commander, 5, 3)
-	var expected: float = 5.0 * 3.0 / PERIOD_SECONDS
-	assert_almost_eq(commander.dominion_collection_rate(), expected, 0.01)
 
 
 func test_an_empty_compound_reports_no_rate() -> void:
@@ -300,32 +290,11 @@ func test_the_rate_does_not_read_the_unused_inherited_flat_default() -> void:
 func test_occupant_generators_contribute_their_head_count() -> void:
 	var commander := _make_commander()
 	for held: int in [3, 1]:
-		var camp := autofree(Actor.new()) as Actor
-		# Ownership is wired to the field directly, like `production` elsewhere in this file:
-		# the @onready never resolves for a node built out of tree, and Garrison reads the
-		# host's commander_id when it takes an occupant.
-		var camp_ownership := Ownership.new()
-		camp_ownership.name = "Ownership"
-		camp.add_child(camp_ownership)
-		camp.ownership = camp_ownership
-		camp.ownership.commander = commander
-		var generator := OccupantDominionGenerator.new()
-		generator.name = "DominionGenerator"
-		var garrison := Garrison.new()
-		garrison.name = "Garrison"
-		garrison.capacity = 10
-		# Occupants are held as ORPHANED nodes, so the garrison is filled by handing it
-		# entities rather than by parenting them.
-		camp.add_child(garrison)
-		camp.add_child(generator)
-		commander.add_child(camp)
-		for i in held:
-			var prisoner := autofree(Actor.new()) as Actor
-			garrison.garrison(prisoner)
+		_make_occupant_dominion_source(commander, 5, held)
 	assert_eq(
 		commander.dominion_contributor_count(),
-		4,
-		"prisoners across every camp, since that is what the Colonial rate is made of"
+		2 * OccupantDominionGenerator.SENTENCES_AT_ONCE,
+		"the prisoners SERVING across every camp, since that is what the Colonial rate is made of"
 	)
 
 
@@ -389,8 +358,7 @@ func test_the_grant_is_the_dedicated_providers_whether_or_not_one_stands() -> vo
 		FakePieces.tool(PROVIDER_ID, {"structure": true, "infrastructure": 40})
 	)
 	var own_grant: int = (
-		(commander.get_build_preview_instance(Tool.for_type(PROVIDER_ID)) as Actor)
-		. infrastructure
+		(commander.get_build_preview_instance(Tool.for_type(PROVIDER_ID)) as Actor).infrastructure
 	)
 	assert_gt(own_grant, 0, "guards the fixture: the source provides")
 	assert_eq(commander.infrastructure_provider_grant(), own_grant, "none standing yet")

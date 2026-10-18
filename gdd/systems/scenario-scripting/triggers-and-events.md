@@ -10,6 +10,10 @@ type: system-note
 
 The tutorial/mission layer. All of it is built ON the trigger system rather than beside it — an objective IS a `GlobalTrigger`, so AND/OR composition, region scoping and chaining come for free. Reference scenario: `scenes/scenarios/tutorial.tscn` (four steps: select a unit → move to a region → move to a second region → clear an area). Its contents are authored, so nothing unit-tests them.
 
+Expressions read the mission's `difficulty`, `ConditionExpression` gates a trigger on one, and
+`EventSetBotJobs` switches bot jobs mid-mission — [tactics](tactics.md) §Trigger-decided
+mission commanders.
+
 ## The three ways an event runs
 
 

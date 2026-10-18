@@ -66,6 +66,12 @@ func register(a_job: BotJob) -> void:
 	_jobs.append(a_job)
 
 
+## Drop `a_job`: its owner is going away and its work must not be called again. A job whose
+## brain is freed is dropped on its own; this is for one whose work outlives nothing else.
+func unregister(a_job: BotJob) -> void:
+	_jobs.erase(a_job)
+
+
 ## Every job of `a_brain`, in registration order.
 func jobs_of(a_brain: BotBrain) -> Array[BotJob]:
 	return _jobs.filter(func(j: BotJob) -> bool: return j.brain == a_brain)

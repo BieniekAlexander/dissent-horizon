@@ -76,6 +76,10 @@ policies are one mechanism used by both; which policy a squad runs is a mission 
 unifying waits on bot decisions becoming scored — does not apply, because nothing scored is
 shared.
 
+Perception and action are shared the same way — conditions that read an alliance's beliefs,
+tactic orders through `BotActuator`, jobs switched mid-mission by event —
+[scenario-scripting/tactics](../scenario-scripting/tactics.md) §Trigger-decided mission commanders.
+
 ## Squads
 
 Built 2026-10-07. **A `Squad` is a set of units and the standing policy they are kept to,

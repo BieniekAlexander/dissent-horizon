@@ -8,7 +8,8 @@ extends BotDebugLayer
 ## in the squad's colour, a filled square at its centroid, and a line from there to the point
 ## its policy holds, outlined. The production rally point: a yellow stick. An abandoned
 ## objective: a grey X until it expires. Each unit in a fight (BotTargeting): a line to its
-## target.
+## target. A mission's tactic squads on the same commander draw beside the military's, in
+## SQUAD_COLOR_OTHER, and the readout names the rule each is running.
 
 const OBJECTIVE_RING_RADIUS: float = 2.0
 const OBJECTIVE_STICK_HEIGHT: float = 3.0
@@ -49,6 +50,8 @@ func draw(a_bot: Bot, a_pen: BotDebugPen) -> void:
 		if is_instance_valid(entity):
 			a_pen.square((entity as Node3D).global_position, OBJECTIVE_ENTITY_HALF, color)
 	for squad: Squad in military.squads():
+		_draw_squad(squad, a_pen)
+	for squad: Squad in mission_squads(a_bot, military):
 		_draw_squad(squad, a_pen)
 	if state["rally"] != null:
 		a_pen.stick(state["rally"], RALLY_STICK_HEIGHT, COLOR_RALLY)
@@ -142,10 +145,28 @@ func readout(a_bot: Bot) -> PackedStringArray:
 				]
 			)
 		)
+	for squad: Squad in mission_squads(a_bot, military):
+		lines.append(
+			(
+				"  mission %s: %d (%s, rule %s)"
+				% [
+					squad.name,
+					squad.size(),
+					squad.policy.kind() if squad.policy != null else "none",
+					squad.reason if not squad.reason.is_empty() else "none"
+				]
+			)
+		)
 	var targeting: BotTargeting = _targeting_of(a_bot)
 	if targeting != null:
 		lines.append("in a fight: %d" % targeting.engagements().size())
 	return lines
+
+
+## The squads on `bot`'s registry that its military does not run: a mission's tactics.
+static func mission_squads(bot: Bot, military: BotMilitary) -> Array:
+	var own: Array = military.squads()
+	return bot.squads.all().filter(func(squad: Squad) -> bool: return not own.has(squad))
 
 
 static func _wave_line(military: BotMilitary, state: Dictionary) -> String:

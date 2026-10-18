@@ -59,3 +59,38 @@ func test_a_slot_naming_an_unknown_job_is_reported() -> void:
 	assert_eq(unknown.keys(), [2])
 	assert_eq(unknown[2], [&"militray"])
 	scenario.free()
+
+
+#region Switching mid-mission (EventSetBotJobs)
+func test_a_job_switched_off_mid_mission_leaves_the_scheduler() -> void:
+	var brain: BotBrain = _brain_with_managers()
+	var scheduler := autofree(BotScheduler.new()) as BotScheduler
+	brain.register_jobs(scheduler)
+	assert_true(brain.set_job_enabled(&"military", false))
+	assert_false(_names(scheduler.jobs_of(brain)).has(&"military"))
+	assert_true(brain.disabled_jobs.has(&"military"))
+
+
+func test_a_job_switched_back_on_is_scheduled_again_once() -> void:
+	var brain: BotBrain = _brain_with_managers()
+	brain.disabled_jobs = [&"military"]
+	var scheduler := autofree(BotScheduler.new()) as BotScheduler
+	brain.register_jobs(scheduler)
+	assert_true(brain.set_job_enabled(&"military", true))
+	assert_true(brain.set_job_enabled(&"military", true), "switching on twice is a no-op")
+	var names: Array[StringName] = _names(scheduler.jobs_of(brain))
+	assert_eq(names.count(&"military"), 1)
+	assert_false(brain.disabled_jobs.has(&"military"))
+
+
+func test_an_unknown_job_cannot_be_switched() -> void:
+	var brain: BotBrain = _brain_with_managers()
+	assert_false(brain.set_job_enabled(&"militray", false))
+
+
+func test_the_event_names_its_unknown_jobs_in_the_scene_dock() -> void:
+	var event := autofree(EventSetBotJobs.new()) as EventSetBotJobs
+	event.jobs = [&"military", &"militray"] as Array[StringName]
+	assert_eq(event._get_configuration_warnings().size(), 1)
+
+#endregion

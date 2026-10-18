@@ -14,6 +14,10 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 
 
 #region Public API
+func honours_perspective() -> bool:
+	return true
+
+
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var commander: Commander = a_manager.get_commander(commander_id)
 	if commander == null:
@@ -29,12 +33,12 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 			n += (
 				commander
 				. structure_type_map[t]
-				. filter(func(c: Actor): return c.is_built)
+				. filter(func(c: Actor): return _is_counted(a_manager, c))
 				. size()
 			)
 	else:
 		var s: Variant = commander.structure_type_map.get(structure_type)
-		n = s.filter(func(c: Actor): return c.is_built).size() if s != null else 0
+		n = s.filter(func(c: Actor): return _is_counted(a_manager, c)).size() if s != null else 0
 	match comparison:
 		Comparison.AT_LEAST:
 			return n >= count
@@ -46,6 +50,11 @@ func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 
 
 #endregion
+
+
+## A built structure, known to this check's perspective.
+func _is_counted(a_manager: ScenarioTriggerManager, a_structure: Actor) -> bool:
+	return a_structure.is_built and perceived_position(a_manager, a_structure) != null
 
 
 #region Player-facing description (highlights)

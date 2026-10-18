@@ -230,12 +230,14 @@ Leaning: 1, because the capture rule already names *light biological infantry* a
 ## A captive serves a sentence
 
 **A captive deposited at a Compound is not stored, and it is not converted — it is HELD, and
-timed.** `Garrison.deposit_from` moves each captive directly into the sink's `_garrisoned`
+timed.** `Garrison.transfer_from` moves each captive directly into the sink's `_garrisoned`
 (`detach` on the source, `garrison` on the sink — the same entry point an Occupy order would
-use), unconverted, and starts a `sentence_length`-second countdown on it (`garrison()`'s own
-bookkeeping — every occupant of a garrison with a positive `sentence_length` is timed, not
-only deposited ones). Partial deposits are allowed: the loop stops when the camp fills and the
-carrier keeps the rest.
+use), unconverted. **The timing is not the garrison's:** a Garrison only says when an occupant
+enters or leaves (`occupant_entered` / `occupant_left`), and the Compound's prison,
+`OccupantDominionGenerator`, starts a term on every arrival and runs the queue (decided
+2026-10-11: everything about processing prisoners lives in that one component, and its rules are
+constants, because the Compound is the one building that runs it). Partial deposits are allowed:
+the loop stops when the camp fills and the carrier keeps the rest.
 
 **The carrier unloads one captive at a time** (decided 2026-10-08). Its `garrison.unload_time:`
 (seconds per captive, 1 on the Stock Truck) is the interval: the first captive goes over when
@@ -247,11 +249,12 @@ side it was taken from throughout its term.
 
 Three consequences worth knowing:
 
-- **A positive `sentence_length` is what marks a prison** (`Garrison.can_intern`), and it is
-  the whole of the `DEPOSIT` precondition's target rule — the same role `interned_scene` used
+- **Carrying an enabled prison is what marks a deposit target**
+  (`OccupantDominionGenerator.prison_of`), and it is the whole of the `DEPOSIT` precondition's
+  target rule — the same role `interned_scene` used
   to play before the sentence model, and `is_closed()` before that. `Bot.get_deposit_structures`
   asks the same question, so a future holding structure is picked up with no code change.
-- **A finished sentence CONSUMES the captive** (`Garrison.discard`, called from the component's
+- **A finished sentence CONSUMES the captive** (`Garrison.discard`, called from the prison's
   own `simulation_step`): the unit is freed outright, producing nothing further but the
   dominion it paid along the way and the [[work_detail|Work Detail]] cooldown reduction it
   fires on the way out. This is what separates the Colonial route from the Anarchical one —

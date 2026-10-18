@@ -41,6 +41,11 @@ enum Priority {
 ## specifically" rather than any enemy unit. A plain int rather than Defense.FrameType so
 ## "no filter" is expressible without colliding with FrameType's own values (BIO is 0).
 @export var frame_filter: int = -1
+
+## Whose knowledge the pick reads: OMNISCIENT (the default) clusters every enemy where it stands;
+## ALLIANCE clusters only what the issuing commander's alliance believes, at the positions it
+## believes them at (AlliancePerspective) — a scripted enemy that cannot see through fog.
+@export var perspective: Condition.Perspective = Condition.Perspective.OMNISCIENT
 #endregion
 
 
@@ -49,12 +54,18 @@ func to_command(
 	a_manager: ScenarioTriggerManager, _a_post_offset: Vector3 = Vector3.ZERO
 ) -> MoveCommand:
 	var spawning_id: int = _spawning_commander_id()
-	var candidates: Array = _enemy_candidates(a_manager, spawning_id)
-	if candidates.is_empty():
+	var positions: Dictionary = _known_positions(
+		a_manager, spawning_id, _enemy_candidates(a_manager, spawning_id)
+	)
+	if positions.is_empty():
 		return null
 
-	var clusters: Array = CU.get_nodes_clustered(candidates, _CLUSTER_DISTANCE_THRESHOLD)
-	var selected: Array = _select_cluster(clusters, a_manager)
+	var clusters: Array = CU.get_nodes_clustered(
+		positions.keys(),
+		_CLUSTER_DISTANCE_THRESHOLD,
+		func(node: Variant) -> Vector3: return positions[node]
+	)
+	var selected: Array = _select_cluster(clusters, positions)
 	if selected.is_empty():
 		return null
 
@@ -69,11 +80,11 @@ func to_command(
 	# only ever re-checks the SAME target; there is no aggro-reacquisition here at all), which
 	# is what "beeline for structures, ignore units" actually needs.
 	if type == Type.BASE:
-		var target: Actor = _closest_in(selected, global_position)
+		var target: Actor = _closest_in(selected, global_position, positions)
 		var atk_msg := CommandMessage.new(a_manager.map, target, null, target.global_position)
 		return Attack.new(atk_msg)
 
-	var centroid: Vector3 = _centroid(selected)
+	var centroid: Vector3 = _centroid(selected, positions)
 	var nav_map: RID = a_manager.map.nav_region.get_navigation_map()
 	var dest: Vector3 = NavigationServer3D.map_get_closest_point(nav_map, centroid)
 	var msg := CommandMessage.new(a_manager.map, null, null, dest)
@@ -109,7 +120,23 @@ func _enemy_candidates(a_manager: ScenarioTriggerManager, a_spawning_id: int) ->
 	return result
 
 
-func _select_cluster(a_clusters: Array, _a_manager: ScenarioTriggerManager) -> Array:
+## Each candidate the pick may use, keyed to where it is taken to stand: every one at its live
+## position under OMNISCIENT, only the believed ones at their believed position under ALLIANCE.
+func _known_positions(
+	a_manager: ScenarioTriggerManager, a_spawning_id: int, a_candidates: Array
+) -> Dictionary:
+	var result: Dictionary = {}
+	for node: Variant in a_candidates:
+		var piece := node as Node3D
+		var at: Variant = piece.global_position
+		if perspective == Condition.Perspective.ALLIANCE:
+			at = AlliancePerspective.position_of(a_manager, a_spawning_id, piece)
+		if at != null:
+			result[piece] = at
+	return result
+
+
+func _select_cluster(a_clusters: Array, a_positions: Dictionary) -> Array:
 	if a_clusters.is_empty():
 		return []
 	var ref_pos: Vector3 = global_position
@@ -121,8 +148,8 @@ func _select_cluster(a_clusters: Array, _a_manager: ScenarioTriggerManager) -> A
 					return (
 						c
 						if (
-							_centroid(c).distance_squared_to(ref_pos)
-							< _centroid(best).distance_squared_to(ref_pos)
+							_centroid(c, a_positions).distance_squared_to(ref_pos)
+							< _centroid(best, a_positions).distance_squared_to(ref_pos)
 						)
 						else best
 					)
@@ -133,8 +160,8 @@ func _select_cluster(a_clusters: Array, _a_manager: ScenarioTriggerManager) -> A
 					return (
 						c
 						if (
-							_centroid(c).distance_squared_to(ref_pos)
-							> _centroid(best).distance_squared_to(ref_pos)
+							_centroid(c, a_positions).distance_squared_to(ref_pos)
+							> _centroid(best, a_positions).distance_squared_to(ref_pos)
 						)
 						else best
 					)
@@ -152,22 +179,22 @@ func _select_cluster(a_clusters: Array, _a_manager: ScenarioTriggerManager) -> A
 	return a_clusters[0]
 
 
-static func _centroid(cluster: Array) -> Vector3:
+static func _centroid(cluster: Array, positions: Dictionary) -> Vector3:
 	var sum := Vector3.ZERO
 	for node in cluster:
-		sum += (node as Actor).global_position
+		sum += positions[node] as Vector3
 	return sum / float(cluster.size())
 
 
 ## The single member of `cluster` nearest to `ref_pos` — the specific entity an Attack (as
 ## opposed to an AttackMove toward the cluster's averaged centroid) locks onto.
-static func _closest_in(cluster: Array, ref_pos: Vector3) -> Actor:
+static func _closest_in(cluster: Array, ref_pos: Vector3, positions: Dictionary) -> Actor:
 	var best: Actor = cluster[0]
 	for node in cluster:
 		var c := node as Actor
 		if (
-			c.global_position.distance_squared_to(ref_pos)
-			< best.global_position.distance_squared_to(ref_pos)
+			(positions[c] as Vector3).distance_squared_to(ref_pos)
+			< (positions[best] as Vector3).distance_squared_to(ref_pos)
 		):
 			best = c
 	return best

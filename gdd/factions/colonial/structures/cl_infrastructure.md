@@ -22,7 +22,6 @@ garrison:
   capacity: 3
   closed: true
   bunker: false
-  sentence_length: 30
 abilities:
   - max_charges: 1
     cooldown: 1
@@ -45,10 +44,10 @@ holds up to 3 occupants and sentences them ONE AT A TIME: the captive serving pa
 every 5 s cycle (5/s, 150 over its term), and the others wait their turn unpaid.
 
 It is stocked by [[cl_mechLight_dominionGen|Stock Trucks]] delivering what they captured, and
-**a deposited captive is held as ITSELF for `sentence_length` (30 s, once its turn comes)
-before being CONSUMED** — a prisoner is not put to work, it is spent. Naming a positive
-`sentence_length` is also what marks this building as a deposit target at all
-(`Garrison.can_intern`).
+**a deposited captive is held as ITSELF for 30 s, once its turn comes, before being CONSUMED**
+— a prisoner is not put to work, it is spent. The prison is the scene-authored
+`OccupantDominionGenerator`, whose rules are constants rather than doc keys; carrying it is also
+what marks this building as a deposit target at all (`OccupantDominionGenerator.prison_of`).
 
 **The garrison is CLOSED**: nothing may be ordered into it — deposit is the only way in — and
 it names no `pieces:` allowlist, since a captive is never converted into a Servant that could

@@ -155,6 +155,13 @@ func test_a_squad_policy_is_drawn_at_the_point_it_holds() -> void:
 	assert_null(BotDebugArmyLayer.policy_point(null), "no policy")
 
 
+func test_a_missions_squads_are_drawn_beside_the_militarys() -> void:
+	var military := BotMilitary.new(_bot, BotActuator.new(null))
+	var tactic: Squad = _bot.squads.create(&"wave_one")
+	tactic.reason = "Hunt"
+	assert_eq(BotDebugArmyLayer.mission_squads(_bot, military), [tactic])
+
+
 func test_a_bot_without_a_brain_draws_no_army() -> void:
 	var pen := BotDebugPen.new()
 	BotDebugArmyLayer.new().draw(_bot, pen)

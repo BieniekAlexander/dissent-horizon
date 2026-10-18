@@ -7,6 +7,9 @@ type: system-note
 
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
+A condition over pieces reads the live scene or an alliance's beliefs (`perspective`) —
+[tactics](tactics.md) §Trigger-decided mission commanders.
+
 ## A Condition outlives the session it ran in
 
 

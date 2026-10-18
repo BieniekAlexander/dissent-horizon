@@ -1339,10 +1339,9 @@ static func _is_number(value: Variant) -> bool:
 ##
 ## `pieces:` is a fourth admission filter, and the only one that is an ALLOWLIST rather
 ## than an enumeration: naming it restricts entry to those piece ids, omitting it restricts
-## nothing (see Garrison.occupiable_ids). `sentence_length:` is what makes a garrison a
-## prison — a captive deposited here serves that many seconds before being consumed (see
-## Garrison.can_intern) — replacing the old `interns:` conversion marker. `unload_time:` is a
-## carrier's seconds per captive when it deposits (Garrison.unload_time).
+## nothing (see Garrison.occupiable_ids). `unload_time:` is a carrier's seconds per captive when
+## it deposits (Garrison.unload_time). What makes a host a prison is not a garrison key: it is the
+## scene-authored OccupantDominionGenerator, whose rules are constants.
 const GARRISON_KEYS: Array = [
 	"capacity",
 	"frames",
@@ -1357,7 +1356,6 @@ const GARRISON_KEYS: Array = [
 	"range_bonus",
 	"reach_by_piece",
 	"pieces",
-	"sentence_length",
 	"unload_time"
 ]
 const GARRISON_MASK_KEYS: Array = ["frames", "armours", "movements"]
@@ -1438,14 +1436,6 @@ func _validate_garrison(a_spec: Dictionary, a_g: Variant) -> void:
 	# Ids are checked against the registry for the same reason `pieces` is.
 	if g.has("reach_by_piece"):
 		_resolve_reach_by_piece(a_spec, g)
-	if (
-		g.has("sentence_length")
-		and not (
-			(g["sentence_length"] is int or g["sentence_length"] is float)
-			and float(g["sentence_length"]) > 0.0
-		)
-	):
-		_err(a_spec, "garrison.sentence_length must be a positive number of seconds")
 	if (
 		g.has("unload_time")
 		and not (

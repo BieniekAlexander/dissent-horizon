@@ -45,6 +45,17 @@ signal local_player_changed(a_commander: Commander)
 enum WinCondition { NONE, MISSION, HEGEMONY }
 @export var win_condition: WinCondition = WinCondition.MISSION
 
+## THE MISSION'S DIFFICULTY — what the player picked on the Campaign page, read by the mission's
+## triggers as the `difficulty` of a scenario expression. It is ONLY that: a mission is made harder
+## by triggers authored against it, never by changing how its bots play, so every bot slot keeps
+## its authored tier whatever is picked. MEDIUM for a scenario nobody picked for (a skirmish, a
+## mission run from the editor).
+## gdd/systems/scenario-scripting/tactics.md §Trigger-decided mission commanders.
+##
+## The values are what an expression compares against ("difficulty >= 2"), so they are fixed.
+enum MissionDifficulty { EASY = 1, MEDIUM = 2, HARD = 3 }
+@export var mission_difficulty: MissionDifficulty = MissionDifficulty.MEDIUM
+
 ## HEGEMONY opens by showing every player every shelter: vision of this radius (world units)
 ## around each one, for SHELTER_REVEAL_SECONDS, after which the fog closes again and what
 ## remains is the remembered image of each shelter (the fog-of-war snapshot every seen fixture
@@ -174,6 +185,10 @@ func _ready() -> void:
 	if replay_to_play != null:
 		rng_seed = int(replay_to_play.header.get("seed", rng_seed))
 		local_commander_id = int(replay_to_play.header.get("local_commander_id", -1))
+		mission_difficulty = (
+			int(replay_to_play.header.get("mission_difficulty", mission_difficulty))
+			as MissionDifficulty
+		)
 	seed_simulation()
 	PurchaseTransaction.reset_ids()
 	# The viewed fog is a static, so a spectator session or a replay's view switch would
@@ -221,7 +236,7 @@ func _ready() -> void:
 			bot.consider_structures = slot.consider_structures
 			bot.consider_units = slot.consider_units
 			_attach_brain(bot, slot.difficulty, slot.is_bot, _personality_config(slot))
-			bot.get_node("BotBrain").disabled_jobs = slot.disabled_bot_jobs
+			bot.get_node("BotBrain").disabled_jobs = slot.disabled_bot_jobs.duplicate()
 
 	# Create a Fog node for each bot commander so it tracks its own exploration.
 	# The human player already has a Fog in player.tscn (watching_commander_id = -1).
@@ -734,6 +749,12 @@ func _personality_error(a_slot: PlayerSlot, a_config: BotDifficulty) -> String:
 		if error != "":
 			return error
 	return a_config.apply_overrides(a_slot.config_overrides)
+
+
+## The difficulty a scenario expression reads (ScenarioExpression's `difficulty`): 1 EASY,
+## 2 MEDIUM, 3 HARD.
+func difficulty_level() -> int:
+	return int(mission_difficulty)
 
 
 ## The parameters a slot's bot plays by when the slot names a personality or overrides —

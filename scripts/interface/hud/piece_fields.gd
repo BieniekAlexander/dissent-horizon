@@ -244,16 +244,6 @@ static func _piece_fields() -> Array:
 			spec[3]
 		)
 		fields.append(mask)
-	var sentence: PieceField = _property(
-		&"hold",
-		"sentence",
-		["garrison", "sentence_length"],
-		PieceField.Kind.NUMBER,
-		"Garrison",
-		"sentence_length"
-	)
-	sentence.unit = "s"
-	fields.append(sentence)
 	bonus.applies = func(c: Dictionary) -> bool: return _node(c, "Garrison") != null
 	return fields
 

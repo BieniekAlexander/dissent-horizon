@@ -16,6 +16,10 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 
 
 #region Public API
+func honours_perspective() -> bool:
+	return true
+
+
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	var n: int = matching_units(a_manager).size()
 	match comparison:
@@ -61,7 +65,14 @@ func matching_units(a_manager: ScenarioTriggerManager) -> Array:
 				n is Actor
 				and (n as Actor).is_in_group("unit")
 				and (unit_type == &"" or (n as Actor).id == unit_type)
-				and region_contains((n as Actor).global_position)
+				and _is_counted(a_manager, n as Actor)
 			)
 	)
+
+
+## Whether `a_unit` is where this check counts: in the region, at the position its perspective
+## takes it to be — so a unit the alliance knows nothing of is not counted.
+func _is_counted(a_manager: ScenarioTriggerManager, a_unit: Actor) -> bool:
+	var at: Variant = perceived_position(a_manager, a_unit)
+	return at != null and region_contains(at)
 #endregion

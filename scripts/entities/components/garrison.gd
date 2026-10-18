@@ -19,11 +19,15 @@ extends Node
 ## can only be filled by a mechanic that puts units in directly (capture, deposit,
 ## a scenario event) rather than by an Occupy order — see is_closed().
 ##
-## A garrison naming a positive [member sentence_length] is a PRISON: a carrier may deposit
-## its captives into it, and they serve that many seconds each, ONE AT A TIME — the captive
-## serving is held as itself and pays dominion per cycle, the rest wait their turn unpaid —
-## before being CONSUMED. See can_intern(), deposit_from(), paying_count() and
-## gdd/systems/combat/colonial-dominion.md §A captive serves a sentence.
+## What a host DOES with its occupants is not this component's business: it says when one
+## enters or leaves (occupant_entered / occupant_left), and the host's other components act on
+## that — the Compound's prison (OccupantDominionGenerator) sentences and consumes them.
+
+## A unit has been taken in, by any route (an order, capture, transfer, a scenario load).
+signal occupant_entered(unit: Actor)
+## A unit is leaving, by any route (released, consumed, flushed, killed with the host),
+## emitted while it is still valid.
+signal occupant_left(unit: Actor)
 
 #region Occupancy filters
 ## Which frames / armours / locomotion styles may voluntarily occupy this garrison,
@@ -140,30 +144,6 @@ var occupiable_movements: int = MOVEMENT_GROUNDED
 ## at once. Set on the carrier, so more trucks unload faster (gdd/tasks.md T-044 tunes it).
 @export var unload_time: float = 0.0
 
-## Seconds a captive DEPOSITED here serves before being consumed. Setting it positive is
-## what makes a garrison a prison in the deposit sense (see can_intern): a carrier may hand
-## its captives over, and each one, when its turn comes, pays dominion per cycle for this long
-## before this garrison frees it (SENTENCES_AT_ONCE). Zero (the default) means the host takes
-## no deposits at all and sentences nobody; an occupant of such a garrison simply stays until
-## evacuated, like any other.
-##
-## Calibrated 2026-10-05 against the Technocratic Lab route — see
-## gdd/systems/macroeconomics/pacing/dominion-rate-analysis.md §One-at-a-time processing and
-## gdd/systems/combat/colonial-dominion.md §A captive serves a sentence.
-@export var sentence_length: float = 0.0
-
-## How many captives a prison sentences at once. ONE: the rest of its places hold captives
-## waiting their turn, paying nothing and with their terms not yet started. A const rather
-## than a doc key because no piece wants another value; it is named so the throughput
-## projection (Commander.projected_dominion_rate) reads the same number this file obeys.
-const SENTENCES_AT_ONCE: int = 1
-
-## Seconds remaining on each tracked occupant's sentence, keyed by unit, in arrival order.
-## Only occupants of a garrison with sentence_length > 0 are tracked at all — see garrison().
-## The first SENTENCES_AT_ONCE keys are the ones serving; insertion order is the queue, which
-## is why nothing may rebuild this Dictionary out of order.
-var _sentence_remaining: Dictionary = {}
-
 ## Units currently garrisoned.  Held as orphaned nodes — removed from the
 ## scene tree but not freed.
 var _garrisoned: Array[Actor] = []
@@ -259,7 +239,7 @@ func accepts(a_unit: Actor) -> bool:
 ## Compound takes nobody by order and still lets out the Servants delivered to it.
 ##
 ## NOT what marks a deposit target: the Compound admits Servants by order and is still
-## where captives are interned. That question is can_intern().
+## where captives are interned. That question is OccupantDominionGenerator.prison_of().
 func is_closed() -> bool:
 	return occupiable_frames == 0 and occupiable_armours == 0 and occupiable_movements == 0
 
@@ -327,59 +307,41 @@ static func can_capture(captor: Actor, captive: Actor) -> bool:
 	return EntityAttribute.evaluate(EntityAttribute.Type.IS_BIOLOGICAL, captive)
 
 
-## True when this garrison takes deposited captives and has room for one more — the
-## precondition for [Interaction] `DEPOSIT`.
-##
-## A positive `sentence_length` is what marks a prison apart from an ordinary garrison,
-## replacing the `is_closed()` test that did the job while the Compound was itself a closed
-## hold. Stating it positively is also what stops a safehouse being mistaken for a camp: an
-## open garrison no more sentences prisoners than a closed transport does.
-##
-## Room is asked as one slot of the smallest size rather than the deposited piece's own
-## `occupancy_size`, matching every other unconsented entry. Keep captured pieces at size 1.
-func can_intern() -> bool:
-	return sentence_length > 0.0 and can_garrison()
-
-
-## Take `source`'s captives directly into this garrison, UNCONVERTED — a captive stays
-## itself, off the tree, and starts serving `sentence_length` here exactly as it would have
-## served the rest of it in `source` (see garrison()). Returns how many were moved; stops
-## early when this garrison fills, leaving the rest with the carrier (a partial deposit), or
-## after `a_limit` captives when that is not negative — the carrier unloading one at a time.
-##
-## Ownership does not change here: a captive's `Ownership` still names the side it was taken
-## from, so a Compound destroyed mid-term still hands it back there (evacuate/evacuate_one),
-## not to the depositor. See gdd/systems/combat/colonial-dominion.md §A captive serves a
-## sentence.
-func deposit_from(a_source: Garrison, a_limit: int = -1) -> int:
-	if a_source == null or sentence_length <= 0.0:
+## Take `source`'s occupants directly into this garrison, as they are — a carrier's load handed
+## over (a Stock Truck depositing at a Compound). Returns how many were moved; stops early when
+## this garrison fills, leaving the rest with the source, or after `a_limit` occupants when that
+## is not negative — the carrier unloading one at a time. Ownership does not change: a captive
+## still names the side it was taken from, so a host destroyed later hands it back there.
+func transfer_from(a_source: Garrison, a_limit: int = -1) -> int:
+	if a_source == null:
 		return 0
 	var moved: int = 0
-	for captive: Actor in a_source.occupants().duplicate():
-		if moved == a_limit or not has_room_for(captive):
+	for occupant: Actor in a_source.occupants().duplicate():
+		if moved == a_limit or not has_room_for(occupant):
 			break
-		a_source.detach(captive)
-		garrison(captive)
+		a_source.detach(occupant)
+		garrison(occupant)
 		moved += 1
 	return moved
 
 
-## Whether a deposit from `a_source` would move anything now: it holds a captive and this
+## Whether a transfer from `a_source` would move anything now: it holds an occupant and this
 ## garrison has room for the next one.
 func can_take_next_from(a_source: Garrison) -> bool:
-	if a_source == null or sentence_length <= 0.0:
+	if a_source == null:
 		return false
 	var next: Array = a_source.occupants()
 	return not next.is_empty() and has_room_for(next.front() as Actor)
 
 
 ## Remove `unit` from this garrison and free it WITHOUT returning it to the scene — a
-## sentence reaching its end. Its Loadout is put back first: a bunker hoists that onto the
-## host (see garrison), and freeing the unit while it is parented elsewhere would leave the
-## weapons behind.
+## captive's sentence reaching its end (OccupantDominionGenerator). Its Loadout is put back
+## first: a bunker hoists that onto the host (see garrison), and freeing the unit while it is
+## parented elsewhere would leave the weapons behind.
 func discard(a_unit: Actor) -> void:
 	if not (a_unit in _garrisoned):
 		return
+	occupant_left.emit(a_unit)
 	a_unit.garrisoned_in = null
 	_garrisoned.erase(a_unit)
 	_restore_loadout(a_unit)
@@ -392,87 +354,19 @@ func discard(a_unit: Actor) -> void:
 
 ## Remove `unit` from this garrison WITHOUT freeing it or returning it to the scene — the
 ## live half of a transfer, where discard() would wrongly destroy an object the caller is
-## about to re-home elsewhere (see deposit_from). Loadout is restored first, same as
+## about to re-home elsewhere (see transfer_from). Loadout is restored first, same as
 ## discard(), so a bunker's hoisted weapons follow the unit rather than staying behind.
 func detach(a_unit: Actor) -> void:
 	if not (a_unit in _garrisoned):
 		return
+	occupant_left.emit(a_unit)
 	a_unit.garrisoned_in = null
 	_garrisoned.erase(a_unit)
-	_sentence_remaining.erase(a_unit)
 	_restore_loadout(a_unit)
 	_refresh_aggro_range()
 
 
 #endregion
-
-#region Sentences
-## What one adjacent structure's ability pools have their cooldown reduced by, on each
-## sentence completing here — a percentage of the pool's own FULL cooldown, not of its
-## remaining time (see colonial-dominion.md §The positional bonus is an event, not a rate).
-## A CONSTANT, as the retired passive per-occupant recharge rate was before it: the number is
-## Work Detail's, not any one Compound's.
-const SENTENCE_COOLDOWN_BONUS: float = 0.08
-
-
-## Nothing to step until a captive starts a sentence (garrison wakes the host then).
-func sleep_ticks() -> int:
-	return Entity.SLEEP_FOREVER if _sentence_remaining.is_empty() else 0
-
-
-func simulation_step(a_delta: float) -> void:
-	if _sentence_remaining.is_empty():
-		return
-	# Only the head of the queue serves (SENTENCES_AT_ONCE); the captives behind it wait with
-	# their terms untouched. Snapshot the serving keys: discard() below mutates
-	# _sentence_remaining as each completed captive is freed. A term that ends mid-step does
-	# not hand its leftover to the next captive — the next one starts on the following tick.
-	for unit: Actor in _sentence_remaining.keys().slice(0, SENTENCES_AT_ONCE):
-		if not is_instance_valid(unit):
-			_sentence_remaining.erase(unit)
-			continue
-		_sentence_remaining[unit] -= a_delta
-		if _sentence_remaining[unit] <= 0.0:
-			_sentence_remaining.erase(unit)
-			discard(unit)
-			_emit_positional_bonus()
-
-
-## On a sentence completing, reduce the cooldown of every ability pool on every
-## edge-adjacent structure of its own by SENTENCE_COOLDOWN_BONUS — Work Detail, carried by
-## whichever piece grants it (Abilities.SUPPORT_ABILITY). The three things that switch it
-## off are asked of the SUPPORTER (this host, the Compound), same as the passive rate this
-## replaces: it must be finished, and its commander's infrastructure must cover its upkeep.
-## Nothing beyond ownership is asked of the structure being helped — matching the
-## passive it replaces, which never gated on the beneficiary's own state either.
-func _emit_positional_bonus() -> void:
-	var host := get_parent() as Actor
-	if (
-		host == null
-		or host.map == null
-		or not host.is_built
-		or host.is_unpowered()
-		or not _grants_positional_bonus(host)
-	):
-		return
-	for neighbor: Entity in SU.edge_adjacent_structures(host.map, host):
-		var supported := neighbor as Actor
-		# The host's OWN structures: an ally shares vision, repair and friendly-target abilities,
-		# not passive bonuses (target-acquisition.md §Alliances).
-		if supported == null or supported.commander_id != host.commander_id:
-			continue
-		var pool := supported.get_node_or_null("Abilities") as Abilities
-		if pool != null:
-			pool.reduce_all_cooldowns(SENTENCE_COOLDOWN_BONUS)
-
-
-static func _grants_positional_bonus(a_host: Actor) -> bool:
-	var pool := a_host.get_node_or_null("Abilities") as Abilities
-	return pool != null and pool.grants(Abilities.SUPPORT_ABILITY)
-
-
-#endregion
-
 
 #region Public API
 ## True when at least one more occupant of the smallest possible size (1) can be
@@ -530,15 +424,6 @@ func captive_count() -> int:
 	return _garrisoned.filter(is_captive).size()
 
 
-## The occupants that earn their host per-occupant dominion right now (OccupantDominionGenerator).
-## In a prison only the captives SERVING pay — at most SENTENCES_AT_ONCE — and the ones waiting
-## their turn do not; in any other garrison every occupant counts.
-func paying_count() -> int:
-	if sentence_length <= 0.0:
-		return garrisoned_count()
-	return mini(_sentence_remaining.size(), SENTENCES_AT_ONCE)
-
-
 ## Kill everything inside — a flush — credited to `a_by`, and say how many died. A no-op on a
 ## host that is not flushable. Each occupant dies as a lethal hit by `a_by` would kill it
 ## (Entity.kill): its death reaction, sound and objectives, and `a_by`'s kill experience and
@@ -553,7 +438,6 @@ func flush(a_by: Actor = null) -> int:
 			detach(unit)
 			unit.kill(a_by)
 	_garrisoned.clear()
-	_sentence_remaining.clear()
 	_revert_adopted_commander(get_parent() as Actor)
 	_refresh_aggro_range()
 	return flushed.size()
@@ -564,6 +448,7 @@ func flush(a_by: Actor = null) -> int:
 func kill_occupants() -> void:
 	for unit: Actor in _garrisoned:
 		if is_instance_valid(unit):
+			occupant_left.emit(unit)
 			unit.garrisoned_in = null
 			unit.queue_free()
 	_garrisoned.clear()
@@ -682,9 +567,8 @@ func garrison(a_unit: Actor) -> void:
 		a_unit.selectable.deselect()
 	a_unit.garrisoned_in = self
 	_garrisoned.append(a_unit)
-	if sentence_length > 0.0:
-		_sentence_remaining[a_unit] = sentence_length
 	_refresh_aggro_range()
+	occupant_entered.emit(a_unit)
 
 
 ## When this garrison has no commander (neutral, id 0), adopt the garrisoning
@@ -714,6 +598,11 @@ func _adopt_commander_if_neutral(a_unit: Actor) -> void:
 ## is itself a non-grid entity such as a unit.
 func evacuate(a_map: Map) -> void:
 	var owner_cmd := get_parent() as Actor
+	# Said BEFORE placement: an occupant with nobody to go back to is freed on the way out
+	# (_return_to_commander), and a freed unit cannot be handed to a listener.
+	for unit: Actor in _garrisoned:
+		if is_instance_valid(unit):
+			occupant_left.emit(unit)
 
 	if owner_cmd != null and owner_cmd.structure_is_active():
 		_evacuate_from_structure(owner_cmd, a_map)
@@ -724,7 +613,6 @@ func evacuate(a_map: Map) -> void:
 		if is_instance_valid(unit):
 			unit.garrisoned_in = null
 	_garrisoned.clear()
-	_sentence_remaining.clear()
 	_revert_adopted_commander(owner_cmd)
 	_refresh_aggro_range()
 
@@ -738,7 +626,7 @@ func evacuate(a_map: Map) -> void:
 
 
 ## Turn out every occupant an order may release (can_release_occupant), keeping the rest —
-## a captive stays, and so does the rest of its sentence. What Evacuate does; evacuate() is
+## a captive stays, and is never told it left. What Evacuate does; evacuate() is
 ## for the host's death, where everyone leaves.
 func evacuate_by_order(a_map: Map) -> void:
 	if not can_release():
@@ -750,16 +638,11 @@ func evacuate_by_order(a_map: Map) -> void:
 	if kept.is_empty():
 		evacuate(a_map)
 		return
-	var kept_sentences: Dictionary = {}
-	for unit: Actor in kept:
-		if _sentence_remaining.has(unit):
-			kept_sentences[unit] = _sentence_remaining[unit]
 	# evacuate() turns out whatever _garrisoned holds, so it is handed only the released and
 	# the kept are put back after: one placement pass, spreading the released together.
 	_garrisoned.assign(_garrisoned.filter(func(a_unit: Actor) -> bool: return not (a_unit in kept)))
 	evacuate(a_map)
 	_garrisoned = kept
-	_sentence_remaining = kept_sentences
 	_refresh_aggro_range()
 
 
@@ -800,9 +683,9 @@ func evacuate_one(a_unit: Actor, a_map: Map) -> void:
 	)
 	var spawn_pos := Vector3(spawn_xz.x, y, spawn_xz.y)
 
+	occupant_left.emit(a_unit)
 	a_unit.garrisoned_in = null
 	_garrisoned.erase(a_unit)
-	_sentence_remaining.erase(a_unit)
 	if not _return_to_commander(a_unit):
 		return
 	_restore_loadout(a_unit)

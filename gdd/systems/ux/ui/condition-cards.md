@@ -144,7 +144,7 @@ twelve would lie about which one.
 >
 > 1. **A passive has no runtime object at all.** It is a table lookup, and its effect is
 >    implemented wherever the mechanic lives (`Commander.kill_bounty_rate`,
->    `Garrison._emit_positional_bonus`). Merging means every passive becomes a node on every piece
+>    `OccupantDominionGenerator._emit_positional_bonus`). Merging means every passive becomes a node on every piece
 >    that carries one, which is a real per-entity cost for a fact that never changes.
 > 2. **Acquisition differs completely.** An effect is APPLIED by something; a passive is
 >    GRANTED by the piece or bought with dominion. `is_enabled` has no counterpart on the

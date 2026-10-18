@@ -56,12 +56,9 @@ func issue_commands_to(
 					chain.append(cmd)
 			if chain.is_empty():
 				continue
-			unit.update_commands(chain)
-			# Prime the nav target immediately so a destination at the map centre (world
-			# origin) isn't silently dropped: NavigationAgent3D defaults target_position
-			# to (0,0,0), matching the centre, so the guard in CommandReceiver skips
-			# load_destination and the unit treats navigation as already finished.
-			unit.load_destination(chain[0])
+			# Through the mission's actuator, the one audited surface a computer commander
+			# orders by, which also primes the nav target.
+			a_manager.mission_actuator().issue_chain(unit, chain)
 	_commander_id_context = -1
 
 

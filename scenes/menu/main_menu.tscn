@@ -80,6 +80,21 @@ theme_override_font_sizes/font_size = 26
 text = "Campaign"
 horizontal_alignment = 1
 
+[node name="DifficultyRow" type="HBoxContainer" parent="Center/Column/CampaignPage"]
+layout_mode = 2
+alignment = 1
+
+[node name="DifficultyLabel" type="Label" parent="Center/Column/CampaignPage/DifficultyRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Difficulty"
+
+[node name="Difficulty" type="OptionButton" parent="Center/Column/CampaignPage/DifficultyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+tooltip_text = "How hard the mission's scripting makes it."
+
 [node name="Buttons" type="VBoxContainer" parent="Center/Column/CampaignPage" unique_id=2080379222]
 unique_name_in_owner = true
 layout_mode = 2

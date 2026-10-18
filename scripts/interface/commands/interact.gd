@@ -136,10 +136,10 @@ func _unload_step(a_actor: Actor) -> Variant:
 	if source == null or sink == null:
 		return null
 	if source.unload_time <= 0.0:
-		sink.deposit_from(source)
+		sink.transfer_from(source)
 		return null
 	if _ticks_until_handover <= 0.0:
-		sink.deposit_from(source, 1)
+		sink.transfer_from(source, 1)
 		_ticks_until_handover = source.unload_time * TimeUtils.ticks_per_second()
 	_ticks_until_handover -= 1.0
 	return self if sink.can_take_next_from(source) else null
