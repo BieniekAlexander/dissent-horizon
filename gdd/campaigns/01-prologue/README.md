@@ -1,52 +1,47 @@
 # Prologue Campaign Design
 
-The prologue is five missions that teach generic RTS skills first (missions 1–3) and dissent-horizon's own systems after (missions 4–5); mechanics set the order, and each mission gets a story reason for its situation.
+Status: draft. The prologue is three missions played as the **Anarchists** against the **Colonials**. Mission 1 teaches the mechanics every RTS player meets, mission 2 the mechanics specific to dissent-horizon, and mission 3 running an economy. Mechanics set the order, and each mission gets a story reason for its situation.
+
+The prologue is kept small on purpose so new players aren't overwhelmed. Skills a player can pick up later — the control idioms, spatial counters and spotting, and requisition — live in the [challenge series](../challenges/README.md) instead.
 
 ## How these docs map to the repo
 
-Each tab here becomes one markdown file under a proposed `gdd/scenarios/` directory, with one subdirectory per campaign:
-
-```
-gdd/scenarios/
-  prologue/
-    README.md                       ← this tab
-    mission-01-unit-control.md
-    mission-02-army-and-counters.md
-    mission-03-base-and-economy.md
-    mission-04-dominion-and-shelters.md
-    mission-05-capstone.md
-```
-
 - A mission doc describes design intent: what it teaches, why the story puts the player there, and the beats.
-- Each mission doc links to its scenario file, which holds the real placements, triggers and values. Numbers in a mission doc are illustration only, so they don't go stale when the scenario is retuned.
-- Every mission doc uses the same template: Status, Teaches, Player fantasy, Narrative justification, Setup, Objectives, Teaching beats, Constraints, Scenario file, Open questions.
+- Each mission doc links to its scenario file under `scenes/scenarios/`, which holds the real placements, triggers and values. Numbers in a mission doc are illustration only, so they don't go stale when the scenario is retuned. Piece names link to their spec docs for the same reason.
+- Every mission doc uses the same template: Status, Teaches, Reinforces, Player fantasy, Narrative justification, Setup, Objectives, Teaching beats, Constraints, Scenario file, Open questions.
 
-## Mechanic sequence
-
-Each mission's problem is one its new mechanic solves; earlier mechanics come back as reinforcement.
-
-| # | Mission | Teaches | Reinforces | Story hook (draft) |
-| --- | --- | --- | --- | --- |
-| 1 | Unit control | Select, move, attack, attack-move, vision and fog | — | A small detachment is cut off and has to reach friendly lines |
-| 2 | Army and counters | Control groups, selection keys, Frame × Armour counters, crushing, garrisons | Unit control | The survivors link up with a mixed force and must break an enemy screen |
-| 3 | Base and economy | Command centre drop, extractor drops, extraction sites, training, the production queue | Counters | Command authorises a forward base, but where to drop it is the player's call |
-| 4 | Dominion and shelters | Dominion, shelters, the first sanction | Economy, army control | Holding ground isn't enough; the faction has to establish its claim over the people here |
-| 5 | Capstone | Faction signature mechanic, combining everything | All | The enemy commits; the player has to win the region outright |
+| # | Doc | Teaches | Story hook (draft) |
+| --- | --- | --- | --- |
+| 1 | [Pervasive mechanics](01-pervasive-mechanics.md) | Unit control, garrisoning, the counter system | In the middle of a Colonial siege on allied Anarchists, a small force fights through the battle, picks up survivors and strikes the besiegers' base |
+| 2 | [Game-specific mechanics](02-game-specific-mechanics.md) | Crushing, stealth, dominion generation, ordnances, garrison clearing | A defunct base with Distress Signals holds out while it banks dominion for Informant and Mortar Strike |
+| 3 | [Macroeconomics](03-macroeconomics.md) | Structure and unit production, resource collection, the tech tree, transports | Destroy the Colonial base; each part of it calls for a different tool |
 
 ## Narrative arc
 
-The player's toolkit grows with the faction's situation: a stranded squad, then a field army, then a base, then a claim on the region, then a decisive battle.
+The player's toolkit grows with the Anarchists' situation: a squad caught in someone else's battle, then a cell holding a ruined base, then a war band able to build and take the fight to the Colonials.
 
-- **Missions 1–2 (survival):** the faction is on the back foot, so small forces and no base feel earned, not arbitrary.
-- **Mission 3 (foothold):** the turn from surviving to building; the command centre drop is the story's first moment of initiative.
-- **Missions 4–5 (claim):** the faction starts pursuing its ideology's version of dominion, which is where the game's critique of each faction can start to show.
+- **Mission 1 (in medias res):** no base and no economy, because the player arrives mid-battle with whatever survived.
+- **Mission 2 (holding out):** the base is defunct, so there's no production. The Anarchists' leverage is dominion — their Warlords' following — not industry.
+- **Mission 3 (taking initiative):** the first full base, used for a direct assault.
 
 The arc should end on a hook into the main campaigns, not a full resolution.
 
+## Deliberately left out
+
+Kept out of the prologue to avoid overloading it. Each is either a challenge or main-campaign material.
+
+| Mechanic | Where it goes |
+| --- | --- |
+| Modifier controls (Alt narrow, Ctrl broaden, Shift append), the F1–F3 selector matrix, control groups | [Challenge: controls](../challenges/01-controls.md) |
+| Spatial counters (outpacing projectiles, kiting, turrets), spotting | [Challenge: spatial counters and spotting](../challenges/02-spatial-counters-and-spotting.md) |
+| Requisition | [Challenge: requisition](../challenges/03-requisition.md) |
+| Command centre drop and the free extractor drops | Main campaign or skirmish onboarding; the prologue starts players with a base (see mission 3's open questions) |
+| Anarchist signature mechanics (disable/EMP, scavenging), the Hijacker, Dignify, Ambush, Scavenge | Main campaign |
+| Shelters, static defence design, upgrades, aerial rearm, alliances, superweapons | Main campaign |
+
 ## Open questions
 
-- [ ] Which faction does the player control in the prologue? One faction throughout, or a short look at several?
-- [ ] Who is the enemy faction, and does it stay the same across all five missions?
-- [ ] Where do scenario files live in the repo, so each mission doc can link to its file?
-- [ ] Is HEGEMONY the win condition anywhere in the prologue, or are all five scripted objectives?
-- [ ] Should sanctions (mission 4) and the signature mechanic (mission 5) swap, depending on the faction?
+- [ ] Do survivors and veterancy carry over between missions? It ties the missions together, but it snowballs difficulty.
+- [ ] Is the challenge series unlocked after a particular prologue mission, or available from the start?
+- [ ] Is HEGEMONY the win condition in mission 3, or is it a scripted objective?
+- [ ] Some game-wide behaviours will happen before the mission that teaches them. Vehicles crush infantry in mission 1, and destroyed grounded vehicles leave wrecks that Anarchist infantry can scavenge. Suppress these in early missions, or let them happen and only explain them later?
