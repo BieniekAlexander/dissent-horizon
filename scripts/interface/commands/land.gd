@@ -8,19 +8,23 @@ static func requires_position() -> bool:
 	return false
 
 
-## Valid only for HOVERING units that are not already permanently grounded
-## (so the button grays out while the unit is already landed).
-static func meets_precondition(
-	actor: Actor, _message: CommandMessage
-) -> PreconditionFailureCause:
+## Valid only for HOVERING units not already coming down (so the button grays out while the
+## unit is descending or landed — and comes back if a landing never got under way).
+static func meets_precondition(actor: Actor, _message: CommandMessage) -> PreconditionFailureCause:
 	if actor.aerial == null or actor.aerial.mode != Movement.Mode.HOVERING:
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
-	if actor.aerial.is_permanently_grounded():
+	if actor.aerial.is_down_or_descending():
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	return PreconditionFailureCause.NONE
 
 
 #endregion
+
+
+## A Land sets down where the unit is: the move queued before it brakes to its goal, rather
+## than passing through it at speed (CommandReceiver._arrival_for).
+func continues_movement() -> bool:
+	return false
 
 
 #region State updates

@@ -114,9 +114,11 @@ func _formation_offsets(
 	a_units: Array[Actor], a_manager: ScenarioTriggerManager, a_event_commands: Array[EventCommand]
 ) -> Array[Vector3]:
 	var offsets: Array[Vector3] = []
+	# The last point that is a PLACE: a Land has none of its own (it sets down where the chain
+	# has brought the unit), and a point aimed at a commander's unit is where that unit stands.
 	var anchor: EventCommandPoint = null
 	for ec: EventCommand in a_event_commands:
-		if ec is EventCommandPoint:
+		if ec is EventCommandPoint and (ec as EventCommandPoint).command_type != "land":
 			anchor = ec as EventCommandPoint
 	if a_units.size() <= 1 or anchor == null or a_manager.map == null:
 		for _u: Actor in a_units:
@@ -125,7 +127,7 @@ func _formation_offsets(
 	var map: Map = a_manager.map
 	var radius: float = a_units[0].bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 	var region_radius: float = maxf(5.0, radius * 2.5 * float(a_units.size()))
-	var anchor_xz: Vector2 = VU.in_xz(anchor.global_position)
+	var anchor_xz: Vector2 = VU.in_xz(anchor.destination(a_manager))
 	var points: Array[Vector2] = SU.get_nonoverlapping_points(
 		map,
 		anchor_xz,

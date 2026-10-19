@@ -172,8 +172,8 @@ const ENEMY_WAVE_TARGET := Vector2(0, 0)
 ##   attack-move down the lane at the player the moment a player's unit enters the buildings'
 ##   region;
 ## - at the lane's end, 3 SAM sites with 2 Compounds among them (2 of the player's Irregulars
-##   in each, no hazards — the player brings them down by force), and 3 of the ally's Ravens
-##   parked on the ground, which become the player's when all three SAM sites are down.
+##   in each, no hazards — the player brings them down by force). When all three SAM sites are
+##   down, 3 Ravens of the player's fly in from off the map and land beside the player.
 const SOUTH_PRISONS: Array[Vector2] = [Vector2(8, -32), Vector2(20, -32)]
 const SOUTH_PRISON_CAPACITY: int = 4
 const LANE_GUARD := Vector2(36, -32)
@@ -194,7 +194,13 @@ const SAM_SITES: Array[Vector2] = [Vector2(76, -32), Vector2(85, -26.5), Vector2
 const END_COMPOUNDS: Array[Vector2] = [Vector2(80, -28.5), Vector2(80, -35.5)]
 const END_COMPOUND_PRISONERS: int = 2
 const RAVENS: int = 3
-const RAVENS_AT := Vector2(87, -32)
+## Where the Ravens come from — past the lane's end, off the map (the play area ends about 97
+## along) — and where the search for the player's unit they land beside starts: the SAM field,
+## where the player is when the last site falls.
+const RAVENS_FROM := Vector2(106, -32)
+const RAVENS_LAND_NEAR := Vector2(80, -32)
+## How far from that unit, back toward the SAM field, they set down.
+const RAVENS_STANDOFF: float = 5.0
 const RAVEN_GROUP: StringName = &"prologue_m1_ravens"
 
 var _counts: Dictionary = {}
@@ -461,30 +467,41 @@ func _south_lane(a_manager: Node) -> void:
 	a_manager.add_child(chargers)
 	_add_rule(chargers, "Charge", TacticRule.Action.ASSAULT, CHARGE_TARGET, _fired(charge.name))
 
-	var parked := GlobalTrigger.new()
-	parked.name = "RavensParked"
-	a_manager.add_child(parked)
-	var ravens := EventSpawnEntities.new()
-	ravens.name = "Ravens"
-	ravens.commander_id = ALLY
-	ravens.entity_scenes = [load(RAVEN) as PackedScene]
-	ravens.count_expression = str(RAVENS)
-	ravens.spawn_groups = [RAVEN_GROUP]
-	ravens.spawn_landed = true
-	parked.add_child(ravens)
-	ravens.position = MissionLane.to_world(RAVENS_AT.x, RAVENS_AT.y)
-	var handover := GlobalTrigger.new()
-	handover.name = "RavensHandedOver"
+	# When the SAM sites are down, three Ravens of the player's fly in from beyond the lane's end
+	# and land beside the player's nearest unit (Alex, 2026-10-18).
+	var arrive := GlobalTrigger.new()
+	arrive.name = "RavensArrive"
 	var sams_down: Array[Condition] = []
 	for i: int in SAM_SITES.size():
 		sams_down.append(_killed("SamSite%d" % (i + 1)))
-	handover.conditions = sams_down
-	a_manager.add_child(handover)
-	var transfer := EventTransferOwnership.new()
-	transfer.name = "GiveRavens"
-	transfer.group = RAVEN_GROUP
-	transfer.commander_id = PLAYER
-	handover.add_child(transfer)
+	arrive.conditions = sams_down
+	a_manager.add_child(arrive)
+	var ravens := EventSpawnEntities.new()
+	ravens.name = "Ravens"
+	ravens.commander_id = PLAYER
+	ravens.entity_scenes = [load(RAVEN) as PackedScene]
+	ravens.count_expression = str(RAVENS)
+	ravens.spawn_groups = [RAVEN_GROUP]
+	arrive.add_child(ravens)
+	ravens.position = MissionLane.to_world(RAVENS_FROM.x, RAVENS_FROM.y)
+	var orders := EventIssueCommand.new()
+	orders.name = "Orders"
+	ravens.add_child(orders)
+	var fly_in := EventCommandPoint.new()
+	fly_in.name = "FlyIn"
+	fly_in.command_type = "move"
+	fly_in.near_commander_id = PLAYER
+	fly_in.near_standoff = RAVENS_STANDOFF
+	orders.add_child(fly_in)
+	# Relative to the spawn event above it, which stands at RAVENS_FROM.
+	fly_in.position = (
+		MissionLane.to_world(RAVENS_LAND_NEAR.x, RAVENS_LAND_NEAR.y)
+		- MissionLane.to_world(RAVENS_FROM.x, RAVENS_FROM.y)
+	)
+	var land := EventCommandPoint.new()
+	land.name = "Land"
+	land.command_type = "land"
+	orders.add_child(land)
 
 
 ## The beats after the opening (see PLAYER_START): five triggers, the squad's tactic and the

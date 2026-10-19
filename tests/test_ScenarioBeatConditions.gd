@@ -172,3 +172,38 @@ func test_an_aircraft_landed_in_place_is_down_and_stays_down() -> void:
 	assert_false(raven.aerial.is_airborne())
 	assert_true(raven.aerial.is_permanently_grounded(), "and kept there until an order lifts it")
 	assert_false(raven.aerial.is_docked(), "in a field, not on a pad")
+
+
+# --- EventCommandPoint: land, and aiming at a commander's nearest unit -----------------------
+
+
+func test_a_land_point_makes_a_land_order() -> void:
+	var point := EventCommandPoint.new()
+	point.command_type = "land"
+	add_child_autofree(point)
+	assert_true(point.to_command(_manager) is Land)
+
+
+func test_a_point_near_a_commander_aims_beside_its_nearest_unit() -> void:
+	var player := Commander.new()
+	player.id = 1
+	add_child_autofree(player)
+	var scenario := Scenario.new()
+	scenario.commanders = [player]
+	autofree(scenario)
+	_manager.scenario = scenario
+	var near: Actor = _piece(UNIT, 1)
+	near.ownership.commander = player
+	near.add_to_group("unit")
+	near.global_position = Vector3(10, 0, 0)
+	var far: Actor = _piece(UNIT, 1)
+	far.ownership.commander = player
+	far.add_to_group("unit")
+	far.global_position = Vector3(40, 0, 0)
+	var point := EventCommandPoint.new()
+	point.near_commander_id = 1
+	add_child_autofree(point)
+	point.global_position = Vector3(0, 0, 0)
+	assert_almost_eq(point.destination(_manager).x, 10.0, 0.001, "the nearest unit's place")
+	point.near_standoff = 4.0
+	assert_almost_eq(point.destination(_manager).x, 6.0, 0.001, "4 short of it, toward the point")

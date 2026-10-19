@@ -88,9 +88,11 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
        attack-move west down the lane the moment a player's unit enters the buildings' region;
      - at the lane's end, 3 [SAM sites](../../factions/colonial/structures/cl_defense_antiAircraft.md)
        with 2 Compounds among them, each holding 2 of the player's Irregulars (no hazards: the
-       player brings them down by force), and
-       3 of the ally's [Ravens](../../factions/anarchical/units/an_aircraftLight_transport.md)
-       parked on the ground. When all three SAM sites are down the Ravens become the player's.
+       player brings them down by force). When all three SAM sites are down, 3
+       [Ravens](../../factions/anarchical/units/an_aircraftLight_transport.md) of the player's
+       fly in from off the map, beyond the lane's end, and land about 5 from the player's unit
+       nearest the SAM field (Alex, 2026-10-18; they were the ally's, parked there and handed
+       over, before).
 - **Statics:**
   - Ally (west): [Safehouses](../../factions/anarchical/structures/an_infrastructure.md), each
     garrisoned with [Irregulars](../../factions/anarchical/units/an_bioLight_builder.md) from the
