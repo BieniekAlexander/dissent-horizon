@@ -637,28 +637,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 91.216774, 0, -31.819805)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.145706, 0, -14.849242)
 default_commander_id = 3
 
-[node name="BaseSam2" parent="." unique_id=1682253427 instance=ExtResource("21_pgyre")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.3381, 0, -22.627417)
-default_commander_id = 3
-
 [node name="BaseSam3" parent="." unique_id=588188438 instance=ExtResource("21_pgyre")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.82338, 0, -45.254833)
 default_commander_id = 3
 
 [node name="BaseSam4" parent="." unique_id=1159678841 instance=ExtResource("21_pgyre")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.225395, 0, -33.941124)
-default_commander_id = 3
-
-[node name="BaseSam5" parent="." unique_id=938940943 instance=ExtResource("21_pgyre")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.681244, 0, -59.39697)
-default_commander_id = 3
-
-[node name="BaseSam6" parent="." unique_id=2058209288 instance=ExtResource("21_pgyre")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.12489, 0, -38.183765)
-default_commander_id = 3
-
-[node name="BaseSam7" parent="." unique_id=315799926 instance=ExtResource("21_pgyre")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82.02438, 0, -48.08326)
 default_commander_id = 3
 
 [node name="BaseSam8" parent="." unique_id=877048116 instance=ExtResource("21_pgyre")]
@@ -677,40 +661,20 @@ default_commander_id = 3
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 91.92388, 0, -39.59798)
 default_commander_id = 3
 
-[node name="BaseCompound2" parent="." unique_id=541240011 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.681244, 0, -52.3259)
-default_commander_id = 3
-
 [node name="BaseCompound3" parent="." unique_id=1499845994 instance=ExtResource("16_6xnme")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57.982758, 0, -39.59798)
-default_commander_id = 3
-
-[node name="BaseCompound4" parent="." unique_id=722026422 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.71068, 0, -52.3259)
 default_commander_id = 3
 
 [node name="BaseCompound5" parent="." unique_id=1875731810 instance=ExtResource("16_6xnme")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.01219, 0, -56.568542)
 default_commander_id = 3
 
-[node name="BaseCompound6" parent="." unique_id=1714855544 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.254833, 0, -60.811184)
-default_commander_id = 3
-
 [node name="BaseCompound7" parent="." unique_id=1351017829 instance=ExtResource("16_6xnme")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.497475, 0, -65.053825)
 default_commander_id = 3
 
-[node name="BaseCompound8" parent="." unique_id=656335050 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.740116, 0, -69.29646)
-default_commander_id = 3
-
 [node name="BaseCompound9" parent="." unique_id=1543475940 instance=ExtResource("16_6xnme")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57.982758, 0, -73.53911)
-default_commander_id = 3
-
-[node name="BaseCompound10" parent="." unique_id=1944506232 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.225395, 0, -77.781746)
 default_commander_id = 3
 
 [node name="BaseCompound11" parent="." unique_id=1243411460 instance=ExtResource("16_6xnme")]
@@ -725,44 +689,16 @@ default_commander_id = 3
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.04163, 0, -73.53911)
 default_commander_id = 3
 
-[node name="BaseCompound14" parent="." unique_id=157316614 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.284271, 0, -77.781746)
-default_commander_id = 3
-
 [node name="BaseCompound15" parent="." unique_id=1207671883 instance=ExtResource("16_6xnme")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.526913, 0, -82.02438)
-default_commander_id = 3
-
-[node name="BaseCompound16" parent="." unique_id=742788652 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.769554, 0, -86.26703)
 default_commander_id = 3
 
 [node name="BaseCompound17" parent="." unique_id=347724803 instance=ExtResource("16_6xnme")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.01219, 0, -90.50967)
 default_commander_id = 3
 
-[node name="BaseCompound18" parent="." unique_id=2006728665 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.254833, 0, -94.75231)
-default_commander_id = 3
-
-[node name="BaseCompound19" parent="." unique_id=707197231 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.4386, 0, -22.627417)
-default_commander_id = 3
-
-[node name="BaseCompound20" parent="." unique_id=1292890976 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.953316, 0, -48.08326)
-default_commander_id = 3
-
-[node name="BaseCompound21" parent="." unique_id=11990296 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.740116, 0, -60.811184)
-default_commander_id = 3
-
 [node name="BaseCompound22" parent="." unique_id=1521459116 instance=ExtResource("16_6xnme")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57.982758, 0, -65.053825)
-default_commander_id = 3
-
-[node name="BaseCompound23" parent="." unique_id=184698795 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.225395, 0, -69.29646)
 default_commander_id = 3
 
 [node name="BaseCompound24" parent="." unique_id=1791560607 instance=ExtResource("16_6xnme")]

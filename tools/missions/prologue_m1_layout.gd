@@ -232,12 +232,8 @@ const BASE_AIRFIELDS: Array[Vector2] = [Vector2(130, 30), Vector2(128, -34)]
 const BASE_BUILDING_GROUPS: Array[Vector2] = [Vector2(104, 12), Vector2(134, 6), Vector2(116, -30)]
 const BASE_SAMS: Array[Vector2] = [
 	Vector2(104, -37),
-	Vector2(116, -38),
 	Vector2(138, -28),
 	Vector2(102, -8),
-	Vector2(138, -8),
-	Vector2(112, -12),
-	Vector2(126, -12),
 	Vector2(110, 2),
 	Vector2(128, 0),
 	Vector2(120, -22),
@@ -246,8 +242,10 @@ const BASE_SAMS: Array[Vector2] = [
 ## else stands (_base_compound_spots). HOW MANY is the infrastructure ledger's (Alex,
 ## 2026-10-18): one enemy pool, sized so that, with the four prisons and the two lane-end
 ## Compounds already destroyed — the route the player takes to get here — the base goes
-## defective once 14 of its 24 Compounds are lost (58%). See _report_infrastructure.
-const BASE_COMPOUNDS: int = 24
+## defective once 4 of its 12 Compounds are lost (33%; Alex asked for about 30%, 2026-10-19,
+## and 11 would be 3 of 11). See _report_infrastructure. The shipped scene's 12 were thinned by
+## hand from the first build's 24, evenly across the rows, so a rebuild places them differently.
+const BASE_COMPOUNDS: int = 12
 const BASE_REGION := Rect2(100, -40, 40, 96)
 const BASE_GRID_STEP: float = 6.0
 ## Clearance a Compound keeps from every other piece the base places, centre to centre.

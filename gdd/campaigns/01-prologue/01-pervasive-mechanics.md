@@ -105,15 +105,16 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
        corridors open onto. It has:
        - a Citadel in the centre, 3 Barracks and 2 Sky Ports spread through it;
        - 3 groups of neutral buildings;
-       - 10 SAM sites and 24 empty Compounds.
+       - 6 SAM sites and 12 empty Compounds (2026-10-19; were 10 and 24).
 
        The two southern corridors are covered by SAM sites. The top one, past the Watch
        Towers' field, has none, and no base SAM site reaches the base's northern third: that is
        the gap to fly in by.
      - **Infrastructure**, one enemy pool (Alex, 2026-10-18). The base's Compound count is sized
        so that, with the four prisons and the two lane-end Compounds already destroyed (the route
-       here), the enemy goes defective once 14 of the 24 are lost (58%). Its SAM sites then stop
-       firing. The layout builder prints this ledger whenever it runs.
+       here), the enemy goes defective once 4 of the 12 are lost (33%; asked for about 30%,
+       2026-10-19). Its SAM sites then stop firing. The layout builder prints this ledger
+       whenever it runs.
      - TODO: no dialogs, objectives, or win condition for the phase yet.
 - **Statics:**
   - Ally (west): [Safehouses](../../factions/anarchical/structures/an_infrastructure.md), each
