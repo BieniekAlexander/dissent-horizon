@@ -118,9 +118,12 @@ The macro valuation (demand map → strength per energy → savings) is one addi
 
 ## Combat
 
-### T-013 · Should aggro rise for long-reach pieces? #effort/low #needs-input
+### T-013 · Should aggro rise for long-reach pieces? #effort/low #scoped #done
 `AGGRO_MAX_RADIUS` sits below both artillery classes and below `ground_range_long` / `air_range_long`, so a target in that band is never picked up idle.
 → [combat/range-buckets](systems/combat/range-buckets.md) §Asymmetries between the families
+
+> [!check] Status — 2026-10-19
+> Obsolete by request: aggro is now the reach itself (floored at `ground_range_short`), with no ceiling, so the band is gone; a 5-unit SC2-style leash bounds the chase instead. Rule in [combat/range-buckets](systems/combat/range-buckets.md) §Aggro is derived from reach and [combat/target-acquisition](systems/combat/target-acquisition.md) §The leash.
 
 ### T-014 · Which units out-see structures? #effort/low #needs-input
 Meant to be rare; which unit vision bucket, if any, sits above `vision_ground_large`.

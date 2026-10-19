@@ -2,9 +2,9 @@ class_name RangeShapes
 extends RefCounted
 
 ## The volumes that measure how far a piece reaches, and the rule that derives its AGGRO from
-## that reach. Aggro is never authored: a piece picks fights at a radius its weapons imply, per
-## target layer, so retuning a reach bucket moves the engagement radius with it. Why, and the
-## history: gdd/systems/combat/range-buckets.md.
+## that reach. Aggro is never authored: a piece picks fights at its reach, per target layer, so
+## retuning a reach bucket moves the engagement radius with it. Why, and the history:
+## gdd/systems/combat/range-buckets.md.
 
 ## The height of every range volume — weapon reach, aggro, vision and the bodies. Far taller
 ## than the world so that a slope or a flier's cruise altitude never decides an overlap; only
@@ -23,10 +23,21 @@ static func artillery_reach() -> float:
 	return radius_of(load(ARTILLERY_SHAPE_PATH) as Shape3D)
 
 
-## The aggro rule: one unit past reach, never below MIN nor above MAX.
-const AGGRO_MARGIN: float = 1.0
-const AGGRO_MIN_RADIUS: float = 5.0
-const AGGRO_MAX_RADIUS: float = 10.0
+## The aggro rule (Alex, 2026-10-19): a piece picks fights at its REACH, per target layer — no
+## margin past it, no floor or ceiling around it — except that a reach shorter than the
+## `ground_range_short` bucket aggros at that bucket, so a melee piece notices what is about to
+## reach it. The floor is read from the imported shape, so retuning the bucket moves it.
+const AGGRO_FLOOR_SHAPE_PATH: String = "res://resources/generated/shapes/ground_range_short.tres"
+
+
+## The aggro floor in world units (see AGGRO_FLOOR_SHAPE_PATH); 0.0 when the shape is missing.
+static func aggro_floor() -> float:
+	if _aggro_floor < 0.0:
+		_aggro_floor = maxf(radius_of(load(AGGRO_FLOOR_SHAPE_PATH) as Shape3D), 0.0)
+	return _aggro_floor
+
+
+static var _aggro_floor: float = -1.0
 
 ## One shared cylinder per aggro radius, so every piece with the same reach holds the same
 ## resource — the runtime counterpart of the reach-bucket library. Memoized because a shape
@@ -34,16 +45,16 @@ const AGGRO_MAX_RADIUS: float = 10.0
 static var _aggro_shapes: Dictionary = {}
 
 
-## The aggro radius a reach implies, or -1.0 for no reach at all.
+## The aggro radius a reach implies, or -1.0 for no reach at all: the reach itself, or the
+## aggro floor for a reach under it.
 ##
-## A piece that CANNOT MOVE is additionally held to its reach: it cannot walk toward what it
-## latches onto, so acquiring past reach would lock it onto a target it can never fire on
-## (see Attack.get_updated_state's stationary leash).
+## A piece that CANNOT MOVE takes no floor: it cannot walk toward what it latches onto, so
+## acquiring past reach would lock it onto a target it can never fire on (see
+## Attack.get_updated_state's stationary leash).
 static func aggro_radius_for_reach(reach: float, can_move: bool) -> float:
 	if reach < 0.0:
 		return -1.0
-	var radius: float = clampf(reach + AGGRO_MARGIN, AGGRO_MIN_RADIUS, AGGRO_MAX_RADIUS)
-	return radius if can_move else minf(radius, reach)
+	return maxf(reach, aggro_floor()) if can_move else reach
 
 
 ## The shared aggro shape for a reach, or null for no reach.

@@ -922,6 +922,7 @@ func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
 	):
 		var attack_cmd: MoveCommand = _retaliation_against(a_from)
 		if attack_cmd != null:
+			_leash_to_here(attack_cmd)
 			update_commands(attack_cmd)
 
 
@@ -1320,9 +1321,17 @@ func simulation_decide() -> void:
 		return
 	if is_built and command_receiver.is_idle() and can_use_weapons():
 		_decided_aggro = get_aggro_near_position()
+		_leash_to_here(_decided_aggro)
 	var current: MoveCommand = current_command()
 	if current != null:
 		current.decide(self)
+
+
+## Leash `a_attack`, one this piece took up on its own, to where it stands now (see
+## CommandMessage.leash_origin). A no-op for null.
+func _leash_to_here(a_attack: MoveCommand) -> void:
+	if a_attack != null:
+		a_attack.message.leash_origin = global_position
 
 
 ## The attack decided this tick, if its target is still one to start on now; once only.

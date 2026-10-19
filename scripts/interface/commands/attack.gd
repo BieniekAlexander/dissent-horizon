@@ -7,9 +7,7 @@ static func requires_position() -> bool:
 	return true
 
 
-static func meets_precondition(
-	actor: Actor, message: CommandMessage
-) -> PreconditionFailureCause:
+static func meets_precondition(actor: Actor, message: CommandMessage) -> PreconditionFailureCause:
 	if not _target_attackable(message):
 		return PreconditionFailureCause.UNENUMERATED_FAILURE_CAUSE
 	if actor == null:
@@ -314,6 +312,8 @@ func _is_obstructed(a_actor: Actor) -> bool:
 
 func get_updated_state(a_actor: Actor) -> Variant:
 	## Potentially return a new command based on a state check.
+	if has_left_leash(a_actor):
+		return _back_to_leash_origin()
 	var is_wanted: bool = (
 		_decided_keep and _target_in_play() if has_decided() else _is_still_wanted(a_actor)
 	)
@@ -326,6 +326,29 @@ func get_updated_state(a_actor: Actor) -> Variant:
 func apply_state(a_actor: Actor) -> void:
 	_update_flying_dive(a_actor)
 	_update_facing(a_actor)
+
+
+## How far a piece that took up an attack on its own may stray from where it stood
+## (CommandMessage.leash_origin) before it gives up and walks back. Universal for now (Alex,
+## 2026-10-19). gdd/systems/combat/target-acquisition.md §The leash.
+const LEASH_DISTANCE: float = 5.0
+
+
+## Whether this attack has pulled its piece past the leash: one it took up on its own, by a
+## piece that moves, now more than LEASH_DISTANCE from where it stood.
+func has_left_leash(a_actor: Actor) -> bool:
+	var origin: Variant = message.leash_origin
+	if not (origin is Vector3) or not a_actor.can_move():
+		return false
+	return (
+		VU.in_xz(a_actor.global_position).distance_squared_to(VU.in_xz(origin))
+		> LEASH_DISTANCE * LEASH_DISTANCE
+	)
+
+
+## The walk back to where the piece stood when it took this attack up.
+func _back_to_leash_origin() -> MoveCommand:
+	return MoveCommand.new(CommandMessage.new(message.map, null, null, message.leash_origin))
 
 
 ## Whether the target still exists in the world: the part of _is_still_wanted that an earlier
