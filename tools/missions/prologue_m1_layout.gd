@@ -343,6 +343,7 @@ func _ready() -> void:
 	_south_lane(manager)
 
 	_report_infrastructure(root)
+	_seat_on_terrain(root)
 	_save(root)
 	get_tree().quit(0)
 
@@ -576,6 +577,34 @@ func _report_infrastructure(a_root: Node) -> void:
 			)
 		)
 	)
+
+
+## Stores every piece at the height of the ground under it. The game re-seats a piece on load
+## either way (Map.add_structure, the per-tick snap), but a piece stored at 0 on the mesa (3 up)
+## is drawn buried in the editor (found 2026-10-19). Sampled from TerrainData directly, the same
+## bilinear corner blend as Map.terrain_height_at: the Map is not in the tree here, and its
+## transform is identity.
+func _seat_on_terrain(a_root: Node) -> void:
+	var terrain := load(TERRAIN) as TerrainData
+	var half := Vector2(terrain.map_width() - 1, terrain.map_depth() - 1) * 0.5
+	for node: Node in a_root.get_children():
+		var piece := node as Entity
+		if piece == null:
+			continue
+		var at := Vector2(
+			clampf(piece.position.x + half.x, 0.0, half.x * 2.0),
+			clampf(piece.position.z + half.y, 0.0, half.y * 2.0)
+		)
+		var c0 := Vector2i(floori(at.x), floori(at.y))
+		var c1 := Vector2i(mini(c0.x + 1, int(half.x * 2.0)), mini(c0.y + 1, int(half.y * 2.0)))
+		var f: Vector2 = at - Vector2(c0)
+		var top: float = lerpf(
+			terrain.corner_height(c0), terrain.corner_height(Vector2i(c1.x, c0.y)), f.x
+		)
+		var bottom: float = lerpf(
+			terrain.corner_height(Vector2i(c0.x, c1.y)), terrain.corner_height(c1), f.x
+		)
+		piece.position.y = lerpf(top, bottom, f.y)
 
 
 ## A neutral piece at Map-local world position `a_world`.

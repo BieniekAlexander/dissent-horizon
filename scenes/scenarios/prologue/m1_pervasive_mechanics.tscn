@@ -516,70 +516,70 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.819805, 0, -4.9497476)
 default_commander_id = 3
 
 [node name="OutpostSam1" parent="." unique_id=1509713907 instance=ExtResource("21_pgyre")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58.68986, 0, 34.64823)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58.68986, 3, 34.64823)
 default_commander_id = 3
 
 [node name="OutpostSam2" parent="." unique_id=1777975645 instance=ExtResource("21_pgyre")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.104076, 0, 50.204582)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.104076, 3, 50.204582)
 default_commander_id = 3
 
 [node name="OutpostBuilding1" parent="." unique_id=829911791 instance=ExtResource("11_hn7id")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.29646, 0, 43.840622)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.29646, 3, 43.840622)
 
 [node name="OutpostBuilding2" parent="." unique_id=1718268750 instance=ExtResource("19_0duxq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65.053825, 0, 48.08326)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65.053825, 3, 48.08326)
 
 [node name="OutpostBuilding3" parent="." unique_id=476608129 instance=ExtResource("20_nhjqn")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.63961, 0, 42.426407)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.63961, 3, 42.426407)
 
 [node name="OutpostBarracks1" parent="." unique_id=2040896113 instance=ExtResource("22_hegk3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.39697, 0, 42.426407)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.39697, 3, 42.426407)
 default_commander_id = 3
 
 [node name="OutpostSam3" parent="." unique_id=1852734057 instance=ExtResource("21_pgyre")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.062447, 0, 37.476658)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.062447, 3, 37.476658)
 default_commander_id = 3
 
 [node name="OutpostSam4" parent="." unique_id=924556689 instance=ExtResource("21_pgyre")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.476658, 0, 53.03301)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.476658, 3, 53.03301)
 default_commander_id = 3
 
 [node name="OutpostBuilding4" parent="." unique_id=476911243 instance=ExtResource("11_hn7id")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.66905, 0, 46.66905)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.66905, 3, 46.66905)
 
 [node name="OutpostBuilding5" parent="." unique_id=1681706640 instance=ExtResource("19_0duxq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42.426407, 0, 50.91169)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42.426407, 3, 50.91169)
 
 [node name="OutpostBuilding6" parent="." unique_id=1413491104 instance=ExtResource("20_nhjqn")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.01219, 0, 45.254833)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.01219, 3, 45.254833)
 
 [node name="OutpostCompound1" parent="." unique_id=1236124823 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.244427, 0, 42.77996)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.244427, 3, 42.77996)
 default_commander_id = 3
 
 [node name="OutpostCompound2" parent="." unique_id=915072400 instance=ExtResource("16_6xnme")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.294678, 0, 47.72971)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.294678, 3, 47.72971)
 default_commander_id = 3
 
 [node name="OutpostSam5" parent="." unique_id=194141511 instance=ExtResource("21_pgyre")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.991379, 0, 61.51829)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.991379, 3, 61.51829)
 default_commander_id = 3
 
 [node name="OutpostSam6" parent="." unique_id=1408298920 instance=ExtResource("21_pgyre")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.405592, 0, 77.07464)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.405592, 3, 77.07464)
 default_commander_id = 3
 
 [node name="OutpostBuilding7" parent="." unique_id=674348663 instance=ExtResource("11_hn7id")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.59798, 0, 70.71068)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.59798, 3, 70.71068)
 
 [node name="OutpostBuilding8" parent="." unique_id=290362353 instance=ExtResource("19_0duxq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.35534, 0, 74.953316)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.35534, 3, 74.953316)
 
 [node name="OutpostBuilding9" parent="." unique_id=853987145 instance=ExtResource("20_nhjqn")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33.941124, 0, 69.29646)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33.941124, 3, 69.29646)
 
 [node name="OutpostAirfield1" parent="." unique_id=412375293 instance=ExtResource("23_12nwp")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.698484, 0, 69.29646)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.698484, 3, 69.29646)
 default_commander_id = 3
 
 [node name="Citadel1" parent="." unique_id=1758607150 instance=ExtResource("24_hhunv")]
