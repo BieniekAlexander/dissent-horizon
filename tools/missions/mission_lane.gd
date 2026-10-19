@@ -12,10 +12,10 @@ extends RefCounted
 ## (to_world), so the frame is stated once.
 
 ## The play rectangle, in diamonds: `.x` its on-screen height, `.y` its on-screen width. Sized to
-## the terrain tool's regions plus a 6-unit hillside margin: about 175 along x 119 across.
-const PLAY_SIZE: Vector2i = Vector2i(84, 124)
+## the terrain tool's regions plus a 6-unit hillside margin: about 226 along x 119 across.
+const PLAY_SIZE: Vector2i = Vector2i(84, 160)
 ## The play rectangle's centre in this frame, in world units.
-const CENTRE := Vector2(9.0, 12.0)
+const CENTRE := Vector2(34.0, 12.0)
 
 
 ## The Map-local world position `a_along` east and `a_across` north of the main corridor's

@@ -22,7 +22,11 @@ extends SceneTree
 ## takes cover in, into FORK. From FORK, the Watch Towers' TOWER_FIELD lies east — open ground,
 ## with BEYOND, an empty lane, past it — and the narrow SOUTH_PASSAGE drops into MAIN, the
 ## west–east corridor the waves fight in. From MAIN's west end LANE_LINK drops south into
-## SOUTH_LANE, a second west–east lane (added 2026-10-18). START does not open onto MAIN.
+## SOUTH_LANE, a second west–east lane (added 2026-10-18). East of everything, the enemy's
+## BASE joins the ends of all three west–east corridors: BEYOND (by BEYOND_EAST), MAIN (by
+## MAIN_EAST) and SOUTH_LANE. Between WEST and MAIN the hill country's flat top is a MESA that
+## no ground unit reaches; the enemy's outposts there are reached by air. START does not open
+## onto MAIN.
 ## `_verify_route` checks exactly that.
 ##
 ## TODO — cover, chokes and high ground inside the regions are undecided.
@@ -46,13 +50,18 @@ const REGIONS: Dictionary = {
 	"BEYOND": Rect2(66, 42, 18, 12),
 	"SOUTH_PASSAGE": Rect2(20, 9, 5, 21),
 	"LANE_LINK": Rect2(-10, -24, 10, 15),
-	"SOUTH_LANE": Rect2(-10, -40, 100, 16),
+	"SOUTH_LANE": Rect2(-10, -40, 110, 16),
+	"MAIN_EAST": Rect2(70, -9, 30, 18),
+	"BEYOND_EAST": Rect2(84, 42, 16, 12),
+	"BASE": Rect2(100, -40, 40, 96),
 }
 ## Where the flood fill of walkable ground starts.
 const ROUTE_START: String = "START"
 ## Regions the route must never reach directly from START without the rest of the route between
-## them: checked as "START's flood, with SOUTH_PASSAGE walled off, does not reach MAIN".
-const ROUTE_GATE: String = "SOUTH_PASSAGE"
+## them: checked as "START's flood, with the gates walled off, does not reach MAIN". Since the
+## enemy's BASE joins all three west–east corridors (2026-10-18), the long way round through it
+## is a gate too.
+const ROUTE_GATES: Array[String] = ["SOUTH_PASSAGE", "BASE"]
 const ROUTE_END: String = "MAIN"
 
 ## Hill rise per world unit of run away from the nearest region. 1.0 is a 45° face, so a
@@ -126,9 +135,9 @@ func _height_at(a_lane: Vector2) -> float:
 ## makes the hills hills:
 ## - nothing walkable is reached that lies a full cell outside every region (no way over a hill);
 ## - every region's centre is reached (the route is whole);
-## - with ROUTE_GATE walled off, ROUTE_END is not reached (START does not open onto MAIN).
+## - with ROUTE_GATES walled off, ROUTE_END is not reached (START does not open onto MAIN).
 func _verify_route(a_data: TerrainData) -> bool:
-	var reached: Dictionary = _flood(a_data, "")
+	var reached: Dictionary = _flood(a_data, [])
 	var strays: int = 0
 	for cell: Vector2i in reached:
 		if region_distance(_cell_lane(a_data, cell)) >= 1.0:
@@ -137,7 +146,7 @@ func _verify_route(a_data: TerrainData) -> bool:
 	for name: String in REGIONS:
 		if not reached.has(_lane_cell(a_data, (REGIONS[name] as Rect2).get_center())):
 			missing.append(name)
-	var gated: Dictionary = _flood(a_data, ROUTE_GATE)
+	var gated: Dictionary = _flood(a_data, ROUTE_GATES)
 	var leaks: bool = gated.has(_lane_cell(a_data, (REGIONS[ROUTE_END] as Rect2).get_center()))
 	print(
 		(
@@ -145,16 +154,15 @@ func _verify_route(a_data: TerrainData) -> bool:
 				"route: %d walkable cells reached, %d of them outside the regions (must be 0); "
 				+ "unreached regions %s; %s reachable from %s without %s: %s (must be false)"
 			)
-			% [reached.size(), strays, missing, ROUTE_END, ROUTE_START, ROUTE_GATE, leaks]
+			% [reached.size(), strays, missing, ROUTE_END, ROUTE_START, ROUTE_GATES, leaks]
 		)
 	)
 	return strays == 0 and missing.is_empty() and not leaks
 
 
-## The walkable cells reachable from ROUTE_START, never entering region `a_wall` ("" = none).
-func _flood(a_data: TerrainData, a_wall: String) -> Dictionary:
+## The walkable cells reachable from ROUTE_START, never entering a region in `a_walls`.
+func _flood(a_data: TerrainData, a_walls: Array[String]) -> Dictionary:
 	var start: Vector2i = _lane_cell(a_data, (REGIONS[ROUTE_START] as Rect2).get_center())
-	var wall: Rect2 = REGIONS[a_wall] if REGIONS.has(a_wall) else Rect2()
 	var seen: Dictionary = {start: true}
 	var frontier: Array[Vector2i] = [start]
 	while not frontier.is_empty():
@@ -165,11 +173,19 @@ func _flood(a_data: TerrainData, a_wall: String) -> Dictionary:
 				continue
 			if a_data.cell_height_spread(next) > TerrainGrid.MAX_SLOPE_DIFF:
 				continue
-			if not a_wall.is_empty() and wall.has_point(_cell_lane(a_data, next)):
+			if _in_any(a_walls, _cell_lane(a_data, next)):
 				continue
 			seen[next] = true
 			frontier.append(next)
 	return seen
+
+
+## Whether `a_lane` lies in any of the regions named in `a_names`.
+func _in_any(a_names: Array[String], a_lane: Vector2) -> bool:
+	for name: String in a_names:
+		if (REGIONS[name] as Rect2).has_point(a_lane):
+			return true
+	return false
 
 
 ## The lane position of a cell's centre.

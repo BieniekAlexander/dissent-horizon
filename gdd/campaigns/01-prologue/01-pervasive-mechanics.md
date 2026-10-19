@@ -93,6 +93,28 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
        fly in from off the map, beyond the lane's end, and land about 5 from the player's unit
        nearest the SAM field (Alex, 2026-10-18; they were the ally's, parked there and handed
        over, before).
+  9. **The push on the base** (added 2026-10-18). The goal of this phase: the player loads the
+     army into the Ravens, which carry 8 BIO units each, finds a gap in the enemy's air defences,
+     and destroys enough of the base's Compounds to make its defences defective.
+     - **The mesa outposts.** The hill country east of the west corridor has a flat top no ground
+       unit can reach. Three small enemy outposts stand on it, reachable only by air. Each has 2
+       SAM sites and a group of 3 neutral buildings, and one of: a Barracks, 2 empty Compounds,
+       or a Sky Port.
+     - **The main corridor's enemy end** gains 2 SAM sites.
+     - **The main base**, east of the old map edge, which the ends of all three west–east
+       corridors open onto. It has:
+       - a Citadel in the centre, 3 Barracks and 2 Sky Ports spread through it;
+       - 3 groups of neutral buildings;
+       - 10 SAM sites and 24 empty Compounds.
+
+       The two southern corridors are covered by SAM sites. The top one, past the Watch
+       Towers' field, has none, and no base SAM site reaches the base's northern third: that is
+       the gap to fly in by.
+     - **Infrastructure**, one enemy pool (Alex, 2026-10-18). The base's Compound count is sized
+       so that, with the four prisons and the two lane-end Compounds already destroyed (the route
+       here), the enemy goes defective once 14 of the 24 are lost (58%). Its SAM sites then stop
+       firing. The layout builder prints this ledger whenever it runs.
+     - TODO: no dialogs, objectives, or win condition for the phase yet.
 - **Statics:**
   - Ally (west): [Safehouses](../../factions/anarchical/structures/an_infrastructure.md), each
     garrisoned with [Irregulars](../../factions/anarchical/units/an_bioLight_builder.md) from the

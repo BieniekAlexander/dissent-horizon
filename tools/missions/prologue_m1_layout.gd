@@ -31,6 +31,9 @@ const BUILDING_SQUARE: String = "res://scenes/entities/structures/nt/nt_building
 const POWER_CELL: String = "res://scenes/entities/tokens/nt/nt_powerCell.tscn"
 const BATTERY_RACK: String = "res://scenes/entities/structures/nt/nt_batteryRack.tscn"
 const SAM_SITE: String = "res://scenes/entities/structures/cl/cl_defense_antiAircraft.tscn"
+const CITADEL: String = "res://scenes/entities/structures/cl/cl_commandCenter.tscn"
+const BARRACKS: String = "res://scenes/entities/structures/cl/cl_barracks.tscn"
+const AIRFIELD: String = "res://scenes/entities/structures/cl/cl_airField.tscn"
 const RAVEN: String = "res://scenes/entities/units/an/an_aircraftLight_transport.tscn"
 const BUILDING_LONG: String = "res://scenes/entities/structures/nt/nt_building_long.tscn"
 const BUILDING_SHACK: String = "res://scenes/entities/structures/nt/nt_building_shack.tscn"
@@ -193,6 +196,63 @@ const CHARGE_TARGET := Vector2(-4, -32)
 const SAM_SITES: Array[Vector2] = [Vector2(76, -32), Vector2(85, -26.5), Vector2(86, -37.5)]
 const END_COMPOUNDS: Array[Vector2] = [Vector2(80, -28.5), Vector2(80, -35.5)]
 const END_COMPOUND_PRISONERS: int = 2
+## THE PUSH ON THE BASE (Alex, 2026-10-18): the player loads its army into the Ravens (8 BIO
+## each), finds a gap in the enemy's air defences, and destroys enough of the base's Compounds to
+## make its defences defective.
+##
+## Three small enemy OUTPOSTS on the mesa east of the west corridor — the hill country's flat
+## top, which no ground unit can reach (prologue_m1_terrain.gd), so only by air. Each has two SAM
+## sites and a group of neutral buildings, and one each of: a Barracks, two empty Compounds, a
+## Sky Port. Pieces are placed at offsets from the outpost's centre.
+const OUTPOSTS: Array = [
+	[Vector2(-38, 24), "barracks"],
+	[Vector2(-24, 6), "compounds"],
+	[Vector2(-36, -16), "airfield"],
+]
+const OUTPOST_SAMS: Array[Vector2] = [Vector2(6, 5), Vector2(-6, -5)]
+const OUTPOST_COMPOUNDS: Array[Vector2] = [Vector2(0, 3.5), Vector2(0, -3.5)]
+## A group of neutral buildings around its centre: [scene, offset].
+const BUILDING_GROUP: Array = [
+	[BUILDING_SQUARE, Vector2(0, 3)],
+	[BUILDING_LONG, Vector2(0, -3)],
+	[BUILDING_SHACK, Vector2(5, 0)],
+]
+const OUTPOST_BUILDINGS := Vector2(-8, 3)
+## Two more SAM sites at the enemy's end of the main corridor.
+const MAIN_LANE_SAMS: Array[Vector2] = [Vector2(60, 7), Vector2(60, -7)]
+
+## The enemy's MAIN BASE, east of the old map edge (BASE, along 100..140, across -40..56), which
+## the ends of all three west–east corridors open onto. The two southern corridors are covered by
+## SAM sites (the south lane's, the main corridor's); the top one, BEYOND, has none, and every
+## SAM site in the base stands in its southern two thirds (across 12 or less, reach 20), so its
+## northern third is a gap the Ravens can come in by.
+const CITADEL_AT := Vector2(120, 8)
+const BASE_BARRACKS: Array[Vector2] = [Vector2(108, -22), Vector2(132, -20), Vector2(110, 34)]
+const BASE_AIRFIELDS: Array[Vector2] = [Vector2(130, 30), Vector2(128, -34)]
+const BASE_BUILDING_GROUPS: Array[Vector2] = [Vector2(104, 12), Vector2(134, 6), Vector2(116, -30)]
+const BASE_SAMS: Array[Vector2] = [
+	Vector2(104, -37),
+	Vector2(116, -38),
+	Vector2(138, -28),
+	Vector2(102, -8),
+	Vector2(138, -8),
+	Vector2(112, -12),
+	Vector2(126, -12),
+	Vector2(110, 2),
+	Vector2(128, 0),
+	Vector2(120, -22),
+]
+## The base's Compounds, empty, laid out by the builder on a grid over the base wherever nothing
+## else stands (_base_compound_spots). HOW MANY is the infrastructure ledger's (Alex,
+## 2026-10-18): one enemy pool, sized so that, with the four prisons and the two lane-end
+## Compounds already destroyed — the route the player takes to get here — the base goes
+## defective once 14 of its 24 Compounds are lost (58%). See _report_infrastructure.
+const BASE_COMPOUNDS: int = 24
+const BASE_REGION := Rect2(100, -40, 40, 96)
+const BASE_GRID_STEP: float = 6.0
+## Clearance a Compound keeps from every other piece the base places, centre to centre.
+const BASE_CLEARANCE: float = 6.5
+
 const RAVENS: int = 3
 ## Where the Ravens come from — past the lane's end, off the map (the play area ends about 97
 ## along) — and where the search for the player's unit they land beside starts: the SAM field,
@@ -249,6 +309,11 @@ func _ready() -> void:
 		_place(root, entry[0], 0, entry[1], "LaneBuilding")
 	for at: Vector2 in SAM_SITES:
 		_place(root, SAM_SITE, ENEMY, at, "SamSite")
+	for at: Vector2 in MAIN_LANE_SAMS:
+		_place(root, SAM_SITE, ENEMY, at, "LaneSam")
+	for outpost: Array in OUTPOSTS:
+		_outpost_on_mesa(root, outpost[0], outpost[1])
+	_main_base(root)
 	for at: Vector2 in END_COMPOUNDS:
 		_hold(root, at, "EndCompound", PLAYER, [[IRREGULAR, END_COMPOUND_PRISONERS]])
 	var house: Node3D = _place(root, BUILDING_SQUARE, 0, GARRISON_HOUSE, GARRISON_HOUSE_NAME)
@@ -279,6 +344,7 @@ func _ready() -> void:
 	_beats(manager, house)
 	_south_lane(manager)
 
+	_report_infrastructure(root)
 	_save(root)
 	get_tree().quit(0)
 
@@ -390,6 +456,128 @@ func _hold(a_root: Node, a_at: Vector2, a_name: String, a_inside: int, a_content
 		inside.garrison_host = compound as Actor
 		compound.add_child(inside)
 	return compound
+
+
+## One of the mesa OUTPOSTS (see OUTPOSTS): two SAM sites, a group of neutral buildings, and its
+## `a_kind` — a Barracks, two empty Compounds, or a Sky Port — around `a_at`.
+func _outpost_on_mesa(a_root: Node, a_at: Vector2, a_kind: String) -> void:
+	for offset: Vector2 in OUTPOST_SAMS:
+		_place(a_root, SAM_SITE, ENEMY, a_at + offset, "OutpostSam")
+	_building_group(a_root, a_at + OUTPOST_BUILDINGS, "OutpostBuilding")
+	match a_kind:
+		"barracks":
+			_place(a_root, BARRACKS, ENEMY, a_at, "OutpostBarracks")
+		"compounds":
+			for offset: Vector2 in OUTPOST_COMPOUNDS:
+				_place(a_root, COMPOUND, ENEMY, a_at + offset, "OutpostCompound")
+		"airfield":
+			_place(a_root, AIRFIELD, ENEMY, a_at, "OutpostAirfield")
+
+
+## A group of three neutral buildings around `a_at` (BUILDING_GROUP).
+func _building_group(a_root: Node, a_at: Vector2, a_name: String) -> void:
+	for entry: Array in BUILDING_GROUP:
+		_place(a_root, entry[0], 0, a_at + (entry[1] as Vector2), a_name)
+
+
+## The enemy's main base (see CITADEL_AT).
+func _main_base(a_root: Node) -> void:
+	var taken: Array[Vector2] = []
+	_place(a_root, CITADEL, ENEMY, CITADEL_AT, "Citadel")
+	taken.append(CITADEL_AT)
+	for at: Vector2 in BASE_BARRACKS:
+		_place(a_root, BARRACKS, ENEMY, at, "BaseBarracks")
+		taken.append(at)
+	for at: Vector2 in BASE_AIRFIELDS:
+		_place(a_root, AIRFIELD, ENEMY, at, "BaseAirfield")
+		taken.append(at)
+	for at: Vector2 in BASE_BUILDING_GROUPS:
+		_building_group(a_root, at, "BaseBuilding")
+		for entry: Array in BUILDING_GROUP:
+			taken.append(at + (entry[1] as Vector2))
+	for at: Vector2 in BASE_SAMS:
+		_place(a_root, SAM_SITE, ENEMY, at, "BaseSam")
+		taken.append(at)
+	var spots: Array[Vector2] = _base_compound_spots(taken)
+	if spots.size() < BASE_COMPOUNDS:
+		push_error(
+			"prologue_m1_layout: room for %d base Compounds of %d" % [spots.size(), BASE_COMPOUNDS]
+		)
+	for i: int in mini(BASE_COMPOUNDS, spots.size()):
+		_place(a_root, COMPOUND, ENEMY, spots[i], "BaseCompound")
+
+
+## Where the base's Compounds go: a grid over BASE_REGION, inset by half a step, keeping
+## BASE_CLEARANCE from `a_taken` and from each other, spread evenly by taking every other row
+## first. The citadel's footprint is twice a Compound's, so it keeps 2.5 more.
+func _base_compound_spots(a_taken: Array[Vector2]) -> Array[Vector2]:
+	var spots: Array[Vector2] = []
+	var rows: Array[float] = []
+	var y: float = BASE_REGION.position.y + BASE_GRID_STEP * 0.5
+	while y < BASE_REGION.end.y - BASE_GRID_STEP * 0.4:
+		rows.append(y)
+		y += BASE_GRID_STEP
+	for parity: int in 2:
+		for r: int in rows.size():
+			if r % 2 != parity:
+				continue
+			var x: float = BASE_REGION.position.x + BASE_GRID_STEP * 0.5
+			while x < BASE_REGION.end.x - BASE_GRID_STEP * 0.4:
+				var at := Vector2(x, rows[r])
+				if _clear_of(at, a_taken, spots):
+					spots.append(at)
+				x += BASE_GRID_STEP
+	return spots
+
+
+func _clear_of(a_at: Vector2, a_taken: Array[Vector2], a_spots: Array[Vector2]) -> bool:
+	for other: Vector2 in a_taken:
+		var clearance: float = BASE_CLEARANCE + (2.5 if other == CITADEL_AT else 0.0)
+		if a_at.distance_to(other) < clearance:
+			return false
+	for other: Vector2 in a_spots:
+		if a_at.distance_to(other) < BASE_GRID_STEP - 0.1:
+			return false
+	return true
+
+
+## Print the enemy's infrastructure ledger as laid down: what it provides and requires at the
+## start, and how many base Compounds it can lose once the prisons and the lane-end Compounds are
+## gone (the route to the base) before it goes defective.
+func _report_infrastructure(a_root: Node) -> void:
+	# Every commander starts with some capacity of its own (Commander.BASE_INFRASTRUCTURE).
+	var provided: int = Commander.BASE_INFRASTRUCTURE
+	var required: int = 0
+	var prisons: int = 0
+	for node: Node in a_root.get_children():
+		var piece := node as Actor
+		if piece == null or int(piece.get("default_commander_id")) != ENEMY:
+			continue
+		var value: int = int(piece.get("infrastructure"))
+		if value > 0:
+			provided += value
+		else:
+			required -= value
+		if piece.name.begins_with("PrisonCompound") or piece.name.begins_with("EndCompound"):
+			prisons += value
+	var on_arrival: int = provided - prisons
+	var spare: int = on_arrival - required
+	print(
+		(
+			(
+				"[prologue_m1_layout] enemy infrastructure: provides %d, requires %d at the start; "
+				% [provided, required]
+			)
+			+ (
+				"on reaching the base (prisons and lane-end Compounds gone) %d spare, so the base "
+				% spare
+			)
+			+ (
+				"goes defective after losing %d of %d Compounds"
+				% [floori(spare / 100.0) + 1, BASE_COMPOUNDS]
+			)
+		)
+	)
 
 
 ## A neutral piece at Map-local world position `a_world`.

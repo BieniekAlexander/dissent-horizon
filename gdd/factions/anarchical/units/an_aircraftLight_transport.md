@@ -17,5 +17,6 @@ senses:
 movement: {speed: SWIFT, turn_rate: 180, max_acceleration: 4.65, max_deceleration: -7, reverse_speed_ratio: 0.35}
 aerial: {mode: HOVERING}
 docking: true
+garrison: {bunker: false, capacity: 8, frames: [BIO]}
 ui: {grid: [1, 1], factions: [anarchists]}
 ---
