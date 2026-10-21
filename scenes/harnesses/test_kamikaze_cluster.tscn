@@ -1,0 +1,104 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/scenario/simulation_scenario.gd" id="1_w4w3b"]
+[ext_resource type="Script" path="res://scripts/scenario/simulation_expectation.gd" id="2_srw4v"]
+[ext_resource type="Script" path="res://scripts/scenario/conditions/condition_unit_has_command.gd" id="3_7rjbc"]
+[ext_resource type="Script" path="res://scripts/interface/commander/player_slot.gd" id="4_7o2eu"]
+[ext_resource type="PackedScene" path="res://scenes/factions/anarchical.tscn" id="5_08bua"]
+[ext_resource type="Script" path="res://scripts/maps/map.gd" id="6_gpwq1"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/an_aircraftLight_antiMech.tscn" id="7_uj353"]
+[ext_resource type="PackedScene" path="res://scenes/entities/units/an/an_bioLight_builder.tscn" id="8_ry1v2"]
+
+[sub_resource type="Resource" id="Resource_qn6ui"]
+script = ExtResource("3_7rjbc")
+unit_type = &"an_aircraftLight_antiMech"
+
+[sub_resource type="Resource" id="Resource_655ja"]
+script = ExtResource("2_srw4v")
+description = "kamikaze attacks the cluster within 300 ticks"
+condition = SubResource("Resource_qn6ui")
+deadline_ticks = 300
+
+[sub_resource type="Resource" id="Resource_opf7l"]
+script = ExtResource("4_7o2eu")
+faction = ExtResource("5_08bua")
+starting_dominion = 0
+
+[sub_resource type="Resource" id="Resource_jycaq"]
+script = ExtResource("4_7o2eu")
+faction = ExtResource("5_08bua")
+difficulty = 0
+starting_energy = 0
+starting_dominion = 0
+
+[sub_resource type="HeightMapShape3D" id="HeightMapShape3D_ckcty"]
+map_width = 21
+map_depth = 21
+map_data = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_b702h"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_47521"]
+shading_mode = 0
+albedo_color = Color(0.3, 0.32, 0.28, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_vufjg"]
+size = Vector2(20, 20)
+
+[node name="TestKamikazeCluster" type="Node3D" unique_id=675234059]
+script = ExtResource("1_w4w3b")
+expectations = Array[ExtResource("2_srw4v")]([SubResource("Resource_655ja")])
+max_ticks = 600
+player_slots = Array[ExtResource("4_7o2eu")]([SubResource("Resource_opf7l"), SubResource("Resource_jycaq")])
+
+[node name="Map" type="Node3D" parent="." unique_id=927874840]
+script = ExtResource("6_gpwq1")
+height_map = SubResource("HeightMapShape3D_ckcty")
+
+[node name="NavigationRegion" type="NavigationRegion3D" parent="Map" unique_id=858873474 groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_b702h")
+
+[node name="Body" type="StaticBody3D" parent="Map/NavigationRegion" unique_id=1053623039]
+collision_layer = 128
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Map/NavigationRegion/Body" unique_id=751770768]
+shape = SubResource("HeightMapShape3D_ckcty")
+
+[node name="HeightPins" type="Node3D" parent="Map" unique_id=1732314542]
+
+[node name="GroundPlane" type="MeshInstance3D" parent="Map" unique_id=2112595294]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.01, 0)
+material_override = SubResource("StandardMaterial3D_47521")
+mesh = SubResource("PlaneMesh_vufjg")
+
+[node name="Kamikaze" parent="." unique_id=693884101 instance=ExtResource("7_uj353")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
+default_commander_id = 1
+
+[node name="Unit" parent="." unique_id=1344909156 instance=ExtResource("8_ry1v2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0)
+default_commander_id = 2
+
+[node name="Unit2" parent="." unique_id=1480367511 instance=ExtResource("8_ry1v2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 0.8660254)
+default_commander_id = 2
+
+[node name="Unit3" parent="." unique_id=1798405497 instance=ExtResource("8_ry1v2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0.8660254)
+default_commander_id = 2
+
+[node name="Unit4" parent="." unique_id=1035795161 instance=ExtResource("8_ry1v2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 1.2246469e-16)
+default_commander_id = 2
+
+[node name="Unit5" parent="." unique_id=1626404216 instance=ExtResource("8_ry1v2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, -0.8660254)
+default_commander_id = 2
+
+[node name="Unit6" parent="." unique_id=1666923510 instance=ExtResource("8_ry1v2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -0.8660254)
+default_commander_id = 2
+
+[node name="Unit7" parent="." unique_id=811659256 instance=ExtResource("8_ry1v2")]
+default_commander_id = 2

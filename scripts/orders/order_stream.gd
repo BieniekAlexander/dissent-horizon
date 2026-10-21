@@ -93,6 +93,14 @@ func is_playback() -> bool:
 	return _is_playback
 
 
+## End playback here and take orders as they are given from now on — a saved game handed back
+## to its player (SaveResume). Recorded orders not yet applied are dropped: a save holds none.
+func go_live() -> void:
+	_is_playback = false
+	_playback.clear()
+	_pending.clear()
+
+
 func _physics_process(_a_delta: float) -> void:
 	if _scenario == null:
 		return

@@ -173,7 +173,7 @@ first, and both are worth having anyway:
    neighbour.
 2. **Focused scenarios**, one per question, so a run measures one parameter. The user's own
    examples are exactly right: a duel scene for "unit set X against unit set Y", a map for
-   "how many scouts". `tools/simulation/run_scenarios.gd` and `scenes/scenarios/test/` are the
+   "how many scouts". `tools/simulation/run_scenarios.gd` and `scenes/harnesses/` are the
    beginnings of this.
 
 **The parameter-search discipline the user stated is the important part:** hold every other

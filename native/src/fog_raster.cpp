@@ -21,10 +21,11 @@ namespace dissent {
 
 namespace {
 
-// The script-side members update_sight reads off each vision source (Entity). Whose side a source
-// is on stays the script's rule (Entity.is_on_side_of), asked rather than re-derived here.
-const StringName &is_on_side_of_name() {
-	static const StringName name("is_on_side_of");
+// The script-side members update_sight reads off each vision source (Entity). Whose vision a source
+// lends to the viewer stays the script's rule (Entity.lends_vision_to: own, and an ally's unless it
+// withholds it), asked rather than re-derived here.
+const StringName &lends_vision_to_name() {
+	static const StringName name("lends_vision_to");
 	return name;
 }
 const StringName &grants_vision_name() {
@@ -40,6 +41,9 @@ const StringName &vision_shape_name() {
 // bounding box of any other shape).
 constexpr int ELLIPSE = 0;
 constexpr int RECTANGLE = 1;
+// How far below a whole pixel a footprint half-extent may fall and still count as that pixel:
+// absorbs the float error a rotated transform puts into its scale (see footprint_for).
+constexpr double FOOTPRINT_TOLERANCE_PX = 1e-3;
 
 } // namespace
 
@@ -147,7 +151,7 @@ void FogRaster::update_sight(const Array &p_sources, int p_viewer_id) {
 		if (entity == nullptr) {
 			continue;
 		}
-		if (!static_cast<bool>(entity->call(is_on_side_of_name(), p_viewer_id)) ||
+		if (!static_cast<bool>(entity->call(lends_vision_to_name(), p_viewer_id)) ||
 				!static_cast<bool>(entity->call(grants_vision_name()))) {
 			continue;
 		}
@@ -217,8 +221,14 @@ int FogRaster::footprint_for(CollisionShape3D *p_vision_shape) {
 		half_x = static_cast<float>(aabb.size.x * 0.5 * scale_x);
 		half_z = static_cast<float>(aabb.size.z * 0.5 * scale_z);
 	}
-	const int hx = static_cast<int>(half_x * points_per_unit);
-	const int hz = static_cast<int>(half_z * points_per_unit);
+	// Truncated with a tolerance. The scale comes off the shape's GLOBAL basis, which carries the
+	// piece's yaw, and a rotated unit column's length is 1 only to within a float ulp: a 16-unit
+	// sight radius read as 15.999999 one tick and 16.0 the next, so plain truncation flipped the
+	// footprint between 15 and 16 px every few ticks while a unit walked a straight line, and the
+	// fog's edge pulsed toward and away from it (found 2026-10-18). A thousandth of a pixel is far
+	// above that noise and far below any authored radius's distance from a whole pixel.
+	const int hx = static_cast<int>(half_x * points_per_unit + FOOTPRINT_TOLERANCE_PX);
+	const int hz = static_cast<int>(half_z * points_per_unit + FOOTPRINT_TOLERANCE_PX);
 
 	const auto key = std::make_tuple(kind, hx, hz);
 	const auto found = footprint_ids.find(key);

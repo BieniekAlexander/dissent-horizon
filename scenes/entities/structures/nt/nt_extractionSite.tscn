@@ -12,11 +12,11 @@
 [ext_resource type="PackedScene" path="res://scenes/components/debug_label.tscn" id="11_y1p3o"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/nt_extractionSite.res" id="model_nt_extractionSite"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_ijod7"]
-size = Vector3(2, 2, 2)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
 size = Vector3(2.0, 0.95, 2.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
+size = Vector3(2.0, 0.6, 2.0)
 
 [node name="ExtractionSite" type="CharacterBody3D" unique_id=1970929826 groups=["piece", "fixture", "extraction_site"]]
 collision_layer = 0
@@ -50,8 +50,9 @@ script = ExtResource("2_dep")
 collision_mask = 1
 
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
-shape = SubResource("BoxShape3D_ijod7")
-metadata/_visual_default_selection = "BoxShape3D"
+shape = SubResource("BoxShape3D_selection")
+metadata/_visual_default_selection = "BoxShape3D@edge"
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0)
 
 [node name="#####VISUALS#####" type="Node" parent="." unique_id=598928600]
 

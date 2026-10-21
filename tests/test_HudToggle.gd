@@ -6,7 +6,7 @@ extends GutTest
 ##
 ## The scenario is a HARNESS — one human slot on a flat map — and its content does not matter.
 
-const HARNESS: String = "res://scenes/scenarios/test/nav_straight_line.tscn"
+const HARNESS: String = "res://scenes/harnesses/nav_straight_line.tscn"
 
 var _scenario: Scenario
 

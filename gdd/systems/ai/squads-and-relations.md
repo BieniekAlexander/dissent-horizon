@@ -40,6 +40,15 @@ Two things compounded it, and both are rules now:
 Built 2026-10-03 in `BotMilitary`; the wave and the reserve are the first two squads.
 Cover: `tests/test_BotStaging.gd`.
 
+- **A group order moves at its slowest member's speed**, as a player's multi-unit order does
+  (`OrderDispatcher.slowest_group_speed`). Every `BotActuator` verb that orders several units at
+  once — `attack_move`, `move`, `move_at`, `attack` — caps each mobile unit it reached to the
+  slowest one's `Movement.speed_cap`, for as long as that command lasts. It was one order per
+  unit with no cap until 2026-10-18 (Alex), so a mixed wave strung out and its fast members —
+  a mission's Clippers ahead of its Recruits — fought alone. It applies to the bot's own army
+  and to a mission's tactics alike. An idle member re-issued on its own is a group of one and
+  goes at its own speed. Cover: `tests/test_BotActuatorGroupSpeed.gd`.
+
 ### Measured
 
 The harness samples `wave_units` and `reserve_units` per slot (`run_match.gd`), so staging

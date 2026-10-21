@@ -241,6 +241,13 @@ func world_position() -> Vector3:
 	return host.world_position() if host != null else global_position
 
 
+## Held inside a host, a piece is heard where the host stands.
+func sound_position() -> Variant:
+	if is_garrisoned():
+		return world_position()
+	return super()
+
+
 func has_command() -> bool:
 	return current_command() != null
 
@@ -915,6 +922,7 @@ func receive_damage(a_damage: Damage, a_from: Actor = null) -> void:
 	):
 		var attack_cmd: MoveCommand = _retaliation_against(a_from)
 		if attack_cmd != null:
+			_leash_to_here(attack_cmd)
 			update_commands(attack_cmd)
 
 
@@ -1091,6 +1099,7 @@ func _on_commander_changed(a_old_commander: Commander, a_new_commander: Commande
 		if (
 			_avoidance_obstacle != null
 			and not (deployable != null and deployable.hold_obstacle_layers(obstacle_layers))
+			and not movement_component.is_planted()
 		):
 			_avoidance_obstacle.avoidance_layers = obstacle_layers
 		if movement != null:
@@ -1312,9 +1321,17 @@ func simulation_decide() -> void:
 		return
 	if is_built and command_receiver.is_idle() and can_use_weapons():
 		_decided_aggro = get_aggro_near_position()
+		_leash_to_here(_decided_aggro)
 	var current: MoveCommand = current_command()
 	if current != null:
 		current.decide(self)
+
+
+## Leash `a_attack`, one this piece took up on its own, to where it stands now (see
+## CommandMessage.leash_origin). A no-op for null.
+func _leash_to_here(a_attack: MoveCommand) -> void:
+	if a_attack != null:
+		a_attack.message.leash_origin = global_position
 
 
 ## The attack decided this tick, if its target is still one to start on now; once only.
@@ -1415,10 +1432,19 @@ func simulation_step(_a_delta: float) -> void:
 	if movement != null:
 		var command: MoveCommand = current_command()
 		movement.update_avoidance_priority(command != null and command.holds_ground(self))
+		# A unit performing an action is planted: out of RVO, an obstacle to everyone.
+		movement.set_planted(_is_acting())
 	# Immediately after the height above: whether this piece is an air or a ground target is
 	# a question about the Y just written, so the two must not be a tick apart.
 	refresh_targetable_altitude()
 	_tick_crush()
+
+
+## Whether this tick was spent performing an action — anything the command tick reports other
+## than standing idle or walking (ActionTracker). What plants a unit in RVO (Movement.set_planted).
+func _is_acting() -> bool:
+	var action: ActionTracker.Action = action_tracker.current_action()
+	return action != ActionTracker.Action.IDLE and action != ActionTracker.Action.MOVING
 
 
 #region Crush

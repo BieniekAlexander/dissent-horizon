@@ -8,7 +8,7 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md carries only the pointer.*
 
 
-The tutorial/mission layer. All of it is built ON the trigger system rather than beside it — an objective IS a `GlobalTrigger`, so AND/OR composition, region scoping and chaining come for free. Reference scenario: `scenes/scenarios/tutorial.tscn` (four steps: select a unit → move to a region → move to a second region → clear an area). Its contents are authored, so nothing unit-tests them.
+The tutorial/mission layer. All of it is built ON the trigger system rather than beside it — an objective IS a `GlobalTrigger`, so AND/OR composition, region scoping and chaining come for free. Reference scenarios: the prologue missions ([`gdd/campaigns/01-prologue/`](../../campaigns/01-prologue/README.md); TODO: not built yet). Their contents are authored, so nothing unit-tests them.
 
 Expressions read the mission's `difficulty`, `ConditionExpression` gates a trigger on one, and
 `EventSetBotJobs` switches bot jobs mid-mission — [tactics](tactics.md) §Trigger-decided
@@ -26,6 +26,8 @@ An `AbstractEvent` never runs itself; something has to call it, and **where you 
 | **Direct child of a commandable** in the scenario scene | once, at scenario start | `ScenarioTriggerManager.run_starting_events()` |
 
 The third is for state that simply IS so from the first frame — no condition, no lifecycle moment. The motivating case is a **starting garrison load**: drop an `EventSpawnEntities` under a Compound or a stock truck, point `garrison_host` at the host (`".."`), and its units are inside before the player's first order (see §Garrison occupancy). It runs after the navmesh's first sync (same gate the triggers wait on) and after editor-placed entities have auto-initialized, so each host already has its map and commander.
+
+**A starting Safehouse** is the same shape: under a neutral building, an `EventConvertBuilding` (it converts its parent into an Anarchical `an_infrastructure` for `commander_id`, through the builder's own conversion, `Build.convert_building`) and then an `EventSpawnEntities` with `garrison_host` `".."` to fill it — siblings run in child order. It exists so a mission need not pack an already-converted building, which would freeze the Safehouse's stats as they were when the scene was saved (prologue mission 1 opens this way).
 
 Only entities in the `"piece"` group are scanned, since a starting event belongs to a piece, and that loop is deliberately UNTYPED so a stray non-Entity node in the group is skipped rather than aborting scenario boot (see CLAUDE.md §Entity groups are for entities).
 
@@ -74,3 +76,19 @@ It counts **Nodes**, not Entities, since a group may hold anything; `highlight_e
 - Nodes **already queued for deletion don't count**. `get_nodes_in_group` still returns a `queue_free`d node until the end of the frame, so a "wipe out the wave" check would otherwise resolve a tick late.
 
 Note that `AT_MOST 0` is true *before the wave exists*, so a "clear the ambush" objective must be gated behind the spawning trigger — `prerequisites` is exactly that.
+
+## Spawning beside a group (`follow_group`)
+
+`EventSpawnEntities.follow_group` anchors a spawn on a LABELLED group's centre at the moment the event runs, instead of at a fixed point: reinforcements that fall on a squad wherever it walked to. `follow_offset` moves the anchor from that centre; with `follow_away_from` set, its `x` runs from that node through the centre and on (positive: further away) and its `y` across that line, so "12 beyond the squad, as seen from the building" stays beyond it whatever way it went. With nobody of the group in the world, the usual anchor (`spawn_position`, or the event's own position) is used. Added 2026-10-18 for prologue mission 1, whose Clippers must appear out of a garrisoned Warlord's reach.
+
+## Handing pieces over and parking aircraft (`EventTransferOwnership`, `spawn_landed`)
+
+`EventTransferOwnership` gives every piece under a LABEL (`spawn_groups`) to another commander through its Ownership, which reparents it as any change of hands does; a garrisoned piece is skipped. `EventSpawnEntities.spawn_landed` starts the HOVERING aircraft it spawns on the ground, as a Land order leaves them (`Aerial.land_in_place`), until a movement order lifts them — not `park_on_deck`, which is for a pad: an aircraft on a deck with no pad under it takes off at once (`Docking.release_lost_dock`). Both added 2026-10-18 for prologue mission 1's Ravens.
+
+## Flying in and landing beside the player (`EventCommandPoint`)
+
+`EventCommandPoint.command_type` `land` adds a Land to the chain: placed after a move, it makes "fly in and land there". The move before it STOPS at its goal rather than passing through it (`MoveCommand.continues_movement`). `near_commander_id` aims a point at that commander's unit nearest it, when the order is given, and `near_standoff` stops it that far short, back toward the point: "land beside the player", wherever the player stands by then. A group's formation fans out around where that lands, not around the Land (`EventIssueCommand._formation_offsets`). Added 2026-10-18 for prologue mission 1's Ravens.
+
+## Beats a rule can read (`ConditionTriggerFired`, `ConditionGarrisonOccupied`)
+
+A `TacticRule` takes ONE condition, so a squad that changes what it does as a mission's beats land reads each beat's TRIGGER — `ConditionTriggerFired`, true once the named `GlobalTrigger` has fired — and the trigger is where the beat's several conditions are combined. Rules are first-match, so the latest beat is listed first. `ConditionGarrisonOccupied` is true while a named host holds at least `count` of a commander's units: "the player has taken cover". Both find their subject by NAME (the trigger anywhere under the manager, the host in `"piece"`), as `ConditionEntityKilled` does, because a placed piece is reparented under its commander at runtime and a NodePath would not survive it.

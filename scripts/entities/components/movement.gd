@@ -239,8 +239,23 @@ func tick() -> Progress:
 		return Progress.HOLDING
 	if is_navigation_finished():
 		return Progress.ARRIVED
+	if _blocked_ticks >= BLOCKED_TICKS:
+		_blocked_ticks = 0
+		if _distance_to_target() <= BLOCKED_ARRIVAL_DISTANCE:
+			_finish_path()
+			return Progress.ARRIVED
+		_sidestep_ticks = SIDESTEP_TICKS
 	is_final_leg = goal_arrival == Arrival.STOP and mode != Mode.FLYING
-	set_velocity(velocity_toward_next_path_position())
+	var velocity: Vector3 = velocity_toward_next_path_position()
+	if _sidestep_ticks > 0:
+		_sidestep_ticks -= 1
+		# Half a quarter turn to one side: the perpendicular is exact, so no trig (DMath).
+		velocity = (
+			(velocity + Vector3(-velocity.z, 0.0, velocity.x)).normalized() * velocity.length()
+		)
+	else:
+		velocity = _jitter_off_centre_line(velocity)
+	set_velocity(velocity)
 	return Progress.MOVING
 
 
@@ -384,6 +399,7 @@ func set_velocity(a_velocity: Vector3) -> void:
 			# once its path is finished it holds still until the next target, as the engine's
 			# own agent did.
 			if _nav_agent != null and _is_target_submitted:
+				_requested_speed = v.length()
 				_nav_agent.set_velocity(v)
 		Mode.HOVERING, Mode.FLYING:
 			# No avoidance system — emit the velocity directly so the entity
@@ -534,6 +550,8 @@ var is_active: bool = true
 func set_active(a_active: bool, a_commander_id: int) -> void:
 	if a_active == is_active:
 		return
+	if not a_active:
+		_apply_planted(false)
 	is_active = a_active
 	_current_velocity = Vector3.ZERO
 	if avoidance_obstacle != null:
@@ -585,15 +603,18 @@ func enable_avoidance(a_commander_id: int) -> void:
 ## Avoidance priority for a unit standing its ground to fire. The engine's ceiling, so it
 ## gives way to nobody and the units behind it must be walked clear by the player.
 const AVOIDANCE_PRIORITY_ENGAGED: float = 1.0
-## Avoidance priority for a unit that is actually going somewhere. Only its ORDER against
-## the other two tiers matters; it sits between them.
+## Avoidance priority for a unit that is actually going somewhere.
 const AVOIDANCE_PRIORITY_TRAVELLING: float = 0.75
-## Avoidance priority for a unit that is standing still with nothing to hold ground for.
-const AVOIDANCE_PRIORITY_STANDING: float = 0.5
+## Avoidance priority for a unit that is standing still with nothing to hold ground for: the
+## SAME as a traveller's, so the two share the avoiding — RVO's reciprocal half each — and an
+## idle unit mostly stands its ground while movers go round it, giving way only a little
+## (Alex, 2026-10-18). It was ranked below travellers, which put the whole of the avoiding on
+## the stander: a group walking past carried an idle teammate 8.3 units ahead of it.
+const AVOIDANCE_PRIORITY_STANDING: float = AVOIDANCE_PRIORITY_TRAVELLING
 
 
-## Rank this unit in same-team RVO: ENGAGED above TRAVELLING above STANDING. Called every
-## tick from Actor.simulation_step, which says whether the current order is holding
+## Rank this unit in same-team RVO: ENGAGED above TRAVELLING and STANDING, which are equal.
+## Called every tick from Actor.simulation_step, which says whether the current order is holding
 ## ground (MoveCommand.holds_ground).
 ##
 ## Why it works this way:
@@ -608,6 +629,144 @@ func update_avoidance_priority(a_is_holding_ground: bool) -> void:
 		agent.avoidance_priority = AVOIDANCE_PRIORITY_STANDING
 	else:
 		agent.avoidance_priority = AVOIDANCE_PRIORITY_TRAVELLING
+
+
+## BLOCKED: avoidance refusing a grounded unit the way it asks to go — a standing obstacle it
+## may not push (an ally's unit, an acting one) dead on its line, or sitting on its goal. RVO
+## alone never resolves either: dead on the line its answer is symmetric and comes out as zero,
+## so the unit stands pressed against the obstacle; on the goal the unit can never arrive and
+## presses forever (found 2026-10-18, both, measured in a probe). A tick is blocked when the
+## unit asked for at least BLOCKED_MIN_REQUEST of its speed and avoidance gave back under
+## BLOCKED_FRACTION of what it asked; after BLOCKED_TICKS of them in a row the unit either takes
+## the goal as reached, when within BLOCKED_ARRIVAL_DISTANCE of it, or steps aside for
+## SIDESTEP_TICKS, which breaks the symmetry.
+## gdd/systems/terrain-and-navigation/navigation-and-pathing.md §A blocked unit.
+const BLOCKED_MIN_REQUEST: float = 0.25
+const BLOCKED_FRACTION: float = 0.2
+const BLOCKED_TICKS: int = 10
+const BLOCKED_ARRIVAL_DISTANCE: float = 1.5
+const SIDESTEP_TICKS: int = 10
+## The speed last handed to avoidance, and how many ticks in a row it has been refused.
+var _requested_speed: float = 0.0
+var _blocked_ticks: int = 0
+var _sidestep_ticks: int = 0
+
+## DEAD-CENTRE JITTER (Alex, 2026-10-18): a unit whose heading runs through the centre of
+## another unit ahead of it veers off that line by a small SEEDED angle for a few ticks. RVO's
+## answer to a neighbour dead on the line is symmetric: an idle teammate there was pushed straight
+## ahead of the mover instead of stepping aside — 8.4 units over a 16-unit walk in a probe — and
+## a one-sided obstacle there stalled it. Off the line by as little as 0.15 the teammate steps
+## aside and the mover goes round. The angle comes from SU.rng, the simulation's seeded stream,
+## so a replay veers the same way.
+##   CENTRE_LINE_LANE   — how far off the line (world units) a centre still counts as dead on it.
+##   CENTRE_LINE_EVERY  — the line is checked one tick in this many: a shape query per moving
+##                        unit is not free, and a neighbour on the line stays there for a while.
+##   JITTER_TICKS       — how long one veer lasts.
+##   JITTER_MIN/MAX     — the veer, as the sideways share of the heading (tan of the angle:
+##                        0.1 to 0.2 is about 6 to 11 degrees), its side drawn at random too.
+const CENTRE_LINE_LANE: float = 0.08
+const CENTRE_LINE_EVERY: int = 3
+const JITTER_TICKS: int = 8
+const JITTER_MIN: float = 0.1
+const JITTER_MAX: float = 0.2
+var _jitter_ticks: int = 0
+var _jitter_share: float = 0.0
+var _centre_line_countdown: int = 0
+## The volume a centre-line check looks in, kept between ticks (a Shape3D owns a server RID).
+var _centre_line_shape: SphereShape3D = null
+
+
+## `a_velocity`, veered off its line while a jitter runs, or starting one when a unit's centre
+## lies dead ahead within the agent's neighbour distance (see CENTRE_LINE_LANE).
+func _jitter_off_centre_line(a_velocity: Vector3) -> Vector3:
+	if a_velocity.length_squared() == 0.0:
+		return a_velocity
+	if _jitter_ticks == 0:
+		_centre_line_countdown -= 1
+		if _centre_line_countdown > 0 or not _unit_dead_ahead(a_velocity):
+			return a_velocity
+		_jitter_ticks = JITTER_TICKS
+		_jitter_share = SU.rng.randf_range(JITTER_MIN, JITTER_MAX)
+		if SU.rng.randf() < 0.5:
+			_jitter_share = -_jitter_share
+	_jitter_ticks -= 1
+	if _jitter_ticks == 0:
+		_centre_line_countdown = 0
+	var side := Vector3(-a_velocity.z, 0.0, a_velocity.x)
+	return (a_velocity + side * _jitter_share).normalized() * a_velocity.length()
+
+
+## Whether another unit's centre lies on this unit's line of travel `a_velocity`, ahead of it and
+## within the agent's neighbour distance — the reach RVO reacts within.
+func _unit_dead_ahead(a_velocity: Vector3) -> bool:
+	_centre_line_countdown = CENTRE_LINE_EVERY
+	var body := get_parent() as CollisionObject3D
+	if body == null or not body.is_inside_tree() or _nav_agent == null:
+		return false
+	if _centre_line_shape == null:
+		_centre_line_shape = SphereShape3D.new()
+	if not is_equal_approx(_centre_line_shape.radius, _nav_agent.neighbor_distance):
+		_centre_line_shape.radius = _nav_agent.neighbor_distance
+	var origin: Vector2 = VU.in_xz(body.global_position)
+	var heading: Vector2 = VU.in_xz(a_velocity).normalized()
+	for other: Entity in SU.query_shape_for_entities(
+		body.get_world_3d(),
+		_centre_line_shape,
+		Transform3D(Basis.IDENTITY, body.global_position),
+		CollisionLayers.Mask.MOVEMENT_OBSTRUCTION,
+		[body.get_rid()]
+	):
+		if not other.is_in_group("unit"):
+			continue
+		var offset: Vector2 = VU.in_xz(other.global_position) - origin
+		if offset.dot(heading) > 0.0 and absf(offset.cross(heading)) < CENTRE_LINE_LANE:
+			return true
+	return false
+
+
+## Whether this unit is PLANTED: performing an action, so out of RVO and broadcast as a
+## standing obstacle every team steers round (set_planted).
+var _is_planted: bool = false
+
+
+## Plant this unit while it performs an action, or free it when it stops (Alex, 2026-10-18):
+## an acting unit ignores RVO — nothing pushes it and it steers round nothing, whoever owns the
+## other unit — and stands as an OBSTACLE every agent walks round one-sided, its own team's
+## included, on the STANDING channel a deployed piece uses. Called every tick from
+## Actor.simulation_step with whether the tick was spent acting (ActionTracker).
+##
+## Never while switched off (a deployed piece stands on its own terms, Deployable._stand) or
+## while an Occupy has silenced this unit (suppress_avoidance_layers), which would otherwise
+## have the two fight over the same layers.
+## gdd/systems/terrain-and-navigation/navigation-and-pathing.md §An acting unit is planted.
+func set_planted(a_planted: bool) -> void:
+	if not is_active or _saved_avoidance_layers != 0:
+		a_planted = false
+	_apply_planted(a_planted)
+
+
+func is_planted() -> bool:
+	return _is_planted
+
+
+func _apply_planted(a_planted: bool) -> void:
+	var agent := avoidance_agent()
+	if a_planted == _is_planted or mode != Mode.GROUNDED or agent == null:
+		return
+	_is_planted = a_planted
+	agent.set_planted(a_planted)
+	if avoidance_obstacle == null:
+		return
+	if a_planted:
+		avoidance_obstacle.avoidance_layers = AvoidanceAgent3D.STANDING_OBSTACLE_BIT
+		return
+	# Back on its commander's channel — read now, not saved at planting, so an ownership
+	# change while planted lands on the right one.
+	var owner_entity := get_parent() as Entity
+	var owner_id: int = (
+		owner_entity.commander_id if owner_entity != null and owner_entity.ownership != null else 0
+	)
+	avoidance_obstacle.avoidance_layers = AvoidanceAgent3D.obstacle_bit(owner_id)
 
 
 ## Make this unit and `other` ignore each other in RVO (used while following a unit, and
@@ -644,6 +803,7 @@ func _follow_agent(a_c: Variant) -> AvoidanceAgent3D:
 func suppress_avoidance_layers() -> void:
 	if mode != Mode.GROUNDED or _nav_agent == null or _saved_avoidance_layers != 0:
 		return
+	_apply_planted(false)
 	_saved_avoidance_layers = _nav_agent.avoidance_layers
 	_nav_agent.avoidance_layers = 0
 	if avoidance_obstacle != null and avoidance_obstacle.avoidance_enabled:
@@ -1092,9 +1252,22 @@ func _on_velocity_computed(a_velocity: Vector3) -> void:
 	# unchanged. Gating this on turn_rate != INF (as before) meant INF grounded
 	# units never had their rotation.y — and therefore their model — updated.
 	if mode == Mode.GROUNDED:
+		_count_blocked(a_velocity)
 		a_velocity = _apply_grounded_turn(a_velocity)
 	_current_velocity = a_velocity
 	velocity_ready.emit(a_velocity)
+
+
+## Count a tick avoidance refused this unit its way (see BLOCKED_TICKS), from the velocity it
+## handed back against the one asked for.
+func _count_blocked(a_safe: Vector3) -> void:
+	var asked: bool = (
+		_is_target_submitted and _requested_speed >= BLOCKED_MIN_REQUEST * effective_max_speed()
+	)
+	if asked and a_safe.length() < BLOCKED_FRACTION * _requested_speed:
+		_blocked_ticks += 1
+	else:
+		_blocked_ticks = 0
 
 
 ## Rotate the owner's rotation.y toward the avoidance-adjusted velocity direction
@@ -1204,6 +1377,10 @@ func _submit_target(a_position: Vector3) -> void:
 	_is_target_submitted = true
 	_is_path_finished = false
 	_is_last_waypoint_reached = false
+	_blocked_ticks = 0
+	_sidestep_ticks = 0
+	_jitter_ticks = 0
+	_centre_line_countdown = 0
 
 
 ## Re-plan if the path is missing, strayed from, or crossed by a navmesh change, then advance

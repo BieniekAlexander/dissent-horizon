@@ -28,9 +28,16 @@ One event, two modes, because the difference is easy to get wrong: **explored gr
 | off (default) | marks the ground explored | instantaneous, no node | sketching in map the player has heard about |
 | on | places a standing vision source | spawns a `Scout` per circle | showing the player what is THERE |
 
-The vision source is a `Scout`: invisible, unselectable, collision-free, its `VisionRange` cylinder clearing fog for its owner. Spawned directly (`initialize` → position) rather than through `Map.add_entity`, whose unit-placement path samples a collision radius the Scout deliberately hasn't got; `EventRadarScan` does the same for the same reason. `lifespan_frames < 0` is permanent — Radar Scan is the temporary version of the same mechanism, and `_validate_property` greys the field out in explored-only mode where nothing persists.
+The vision source is a `Scout`: invisible, unselectable, collision-free, its `VisionRange` cylinder clearing fog for its owner. It is the Recon Drone scene with everything that could be seen or shot taken off (`EventRevealRegion._make_unseen`, Alex 2026-10-18): no model, no badges, no altitude marker, no `Defense` or `Hurtbox` — a target nobody can see would only draw fire at empty air. The Scan sanction places the same scene whole, because a scan's eye is meant to be found and shot down. Spawned directly (`initialize` → position) rather than through `Map.add_entity`, whose unit-placement path samples a collision radius the Scout deliberately hasn't got; `EventRadarScan` does the same for the same reason. `lifespan_frames < 0` is permanent — Radar Scan is the temporary version of the same mechanism, and `_validate_property` greys the field out in explored-only mode where nothing persists.
 
 Either mode opens a circle at the event's own position, or one over every Node3D in `target_group`. A group rather than a list of node references because the set is usually a category the scene already names ("the camps still standing"), so a member added, moved or removed later needs no change to the event.
+
+**A standing reveal can be ended by name.** `reveal_label` puts each Scout the event places in
+that group, and `EventEndReveal` frees every Scout under a label; the fog withdraws a vision source
+the tick it leaves `"los"`, so the circle closes. Added 2026-10-18 for prologue mission 1, whose
+fight reveal goes dark when the story moves north — `lifespan_seconds` would have had to guess when
+that is. Like the lifespan, the label is greyed out in explored-only mode. Tests:
+`tests/test_EventEndReveal.gd`.
 
 **`_resize_vision` duplicates the shape before writing the radius** — a PackedScene's sub-resources are shared across its instances, so writing in place would resize every other Scout in the game.
 

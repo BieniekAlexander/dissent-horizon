@@ -150,9 +150,7 @@ static func actor_is_recharging(_actor: Actor) -> bool:
 ##
 ## Only commands with a reach call this: a global-range ability (Bombard) has no distance
 ## to be out of.
-static func unreachable_for_immobile(
-	actor: Actor, message: CommandMessage, range: float
-) -> bool:
+static func unreachable_for_immobile(actor: Actor, message: CommandMessage, range: float) -> bool:
 	if actor == null or message == null or actor.can_move():
 		return false
 	return actor.hull().distance_to_point(message.xz_position) > range
@@ -220,9 +218,7 @@ static func holds_none_of(actor: Actor, commands: Array[Script]) -> bool:
 
 
 ## Checks whether the relevant command is allowable, given the situation
-static func meets_precondition(
-	_actor: Actor, _message: CommandMessage
-) -> PreconditionFailureCause:
+static func meets_precondition(_actor: Actor, _message: CommandMessage) -> PreconditionFailureCause:
 	# examples:
 	# - can the unit can perform this operation on the specified target?
 	# - can the unit can place the specified building in the specified position?
@@ -383,10 +379,7 @@ func _plan_destination_swaps(a_commandable: Actor) -> Array:
 ## destination before]. A trade happens when swapping shortens the two straight-line distances
 ## combined; after one, the unit heads for what it traded for. Pure, so a test can drive it.
 static func swap_trades(
-	position: Vector3,
-	destination: Vector3,
-	positions: Array[Vector3],
-	destinations: Array[Vector3]
+	position: Vector3, destination: Vector3, positions: Array[Vector3], destinations: Array[Vector3]
 ) -> Array:
 	var trades: Array = []
 	var mine: Vector3 = destination
@@ -493,6 +486,13 @@ func avoidance_exception(_a_actor: Actor) -> Actor:
 ## Why: gdd/systems/terrain-and-navigation/navigation-and-pathing.md §Avoidance priority.
 func holds_ground(_a_actor: Actor) -> bool:
 	return false
+
+
+## Whether a unit arriving at the order queued BEFORE this one keeps its speed for it
+## (PASS_THROUGH) — true for an order that travels on. One that acts where the unit already is,
+## a Land, says false, and the move before it stops at its goal (CommandReceiver._arrival_for).
+func continues_movement() -> bool:
+	return true
 
 
 ## Where an actor that cannot stop — a fixed wing — circles once this order has acted or ended

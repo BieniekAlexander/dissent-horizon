@@ -44,8 +44,8 @@ New to Godot? Start with the engine's own
 **[Step by step guide](https://docs.godotengine.org/en/stable/getting_started/step_by_step/index.html)**.
 Scenes, nodes and signals are the three ideas the rest of this project assumes you have.
 
-The main scene is `scenes/scenarios/s1.tscn`; `scenes/scenarios/skirmish.tscn` is the
-bot-versus-bot map most development happens against.
+The main scene is the title screen, `scenes/menu/main_menu.tscn`; `scenes/scenarios/skirmish.tscn`
+is the bot-versus-bot map most development happens against.
 
 ## Game pieces are specced in YAML
 

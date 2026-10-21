@@ -92,6 +92,15 @@ Decided 2026-09-24: the game has alliances. Built 2026-10-09 to these decisions 
   **friendly-target abilities** (`EventTargetUnit` Scope.OWN admits an ally's unit). Also the
   readouts that follow from shared sight: allied blueprints shown and refused as building
   sites, capacity pips on a selected allied unit, allied structures' ranges round a placement.
+- **An ally may withhold its vision** (`PlayerSlot.shares_vision_with_allies`, on by default;
+  Alex, 2026-10-18), for a mission whose ally fights beside the player without lending its sight
+  (prologue mission 1). Its sources then clear nothing in its allies' fog, and its pieces are
+  drawn for them only inside their own vision, as an enemy's are (`Entity.lends_vision_to`, which
+  the fog asks per source and per piece; the minimap follows the fog). It stays an ally in every
+  other respect, its stealth still hides nothing from its side, and the withholding is one way:
+  it still sees through its allies' sight unless they withhold theirs. TODO — a withholding
+  ally's blackboard still feeds `AlliancePerspective` for its alliance's ALLIANCE-perspective
+  checks; no mission reads that yet.
 - **What they do not share:** orders, garrisons and transports (`Occupy`, docking, `Embark`
   stay owner-only), resuming an ally's construction, and passive bonuses other than healing —
   the Compound's Work Detail cooldown cut reaches only its owner's buildings. **Dignify** stays own-only
@@ -156,11 +165,37 @@ an attacker it already reaches, since it could never close on anything else; any
 is ignored rather than acquired and then leashed away.
 
 An answering attack is persistent, like a player's: a mobile piece chases. What ends the chase
-is the rule below.
+is the leash, and the sight rule below.
 
 **Superseded:** retaliation looked for the attacker among the targetable bodies inside the
 piece's OWN vision shape. That answered stealthed attackers, missed ones spotted only by the
 rest of the side, and — being an unfiltered, capped query — could miss the attacker in a crowd.
+
+## The leash
+
+**A piece that takes up an attack ON ITS OWN may stray `Attack.LEASH_DISTANCE` (5) from where it
+stood; past that it drops the target and walks back** (Alex, 2026-10-19, after StarCraft II).
+"On its own" is two routes: idle aggro pickup (`Actor.simulation_decide`) and retaliation
+(`Actor.receive_damage`). Each stamps the piece's position as `CommandMessage.leash_origin`
+(`Actor._leash_to_here`); `Attack.get_updated_state` checks the XZ distance from it first, and
+a piece past it is handed a plain `MoveCommand` back to the origin. Once home it is idle again
+and acquires afresh.
+
+- **One universal distance**, for every piece, for now.
+- **An ordered attack has no leash** — nor do attack-move, Patrol and `Defend`, whose own
+  region rules already bound them (§Acquire and release must measure the same region). The
+  origin is only ever set on the two automatic routes.
+- **A piece that cannot move is never leashed:** it cannot stray.
+- The origin survives `CommandMessage.deep_copy`, so a pursuit that re-plans keeps its leash.
+
+This is not the target-release leash below: that one asks whether the TARGET is still in
+reach of the region it was acquired in; this one asks whether the PIECE has wandered.
+
+Accepted pitfall: a piece shot from well past its reach answers, runs 5, turns back, and is
+shot again — so a long-reach attacker can kite it back and forth. That is the trade the leash
+makes for not being bait-pulled across the map.
+
+Tests: `tests/test_AttackLeash.gd`.
 
 ## An attack is dropped when its target is lost from sight
 

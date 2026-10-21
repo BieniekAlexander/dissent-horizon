@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-115**
+> Next id: **T-116**
 
 # Tasks
 
@@ -116,32 +116,14 @@ The macro valuation (demand map → strength per energy → savings) is one addi
 >
 > **Answer:** My only feedback here is that I will frequently be making changes to the roster, and I'm aware that changes to the pieces will impact the quality of the bot's evaluations. I think the simulations can represent safe expectations of the evaluations, and failing simulations implies that retraining is warranted.
 
-### T-108 · Should a lone scout keep going until it has seen the whole map? #effort/low #scoped #done
-The scout-coverage design simulation (`scenes/scenarios/test/test_scout_coverage.tscn`) expects one bot with one unit to see every scout point within 3000 ticks; it failed, already at HEAD, because its unit could not take orders and, once replaced, because the bot judged its unit too valuable to send.
-
-> [!done] Q — resolved — 2026-10-14
-> Which is wrong: the expectation, or the bot?
-> **Why it matters:** the expectation is a design claim about scouting; the bot's price test is what makes it false. Changing either changes what this simulation tells you.
-> **Options:**
-> 1. The expectation: a lone builder should not tour the whole map; lower it to a coverage fraction the bot does reach (measure it) or to "a scout is sent", and keep the price test.
-> 2. The bot: an idle bot with nothing else to do should keep scouting; the price test should not make an unthreatened, unemployed unit stand still.
-> 3. The harness: give the bot a unit meant to scout (cheap, fast, no other job) instead of its builder, and keep both the expectation and the price test.
->
-> **Leaning:** 3 — the question the simulation asks is whether the sweep covers the map, and a builder is the one unit the bot is right to keep home.
->
-> **Answer:** 3
-> **Resolved:** option 3 — the harness places the Libertarian Gatling Tank (`lb_mechLight_antiLight1`, the cheapest and fastest unit that builds nothing) on a 60-cell map (`tools/generate_test_scenarios.gd`, `SCOUT`, `SCOUT_MAP_CELLS`); expectation and price test unchanged.
-
-> [!check] Status — 2026-10-14
-> Built: the harness change above, and a BotScout bug it exposed — a lattice whose pitch does not divide the map put its last row and column of scout points OFF the map, where no fog ever reports them seen, so a scout toured the edge forever (stuck at 86% here). `BotScout.on_map` now pulls such a point onto the map's edge cell; this affects any map whose size is not a multiple of the lattice pitch, generated skirmishes included.
-> Tests: full suite green, 4471; `TestScoutCoverage` now PASSES (every point seen at tick 2863 of 3000; seeded and deterministic). No Anarchist unit fit option 3 (none is cheap enough without a build job), so the slot is Libertarian.
-> **Not done:** `TestKamikazeNoCluster` still fails, as it did at HEAD.
-
 ## Combat
 
-### T-013 · Should aggro rise for long-reach pieces? #effort/low #needs-input
+### T-013 · Should aggro rise for long-reach pieces? #effort/low #scoped #done
 `AGGRO_MAX_RADIUS` sits below both artillery classes and below `ground_range_long` / `air_range_long`, so a target in that band is never picked up idle.
 → [combat/range-buckets](systems/combat/range-buckets.md) §Asymmetries between the families
+
+> [!check] Status — 2026-10-19
+> Obsolete by request: aggro is now the reach itself (floored at `ground_range_short`), with no ceiling, so the band is gone; a 5-unit SC2-style leash bounds the chase instead. Rule in [combat/range-buckets](systems/combat/range-buckets.md) §Aggro is derived from reach and [combat/target-acquisition](systems/combat/target-acquisition.md) §The leash.
 
 ### T-014 · Which units out-see structures? #effort/low #needs-input
 Meant to be rare; which unit vision bucket, if any, sits above `vision_ground_large`.
@@ -182,17 +164,11 @@ Built: one drone at a time, firing from inside; the Shock Drone fires at long ra
 Coarser is cheaper and blurs vision edges and the per-cell structure-sighting test.
 → [combat/scan-and-vision-cost](systems/combat/scan-and-vision-cost.md) §Proposal: the fog of war
 
-### T-114 · Environmental pieces: hazards and pickups #effort/high #scoped #done
-Scoped 2026-10-16. Neutral hazards that go off when shot (power cells in three blast sizes with PLASMA + a new structure-burning status, a cryo dewar that Freezes, an activation cask leaving a long radiation field) and coin pickups (fuel cartridges for 500/2000 energy, an ordnance pod whose grant is authored per instance). Needs a `Volatile` and a `Pickup` component, the `burning` status, eight neutral docs and their models. Open `TODO`s in the note: burning's tuning, bot targeting, map generation (the radiation field deals INCENDIARY — decided 2026-10-16).
-→ [combat/environmental-pieces](systems/combat/environmental-pieces.md)
-
-> [!check] Status — 2026-10-16
-> Built: `Volatile`, `Pickup`, `StatusEffect.host_filter` / `ends_on_heal`, `burning` + `cryo_burst`, the `volatile:` / `pickup:` doc keys, 13 neutral docs (5 hazards, 5 emissions, 3 pickups) composed with placeholder models, and the ordnance depot (`OrdnanceDepot`, `CAST_FROM_DEPOT`, the card wiring). Tests: 6 new files green; suite 4625 tests, 2 red — `test_Retaliation` is flaky (passes alone), `test_ReplayRoundTrip` fails in the working tree but passes at HEAD with only these changes overlaid, so it belongs to the structure-models work in the tree.
-> Visuals built 2026-10-16: vent, burst, cloud and radiation looks under `scenes/effects/emissions/`, sized by `AreaEffect`; the fuse phase needed `ends_on_arrival: false`. Retuned the same day: cell/dewar/cask are tokens (infantry / vehicle sized), the batteries are 1×1 and 2×2 (`nt_batteryRack`, `nt_batteryBank`), every AoE one bucket down, fuse 0.25 s, pod grants Mortar by default, all eight in the debug spawner, generated low-poly models for all eight.
-> Cross-faction depot grants built 2026-10-16 (`OrdnanceDepot.foreign_sanction_for`: the lowest level any faction authors; the command centre anchors the off-map entry edge), after a Colonial player's Mortar pod armed nothing; verified by a headless probe that fires it from the card. Suite 4631 green. A reimport from the OPEN EDITOR dropped the six tokens from the roster, entity ids and technology (stale tool scripts); a headless import restored them.
-> **Not done:** the ordnance card's depot path is tested by unit test and probe, not against the live HUD; bot use of hazards/pickups/depot; map generation. Models and icons are reported slots.
-
 ## Commands
+
+### T-115 · Saved games: the point-in-time snapshot #effort/high #unscoped
+Saves load by re-simulating the order log today. PLANNED: a background process re-simulates a save once into a full-state snapshot that loads at once, and the log is then dropped. Shares its state inventory with rollback netplay.
+→ [commands/saved-games](systems/commands/saved-games.md) §The snapshot, later
 
 ### T-031 · What deploying gains, and three order cases #effort/medium #needs-input
 Built as placeholders: an armour step as the bonus; a plain Attack/Stop while deploying waits behind it; a plain move while undeploying runs after it; weapons offline in both transitions; undeploy takes 1 s against "3 s in all cases". Also the Sharpshooter's deploy-only weapon and 15-unit reach.
@@ -374,13 +350,6 @@ The shared-vertex quad topology produces holes, miters and swallowed cells for t
 ### T-061 · A wide unit must always reach a building's wall #effort/medium #unscoped
 Close enough to crush a unit standing against it. Today a Stock Truck cannot reach a Shelter resident pressed to the wall.
 → [terrain-and-navigation/agent-size-classes](systems/terrain-and-navigation/agent-size-classes.md) §Reaching a building
-
-### T-062 · Should the simulation run slower than 30 Hz? #effort/high #scoped #done
-With interpolated rendering; 20 Hz would cut every per-tick cost by a third. Not proposed; recorded as the largest performance lever.
-→ [combat/scan-and-vision-cost](systems/combat/scan-and-vision-cost.md) §Beyond both
-
-> [!check] Status — 2026-10-15
-> Alex: rejected for now; the simulation stays at 30 Hz. Recorded as REJECTED in the note.
 
 ### T-113 · A freed structure stays on the map's grids #effort/medium #unscoped
 Seen in the two-bot skirmish probe (`tools/_perf_probe_tmp.tscn`, both slots MEDIUM, `--fixed-fps 30`), which plays the same match every run. From tick ~11,100, `Map.cell_grid` and `TerrainGrid.buildings()` hold a structure that has been freed. The bot's placement reads (`PlacementKnowledge.believes_occupied`, `NavPlacement._ClassProbe.neighbours_keep_access`) then raise "Trying to assign invalid previously freed instance" ~5,000 times by tick 18,000, and those placement checks fail for as long as it lasts. `Map.remove_structure` never ran for it. A probe on every registered building's `tree_exiting` found none freed or taken out of the tree while still registered, so the entry arrives some other way: the next suspects are registration of a piece already out of the tree, and a write while the occupant is freed (`== null` is true for a freed object). Reproduce with `--ticks=11600`.

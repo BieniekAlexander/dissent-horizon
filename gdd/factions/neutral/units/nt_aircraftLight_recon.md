@@ -26,7 +26,10 @@ docking: true
 # Recon Drone
 
 The eye a Colonial **Scan** sanction leaves behind, and the vision source
-`EventRevealRegion` places when a scenario reveals a region.
+`EventRevealRegion` places when a scenario reveals a region. A reveal strips it to its vision
+first — no model, no altitude marker, nothing to shoot
+([highlights-and-fog-reveal](../../../systems/scenario-scripting/highlights-and-fog-reveal.md)) —
+so what follows describes the Scan's drone.
 
 ## Not commandable, but attackable
 - **Cannot move** — `speed: ZERO`. The HOVERING mode is not about travel: it is what puts the

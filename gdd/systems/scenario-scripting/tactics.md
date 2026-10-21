@@ -62,7 +62,7 @@ frame, so a heavy read there costs a sweep per frame. A check that cannot honour
   `PlayerSlot.disabled_bot_jobs`. **No event sets what a job READS** (a posture dial, the
   military objective): an authored value inside a scored decision is the merge the boundary rule
   forbids.
-- **One mission difficulty**, picked on the Campaign page from EASY, MEDIUM and HARD only: the
+- **One mission difficulty**, picked above a campaign's mission list from EASY, MEDIUM and HARD only: the
   `difficulty` a `ScenarioExpression` reads (1, 2, 3), recorded in a replay, and nothing else.
   **A mission is made harder by triggers authored against it, never by its bots** — every bot
   slot keeps its authored tier, so a mission plays the same at every difficulty until its

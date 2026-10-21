@@ -73,7 +73,7 @@ Three things keep it honest:
 - **The agent is still asked for its next position every tick**, even when the pulled target is used. That call is what advances the agent's internal cursor; skipping it strands the agent on waypoint 0.
 - **The destination is tested first; otherwise the search runs back from the furthest waypoint within `STRING_PULL_REACH_CELLS` of the unit, never past the agent's next waypoint,** and the answer is cached for `STRING_PULL_RECHECK_TICKS`. On open ground the destination is reachable, so the common case is one line test. A line test walks exactly the cells the segment crosses, once each, and stops at the first refusal (`TerrainGrid.is_segment_navigable_for`).
 
-Obstacle routing is unaffected: on the plateau map a unit ordered diagonally past the cylinder still goes around it (detour ×1.12 → ×1.07, i.e. straighter but still around), while an open-ground crossing went ×1.14 → ×0.96 and arrived 17% sooner. Tests: `tests/test_StringPullNavigability.gd` pins the cell rule (including that a 2×2 unit is refused a one-cell gap); the end-to-end measurement is `tools/terrain_meshes/probe_velocity_angle.gd` against `scenes/scenarios/test/nav_straight_line.tscn`, an empty flat scenario built for exactly this.
+Obstacle routing is unaffected: on the plateau map a unit ordered diagonally past the cylinder still goes around it (detour ×1.12 → ×1.07, i.e. straighter but still around), while an open-ground crossing went ×1.14 → ×0.96 and arrived 17% sooner. Tests: `tests/test_StringPullNavigability.gd` pins the cell rule (including that a 2×2 unit is refused a one-cell gap); the end-to-end measurement is `tools/terrain_meshes/probe_velocity_angle.gd` against `scenes/harnesses/nav_straight_line.tscn`, an empty flat scenario built for exactly this.
 
 #### What path straightening costs, and why the search is bounded that way
 
@@ -219,7 +219,7 @@ Those are the two directions a square-quad navmesh can represent exactly; every 
 
 The companion check is `tools/terrain_meshes/probe_pathing.gd`, which runs the same move twice — once with every other unit teleported away, once with them clustered around the start — and reports the A* path length beside the body's maximum offset from that path. Avoidance shows as a gap between the two runs; a corridor problem shows as identical runs with a path already longer than the straight line (measured on a 23-degree, 48.8-unit move: path x1.177 and body offset 0.37, **identical isolated and clustered**).
 
-**Firers outrank travellers, travellers outrank standers** (`Movement.update_avoidance_priority`, ticked from `Actor.simulation_step`). RVO is reciprocal: two equal-priority agents each take half the responsibility for not colliding, so a stationary neighbour that never pays its half leaves the mover re-steering — and arcing. Godot's `avoidance_priority` decides who yields (an agent does not adjust for LOWER-priority neighbours, which pushes the adjustment onto them), so a unit that is travelling is ranked above one that is standing still. Measured on the case above: lateral deviation 0.39 → **0.000**, arrival 95 → 87 ticks, closest approach between bodies unchanged at 0.41 (2× the 0.2 agent radius, so nothing clips).
+**Firers outrank travellers, travellers outrank standers** — SUPERSEDED 2026-10-18: travellers and standers now rank equal, see §Avoidance priority (`Movement.update_avoidance_priority`, ticked from `Actor.simulation_step`). RVO is reciprocal: two equal-priority agents each take half the responsibility for not colliding, so a stationary neighbour that never pays its half leaves the mover re-steering — and arcing. Godot's `avoidance_priority` decides who yields (an agent does not adjust for LOWER-priority neighbours, which pushes the adjustment onto them), so a unit that is travelling is ranked above one that is standing still. Measured on the case above: lateral deviation 0.39 → **0.000**, arrival 95 → 87 ticks, closest approach between bodies unchanged at 0.41 (2× the 0.2 agent radius, so nothing clips).
 
 - **The avoidance work is conserved, not removed.** Someone has to leave the line when a unit is standing on it; this chooses the bystander, which steps ~0.4 cells aside and stays there. That is the intended trade — a unit under orders should look like it is going where it was sent.
 - **A unit firing from where it stands outranks both, and yields to nobody** (`MoveCommand.holds_ground` — `Attack` and `FocusFire` in reach). This is an execution-elasticity choice, not a pathing one: a unit that has started shooting obstructs the friendly units behind it, so a player who wants them in range has to kite, concave or re-space — see [elasticity](../../design-framework/elasticity.md). TODO: acquisition ranks by target priority and then distance across the whole aggro range, so a unit with a low-priority target in reach walks on toward a higher-priority one out of reach rather than stopping to fire. Whether an in-reach target should win is undecided: winning makes units plant and obstruct sooner; losing keeps target priority absolute.
@@ -258,9 +258,26 @@ building each unit's own way rather than about reachability.)
 `Map.nearest_navmesh_point` before issuing them, which is correct — a bot clamping its own orders
 tells no player anything. Do not "unify" the two paths; the asymmetry is the point.
 
-## Avoidance priority: firers, then travellers, then standers
+## Avoidance priority: firers, then travellers and standers alike
 
 *Moved out of `movement.gd::update_avoidance_priority`.*
+
+**Superseded 2026-10-18 (Alex): an idle unit and a travelling one now rank EQUAL**
+(`AVOIDANCE_PRIORITY_STANDING == AVOIDANCE_PRIORITY_TRAVELLING`). The rule below put the whole
+of the avoiding on the stander, and a group walking past one carried it along in front of them —
+8.3 units over a 16-unit walk by five abreast, 8.7 by nine, with overlaps. Wanted instead: the
+idle unit largely stands its ground and the movers go round it; some pushing is fine but kept
+small. Equal ranks keep RVO reciprocal, half each, and measured (one idle Recruit, movers
+walking 16 units past it): one mover pushes it 0.15–0.23 and bows up to 0.26; five abreast push
+it about 1.0 and bow up to 0.28; nine push it 2.5 and bow 0.5; no overlaps in any, arrival
+within 4% of before. Ranking standers ABOVE travellers was measured too — no push at all, movers
+bowing 0.41 — and not taken: an idle unit nothing can move would wall off a one-cell choke.
+The cost accepted is the mover's bow this section was written to remove; the dead-centre jitter
+(§A unit dead on the line) keeps a mover from stalling on one. The history below is why the
+ranking once differed.
+
+The firer's tier is now moot in practice: a unit firing is PLANTED, out of RVO altogether
+(§Who avoids whom). The ranking still decides between travellers and standers.
 
 RVO is reciprocal: two equal-priority agents each take half the responsibility for not
 colliding. When one of them is standing still and never moves, that half is never paid,
@@ -287,3 +304,69 @@ nobody (see the list above). Otherwise it is keyed on is_navigation_finished() r
 on having a command, so a unit stopped for any other reason yields alike, and regains its
 rank the tick it starts moving again. A unit whose path is still being
 computed reads as standing for that one tick, which is harmless.
+
+## Who avoids whom
+
+Decided 2026-10-18 (Alex). Three relations, by who the other unit is and what it is doing:
+
+| the other unit | how a mover treats it | does the other unit give way? |
+|---|---|---|
+| a teammate, idle or walking | reciprocal RVO, half each | a little — it mostly stands its ground |
+| ANY other commander's unit, allies included | a one-sided obstacle (its obstacle channel) | no — it never moves aside for you |
+| any unit PERFORMING AN ACTION, your own included | a one-sided obstacle (the standing channel) | no — it is out of RVO entirely |
+
+The bits are `AvoidanceAgent3D`'s class doc. An ally is an obstacle and never a reciprocal
+partner: it does not step aside for the player's units and they walk round it.
+
+### An acting unit is planted
+
+A unit whose tick was spent performing an action — firing, building, repairing, unloading,
+interacting, stunned: anything `ActionTracker` reports other than IDLE or MOVING
+(`Actor._is_acting`) — is PLANTED for that tick (`Movement.set_planted`). Its agent broadcasts
+on no layer and masks none, so nobody does reciprocal RVO with it and nothing pushes it, and its
+obstacle moves onto `STANDING_OBSTACLE_BIT`, which every agent of every team masks, so units
+walk round it whoever owns them. This replaces the firer's ENGAGED priority as what keeps a
+firing unit in place: before, only a unit holding ground to FIRE outranked travellers, and a
+builder or a repairer standing on someone's line was shoved aside like an idle one.
+
+Planting stands down for a piece whose `Movement` is switched off (a deployed piece plants
+itself, `Deployable._stand`) and for one an Occupy has silenced (`suppress_avoidance_layers`),
+which would otherwise fight it over the same layers. Unplanting puts the obstacle back on its
+owner's channel as read at that moment, so an ownership change while planted lands right.
+
+### A blocked unit
+
+RVO alone does not resolve a mover against a one-sided obstacle in two cases, both measured
+on 2026-10-18 with a headless scenario probe (a Recruit walking 16 units past or onto another):
+
+- **Dead on the line.** With the obstacle exactly on the mover's line, RVO's answer is
+  symmetric and comes out as zero: the mover stopped pressed against the obstacle (0.40 apart,
+  the sum of the radii) and stayed there for the rest of the run. 0.01 off the line it went
+  round. Grid-snapped orders make exact lines common.
+- **On the goal.** Ordered onto a point an ally stood on, the mover pressed against it for the
+  whole run and never arrived, so its order never ended.
+
+`Movement` counts a tick BLOCKED when it asked avoidance for at least `BLOCKED_MIN_REQUEST` of
+its speed and was handed back under `BLOCKED_FRACTION` of what it asked (`_count_blocked`, on
+the velocity before the turn limit, so a pivot in place is not a refusal). After
+`BLOCKED_TICKS` in a row, a unit within `BLOCKED_ARRIVAL_DISTANCE` of its goal takes the goal as
+reached; one further away steers 45° to one side for `SIDESTEP_TICKS`, which breaks the
+symmetry. Measured after: both cases resolve — the mover goes round at 0.41, and the order onto
+an occupied point ends 0.6 short of it. Tests pin the state (`tests/test_AvoidancePlanting.gd`).
+
+### A unit dead on the line: a seeded jitter
+
+An idle TEAMMATE dead on a mover's line steps out of the way (Alex, 2026-10-18). Before, RVO's
+symmetric answer pushed it straight ahead of the mover — 8.4 units over a 16-unit walk in the
+probe — while 0.15 off the line it stepped aside 0.26 and the mover went round. So a mover
+whose heading runs through another unit's centre (within `CENTRE_LINE_LANE` of it, ahead and
+inside the agent's neighbour distance; checked one tick in `CENTRE_LINE_EVERY`) veers off by a
+small angle for `JITTER_TICKS` (`Movement._jitter_off_centre_line`). The angle and its side are
+drawn from `SU.rng`, the simulation's seeded stream, so a replay veers the same way; the veer is
+an exact sideways share of the heading (`JITTER_MIN`..`JITTER_MAX`, about 6–11°), not a
+rotation, so no trigonometry is involved (DMath). Measured after, dead on the line: the teammate
+steps 0.34 aside, the mover passes at 0.41, and two runs on one seed end identically. The same
+veer resolves an ally or an acting unit dead on the line before the blocked rule above is needed.
+
+A group walking past an idle teammate is §Avoidance priority's: since standers and travellers
+rank equal, the group goes round it and pushes it about 1 unit.

@@ -202,6 +202,24 @@ func test_a_purchase_still_on_the_queue_is_a_production_base() -> void:
 	assert_true(_player.has_production_base())
 
 
+func test_a_building_held_only_by_its_occupants_is_not_a_production_base() -> void:
+	# A neutral building the player's units took cover in carries the player's commander only
+	# while they sit in it; leaving it must not read as losing the last structure.
+	var entity := Actor.new()
+	var structure := Fixture.new()
+	structure.name = "Fixture"
+	entity.add_child(structure)
+	var garrison := Garrison.new()
+	garrison.name = "Garrison"
+	entity.add_child(garrison)
+	_player.add_child(entity)
+	entity.garrison = garrison  # out of the tree here, so @onready never resolves it
+	garrison._adopted_commander = true
+	assert_false(_player.has_production_base(), "a borrowed roof is not a base")
+	garrison._adopted_commander = false
+	assert_true(_player.has_production_base(), "an owned one is")
+
+
 func test_a_dying_structure_stops_counting_the_frame_it_dies() -> void:
 	var last: Actor = _own_structure()
 	last.queue_free()

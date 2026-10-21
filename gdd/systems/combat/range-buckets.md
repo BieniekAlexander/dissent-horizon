@@ -62,10 +62,14 @@ hand.
 A piece picks fights at a radius its weapons imply. It is never authored: `senses.aggro:` is
 refused by the importer. The rule (`RangeShapes.aggro_radius_for_reach`):
 
-- **a fixed margin past reach**, clamped between a floor and a ceiling (`AGGRO_MARGIN`,
-  `AGGRO_MIN_RADIUS`, `AGGRO_MAX_RADIUS` in `scripts/entities/range_shapes.gd`);
-- **a piece that cannot move is held to its reach.** It cannot walk toward what it latches
-  onto, so acquiring past reach would lock it onto targets it can never fire on;
+- **aggro IS reach**, with no margin and no ceiling: a piece picks up exactly what it could
+  fire on from where it stands (Alex, 2026-10-19);
+- **floored at `ground_range_short`.** A reach shorter than that bucket's radius (melee, a
+  flamer) aggros at the bucket instead, so a short-reach unit still notices what is about to
+  hit it (`RangeShapes.aggro_floor()`, read from the generated shape). The floor applies on
+  both layers;
+- **a piece that cannot move is held to its reach, floor included.** It cannot walk toward
+  what it latches onto, so acquiring past reach would lock it onto targets it can never fire on;
 - **one volume per target layer.** `AggroRangeGround` follows the longest ground reach and
   `AggroRangeAir` the longest air reach; the scan runs once per layer against that layer
   only, so a long anti-air reach never pulls a unit toward ground targets. A layer the
@@ -76,7 +80,17 @@ refused by the importer. The rule (`RangeShapes.aggro_radius_for_reach`):
 The shapes are a runtime library: one shared cylinder per radius, never mutated. They are
 derived rather than authored because the bunker case changes at runtime.
 
-**Superseded:** a per-piece `senses.aggro:` radius, with two calibration rules to police it
+How far a piece may CHASE what it picked up is a separate rule — the leash, a fixed distance
+from where it stood ([target-acquisition](target-acquisition.md) §The leash).
+
+**Superseded (2026-10-19):** reach plus a fixed margin, clamped to [5, 10]
+(`AGGRO_MARGIN`, `AGGRO_MIN_RADIUS`, `AGGRO_MAX_RADIUS`). The ceiling sat below every long and
+siege reach, and the gap between them was kept as a deliberate elasticity band — a target in it
+could be engaged only by hand or by retaliation. That band is gone: a long-reach piece now
+engages everything it reaches. Accepted pitfall: an idle artillery piece opens fire at its full
+reach, revealing itself sooner than it did.
+
+**Superseded before that:** a per-piece `senses.aggro:` radius, with two calibration rules to police it
 (`armed_declares_aggro`, `immobile_aggro_within_reach`). Both rules are gone. The
 immobile rule now lives inside the formula itself.
 
@@ -209,13 +223,6 @@ Informant-granted stealth can put a HOVERING unit under stealth, so `detection_l
 structure vision does not trip `detection_within_vision`. The shipped detectors — the two
 towers (`cl_defense_antiLight`, `lb_defense`) and Scan's observer — all carry
 `detection_medium`.
-
-TODO: the aggro ceiling (`AGGRO_MAX_RADIUS`) sits below both artillery classes — and, since
-the radii were retuned, below `ground_range_long` and `air_range_long` too — so a target
-between the ceiling and the reach is never picked up idle. It can only be engaged by
-an explicit order, or answered by retaliation ([target-acquisition](target-acquisition.md)).
-For now that gap is intended: a player who targets by hand gets a little more damage out of a
-long-reach piece than one who leaves it to attack commands (2026-09-29). Expect to revisit it.
 
 ## Vision, detection and area of effect are buckets too
 

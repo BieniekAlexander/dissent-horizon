@@ -24,10 +24,10 @@
 [sub_resource type="BoxMesh" id="BoxMesh_placeholder"]
 size = Vector3(8.0, 2.0, 8.0)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
 size = Vector3(8.0, 2.0, 8.0)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
 size = Vector3(8.0, 2.0, 8.0)
 
 [node name="TcCommandCenter" type="CharacterBody3D" groups=["piece", "fixture", "structure"]]
@@ -75,7 +75,8 @@ script = ExtResource("7_spec")
 
 [node name="SelectionShape" parent="Selectable" index="0"]
 shape = SubResource("BoxShape3D_selection")
-metadata/_visual_default_selection = "BoxShape3D"
+metadata/_visual_default_selection = "BoxShape3D@edge"
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0)
 
 [node name="Orders" type="Node" parent="."]
 script = ExtResource("19_spec")

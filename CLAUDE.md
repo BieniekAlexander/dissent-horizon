@@ -16,13 +16,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Shelter (noun)** — a specific game structure with resource significance (distinct from the generic garrison mechanic). Do not use "shelter" as a synonym for a garrison host.
 
-**Scenario / mission / skirmish** — a **scenario** is any session: the `Scenario` root, its map, commanders and trigger host, shared by every kind of play, which is why the scripting classes keep the `Scenario*` prefix. A **mission** is a scenario authored as a tailored experience — scripted waves, patrols, preordained groups, objectives (`gdd/modes/campaign/`); it has no class of its own until it needs behaviour, so the word is the prose term. A **skirmish** is the competitive match the bots play to win. `Skirmish` the CLASS today means "deploys its opening forces from faction rosters", which is why `tutorial.tscn` extends it — TODO: if the class is to mean the mode, roster deployment becomes a `Scenario` option rather than a subclass. Decided 2026-10-03.
+**Scenario / mission / skirmish** — a **scenario** is any session: the `Scenario` root, its map, commanders and trigger host, shared by every kind of play, which is why the scripting classes keep the `Scenario*` prefix. A **mission** is a scenario authored as a tailored experience — scripted waves, patrols, preordained groups, objectives (`gdd/modes/campaign/`); it has no class of its own until it needs behaviour, so the word is the prose term. A **skirmish** is the competitive match the bots play to win. `Skirmish` the CLASS today means "deploys its opening forces from faction rosters", which is why the `human_vs_bot` test harness is one — TODO: if the class is to mean the mode, roster deployment becomes a `Scenario` option rather than a subclass. Decided 2026-10-03.
 
 ---
 
 ## Project overview
 
-Dissent Horizon is a Godot 4.7 RTS game written in GDScript. Isometric perspective, 3D world with 2D sprites on `CharacterBody3D` nodes. The game has fog of war, a build/train economy, multiple unit types, and an AI opponent. The main scene is `scenes/scenarios/s1.tscn`. Physics runs at 30 ticks/second.
+Dissent Horizon is a Godot 4.7 RTS game written in GDScript. Isometric perspective, 3D world with 2D sprites on `CharacterBody3D` nodes. The game has fog of war, a build/train economy, multiple unit types, and an AI opponent. The main scene is the title screen, `scenes/menu/main_menu.tscn`. Physics runs at 30 ticks/second.
 
 Current state: playable prototype. Terrain is a single `TerrainData` resource holding per-corner heights + a per-cell ground-material layer (see `gdd/systems/terrain-and-navigation/map-composition.md`), authored in-editor with the `terrain_brush` plugin (paint materials; raise/lower/smooth/set height). Unit/Structure class hierarchy was recently collapsed into a single `Actor` class using component children (see §Entity hierarchy below).
 
@@ -457,7 +457,9 @@ scripts/
 scenes/
   dialogs/                        — DialogPage scenes: reusable pop-up copy
   interface/                      — authored HUD pieces instanced into player.tscn
-  scenarios/s1.tscn               — main scene
+  menu/main_menu.tscn             — main scene: the title screen
+  scenarios/                      — player-facing scenarios: the skirmish template; missions go here
+  harnesses/                      — test- and sim-owned scenes, apart from player content
   player.tscn                     — Commander id=1 with RTSController + Camera
   map/terrain.tscn
   components/                     — the component library: one scene per component with children or defaults
@@ -574,6 +576,10 @@ The simulation step — one stepper steps every entity in spawn-serial order, so
 work is `simulation_step`, never `_physics_process`. PLANNED: a decide phase threads can share, a
 serial act phase, and references between pieces held as serials for rollback.
 → [`gdd/systems/commands/the-simulation-step.md`](gdd/systems/commands/the-simulation-step.md)
+
+Saved games — a save is the replay's order log plus the tick it was saved on; loading re-simulates
+to that tick, then the player plays on. One autosave, overwritten by `EventAutosave`.
+→ [`gdd/systems/commands/saved-games.md`](gdd/systems/commands/saved-games.md)
 
 Netplay — the same order stream exchanged between machines: lockstep now, built to carry forward to rollback.
 → [`gdd/systems/commands/netplay.md`](gdd/systems/commands/netplay.md)

@@ -210,41 +210,57 @@ static func _at_least_one_cell(footprint_cells: Vector2i) -> Vector2i:
 const MIN_CLICK_RADIUS: float = 0.45
 const MIN_CLICK_HEIGHT: float = 0.6
 
+## What a structure's selection box is stamped with: its shape class and the rule that sized it,
+## so a later change of rule can find the boxes baked under the old one.
+const STRUCTURE_SELECTION_STAMP: String = "BoxShape3D@edge"
+## Selection stamps of rules since retired. A shape stamped with one of these is re-derived
+## (VisualMeasure.selection_is_stale). "BoxShape3D": a structure's box as tall as its whole
+## model and centred one unit up, whatever the model — it rose above a building's walls and
+## stood in front of what was behind it (retired 2026-10-18, Alex).
+const RETIRED_SELECTION_STAMPS: Array[String] = ["BoxShape3D"]
 
-## The selection shape for one piece: {"type": String, "props": Dictionary}.
+
+## The selection shape for one piece: {"type", "props", "center_y", "stamp"}.
 ##
 ## Only ever a trivial primitive — a cylinder for units, a box for structures. A convex
 ## hull of the model would fit better and is deliberately not used: selection is a CLICK
 ## TARGET, not a silhouette, and a shape the player cannot predict from looking is worse
 ## than one that is slightly too generous.
 ##
-## Structures take their box from the authored grid footprint, not from the mesh: the
-## footprint is what the building actually occupies, and a mesh that overhangs it (a roof,
-## a radar dish) should not become clickable ground.
+## Structures take their box's FOOTPRINT from the authored grid footprint, not from the mesh:
+## the footprint is what the building actually occupies, and a mesh that overhangs it (a roof,
+## a radar dish) should not become clickable ground. The box stands on the model's bottom and
+## rises to its OUTER EDGE (`model_edge_top`, VisualMeasure._edge_top) — the walls, not the
+## tower or the peak in the middle. The camera looks down at an angle, so its ray meets a box as
+## tall as the walls wherever it meets the building, and a box as tall as a central tower would
+## stand in front of whatever is behind the building (Alex, 2026-10-18).
 static func selection_shape(
-	visual_class: VisualClass, model_size: Vector3, footprint_cells: Vector2i
+	visual_class: VisualClass,
+	model_size: Vector3,
+	footprint_cells: Vector2i,
+	model_bottom: float = 0.0,
+	model_edge_top: float = -1.0
 ) -> Dictionary:
 	if visual_class == VisualClass.STRUCTURE:
 		var cells: Vector2i = _at_least_one_cell(footprint_cells)
+		var edge: float = model_edge_top if model_edge_top >= 0.0 else model_bottom + model_size.y
+		var height: float = maxf(edge - model_bottom, MIN_CLICK_HEIGHT)
 		return {
 			"type": "BoxShape3D",
 			"props":
-			{
-				"size":
-				Vector3(
-					float(cells.x) * CELL_SIZE,
-					maxf(model_size.y, MIN_CLICK_HEIGHT),
-					float(cells.y) * CELL_SIZE
-				)
-			}
+			{"size": Vector3(float(cells.x) * CELL_SIZE, height, float(cells.y) * CELL_SIZE)},
+			"center_y": model_bottom + height / 2.0,
+			"stamp": STRUCTURE_SELECTION_STAMP,
 		}
+	var unit_height: float = maxf(model_size.y, MIN_CLICK_HEIGHT)
 	return {
 		"type": "CylinderShape3D",
 		"props":
 		{
 			"radius": maxf(_horizontal_radius(model_size), MIN_CLICK_RADIUS),
-			"height": maxf(model_size.y, MIN_CLICK_HEIGHT),
-		}
+			"height": unit_height,
+		},
+		"stamp": "CylinderShape3D",
 	}
 
 

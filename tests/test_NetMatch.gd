@@ -6,7 +6,7 @@ extends GutTest
 ## Lockstep with no scenario, over the loopback network.
 ## gdd/systems/commands/netplay.md §Rules (tick 0 runs only once every peer reports loaded).
 
-const HARNESS: String = "res://scenes/scenarios/test/test_kamikaze_cluster.tscn"
+const HARNESS: String = "res://scenes/harnesses/test_kamikaze_cluster.tscn"
 const SEED: int = 7
 const BUILD: String = "build"
 ## The test's peer hosts the match and plays commander 1; the scenario's machine plays 2.

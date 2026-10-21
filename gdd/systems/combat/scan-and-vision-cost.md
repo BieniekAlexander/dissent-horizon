@@ -87,6 +87,15 @@ gameplay reader (`is_visible_to`, aggro, target release) gets the answer it alwa
 `tests/test_FogIncrementalSight.gd` holds it byte-equal to a from-scratch rebuild through
 random moves, captures, removals and footprint changes.
 
+**A footprint's size does not depend on its source's heading.** It is read off the vision
+shape's global basis, which carries the piece's yaw, and a rotated column's length is 1 only to
+within a float ulp. Plain truncation of radius × scale therefore flipped a 16-unit sight between
+15 and 16 px every few ticks while a unit walked a straight line: the fog's edge pulsed toward and
+away from it, and the edge of what it could see, which aggro and target release read, flickered
+with it. The half-extent is truncated with a thousandth-of-a-pixel tolerance
+(`FogRaster.footprint_for`; found 2026-10-18). `tests/test_FogFootprintRotation.gd` holds the
+footprint equal at every heading.
+
 **A pixel is a cell, and a point is read by the cell it is in.** The raster frames the
 terrain plus a one-cell margin at one pixel per cell, so pixel edges coincide with cell edges
 and the terrain shader draws texel `p` over exactly the span `world_to_pixel` maps to it. The

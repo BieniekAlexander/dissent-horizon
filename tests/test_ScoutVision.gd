@@ -10,7 +10,7 @@ extends GutTest
 ## anything about a Scout. Those three tests are deleted rather than propped up.
 ##
 ## The Scout's REAL fog contribution is covered end to end by
-## `scenes/scenarios/test/test_scout_coverage.tscn` ("every scout point seen at least once
+## `scenes/harnesses/test_scout_coverage.tscn` ("every scout point seen at least once
 ## within 3000 ticks"), run from tools/simulation/run_scenarios.gd.
 
 var _cmdr: Commander

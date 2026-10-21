@@ -12,7 +12,7 @@ extends Node3D
 ## Run with:
 ##   godot --headless res://tools/emission_trace.tscn -- [out_path]
 
-const SCENARIO: String = "res://scenes/scenarios/test/nav_straight_line.tscn"
+const SCENARIO: String = "res://scenes/harnesses/nav_straight_line.tscn"
 const EMISSION_ROOT: String = "res://scenes/entities/projectiles"
 ## A target with no weapon, so the cluster never acts on its own.
 const TARGET_SCENE: String = "res://scenes/entities/units/an/an_bioLight_builder.tscn"

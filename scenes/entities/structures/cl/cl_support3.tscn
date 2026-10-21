@@ -22,11 +22,11 @@
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="3_spec"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/cl_support3.res" id="model_cl_support3"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_e0sq1"]
-size = Vector3(4, 2, 4)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
 size = Vector3(5.0, 2.8, 5.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
+size = Vector3(5.0, 1.55, 5.0)
 
 [node name="ClSupport3" type="CharacterBody3D" unique_id=1831518865 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
@@ -72,9 +72,9 @@ script = ExtResource("11_vtq2n")
 [node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("12_8x8sd")]
 
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-shape = SubResource("BoxShape3D_e0sq1")
-metadata/_visual_default_selection = "BoxShape3D"
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.775, 0.0)
+shape = SubResource("BoxShape3D_selection")
+metadata/_visual_default_selection = "BoxShape3D@edge"
 
 [node name="Orders" type="Node" parent="."]
 script = ExtResource("3_spec")

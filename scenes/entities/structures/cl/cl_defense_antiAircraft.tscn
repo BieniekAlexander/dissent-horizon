@@ -25,8 +25,6 @@
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="1_spec"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/cl_defense_antiAircraft.res" id="model_cl_defense_antiAircraft"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_srojw"]
-
 [sub_resource type="Gradient" id="Gradient_i6eqo"]
 offsets = PackedFloat32Array(0)
 colors = PackedColorArray(0, 0, 0, 1)
@@ -36,6 +34,9 @@ gradient = SubResource("Gradient_i6eqo")
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
 size = Vector3(1.0, 0.858284, 1.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
+size = Vector3(1.0, 0.6, 1.0)
 
 [node name="Turret" type="CharacterBody3D" unique_id=1775619407 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
@@ -81,9 +82,9 @@ script = ExtResource("11_lvhe3")
 [node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("12_78n0s")]
 
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24707031, 0)
-shape = SubResource("BoxShape3D_srojw")
-metadata/_visual_default_selection = "BoxShape3D"
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0)
+shape = SubResource("BoxShape3D_selection")
+metadata/_visual_default_selection = "BoxShape3D@edge"
 
 [node name="Orders" type="Node" parent="."]
 script = ExtResource("1_spec")

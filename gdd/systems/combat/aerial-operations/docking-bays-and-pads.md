@@ -193,3 +193,23 @@ of the commander's bays whether any pad claims this unit. It walks a handful of 
 handful of airfields, and only ever for a unit that is already standing on a deck.
 
 Tests: `tests/test_DockingBay.gd` §Losing the deck under you.
+
+## Landing in a field: stop first, and predict where it comes to rest
+
+Fixed 2026-10-18, from a bug Alex found. Two rules hold for a HOVERING unit given a move and
+then a Land:
+
+- **The move before a Land STOPS at its goal.** An order queued behind a move used to make it
+  PASS_THROUGH, so the transport reached its goal at full speed. A Land acts where the unit
+  already is, so it says it does not travel on (`MoveCommand.continues_movement`), and the move
+  before it brakes (`CommandReceiver._arrival_for`).
+- **A field landing is predicted where the unit comes to REST** (`Aerial._stopping_offset`:
+  v² / 2a along its heading, from `Movement.max_deceleration`). The old prediction was where the
+  unit's speed would carry it over the whole descent. A field descent brakes as it sinks, so
+  that point was wrong, and at a transport's full speed it lay 30-odd units ahead, often over a
+  hill. The unit then flew on to land beside it. Measured on prologue mission 1: before, the
+  Raven overshot its goal by 12 and set down on a mesa. After, it sets down at the goal.
+- **Land stays offered until the unit is really coming down** (`Aerial.is_down_or_descending`):
+  it is refused while the unit descends or is down, not just because a Land was once given.
+  Before, the button was gone for good even when the landing never got under way.
+

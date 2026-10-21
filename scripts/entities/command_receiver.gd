@@ -486,11 +486,17 @@ func _drive_movement() -> void:
 		_arrive(followed)
 
 
-## Stop at the goal only on the FINAL queued destination, and never for an attack or a patrol,
+## Stop at the goal only on the FINAL queued destination — or before an order that does not
+## travel on (MoveCommand.continues_movement: a Land) — and never for an attack or a patrol,
 ## which carry on past the point they aim at.
 func _arrival_for(a_command: MoveCommand) -> Locomotion.Arrival:
+	var next_stays: bool = (
+		not _command_queue.is_empty() and not _command_queue[0].continues_movement()
+	)
 	var is_final: bool = (
-		_command_queue.is_empty() and not (a_command is Attack) and not (a_command is Patrol)
+		(_command_queue.is_empty() or next_stays)
+		and not (a_command is Attack)
+		and not (a_command is Patrol)
 	)
 	return Locomotion.Arrival.STOP if is_final else Locomotion.Arrival.PASS_THROUGH
 

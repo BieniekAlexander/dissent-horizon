@@ -3,14 +3,17 @@ extends Control
 
 ## The title screen: one PAGE at a time, chosen by `page`. The main page leads to every other —
 ## Campaign, Arcade (not built: greyed out, marked WIP), Skirmish, Replays, Options — and Quit
-## closes the application. Every other page has a Back button, and Escape is the same as Back.
+## closes the application. Every other page has a Back button, and Escape is the same as Back:
+## a campaign's page goes back to CAMPAIGN, every other page to MAIN.
 ## gdd/systems/ux/ui/menus.md.
 ##
-## CAMPAIGN lists the authored missions. The list is DATA — `scenarios`, an array of
-## ScenarioEntry — rather than one hand-wired button per scene: adding a mission is filling two
-## fields on a new array row in the inspector. Buttons are duplicated from %ButtonTemplate, a
-## hidden node in the same scene, so restyling every button is editing ONE node. Above the list,
-## the mission DIFFICULTY the chosen mission is opened at (Scenario.mission_difficulty).
+## CAMPAIGN lists the campaigns: the Prologue, and the challenge series (not built: greyed out,
+## marked WIP). PROLOGUE lists that campaign's missions. The list is DATA — `scenarios`, an array
+## of ScenarioEntry — rather than one hand-wired button per scene: adding a mission is filling two
+## fields on a new array row in the inspector, and a row with a title but no scene yet is shown
+## greyed out and marked WIP. Buttons are duplicated from %ButtonTemplate, a hidden node in the
+## same scene, so restyling every button is editing ONE node. Above the list, the mission
+## DIFFICULTY the chosen mission is opened at (Scenario.mission_difficulty).
 ##
 ## SKIRMISH is the SkirmishLobby. MULTIPLAYER hosts or joins a lobby by address
 ## (MultiplayerConnect) and hands it to the same SkirmishLobby, networked. REPLAYS lists every
@@ -24,11 +27,12 @@ extends Control
 ## tree-wide pause.
 
 #region Constants
-enum Page { MAIN, CAMPAIGN, SKIRMISH, MULTIPLAYER, REPLAYS, OPTIONS }
+enum Page { MAIN, CAMPAIGN, PROLOGUE, SKIRMISH, MULTIPLAYER, REPLAYS, OPTIONS, SAVES }
 
 ## The main page's buttons, in order: [name, label, page it opens (or -1), enabled].
 const MAIN_ENTRIES: Array = [
 	["Campaign", "Campaign", Page.CAMPAIGN, true],
+	["LoadGame", "Load Game", Page.SAVES, true],
 	["Arcade", "Arcade (WIP)", -1, false],
 	["Skirmish", "Skirmish", Page.SKIRMISH, true],
 	["Multiplayer", "Multiplayer", Page.MULTIPLAYER, true],
@@ -36,6 +40,15 @@ const MAIN_ENTRIES: Array = [
 	["Options", "Options", Page.OPTIONS, true],
 	["Quit", "Quit", -1, true],
 ]
+## The Campaign page's buttons, in order: [name, label, page it opens (or -1), enabled].
+const CAMPAIGN_ENTRIES: Array = [
+	["Prologue", "Prologue", Page.PROLOGUE, true],
+	["Challenges", "Challenges (WIP)", -1, false],
+]
+## Each page's parent page: where its Back button and Escape lead. Absent means MAIN.
+const PARENT_PAGES: Dictionary = {
+	Page.PROLOGUE: Page.CAMPAIGN,
+}
 const MASTER_BUS: StringName = &"Master"
 #endregion
 
@@ -48,21 +61,27 @@ const MASTER_BUS: StringName = &"Master"
 		_refresh_title()
 
 @export_category("Scenarios")
-## The campaign's missions, in the order their buttons appear. An entry with no scene is
-## skipped and reported (see ScenarioEntry).
+## The Prologue's missions, in the order their buttons appear. An entry with a title but no
+## scene is shown greyed out and marked WIP; one with neither is skipped and reported (see
+## ScenarioEntry).
 @export var scenarios: Array[ScenarioEntry] = []
 
 ## Where the replay panel looks. A test points it elsewhere before the menu enters the tree.
 var replay_directory: String = ReplayFile.DIRECTORY
+## Where the Load Game page looks. A test points it elsewhere before the menu enters the tree.
+var save_directory: String = SaveGame.DIRECTORY
+## The Load Game page: built in code. gdd/systems/commands/saved-games.md §Menus.
+var saves_panel: SavesPanel = null
 
 ## The page on screen.
 var page: Page = Page.MAIN
-## The difficulty a mission opens at, as picked on the Campaign page. MEDIUM until the player
+## The difficulty a mission opens at, as picked on the Prologue page. MEDIUM until the player
 ## picks: the middle tier is what a mission is first written and tuned against.
 var campaign_difficulty: Scenario.MissionDifficulty = Scenario.MissionDifficulty.MEDIUM
 
 @onready var _title_label: Label = %Title
 @onready var _main_page: VBoxContainer = %MainPage
+@onready var _campaign_list: VBoxContainer = %CampaignList
 @onready var _buttons: Control = %Buttons
 @onready var _button_template: Button = %ButtonTemplate
 @onready var _replay_list: VBoxContainer = %ReplayList
@@ -77,6 +96,7 @@ var _multiplayer: MultiplayerConnect = null
 @onready var _pages: Dictionary = {
 	Page.MAIN: %MainPage,
 	Page.CAMPAIGN: %CampaignPage,
+	Page.PROLOGUE: %ProloguePage,
 	Page.SKIRMISH: %SkirmishPage,
 	Page.REPLAYS: %ReplaysPage,
 	Page.OPTIONS: %OptionsPage,
@@ -88,12 +108,14 @@ var _multiplayer: MultiplayerConnect = null
 func _ready() -> void:
 	_refresh_title()
 	_build_main_page()
+	_build_campaign_page()
 	_build_buttons()
 	_build_replay_list()
-	for each: Page in [Page.CAMPAIGN, Page.REPLAYS, Page.OPTIONS]:
-		(_pages[each] as Control).add_child(_back_button())
+	for each: Page in [Page.CAMPAIGN, Page.PROLOGUE, Page.REPLAYS, Page.OPTIONS]:
+		(_pages[each] as Control).add_child(_back_button(parent_page(each)))
 	_lobby.back_requested.connect(show_page.bind(Page.MAIN))
 	_build_multiplayer_page()
+	_build_saves_page()
 	var bus: int = AudioServer.get_bus_index(MASTER_BUS)
 	_volume.value = db_to_linear(AudioServer.get_bus_volume_db(bus)) if bus >= 0 else 1.0
 	_volume.value_changed.connect(_on_volume_changed)
@@ -108,7 +130,7 @@ func _unhandled_input(a_event: InputEvent) -> void:
 		if page == Page.SKIRMISH:
 			_lobby.leave()
 		else:
-			show_page(Page.MAIN)
+			show_page(parent_page(page))
 		get_viewport().set_input_as_handled()
 
 
@@ -121,6 +143,8 @@ func show_page(a_page: Page) -> void:
 	page = a_page
 	for each: Page in _pages:
 		(_pages[each] as Control).visible = each == a_page
+	if a_page == Page.SAVES and saves_panel != null:
+		saves_panel.refresh()
 	if a_page == Page.REPLAYS:
 		_build_replay_list()
 	var first: Button = _first_button(_pages[a_page])
@@ -142,8 +166,18 @@ func main_button(a_name: String) -> Button:
 	return _main_page.get_node_or_null(a_name) as Button
 
 
-## The campaign's button labels, top to bottom. The testable view of what the campaign page
-## offers, without reaching into the node tree.
+## The page Back and Escape lead to from `a_page`.
+func parent_page(a_page: Page) -> Page:
+	return PARENT_PAGES.get(a_page, Page.MAIN)
+
+
+## The Campaign page's button called `a_name` ("Prologue", "Challenges"), or null.
+func campaign_button(a_name: String) -> Button:
+	return _campaign_list.get_node_or_null(a_name) as Button
+
+
+## The Prologue's mission button labels, top to bottom. The testable view of what the Prologue
+## page offers, without reaching into the node tree.
 func button_labels() -> Array[String]:
 	var labels: Array[String] = []
 	for button: Button in _scenario_buttons():
@@ -210,6 +244,20 @@ func _build_main_page() -> void:
 		_main_page.add_child(button)
 
 
+func _build_campaign_page() -> void:
+	for entry: Array in CAMPAIGN_ENTRIES:
+		var button: Button = _button_template.duplicate()
+		button.name = entry[0]
+		button.text = entry[1]
+		button.visible = true
+		button.disabled = not entry[3]
+		if not entry[3]:
+			button.tooltip_text = "Not built yet."
+		else:
+			button.pressed.connect(show_page.bind(entry[2]))
+		_campaign_list.add_child(button)
+
+
 func _build_multiplayer_page() -> void:
 	var page_node := VBoxContainer.new()
 	page_node.name = "MultiplayerPage"
@@ -233,13 +281,33 @@ func _on_lobby_left(a_reason: String) -> void:
 	show_page(Page.MULTIPLAYER)
 
 
-func _back_button() -> Button:
+func _back_button(a_to: Page) -> Button:
 	var button: Button = _button_template.duplicate()
 	button.name = "Back"
 	button.text = "Back"
 	button.visible = true
-	button.pressed.connect(show_page.bind(Page.MAIN))
+	button.pressed.connect(show_page.bind(a_to))
 	return button
+
+
+## The Load Game page: a heading, the saves (SavesPanel, loading only) and a Back button.
+func _build_saves_page() -> void:
+	var page_node := VBoxContainer.new()
+	page_node.name = "SavesPage"
+	page_node.visible = false
+	page_node.add_theme_constant_override("separation", 16)
+	var heading := Label.new()
+	heading.text = "Load Game"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 26)
+	page_node.add_child(heading)
+	saves_panel = SavesPanel.new()
+	saves_panel.name = "SavesPanel"
+	saves_panel.directory = save_directory
+	page_node.add_child(saves_panel)
+	page_node.add_child(_back_button(Page.MAIN))
+	_main_page.get_parent().add_child(page_node)
+	_pages[Page.SAVES] = page_node
 
 
 ## One button per replay file, newest first; a line saying there are none when there are none.
@@ -277,21 +345,26 @@ func _scenario_buttons() -> Array[Button]:
 	return out
 
 
-## One button per valid entry, in authored order.
+## One button per entry, in authored order: a playable entry opens its scene, a WIP one is
+## greyed out, and one with nothing to show is skipped and reported.
 func _build_buttons() -> void:
 	for button: Button in _scenario_buttons():
 		button.queue_free()
 
 	for i: int in scenarios.size():
 		var entry: ScenarioEntry = scenarios[i]
-		if entry == null or not entry.is_valid():
+		if entry == null or not (entry.is_valid() or entry.is_wip()):
 			push_error("MainMenu: scenario entry %d names no scene; skipping it." % (i + 1))
 			continue
 		var button: Button = _button_template.duplicate()
 		button.name = "Scenario%d" % (i + 1)
 		button.text = entry.button_text()
 		button.visible = true
-		button.pressed.connect(open.bind(entry))
+		if entry.is_wip():
+			button.disabled = true
+			button.tooltip_text = "Not built yet."
+		else:
+			button.pressed.connect(open.bind(entry))
 		_buttons.add_child(button)
 
 	if scenarios.is_empty():

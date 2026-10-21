@@ -21,6 +21,8 @@ func before_each() -> void:
 	GameSettings.reset()
 	_feed = AlertFeed.new()
 	_feed.viewer = func() -> int: return ME
+	# Nothing is on screen unless a test says so: the suite's viewport has no game camera.
+	_feed.in_view = func(_a_at: Vector3) -> bool: return false
 	add_child_autofree(_feed)
 	_jumps.clear()
 	_feed.jump_requested.connect(func(xz: Vector2) -> void: _jumps.append(xz))
@@ -134,3 +136,37 @@ func test_completions_do_not_push_attacks_out_of_the_negative_cycle() -> void:
 		_feed.present(_ready_alert("Unit %d ready" % i, 900.0 + i))
 	assert_true(_feed.jump_to_recent())
 	assert_eq(_jumps.back(), Vector2(100, 0))
+
+
+# --- A warning the player is looking at ------------------------------------------------------
+
+
+## On screen: anything with x below 50.
+func _screen_is_west_of_50() -> void:
+	_feed.in_view = func(a_at: Vector3) -> bool: return a_at.x < 50.0
+
+
+func test_an_attack_the_player_is_looking_at_is_not_shown() -> void:
+	_screen_is_west_of_50()
+	_feed.present(_located(10.0))
+	assert_eq(_toasts(), 0, "no toast")
+	assert_eq(_feed.history(), [] as Array[Alert], "and nothing for the jump key")
+
+
+func test_an_attack_off_screen_is_shown() -> void:
+	_screen_is_west_of_50()
+	_feed.present(_located(100.0))
+	assert_eq(_toasts(), 1)
+
+
+func test_good_news_on_screen_is_still_shown() -> void:
+	_screen_is_west_of_50()
+	var ready := Alert.make(AlertCatalog.Type.UNIT_READY, ME, 0, "Recruit ready")
+	_feed.present(ready.located_at(Vector3(10.0, 0.0, 0.0)))
+	assert_eq(_toasts(), 1, "only warnings are held back")
+
+
+func test_an_unlocated_warning_is_still_shown() -> void:
+	_feed.in_view = func(_a_at: Vector3) -> bool: return true
+	_feed.present(Alert.make(AlertCatalog.Type.DEFECTION, ME, 0))
+	assert_eq(_toasts(), 1, "with no place, it cannot be on screen")

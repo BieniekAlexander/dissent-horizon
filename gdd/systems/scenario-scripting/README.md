@@ -20,8 +20,11 @@ the trigger system rather than beside it, so composition, region scoping and cha
 | [match-log.md](match-log.md) | the match's event log: what each event records, what is derived from it (summary, build order, series), and the summary view that reads only it |
 | [simulation-tests.md](simulation-tests.md) | the `sims/*.sim.yaml` grammar and its runner: commanders, groups, symbolic order targets, a run window, a boolean tree of checks; why none of it runs in GUT |
 
-Reference scenario: `scenes/scenarios/tutorial.tscn`. It is authored content, so nothing
-unit-tests its contents.
+Reference scenarios: the prologue missions, designed in
+[`gdd/campaigns/01-prologue/`](../../campaigns/01-prologue/README.md) (TODO: their scenes are not
+built yet). They are authored content, so nothing unit-tests their contents; the mechanics are
+tested against fixtures, and any scene a test boots lives in `scenes/harnesses/`
+([simulation-tests](simulation-tests.md) §Where the harnesses live).
 
 **Belongs here:** anything authored per-mission rather than true of the game everywhere.
 

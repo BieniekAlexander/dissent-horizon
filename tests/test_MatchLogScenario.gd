@@ -3,7 +3,7 @@ extends GutTest
 ## A scenario records its match: the header and resource samples as it runs, and its end once,
 ## with the summary shown whether or not the debug view is up.
 
-const SCENE: String = "res://scenes/scenarios/test/test_scout_coverage.tscn"
+const SCENE: String = "res://scenes/harnesses/test_scout_coverage.tscn"
 ## Physics frames past the first resource sample.
 const RUN_FRAMES: int = 200
 

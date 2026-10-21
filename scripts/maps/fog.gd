@@ -228,8 +228,10 @@ func _physics_process(_a_delta: float) -> void:
 	if is_active:
 		_apply_figure_visibility(viewer_id, is_fog_lifted)
 		for entity: Entity in get_tree().get_nodes_in_group("piece"):
-			if entity.is_on_side_of(viewer_id):
-				# Own and allied units are always visible to their side. Set this explicitly
+			if entity.lends_vision_to(viewer_id):
+				# Own and allied units are always visible to their side — an ally's only while it
+				# shares its vision (Entity.lends_vision_to); one that withholds it falls through
+				# to the fog test below, as an enemy's piece does. Set this explicitly
 				# rather than skipping: when the active view switches directly from
 				# another commander (spectator POV), that commander's fog had hidden
 				# these as enemies, and nothing else would clear that stale state.
@@ -265,8 +267,11 @@ func _physics_process(_a_delta: float) -> void:
 				fog_clear = fog_clear_at(VU.in_xz(entity.global_position))
 			entity.visible = is_fog_lifted or fog_clear
 			if entity is Actor:
+				# An ally's stealth hides nothing from its side, shared vision or not.
 				var stealthed: bool = (
-					entity.stealth != null and entity.stealth.state == Stealth.State.STEALTHED
+					entity.stealth != null
+					and entity.stealth.state == Stealth.State.STEALTHED
+					and not entity.is_on_side_of(viewer_id)
 				)
 				(entity as Actor).in_sight_range = fog_clear and not stealthed
 
@@ -394,11 +399,11 @@ func _configure(
 
 
 ## Bring the sight counts up to date with `a_sources` (the "los" group): re-stamp only a source
-## on this commander's side (allies' sight counts as its own — vision is shared within an
-## alliance) whose pixel or footprint changed, and withdraw the stamp of any source that no
-## longer counts. Diffing each tick, rather than hooking each event that changes vision (capture,
-## death, garrisoning, an upgrade, construction), is what keeps it correct for the event
-## nobody remembered.
+## whose vision this commander shares (its own, and an ally's unless that ally withholds it —
+## Entity.lends_vision_to) whose pixel or footprint changed, and withdraw the stamp of any
+## source that no longer counts. Diffing each tick, rather than hooking each event that changes
+## vision (capture, death, garrisoning, an upgrade, construction), is what keeps it correct for
+## the event nobody remembered.
 func _update_sight(a_sources: Array) -> void:
 	_raster.update_sight(a_sources, viewer_commander_id())
 
@@ -422,7 +427,7 @@ func _apply_figure_visibility(a_viewer_id: int, a_show_all: bool) -> void:
 			figure.visible = (
 				a_show_all
 				or owner_id == a_viewer_id
-				or (entity != null and owner_id > 0 and entity.is_on_side_of(a_viewer_id))
+				or (entity != null and owner_id > 0 and entity.lends_vision_to(a_viewer_id))
 				or fog_clear_at(VU.in_xz(figure.global_position))
 			)
 

@@ -439,6 +439,14 @@ func is_airborne() -> bool:
 	return _landing_state == LandingState.AIRBORNE
 
 
+## True once a landing has really begun: descending, or down. What a Land order is refused on —
+## not the order's flag (is_permanently_grounded), which is set the moment a Land is given and
+## stays set while the unit is still flying to a safe spot, so a landing that never got under way
+## left the unit unable to be told to land again (found 2026-10-18).
+func is_down_or_descending() -> bool:
+	return _landing_state == LandingState.LANDING or _landing_state == LandingState.GROUNDED_TEMP
+
+
 ## True while the unit is on the ground waiting (GROUNDED_TEMP state).
 func is_grounded_temp() -> bool:
 	return _landing_state == LandingState.GROUNDED_TEMP
@@ -598,6 +606,25 @@ func land_permanently() -> void:
 			_landing_state = LandingState.LANDING
 			_compute_landing_correction()
 		# LANDING, GROUNDED_TEMP: already heading to / at the ground; flag alone suffices.
+
+
+## Set this unit down where it stands immediately, with no descent, and keep it down until a
+## movement order lifts it — the state a Land order ends in (land_permanently), entered
+## directly. For an aircraft a scenario places already landed in a field
+## (EventSpawnEntities.spawn_landed): park_on_deck is for a PAD, and an aircraft on a deck with
+## no pad under it takes off at once (Docking.release_lost_dock). Only a HOVERING unit can.
+func land_in_place() -> void:
+	if mode != Movement.Mode.HOVERING:
+		return
+	_permanently_grounded = true
+	_pad_landing = false
+	_current_height_offset = 0.0
+	_landing_state = LandingState.GROUNDED_TEMP
+	_pending_land = false
+	_has_landing_target = false
+	_set_velocity(Vector3.ZERO)
+	_dive_rate = 0.0
+	_dive_committed = false
 
 
 ## Put this unit on a deck immediately, with no approach and no descent — the state a
@@ -1298,11 +1325,13 @@ func _compute_landing_correction() -> void:
 	var current_cell: Vector2i = map.world_to_grid(pos_xz)
 	var current_passable: bool = map.terrain_grid.is_passable(current_cell)
 
-	# Predicted touchdown position: where velocity will carry the unit by the time
-	# it descends from _current_height_offset to the ground.
+	# Predicted touchdown position: where the unit comes to rest. A field descent brakes as it
+	# sinks (_brake_during_descent), so a moving unit sets down its STOPPING DISTANCE ahead —
+	# not where its speed would carry it over the whole descent, which for a transport at full
+	# speed was 30-odd units out, often off the map, and sent it chasing a landing spot far
+	# ahead instead of setting down (found 2026-10-18).
 	var velocity: Vector3 = _velocity()
-	var time_to_land: float = _seconds_to_change_offset(_current_height_offset)
-	var pred_xz: Vector2 = pos_xz + Vector2(velocity.x, velocity.z) * time_to_land
+	var pred_xz: Vector2 = pos_xz + _stopping_offset(Vector2(velocity.x, velocity.z))
 
 	if current_passable:
 		if velocity.is_zero_approx():
@@ -1317,6 +1346,16 @@ func _compute_landing_correction() -> void:
 	var pred_world_pos := Vector3(pred_xz.x, host.global_position.y, pred_xz.y)
 	_landing_target = map.nearest_navmesh_point(pred_world_pos)
 	_has_landing_target = true
+
+
+## How far `a_velocity` carries the unit while it brakes to rest: v² / 2a along it, with a the
+## Movement's deceleration, or the time-limited carry of a unit with unbounded braking (none).
+func _stopping_offset(a_velocity: Vector2) -> Vector2:
+	var movement: Movement = _movement()
+	var decel: float = absf(movement.max_deceleration) if movement != null else INF
+	if a_velocity.is_zero_approx() or decel == INF or decel <= 0.0:
+		return Vector2.ZERO
+	return a_velocity.normalized() * a_velocity.length_squared() / (2.0 * decel)
 
 
 ## BFS outward from `from` to the nearest in-bounds passable cell.

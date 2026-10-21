@@ -77,6 +77,7 @@ func attack_move(
 	if _map == null:
 		return
 	var dest: Vector3 = _map.nearest_navmesh_point(a_world_pos)
+	var issued: Array = []
 	for u: Actor in a_units:
 		var msg := CommandMessage.new(_map, null, null, dest)
 		msg.target_priority = a_target_priority
@@ -87,6 +88,8 @@ func attack_move(
 		# Prime the nav target: a fresh agent defaults target_position to (0,0,0),
 		# so without this a destination at the map centre is silently dropped.
 		u.load_destination(cmd)
+		issued.append(u)
+	_match_group_speed(issued)
 
 
 ## Order each unit to move to a world position WITHOUT engaging — a plain move
@@ -96,6 +99,7 @@ func move(a_units: Array, a_world_pos: Vector3) -> void:
 	if _map == null:
 		return
 	var dest: Vector3 = _map.nearest_navmesh_point(a_world_pos)
+	var issued: Array = []
 	for u: Actor in a_units:
 		var msg := CommandMessage.new(_map, null, null, dest)
 		if not _admits(MoveCommand, u, msg, "move", u.id):
@@ -103,6 +107,8 @@ func move(a_units: Array, a_world_pos: Vector3) -> void:
 		var cmd := MoveCommand.new(msg)
 		u.update_commands(cmd)
 		u.load_destination(cmd)
+		issued.append(u)
+	_match_group_speed(issued)
 
 
 ## Order each unit to move AT a piece — the controls' own follow order: a Move whose message
@@ -116,6 +122,7 @@ func move(a_units: Array, a_world_pos: Vector3) -> void:
 func move_at(a_units: Array, a_target: Entity) -> void:
 	if _map == null or a_target == null or not is_instance_valid(a_target):
 		return
+	var issued: Array = []
 	for u: Actor in a_units:
 		var msg := CommandMessage.new(_map, a_target, null, a_target.global_position)
 		if not _admits(MoveCommand, u, msg, "move_at", u.id):
@@ -123,6 +130,8 @@ func move_at(a_units: Array, a_target: Entity) -> void:
 		var cmd := MoveCommand.new(msg)
 		u.update_commands(cmd)
 		u.load_destination(cmd)
+		issued.append(u)
+	_match_group_speed(issued)
 
 
 ## Set where `a_structures` send what they produce: a plain move to a world position, which
@@ -171,6 +180,7 @@ func evacuate(a_hosts: Array) -> void:
 func attack(a_units: Array, a_target: Entity, a_persist: bool = true) -> void:
 	if _map == null or a_target == null:
 		return
+	var issued: Array = []
 	for u: Actor in a_units:
 		var msg := CommandMessage.new(_map, a_target)
 		msg.persist = a_persist
@@ -179,6 +189,23 @@ func attack(a_units: Array, a_target: Entity, a_persist: bool = true) -> void:
 		var cmd := Attack.new(msg)
 		u.update_commands(cmd)
 		u.load_destination(cmd)
+		issued.append(u)
+	_match_group_speed(issued)
+
+
+## A group order moves together, as the player's does (OrderDispatcher): every mobile unit that
+## received it is capped to the slowest one's speed, so a mixed wave arrives as one rather than
+## its fast members running ahead to fight alone. Set AFTER each unit's handover, because
+## swapping in the new command releases the outgoing one's cap (CommandReceiver.
+## _release_speed_cap); the cap lasts as long as the command it came with. One unit gets none.
+## Applies to every caller — the bot's own army and a mission's tactics alike (Alex, 2026-10-18).
+func _match_group_speed(a_issued: Array) -> void:
+	var slowest: float = OrderDispatcher.slowest_group_speed(a_issued)
+	if slowest < 0.0:
+		return
+	for u: Actor in a_issued:
+		if u.movement != null:
+			u.movement.speed_cap = slowest
 
 
 ## Give `a_unit` an authored chain of orders, replacing what it was doing — a mission's scripted

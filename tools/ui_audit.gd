@@ -162,7 +162,12 @@ func _selection_state(a_entity: Node3D) -> String:
 		return "authored"
 	return (
 		"generated"
-		if node.shape.get_class() == String(node.get_meta(VisualMeasure.STAMP_SELECTION))
+		if (
+			node.shape.get_class()
+			== VisualMeasure.stamped_selection_class(
+				String(node.get_meta(VisualMeasure.STAMP_SELECTION))
+			)
+		)
 		else "tuned"
 	)
 

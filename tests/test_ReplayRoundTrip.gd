@@ -11,7 +11,7 @@ extends GutTest
 ## during the physics step plays the whole match a tick out of phase (selfplay-harness.md
 ## §Determinism).
 
-const HARNESS: String = "res://scenes/scenarios/test/test_kamikaze_cluster.tscn"
+const HARNESS: String = "res://scenes/harnesses/test_kamikaze_cluster.tscn"
 const SEED: int = 7
 ## About a minute of play.
 const RUN_TICKS: int = 1800
@@ -19,7 +19,7 @@ const RUN_TICKS: int = 1800
 const ORDER_TICKS: Array[int] = [90, 600]
 const ORDER_COMMANDER: int = 2
 ## A human against a bot, for recording with the player's rig present.
-const HUMAN_HARNESS: String = "res://scenes/scenarios/skirmish.tscn"
+const HUMAN_HARNESS: String = "res://scenes/harnesses/human_vs_bot.tscn"
 const HUMAN_RUN_TICKS: int = 900
 ## Past the opening force's deferred spawn.
 const HUMAN_ORDER_TICK: int = 300
