@@ -120,7 +120,7 @@ func build_map(a_map: GeneratedMap, a_terrain_path: String) -> Map:
 	var counts: Dictionary = {}
 	for feature: MapFeature in a_map.features:
 		if feature.kind == MapFeature.Kind.POND:
-			_add(map, _pond(feature, rng, counts), map)
+			_add(map, _pond(feature, counts), map)
 			continue
 		for placement: Dictionary in feature.placements:
 			var piece: MapPiece = placement.piece
@@ -221,14 +221,13 @@ func _build_map(a_terrain: TerrainData) -> Map:
 
 ## Properties are set BEFORE the body joins the Map: a WaterBody with a parent Map re-floods
 ## on every setter, and this Map is not in a tree.
-func _pond(a_feature: MapFeature, a_rng: RandomNumberGenerator, a_counts: Dictionary) -> WaterBody:
+func _pond(a_feature: MapFeature, a_counts: Dictionary) -> WaterBody:
 	var body := WaterBody.new()
 	a_counts[&"pond"] = a_counts.get(&"pond", 0) + 1
 	body.name = "Pond%d" % a_counts[&"pond"]
 	body.seed_cell = a_feature.pond_seed_cell
 	body.level = a_feature.pond_level
 	body.energy = a_feature.pond_charge
-	body.charge_color = WaterBody.CHARGE_COLORS[a_rng.randi() % WaterBody.CHARGE_COLORS.size()]
 	return body
 
 

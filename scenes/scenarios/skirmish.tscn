@@ -177,21 +177,18 @@ script = ExtResource("9_22jj8")
 level = 9.0349730885576
 seed_cell = Vector2i(92, 112)
 energy = 7200
-charge_color = Color(0.8, 0.35, 0.36, 1)
 
 [node name="Pond2" type="Node3D" parent="Map" unique_id=1976637591]
 script = ExtResource("9_22jj8")
 level = 9.5239627993654
 seed_cell = Vector2i(140, 171)
 energy = 6720
-charge_color = Color(0.62, 0.76, 0.36, 1)
 
 [node name="Pond3" type="Node3D" parent="Map" unique_id=1198783295]
 script = ExtResource("9_22jj8")
 level = 9.0506197846483
 seed_cell = Vector2i(69, 145)
 energy = 6210
-charge_color = Color(0.92, 0.78, 0.33, 1)
 
 [node name="Pond4" type="Node3D" parent="Map" unique_id=972210157]
 script = ExtResource("9_22jj8")
@@ -210,14 +207,12 @@ script = ExtResource("9_22jj8")
 level = 9.0506197846483
 seed_cell = Vector2i(171, 78)
 energy = 5220
-charge_color = Color(0.9, 0.55, 0.3, 1)
 
 [node name="Pond7" type="Node3D" parent="Map" unique_id=431496482]
 script = ExtResource("9_22jj8")
 level = 9.5506197846483
 seed_cell = Vector2i(69, 86)
 energy = 4920
-charge_color = Color(0.8, 0.35, 0.36, 1)
 
 [node name="Pond8" type="Node3D" parent="Map" unique_id=1634901850]
 script = ExtResource("9_22jj8")
@@ -230,14 +225,12 @@ script = ExtResource("9_22jj8")
 level = 9.0506197846483
 seed_cell = Vector2i(101, 205)
 energy = 4080
-charge_color = Color(0.8, 0.35, 0.36, 1)
 
 [node name="Pond10" type="Node3D" parent="Map" unique_id=559209550]
 script = ExtResource("9_22jj8")
 level = 8.629289094264388
 seed_cell = Vector2i(93, 128)
 energy = 3510
-charge_color = Color(0.8, 0.35, 0.36, 1)
 
 [node name="nt_extractionSite1" parent="Map" unique_id=1970929826 instance=ExtResource("12_qu8at")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 9.5, -63)

@@ -640,4 +640,17 @@ func test_a_basin_reports_its_depth_and_where_terrain_breaks_through() -> void:
 		pierced_before,
 		"terrain raised through the surface is counted, which is what warns an author off"
 	)
+
+
+## A charged pond is drawn cultivated (berms, crust); plain water and a spent pond are not.
+func test_only_a_charged_pond_is_drawn_cultivated() -> void:
+	var map: Map = _make_map()
+	var plain: WaterBody = _add_water(map)
+	assert_false(plain.is_cultivated())
+	assert_eq(plain.surface_material().get_shader_parameter("cultivated"), 0.0)
+	plain.free()
+	var pond: WaterBody = _add_water(map, 100)
+	assert_eq(pond.surface_material().get_shader_parameter("cultivated"), 1.0)
+	pond.energy = 0
+	assert_eq(pond.surface_material().get_shader_parameter("cultivated"), 0.0, "spent")
 #endregion

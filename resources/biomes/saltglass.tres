@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="Biome" format=3]
+
+[ext_resource type="Script" path="res://scripts/rendering/biome.gd" id="1_biome"]
+
+[resource]
+script = ExtResource("1_biome")
+ground_colors = Dictionary[String, Color]({"Grass": Color(0.68, 0.63, 0.6, 1), "Dirt": Color(0.62, 0.5, 0.48, 1), "Sand": Color(0.74, 0.68, 0.55, 1), "Rock": Color(0.52, 0.47, 0.48, 1), "Lithium bed": Color(0.7, 0.74, 0.76, 1)})
+fallback_ground = Color(0.68, 0.63, 0.6, 1)
+rock_light = Color(0.54, 0.41, 0.39, 1)
+rock_dark = Color(0.3, 0.22, 0.23, 1)
+growth_color = Color(0.44, 0.3, 0.5, 1)
+trail_color = Color(0.56, 0.47, 0.43, 1)
+scree_color = Color(0.5, 0.44, 0.44, 1)
+shore_color = Color(0.74, 0.7, 0.66, 1)
+outline_color = Color(0.12, 0.08, 0.1, 1)
+shallow_water = Color(0.48, 0.74, 0.8, 1)
+deep_water = Color(0.14, 0.34, 0.56, 1)
+pond_hues = Array[Color]([Color(0.78, 0.36, 0.62, 1), Color(0.74, 0.3, 0.32, 1), Color(0.3, 0.78, 0.72, 1), Color(0.9, 0.8, 0.36, 1), Color(0.56, 0.38, 0.74, 1)])
+pond_crust = Color(0.9, 0.88, 0.86, 1)
+wood = Color(0.34, 0.23, 0.27, 1)
+dead_wood = Color(0.54, 0.48, 0.48, 1)
+foliage = Color(0.42, 0.21, 0.5, 1)
+shrub = Color(0.5, 0.27, 0.52, 1)
+grass = Color(0.6, 0.42, 0.64, 1)
+reed = Color(0.64, 0.54, 0.6, 1)
+stone = Color(0.58, 0.52, 0.52, 1)
+stone_dark = Color(0.42, 0.35, 0.37, 1)
+blooms = Array[Color]([Color(0.8, 0.92, 0.95, 1), Color(0.95, 0.8, 0.3, 1), Color(0.9, 0.4, 0.7, 1)])
+key_light_color = Color(1.0, 0.97, 0.92, 1)
+key_light_energy = 1.1
+fill_light_color = Color(0.75, 0.8, 1.0, 1)
+fill_light_energy = 0.3
+sky_color = Color(0.64, 0.62, 0.82, 1)
+ground_bounce_color = Color(0.38, 0.31, 0.31, 1)
+ambient_energy = 0.7

@@ -144,6 +144,16 @@ var decorator: MapDecorator = null
 ## large map, which is the reason to turn it off while sculpting.
 @export var decorate_in_editor: bool = true
 
+## The planet's look. An aesthetic parameter only: it colours what is drawn and never touches
+## terrain, navigation or anything a match depends on. Null draws Biome.DEFAULT_PATH.
+@export var biome: Biome:
+	set(v):
+		if biome == v:
+			return
+		biome = v
+		if is_node_ready():
+			refresh_biome()
+
 
 ## Trims the inspector down to what an author actually sets, and keeps derived values out of
 ## the scene file. Three rules, each stated at the branch that applies it; between them the
@@ -810,6 +820,23 @@ func rebuild_decoration() -> void:
 		planned, Vector2i(terrain_data.grid_width(), terrain_data.grid_depth())
 	)
 	TerrainShading.push_ground_overlay(terrain_material(), planned.ground_overlay)
+
+
+func active_biome() -> Biome:
+	return biome if biome != null else Biome.default_biome()
+
+
+## Re-colour everything already drawn from `active_biome()`: the terrain material, every water
+## body and the props. Each of them also reads the biome when it builds, so this is needed only
+## when the biome changes under a map that is already drawn.
+func refresh_biome() -> void:
+	var catalog: TerrainTileCatalog = terrain_data.catalog if terrain_data != null else null
+	TerrainShading.push_biome(terrain_material(), active_biome(), catalog)
+	for body: WaterBody in water_bodies:
+		if is_instance_valid(body):
+			body.push_biome()
+	if decorator != null:
+		decorator.push_biome()
 
 
 ## Hand every WaterBody in the scene its map and derive the water layer once. Runs after the

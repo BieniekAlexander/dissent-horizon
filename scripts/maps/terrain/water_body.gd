@@ -6,10 +6,11 @@ extends Node3D
 ## which everything else is derived — which cells it covers, how deep each is, the surface it
 ## draws, and which cells leave the navmesh.
 ##
-## AUTHORED: `level`, `seed_cell`, `energy`, `charge_color`. DERIVED and never saved: the
-## basin, the surface mesh, the submerged-cell publication, and THIS NODE'S TRANSFORM. A
-## re-sculpt of the terrain under a body therefore re-floods it correctly on the next load
-## instead of leaving a stale footprint behind (~/.claude/CLAUDE.md §10).
+## AUTHORED: `level`, `seed_cell`, `energy`. DERIVED and never saved: the basin, the surface
+## mesh, its colours (the map's Biome; the charged hue by Biome.pond_hue), the submerged-cell
+## publication, and THIS NODE'S TRANSFORM. A re-sculpt of the terrain under a body therefore
+## re-floods it correctly on the next load instead of leaving a stale footprint behind
+## (~/.claude/CLAUDE.md §10).
 ##
 ## The water itself has NO physics: units walk through it and the mesh is visual. What makes
 ## deep water impassable is that its cells are submerged past WaterBasin.WADE_DEPTH, which
@@ -30,17 +31,6 @@ const POND_RATE_MULTIPLIER: int = 3
 ## Generated ponds are priced differently (cells × richness) — see
 ## gdd/systems/terrain-and-navigation/map-generation.md.
 const NOMINAL_ENERGY: int = 4500
-
-## The non-blue surface colours a charged pond picks from — the pinks, ochres and greens of a
-## real lithium evaporation pond. Picked once when a body is authored and stored on it, so a
-## map looks the same every time it loads.
-const CHARGE_COLORS: Array[Color] = [
-	Color(0.87, 0.42, 0.55),  # brine pink
-	Color(0.92, 0.78, 0.33),  # sulphur yellow
-	Color(0.80, 0.35, 0.36),  # iron rust
-	Color(0.62, 0.76, 0.36),  # algal green
-	Color(0.90, 0.55, 0.30),  # amber
-]
 
 const _SURFACE_NODE_NAME: StringName = &"Surface"
 const _SHADER_PATH: String = "res://scripts/rendering/shaders/water_surface.gdshader"
@@ -73,11 +63,6 @@ const _SHADER_PATH: String = "res://scripts/rendering/shaders/water_surface.gdsh
 		_initial_energy = maxi(_initial_energy, energy)
 		_push_charge()
 
-## The surface colour a FULL charge tints this body toward. Meaningless at zero energy.
-@export var charge_color: Color = CHARGE_COLORS[0]:
-	set(v):
-		charge_color = v
-		_push_charge()
 #endregion
 
 #region Derived state
@@ -234,10 +219,29 @@ func charge_fraction() -> float:
 	return float(energy) / float(_initial_energy)
 
 
+## Whether the body is drawn as a cultivated pond (its evaporite crust): while it holds energy.
+## Not while spent — a drained pond IS ordinary water, the same rule as charge_fraction.
+func is_cultivated() -> bool:
+	return energy > 0
+
+
 ## The material the surface draws with, for Fog to push the shroud into (see
 ## Map.fogged_materials). Null before the first rebuild.
 func surface_material() -> ShaderMaterial:
 	return _material
+
+
+## Colour the surface from the map's Biome: the water itself, and the hue a charge tints it
+## toward. Called on every surface rebuild and by Map.refresh_biome.
+func push_biome() -> void:
+	if _material == null:
+		return
+	var biome: Biome = _map.active_biome() if _map != null else Biome.default_biome()
+	_material.set_shader_parameter("shallow_color", biome.shallow_water)
+	_material.set_shader_parameter("deep_color", biome.deep_water)
+	_material.set_shader_parameter("charge_color", biome.pond_hue(seed_cell))
+	_material.set_shader_parameter("crust_color", biome.pond_crust)
+	_push_charge()
 
 
 #endregion
@@ -255,6 +259,8 @@ func _rebuild_surface() -> void:
 		_material = ShaderMaterial.new()
 		_material.shader = load(_SHADER_PATH) as Shader
 		_surface.material_override = _material
+	push_biome()
+	_push_height_field()
 	_surface.mesh = WaterSurfaceMesh.build(basin, _map.terrain_data)
 	_surface.visible = _surface.mesh != null
 	# Vertices are in the heightmap's own frame (see WaterSurfaceMesh), which is the Map's —
@@ -300,11 +306,27 @@ func _validate_property(a_property: Dictionary) -> void:
 		a_property.usage = (a_property.usage | PROPERTY_USAGE_READ_ONLY) & ~PROPERTY_USAGE_STORAGE
 
 
+## The terrain's height field and this body's level, so the surface ends where the ground the
+## player sees rises through the water (water_surface.gdshader §SHORE). Shared from the terrain's
+## own material when it has one, rather than building a second copy of the texture per body.
+func _push_height_field() -> void:
+	_material.set_shader_parameter("water_level", level)
+	var terrain: ShaderMaterial = _map.terrain_material()
+	if terrain != null and terrain.get_shader_parameter("has_heights") == 1.0:
+		for parameter: String in ["height_texture", "height_rect", "has_heights"]:
+			_material.set_shader_parameter(parameter, terrain.get_shader_parameter(parameter))
+		return
+	if _map.terrain_data != null:
+		TerrainShading.push_terrain_uniforms(
+			_material, _map.terrain_data, VU.in_xz(_map.global_position)
+		)
+
+
 func _push_charge() -> void:
 	if _material == null:
 		return
 	_material.set_shader_parameter("charge", charge_fraction())
-	_material.set_shader_parameter("charge_color", charge_color)
+	_material.set_shader_parameter("cultivated", 1.0 if is_cultivated() else 0.0)
 
 
 ## The owning Map, for the editor path where nothing hands one over.

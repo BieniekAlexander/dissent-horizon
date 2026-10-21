@@ -51,6 +51,25 @@ static func push_ground_overlay(material: ShaderMaterial, overlay: Image) -> voi
 	material.set_shader_parameter("has_overlay", 1.0)
 
 
+## Colour the terrain from `a_biome`: the ground per tile type, rock, the pass-7 paint and the
+## passability line. Both renderers call this, after which the catalog's own colours are unused.
+static func push_biome(
+	material: ShaderMaterial, a_biome: Biome, catalog: TerrainTileCatalog
+) -> void:
+	if material == null or a_biome == null:
+		return
+	material.set_shader_parameter(
+		"tile_colors", a_biome.tile_color_array(catalog, TerrainSurface.MAX_TILE_TYPES)
+	)
+	material.set_shader_parameter("rock_light", a_biome.rock_light)
+	material.set_shader_parameter("rock_dark", a_biome.rock_dark)
+	material.set_shader_parameter("meadow_color", a_biome.growth_color)
+	material.set_shader_parameter("trail_color", a_biome.trail_color)
+	material.set_shader_parameter("scree_color", a_biome.scree_color)
+	material.set_shader_parameter("shore_color", a_biome.shore_color)
+	material.set_shader_parameter("outline_color", a_biome.outline_color)
+
+
 ## The corner heights as a mipmapped float texture, or null for a malformed heights layer.
 static func height_texture(data: TerrainData) -> ImageTexture:
 	var w: int = data.map_width()

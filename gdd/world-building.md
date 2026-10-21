@@ -1,7 +1,7 @@
 
 # World Building
 
-This document provides brief overviews of the factions and setting relevant to Dissent Horizon. For deeper lore, refer to the external **world-building knowledge base** (link TBD).
+This document provides brief overviews of the factions and setting relevant to Dissent Horizon. For deeper lore, refer to the external **world-building knowledge base** (link TBD). The battlefields themselves — planets, terrain, flora and settlements — are in [setting/natural-environment.md](setting/natural-environment.md).
 
 ---
 

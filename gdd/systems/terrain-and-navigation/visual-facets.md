@@ -71,7 +71,7 @@ today (ridges, chasms, mountains, lakes, rivers, ponds, tiers, ramps, settlement
 | 7 | **Scree / talus** at cliff feet | every cliff | built (paint and rock piles) |
 | 8 | **Trails and roads** between settlements | neutral building clusters, shelters | built; bridges where a trail wades are PLANNED |
 | 9 | **Settlement dressing** — fences, crates, lamps | the meadow ring | TODO: not built |
-| 10 | **Pond rims** — lithium crust, evaporation stains | lithium ponds | TODO: not built; ties to resource readability, so worth an art-direction decision first |
+| 10 | **Pond rims** — evaporite crust fading onto the ground | lithium ponds | built in the water surface, not as decoration: a charged pond draws it, a spent one does not ([water-bodies](water-bodies.md) §How the surface is drawn) |
 | 11 | **Map-edge framing** — a drop or haze beyond the play area | the play rectangle | TODO: not built |
 
 ## Known gaps

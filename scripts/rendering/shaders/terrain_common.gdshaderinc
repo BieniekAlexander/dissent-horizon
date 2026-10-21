@@ -7,6 +7,8 @@
 // Every input is a derived per-map texture pushed by TerrainShading.push_terrain_uniforms; a
 // material that never received them falls back to flat, unlit-by-cue ground, not to an error.
 
+#include "res://scripts/rendering/shaders/terrain_height.gdshaderinc"
+
 const int MAX_TILE_TYPES = 256;
 
 // Cell-indexed per-cell data. R = tile type index / 255, G = 1 when the cell is too steep to
@@ -15,21 +17,15 @@ uniform sampler2D cell_data : filter_nearest, repeat_disable;
 // (min_x, min_z, size_x, size_z) of the cell grid in world XZ — maps world -> cell UV.
 uniform vec4 terrain_rect = vec4(0.0, 0.0, 1.0, 1.0);
 
-// Corner heights, linearly filtered and mipmapped: a world-space height lookup, and (at a
-// coarse mip) the local mean height that cavity shading compares against.
-uniform sampler2D height_texture : filter_linear_mipmap, repeat_disable;
-// (min_x, min_z, size_x, size_z) such that uv = (world_xz - xy) / zw hits corner texel centres.
-uniform vec4 height_rect = vec4(0.0, 0.0, 1.0, 1.0);
 // (lowest, highest) in-play corner height, for the hypsometric tint.
 uniform vec2 height_range = vec2(0.0, 1.0);
-uniform float has_heights = 0.0;
 
 // Pass-7 ground paint, cell-indexed and linearly filtered so its edges are soft:
 // R = meadow / clearing, G = trail, B = scree, A = shore. See MapDecoration.
 uniform sampler2D ground_overlay : filter_linear, repeat_disable;
 uniform float has_overlay = 0.0;
 
-uniform vec4 tile_colors[MAX_TILE_TYPES];
+uniform vec4 tile_colors[MAX_TILE_TYPES] : source_color;
 uniform sampler2DArray tile_textures : source_color, filter_linear, repeat_enable;
 uniform int tile_count = 0;
 uniform float tile_has_texture[MAX_TILE_TYPES];
@@ -48,6 +44,15 @@ uniform vec4 shore_color : source_color = vec4(0.55, 0.50, 0.37, 1.0);
 // exact while everything around it is free to be painterly.
 uniform vec4 outline_color : source_color = vec4(0.10, 0.09, 0.08, 1.0);
 uniform float outline_width = 0.12;   // world units
+// How the edge of impassable ground is drawn — drawing only: passability, the navmesh and the
+// structure grid stay per cell. 0 keeps the cell squares, their corners rounded by
+// rock_corner_radius (world units; a cell is one), deviating from the cell boundary by at most
+// radius * (sqrt(2) - 1). 1 treats each cell's flag as a sample at its centre and draws the
+// contour between samples: straight edges stay on the cell boundary, a 45-degree staircase
+// becomes a straight diagonal, and a lone corner deviates by up to a quarter cell. Between them
+// is a blend, the calibration of how far the drawn edge may stray from the grid.
+uniform float rock_edge_smoothing = 1.0;
+uniform float rock_corner_radius = 0.3;
 
 // --- Elevation cues -----------------------------------------------------------------------
 // Contour lines: one every `contour_interval` of height, offset so a level sits BETWEEN the
@@ -114,55 +119,6 @@ float th_value_noise(vec2 p) {
 
 float th_noise2(vec2 p) {
 	return 0.65 * th_value_noise(p / 3.0) + 0.35 * th_value_noise(p / 0.9);
-}
-
-vec2 th_height_uv(vec2 p) {
-	return (p - height_rect.xy) / height_rect.zw;
-}
-
-float th_height(vec2 p) {
-	return texture(height_texture, th_height_uv(p)).r;
-}
-
-// Cubic B-spline weights for a texel fraction `f`.
-vec4 th_bspline_weights(float f) {
-	vec4 n = vec4(1.0, 2.0, 3.0, 4.0) - f;
-	vec4 s = n * n * n;
-	float x = s.x;
-	float y = s.y - 4.0 * s.x;
-	float z = s.z - 4.0 * s.y + 6.0 * s.x;
-	return vec4(x, y, z, 6.0 - x - y - z) / 6.0;
-}
-
-// The height field B-spline filtered (four bilinear taps): continuous in slope, where the
-// bilinear field kinks at every cell edge. Anything drawn from the height's DERIVATIVES (lit
-// normals, contours, banks) uses this one — off the bilinear field those lines zigzag cell by
-// cell. It smooths the terrace steps slightly, which no gameplay fact depends on.
-float th_height_smooth(vec2 p) {
-	vec2 size = vec2(textureSize(height_texture, 0));
-	vec2 tc = th_height_uv(p) * size - 0.5;
-	vec2 f = fract(tc);
-	tc -= f;
-	vec4 xw = th_bspline_weights(f.x);
-	vec4 yw = th_bspline_weights(f.y);
-	vec4 c = tc.xxyy + vec2(-0.5, 1.5).xyxy;
-	vec4 s = vec4(xw.xz + xw.yw, yw.xz + yw.yw);
-	vec4 o = (c + vec4(xw.yw, yw.yw) / s) / size.xxyy;
-	float t0 = textureLod(height_texture, o.xz, 0.0).r;
-	float t1 = textureLod(height_texture, o.yz, 0.0).r;
-	float t2 = textureLod(height_texture, o.xw, 0.0).r;
-	float t3 = textureLod(height_texture, o.yw, 0.0).r;
-	float sx = s.x / (s.x + s.y);
-	float sy = s.z / (s.z + s.w);
-	return mix(mix(t3, t2, sx), mix(t1, t0, sx), sy);
-}
-
-// The smoothed height field's gradient (rise per unit run) at `p`.
-vec2 th_gradient(vec2 p) {
-	float e = 0.35;
-	float hx = th_height_smooth(p + vec2(e, 0.0)) - th_height_smooth(p - vec2(e, 0.0));
-	float hz = th_height_smooth(p + vec2(0.0, e)) - th_height_smooth(p - vec2(0.0, e));
-	return vec2(hx, hz) / (2.0 * e);
 }
 
 // World-space normal from the height field: smooth across cells, which is what lets lighting
@@ -325,20 +281,84 @@ float th_steep_at(vec2 cell_uv) {
 	return step(0.5, texture(cell_data, cell_uv).g);
 }
 
-// Distance-based ink line on a passable cell's sides that face an impassable neighbour.
-float th_outline(vec2 p, vec2 uv) {
-	vec2 texel = 1.0 / vec2(textureSize(cell_data, 0));
-	vec2 f = fract(p - terrain_rect.xy);
-	// The line's inner edge ramps over a pixel instead of stepping, so it doesn't stair-step.
+// Signed distance to a rounded quadrant {u.x >= 0, u.y >= 0} whose corner has radius r:
+// negative inside.
+float th_quadrant_sd(vec2 u, float r) {
+	vec2 w = r - u;
+	return length(max(w, vec2(0.0))) + min(max(w.x, w.y), 0.0) - r;
+}
+
+// The contour between the four flags taken as samples at their cell centres (q = +-0.5): their
+// bilinear blend at 0.5, as a distance in cells by its gradient.
+float th_sampled_rock_sd(vec2 q, float a, float b, float e, float d) {
+	vec2 t = q + 0.5;
+	float v = mix(mix(a, b, t.x), mix(e, d, t.x), t.y);
+	vec2 grad = vec2(mix(b - a, d - e, t.y), mix(e - a, d - b, t.x));
+	return (0.5 - v) / max(length(grad), 0.5);
+}
+
+// The cell squares themselves, corners rounded by rock_corner_radius.
+float th_cell_rock_sd(vec2 q, float a, float b, float e, float d, float count) {
+	float r = rock_corner_radius;
+	if (count < 0.5) {
+		return 1e3;
+	}
+	if (count > 3.5) {
+		return -1e3;
+	}
+	if (count < 1.5 || count > 2.5) {
+		// One rock quadrant: a convex corner, rounded. One walkable quadrant: a concave corner,
+		// filleted — the same shape, inside out.
+		float odd = count < 1.5 ? 1.0 : 0.0;
+		vec2 s = a == odd ? vec2(-1.0) : b == odd ? vec2(1.0, -1.0) : e == odd ? vec2(-1.0, 1.0) : vec2(1.0);
+		float sd = th_quadrant_sd(q * s, r);
+		return count < 1.5 ? sd : -sd;
+	}
+	if (a == d) {
+		// Diagonal pair: two convex corners that touch at the grid corner.
+		vec2 s1 = a > 0.5 ? vec2(-1.0) : vec2(1.0, -1.0);
+		vec2 s2 = -s1;
+		return min(th_quadrant_sd(q * s1, r), th_quadrant_sd(q * s2, r));
+	}
+	// An adjacent pair: a straight edge along the cell boundary.
+	if (a > 0.5 && b > 0.5) {
+		return q.y;
+	}
+	if (e > 0.5 && d > 0.5) {
+		return -q.y;
+	}
+	return a > 0.5 ? q.x : -q.x;
+}
+
+// Signed distance from `p` to impassable ground, in world units: negative on it. The steep
+// flags are per cell; this rounds the corners where they meet, from the four cells around the
+// nearest grid corner, so a cliff's edge reads as rock rather than as a staircase of squares.
+float th_rock_sd(vec2 p) {
+	vec2 cells = vec2(textureSize(cell_data, 0));
+	vec2 c = (p - terrain_rect.xy) / terrain_rect.zw * cells;
+	vec2 corner = floor(c + 0.5);
+	vec2 q = c - corner;
+	// The four cells around the corner, by the quadrant of q they occupy.
+	float a = th_steep_at((corner + vec2(-0.5, -0.5)) / cells);
+	float b = th_steep_at((corner + vec2(0.5, -0.5)) / cells);
+	float e = th_steep_at((corner + vec2(-0.5, 0.5)) / cells);
+	float d = th_steep_at((corner + vec2(0.5, 0.5)) / cells);
+	float count = a + b + e + d;
+	float smooth_sd = th_sampled_rock_sd(q, a, b, e, d);
+	return mix(th_cell_rock_sd(q, a, b, e, d, count), smooth_sd, rock_edge_smoothing);
+}
+
+// 1 on impassable ground, 0 off it, the rounded edge antialiased over a pixel.
+float th_impassable(vec2 p) {
 	float aa = 0.5 * th_pixel(p);
-	vec2 near = 1.0 - smoothstep(vec2(outline_width - aa), vec2(outline_width + aa), f);
-	vec2 far = 1.0 - smoothstep(vec2(outline_width - aa), vec2(outline_width + aa), 1.0 - f);
-	float line = 0.0;
-	line = max(line, th_steep_at(uv + vec2(-texel.x, 0.0)) * near.x);
-	line = max(line, th_steep_at(uv + vec2(texel.x, 0.0)) * far.x);
-	line = max(line, th_steep_at(uv + vec2(0.0, -texel.y)) * near.y);
-	line = max(line, th_steep_at(uv + vec2(0.0, texel.y)) * far.y);
-	return line;
+	return 1.0 - smoothstep(-aa, aa, th_rock_sd(p));
+}
+
+// The ink line on the passable side of every passability boundary, following the rounded edge.
+float th_outline(vec2 p, vec2 uv) {
+	float aa = 0.5 * th_pixel(p);
+	float sd = th_rock_sd(p);
+	return 1.0 - smoothstep(outline_width - aa, outline_width + aa, sd);
 }
 
 vec3 th_base_albedo(int idx, vec2 p) {

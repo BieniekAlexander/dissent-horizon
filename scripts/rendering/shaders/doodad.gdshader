@@ -1,8 +1,10 @@
 shader_type spatial;
 
-// Cosmetic props (DoodadLibrary meshes, drawn by MapDecorator's MultiMeshes): vertex colour,
-// which the engine has already multiplied by the MultiMesh's per-instance tint, a slight sway for foliage, and the same fog of war as the terrain
-// — a prop drawn over the shroud would give away the ground beneath it.
+// Cosmetic props (DoodadLibrary meshes, drawn by MapDecorator's MultiMeshes). Colour is looked
+// up, not baked: UV2 names each vertex's Biome.PropRole (x) and a shade (y), role_colors holds
+// the map's Biome, and COLOR is the MultiMesh's per-instance tint. Plus a slight sway for
+// foliage, and the same fog of war as the terrain — a prop drawn over the shroud would give
+// away the ground beneath it.
 
 render_mode specular_disabled;
 
@@ -12,6 +14,9 @@ uniform vec4 fog_rect = vec4(0.0, 0.0, 1.0, 1.0);
 uniform float fog_enabled = 0.0;
 // How far the top of a 1-unit-tall prop leans in the wind; 0 for rigid kinds (stone).
 uniform float sway_amount = 0.0;
+// Biome.prop_role_colors(); the size is Biome.PROP_ROLE_COUNT.
+const int PROP_ROLE_COUNT = 11;
+uniform vec4 role_colors[PROP_ROLE_COUNT] : source_color;
 
 varying vec3 v_world;
 
@@ -24,7 +29,8 @@ void vertex() {
 }
 
 void fragment() {
-	vec3 albedo = COLOR.rgb;
+	int role = clamp(int(UV2.x + 0.5), 0, PROP_ROLE_COUNT - 1);
+	vec3 albedo = role_colors[role].rgb * UV2.y * COLOR.rgb;
 	if (fog_enabled > 0.5) {
 		vec2 fuv = vec2(
 			(v_world.x - fog_rect.x + fog_rect.z) / (2.0 * fog_rect.z),

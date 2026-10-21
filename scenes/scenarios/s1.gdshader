@@ -28,7 +28,7 @@ void fragment() {
 	if (has_heights > 0.5) {
 		vec2 cell = texture(cell_data, uv).rg;
 		idx = clamp(int(cell.r * 255.0 + 0.5), 0, MAX_TILE_TYPES - 1);
-		impassable = step(0.5, cell.g);
+		impassable = th_impassable(v_world.xz);
 	}
 
 	vec3 n = has_heights > 0.5 ? th_normal(v_world.xz)
