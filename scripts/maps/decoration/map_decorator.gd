@@ -75,6 +75,13 @@ func doodad_materials() -> Array[ShaderMaterial]:
 	return result
 
 
+## Re-colour every prop from the map's Biome (Map.refresh_biome).
+func push_biome() -> void:
+	var colors: PackedColorArray = Biome.of(self).prop_role_colors()
+	for material: ShaderMaterial in _materials.values():
+		material.set_shader_parameter("role_colors", colors)
+
+
 ## Hide every prop standing on `a_cells` (a structure was just placed there).
 func clear_cells(a_cells: Array[Vector2i]) -> void:
 	for cell: Vector2i in a_cells:
@@ -112,6 +119,7 @@ func _build_kind(kind: DoodadLibrary.Kind, placements: Array, grid_half: Vector2
 	var material := ShaderMaterial.new()
 	material.shader = load(DOODAD_SHADER) as Shader
 	material.set_shader_parameter("sway_amount", SWAY_BY_KIND.get(kind, 0.0))
+	material.set_shader_parameter("role_colors", Biome.of(self).prop_role_colors())
 	var node := MultiMeshInstance3D.new()
 	node.name = String(DoodadLibrary.Kind.keys()[kind]).to_pascal_case()
 	node.multimesh = multimesh

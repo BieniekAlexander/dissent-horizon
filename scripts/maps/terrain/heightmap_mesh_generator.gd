@@ -87,7 +87,7 @@ var _tex_flags: PackedFloat32Array = PackedFloat32Array()
 
 ## Push the terrain shader's parameters: the tile Texture2DArray + per-layer "has texture"
 ## flags (so the shader samples a real texture where one exists and falls back to the baked
-## flat map_color elsewhere) and, for back-compat, the heightmap cell counts. No-op when the
+## flat biome colour elsewhere) and, for back-compat, the heightmap cell counts. No-op when the
 ## material isn't a ShaderMaterial; parameters the shader doesn't declare are simply ignored.
 func _sync_shader_params() -> void:
 	var sm := material as ShaderMaterial
@@ -101,6 +101,7 @@ func _sync_shader_params() -> void:
 	if td != null:
 		TerrainShading.push_terrain_uniforms(sm, td, _grid_center())
 	var cat := _catalog()
+	TerrainShading.push_biome(sm, Biome.of(self), cat)
 	if cat == null:
 		sm.set_shader_parameter("tile_count", 0)
 		return
@@ -109,12 +110,10 @@ func _sync_shader_params() -> void:
 		_tex_array = built["array"]
 		_tex_flags = built["flags"]
 		_tex_source_catalog = cat
-	sm.set_shader_parameter("tile_colors", cat.map_color_array(TerrainSurface.MAX_TILE_TYPES))
 	if _tex_array == null:
 		# Catalog present but no type has a texture yet — stay on flat colours.
 		sm.set_shader_parameter("tile_count", 0)
 		return
-	sm.set_shader_parameter("tile_colors", cat.map_color_array(TerrainSurface.MAX_TILE_TYPES))
 	sm.set_shader_parameter("tile_textures", _tex_array)
 	sm.set_shader_parameter("tile_has_texture", _tex_flags)
 	sm.set_shader_parameter("tile_count", cat.count())
@@ -192,7 +191,13 @@ class CellQuads:
 		# ground and leaves every lit material black under a sun.
 		var normal: Vector3 = (a_c01 - a_c00).cross(a_c10 - a_c00).normalized()
 		normals.append_array([normal, normal, normal, normal])
-		indices.append_array([base, base + 1, base + 2, base, base + 2, base + 3])
+		# Split along the flatter diagonal, so a cliff running diagonally through cells folds
+		# along triangle edges instead of stepping cell by cell. The cell stays a square; only
+		# its two triangles change.
+		if absf(a_c10.y - a_c01.y) < absf(a_c00.y - a_c11.y):
+			indices.append_array([base, base + 1, base + 3, base + 1, base + 2, base + 3])
+		else:
+			indices.append_array([base, base + 1, base + 2, base, base + 2, base + 3])
 
 	func to_mesh() -> ArrayMesh:
 		var arrays: Array = []

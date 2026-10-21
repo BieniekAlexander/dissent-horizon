@@ -137,15 +137,17 @@ So green, turquoise, yellow, orange, pink and red are all grounded. The life-dri
 the planet's star exactly as foliage does (§Foliage colour has a scientific basis), so one
 world's halophile reds are another's purples or near-blacks; the chemical hues do not. Red and
 orange stay non-hazardous by treatment — a flat, still, glossy surface, a pale evaporite crust
-at the rim, berms in a grid, never glow or motion (constraint 4).
+fading onto the ground beside it to show evaporation, never glow or motion (constraint 4).
+Ponds keep their own shapes, which the economy is tuned on; the basin's rim is read as the berm
+(Alex, 2026-10-21).
 
 **Colour carries no physics.** A hue need not encode what it would on Earth (concentration,
 richness). The game's own signal — a charged pond fading back toward plain water as it drains
 ([water-bodies.md](../systems/terrain-and-navigation/water-bodies.md) §How the surface is drawn)
-— is the only thing a pond's colour reports. TODO: `WaterBody.CHARGE_COLORS` is pink, ochre and
-green today; replace it with a set drawn from the grounded hues above, chosen per planet, and
-check the drain fade still reads when the charged hue is close to plain water's blue
-(turquoise is).
+— is the only thing a pond's colour reports. The hues are a biome's `pond_hues`, and a pond's
+pick follows from its seed cell (`Biome.pond_hue`), so the map file stores no colour. TODO: the
+drain fade is unverified for a charged hue close to plain water's blue (turquoise is): a pond
+may read as plain water before it is spent.
 
 ### Megastructures, sparingly
 
@@ -212,8 +214,9 @@ heights, passability, sites, navigation, vision — and changing A never changes
 This is the same line [visual-facets.md](../systems/terrain-and-navigation/visual-facets.md)
 draws for decoration (cosmetic only, derived, never saved).
 
-Where A lives — the map, the scenario, or a resource either one names — is left to whoever
-builds the palette resource (Alex is agnostic; gdd/tasks.md T-117).
+A is a `Biome` resource that a Map names (`Map.biome`, the default biome when it names none).
+It sits on the map rather than the scenario because the map owns everything it colours —
+terrain, water, props — and an open map in the editor should show its look without a scenario.
 
 ### Long term: a parameterized palette
 
@@ -235,9 +238,12 @@ license green foliage or an Atacama look-alike.
 
 | | Light / star | Climate | Native flora form | Dominant land use |
 |---|---|---|---|---|
-| A | cool red dwarf, dim warm light | temperate, humid | dark, broad-leafed and fungal mats | farmland and terraces |
-| B | Sun-like star | arid, salt basins | sparse, succulent and crystalline | lithium ponds and industry |
-| C | hot blue-white star | cold, high altitude | pale yellow-orange, short and dense | residential sprawl and infrastructure |
+| A — ember | cool red dwarf, dim warm light | temperate, humid | dark, broad-leafed and fungal mats | farmland and terraces |
+| B — saltglass (the default) | Sun-like star | arid, salt basins | sparse, succulent and crystalline | lithium ponds and industry |
+| C — frostglare | hot blue-white star | cold, high altitude | pale yellow-orange, short and dense | residential sprawl and infrastructure |
+
+The three are `resources/biomes/`. Only light, palette and prop colours differ so far; flora
+form and land use wait on later work (gdd/tasks.md T-121, T-122).
 
 
 ---

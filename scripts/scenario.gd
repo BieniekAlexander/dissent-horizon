@@ -612,13 +612,26 @@ const PLAYER_HUD_SCENE: String = "res://scenes/interface/player_hud.tscn"
 const SPECTATOR_HUD_NAME: String = "SpectatorHUD"
 
 
-## Add the default lighting rig unless the scenario (or its map) already carries a sun. A
+## Add the default lighting rig unless the scenario (or its map) already carries a sun, tinted
+## by the map's Biome, and the biome's ambient unless the scenario carries a WorldEnvironment. A
 ## scenario that lights itself keeps exactly what it authored.
 func _ensure_lighting() -> void:
 	if not find_children("*", "DirectionalLight3D", true, false).is_empty():
 		return
+	var biome: Biome = map.active_biome() if map != null else Biome.default_biome()
 	var rig: Node = (load(DEFAULT_LIGHTING_SCENE) as PackedScene).instantiate()
+	biome.dress_lighting(rig)
 	add_child(rig)
+	if not find_children("*", "WorldEnvironment", true, false).is_empty():
+		return
+	var base: Environment = (
+		load(ProjectSettings.get_setting("rendering/environment/defaults/default_environment"))
+		as Environment
+	)
+	var world_environment := WorldEnvironment.new()
+	world_environment.name = "BiomeEnvironment"
+	world_environment.environment = biome.environment_from(base)
+	add_child(world_environment)
 
 
 ## Hook for subclasses to spawn each player slot's opening force at runtime. Base

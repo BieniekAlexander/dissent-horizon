@@ -68,9 +68,9 @@ TODO: undecided — a shape language, palette and material set per faction, draw
 brutalism, Baladian scavenged kit, opaque Ward machines, Successor biorobotics. Each
 faction's roles share a function and differ in appearance.
 
-PLANNED: biomes — a palette from aesthetic parameters, separate from map generation; nothing
-Earth-like. The direction is [natural-environment.md](../../../setting/natural-environment.md)
-§Biomes and palettes; there is no biome concept in the terrain model yet.
+Biomes: a map names a `Biome`, which colours its ground, rock, ground paint, water, props and
+default light; three hand-made placeholders exist. PLANNED: generating the palette from physical
+inputs — [natural-environment.md](../../../setting/natural-environment.md) §Biomes and palettes.
 
 TODO: a proposed order, not adopted — art direction and UI language first; then a
 vertical slice (one biome, one faction, its core pieces, HUD, combat audio); then the full

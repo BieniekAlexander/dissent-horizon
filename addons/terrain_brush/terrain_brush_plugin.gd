@@ -1163,9 +1163,6 @@ func _commit_water_body(map: Map) -> void:
 	body.seed_cell = _water_seed
 	body.level = _water_level
 	body.energy = int(_water_energy_spin.value)
-	# Picked once, here, and stored on the body: a pond that re-rolled its colour every load
-	# would make the same map look different every time it opened.
-	body.charge_color = WaterBody.CHARGE_COLORS.pick_random()
 
 	var ur := get_undo_redo()
 	ur.create_action("Create water body", UndoRedo.MERGE_DISABLE, map)
