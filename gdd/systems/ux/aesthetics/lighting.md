@@ -73,8 +73,9 @@ faster once the terrain stopped drawing twice.
   RTS fallback if a large army's shadow pass costs too much. Not needed until measured.
 - TODO: **a rim or back light** for silhouette readability against dark ground — SC2's third
   light, or a fresnel term in the unit shader.
-- TODO: **per-map lighting presets** (time of day, biome) once biomes exist
-  ([README](systems/ux/aesthetics/README.md) §Art direction).
+- PLANNED: **per-biome lighting** — the star's temperature tints the key light and ambient,
+  as one of the aesthetic parameters ([natural-environment](../../../setting/natural-environment.md)
+  §Biomes and palettes). Time of day stays a low-priority TODO.
 - TODO: **SSAO** as a Forward+ quality option; the Compatibility renderer has none, so nothing
   may depend on it.
 - TODO: whether the purple clear colour in project.godot is meant to show anywhere; the default

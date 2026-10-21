@@ -11,10 +11,13 @@ worldbuilding choice has to fit. Drafted 2026-10-21 from a worldbuilding Q&A ses
 
 Faction lore lives in [world-building.md](../world-building.md); resources and their lore in
 [resources.md](resources.md) and [energy-economy-notes.md](energy-economy-notes.md); the aesthetic
-pillars in [art-direction.md](../systems/ux/aesthetics/art-direction.md). TODO: world-level
-material here (species, planet history) may belong in the external worldbuilding vault that
-[art-direction.md](../systems/ux/aesthetics/art-direction.md) says owns world-level direction;
-this note keeps only what the game's maps need until that is decided.
+pillars in [art-direction.md](../systems/ux/aesthetics/art-direction.md).
+
+**Scope (Alex, 2026-10-21):** this repository touches planets and species only lightly, as far
+as that tells a reader why a module is built the way it is — why visual assets are
+parameterized, why a palette follows a star. Fuller worldbuilding (species backstories, planet
+histories, anything that drives no code) is out of scope here and belongs in the external
+worldbuilding vault that [art-direction.md](../systems/ux/aesthetics/art-direction.md) names.
 
 ---
 
@@ -31,12 +34,16 @@ These come from the game's mechanics and override any worldbuilding idea that co
    player infer what is under the fog of war. Colour and form vary by planet, never by what is
    buried nearby.
 4. **Nothing looks hazardous unless it is.** Generated maps carry no hazard mechanics, so no
-   basin fill, scar or prop may read as dangerous (no lava, nothing glowing, bubbling or
-   red-orange in a basin). Past faction presence and battle damage are cosmetic.
+   basin fill, scar or prop may read as dangerous. What reads as hazard is the TREATMENT —
+   glow, emission, bubbling, smoke, molten texture — not the hue: a red or orange brine is
+   allowed when its surface and shading say still water (§Lithium ponds are cultivated). Past
+   faction presence and battle damage are cosmetic.
 5. **No verticality.** The isometric camera rules out tall structures that would hide pieces,
    and also rules out horizon silhouettes and skybox elements — the camera never sees a horizon.
 6. **Readability first.** Time of day, weather and haze are welcome only where they never cost
    readability. Time of day is a low-priority nice-to-have.
+7. **Nothing looks like Earth.** Every biome is alien, placeholders included. Today's doodads
+   (conifers, broadleaf trees, flowers) are Earth placeholders to be replaced, not a baseline.
 
 ---
 
@@ -83,7 +90,11 @@ imported from the settlers' homeworld.
 - **Constant regime change.** Worlds have passed between governments repeatedly; instability
   from war is part of the storytelling.
 - **Overdeveloped land.** Maps should look inhabited, with little wilderness. Native flora between
-  built zones is minimal — a thin fringe, ignored by navigation.
+  built zones is minimal — a thin fringe, ignored by navigation. Sporadic trees and rock piles,
+  as the decoration pass scatters them today, fit this; **dense brush that looks impassable to a
+  walking creature does not**, because it would contradict the navmesh it stands on (the same
+  reason [visual-facets.md](../systems/terrain-and-navigation/visual-facets.md) keeps tall props
+  off walkable ground).
 
 That suggests a visual vocabulary of prefab and modular buildings, patchwork construction from
 successive regimes, half-finished projects, re-flagged signage, and clean geometric cultivated
@@ -110,9 +121,31 @@ changes elevation. PLANNED: zoning as an input to the decoration pass; not yet s
 ### Lithium ponds are cultivated
 
 The ponds are explained as cultivated by inhabitants (not necessarily the only explanation).
-That matches the real thing: lithium evaporation ponds are engineered grids whose colour shifts
-from pale blue through turquoise to yellow as the brine concentrates — colourful, obviously
+That matches the real thing: lithium evaporation ponds are engineered grids, colourful, obviously
 artificial, and telling a player nothing they cannot already see once the pond is scouted.
+
+**A pond's hue must be one real brine could plausibly take; the palette is otherwise broad**
+(Alex, 2026-10-21). On Earth two mechanisms colour evaporation ponds, and both carry over:
+
+- **Brine chemistry** — lithium brine runs blue and turquoise early and yellow as it
+  concentrates.
+- **Halophile life** — at low salinity green algae dominate (green, sometimes orange); at high
+  salinity haloarchaea turn ponds pink, red and orange, and the saltiest crystallizer brine
+  deep red.
+
+So green, turquoise, yellow, orange, pink and red are all grounded. The life-driven hues follow
+the planet's star exactly as foliage does (§Foliage colour has a scientific basis), so one
+world's halophile reds are another's purples or near-blacks; the chemical hues do not. Red and
+orange stay non-hazardous by treatment — a flat, still, glossy surface, a pale evaporite crust
+at the rim, berms in a grid, never glow or motion (constraint 4).
+
+**Colour carries no physics.** A hue need not encode what it would on Earth (concentration,
+richness). The game's own signal — a charged pond fading back toward plain water as it drains
+([water-bodies.md](../systems/terrain-and-navigation/water-bodies.md) §How the surface is drawn)
+— is the only thing a pond's colour reports. TODO: `WaterBody.CHARGE_COLORS` is pink, ochre and
+green today; replace it with a set drawn from the grounded hues above, chosen per planet, and
+check the drain fade still reads when the charged hue is close to plain water's blue
+(turquoise is).
 
 ### Megastructures, sparingly
 
@@ -140,7 +173,10 @@ marsh, fused-glass sand pans. Lithium ponds stay on the surface; other water is 
 ### Native life
 
 - **Flora varies in form as well as colour** — broad leaves, fungal mats, succulents, crystalline
-  growths. Form costs far more doodad-authoring effort than colour does.
+  growths. Form costs far more doodad-authoring effort than colour does, so **colour comes
+  first**: the existing doodad meshes are recoloured from the biome palette (Alex, 2026-10-21).
+  PLANNED, unscoped: new forms, possibly generated procedurally rather than authored —
+  Spore's procedural alien flora is the reference to study first. Deferred.
 - **Fauna is deferred**, possibly as an ambient easter egg. PLANNED, unscoped.
 
 ---
@@ -152,7 +188,8 @@ stability of energy capture. Models of photosynthesis on other worlds predict th
 follows the host star's spectrum and how the atmosphere filters it:
 
 - **Cool red dwarfs** — plants may absorb broadly and look dark, even near-black.
-- **Sun-like stars** — green, or close to it.
+- **Sun-like stars** — green, or close to it; but purple (below) fits the same star, and green
+  foliage is ruled out here anyway (constraint 7).
 - **Hotter, bluer stars** — plants may reflect blue or look yellow-orange.
 - The "purple Earth" hypothesis (early microbes using retinal, which absorbs green) supports purple
   as another plausible palette.
@@ -165,9 +202,22 @@ homeworld palette.
 
 ## Biomes and palettes
 
+### Map parameters and aesthetic parameters are separate
+
+Decided 2026-10-21 (Alex): **a map is generated from map parameters M and dressed from aesthetic
+parameters A, and the same M gives the same playable map whatever A is.** Terrain belongs to
+the map because it must reproduce from the generator; a palette, lighting tint or doodad
+colouring is post-processing over it. So A never feeds anything with gameplay effect —
+heights, passability, sites, navigation, vision — and changing A never changes a seeded match.
+This is the same line [visual-facets.md](../systems/terrain-and-navigation/visual-facets.md)
+draws for decoration (cosmetic only, derived, never saved).
+
+Where A lives — the map, the scenario, or a resource either one names — is left to whoever
+builds the palette resource (Alex is agnostic; gdd/tasks.md T-117).
+
 ### Long term: a parameterized palette
 
-PLANNED: a palette generated as part of random map generation, from physical inputs:
+PLANNED: a palette generated from the aesthetic parameters (above), from physical inputs:
 
 | Input | Drives |
 |---|---|
@@ -179,7 +229,9 @@ PLANNED: a palette generated as part of random map generation, from physical inp
 ### Short term: three hand-made biomes
 
 Built from the same inputs, so the later generator is a matter of randomizing them. The biomes
-vary on several axes at once. The rows are placeholders to react to, not decisions.
+vary on several axes at once. The rows are placeholders and may be arbitrary (Alex,
+2026-10-21), but **none may resemble Earth** (constraint 7): biome B's Sun-like star does not
+license green foliage or an Atacama look-alike.
 
 | | Light / star | Climate | Native flora form | Dominant land use |
 |---|---|---|---|---|
@@ -187,7 +239,6 @@ vary on several axes at once. The rows are placeholders to react to, not decisio
 | B | Sun-like star | arid, salt basins | sparse, succulent and crystalline | lithium ponds and industry |
 | C | hot blue-white star | cold, high altitude | pale yellow-orange, short and dense | residential sprawl and infrastructure |
 
-TODO: confirm or replace the three biome sketches.
 
 ---
 

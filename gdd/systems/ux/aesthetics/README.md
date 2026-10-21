@@ -68,8 +68,9 @@ TODO: undecided — a shape language, palette and material set per faction, draw
 brutalism, Baladian scavenged kit, opaque Ward machines, Successor biorobotics. Each
 faction's roles share a function and differ in appearance.
 
-TODO: undecided — biomes. The setting is planetary, and one desert map exists; there is no
-biome concept in the terrain model yet.
+PLANNED: biomes — a palette from aesthetic parameters, separate from map generation; nothing
+Earth-like. The direction is [natural-environment.md](../../../setting/natural-environment.md)
+§Biomes and palettes; there is no biome concept in the terrain model yet.
 
 TODO: a proposed order, not adopted — art direction and UI language first; then a
 vertical slice (one biome, one faction, its core pieces, HUD, combat audio); then the full
