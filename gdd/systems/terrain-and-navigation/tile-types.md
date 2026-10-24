@@ -1,5 +1,10 @@
 # Terrain Tile-Type System — Design & Implementation Plan
 
+> [!warning] Deprecated 2026-10-24
+> Tile types will never carry movement cost or harvestable ground (Alex), so the per-cell
+> material layer is superseded by [terrain paint](terrain-paint.md), which is visual only.
+> `tile_types` and the catalog stay until paint's Phase 5 removes them.
+
 ## Goal
 
 Replace the current terrain representation with a **tile-type-driven** model, authored and

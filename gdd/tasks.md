@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-115**
+> Next id: **T-118**
 
 # Tasks
 
@@ -363,9 +363,24 @@ Built: `Structure.quarter_turns`, oriented footprints, `[` `]` and press-drag-re
 > The bot lays every structure at the default count (`BotEconomy.DEFAULT_QUARTER_TURNS`) and its order carries it (`BotActuator.build`); the orientation ranking and threat-axis facing built 2026-10-08 were withdrawn on Alex's instruction (2026-10-09: no benefit expected from game signals deciding rotation yet) and are recorded in the note's §Deferred as a `TODO` so the rule is not re-derived. Replay recording came with T-037. Test: `tests/test_BotPlacementEquivariance.gd` pins the default count.
 > **Not done:** a rule choosing the rotation (deferred by Alex); two-form (deploy) pieces — still §Deferred, since no shipped piece has two forms. `Map.mirror_map` / `shift_map` keeping a rotated structure's count is unexercised until an authored map holds one.
 
-### T-059 · Tile-type movement cost and harvestable ground #effort/medium #unscoped
+### T-059 · Tile-type movement cost and harvestable ground #effort/medium #scoped #done
 `TileType.texture` is read by the shader but no tile type has one assigned; `move_cost` / `harvestable` are commented out and unread.
 → [terrain-and-navigation/tile-types](systems/terrain-and-navigation/tile-types.md)
+
+> [!check] Status — 2026-10-24
+> Alex: rejected — tile types will never carry movement cost or harvestable ground. Tile types are deprecated in favour of terrain paint (T-115).
+
+### T-115 · Terrain paint: blended layers finer than the cell grid #effort/high #needs-input
+Brush-painted texture weights at ~4 texels per cell, height-blended in the shader, toward Halo Wars 2's ground structure; replaces tile types. Six phases, 1–3 first on one test map. Open: the layer count (4, 8, or 4 per map from a catalog).
+→ [terrain-and-navigation/terrain-paint](systems/terrain-and-navigation/terrain-paint.md)
+
+### T-116 · Paint mode rebuilds the whole terrain mesh per cursor step #effort/low #scoped
+Every cell the cursor crosses calls `Map.rebuild_terrain_mesh()`: ~160 ms per step on s1's size, ~400 ms at play size 120, ~1 s at 200, so painting a generated map stutters. T-115 Phase 2 removes it by construction (painting stops touching the mesh); fix it there unless paint is delayed.
+→ [terrain-and-navigation/terrain-paint](systems/terrain-and-navigation/terrain-paint.md) §Large-map measurements
+
+### T-117 · What should the generator paint? #effort/medium #unscoped
+Generated maps write the paint layer (decided 2026-10-24); which layers, and from which passes, is to be revisited.
+→ [terrain-and-navigation/terrain-paint](systems/terrain-and-navigation/terrain-paint.md)
 
 ### T-060 · Per-size-class navmesh topology #effort/high #unscoped
 The shared-vertex quad topology produces holes, miters and swallowed cells for the larger classes.

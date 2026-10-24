@@ -13,7 +13,8 @@ The ground, and how things move over it.
 | [navigation-and-pathing.md](navigation-and-pathing.md) | navmesh construction, A* budget, path straightening, RVO avoidance |
 | [terrain-authoring.md](terrain-authoring.md) | the `terrain_brush` plugin, the brushable surface, idempotent editor setters |
 | [mesh-baked-terrain.md](mesh-baked-terrain.md) | baking a modelled mesh into the heightfield, and `TerrainSurface` rendering |
-| [tile-types.md](tile-types.md) | the `TerrainData` tile-type model and its migration |
+| [tile-types.md](tile-types.md) | the `TerrainData` tile-type model and its migration (deprecated by terrain paint) |
+| [terrain-paint.md](terrain-paint.md) | **scope** (2026-10-24) — brush-painted, blended texture layers finer than the cell grid; phases, decisions, large-map measurements |
 | [water-bodies.md](water-bodies.md) | bodies of water: basins, wade depth, lithium ponds, the water surface, the Water brush |
 | [map-composition.md](map-composition.md) | the map features, occupancy vs obstruction, and ground materials |
 | [map-generation.md](map-generation.md) | the procedural pipeline, its topological pass and its parameter bounds |
