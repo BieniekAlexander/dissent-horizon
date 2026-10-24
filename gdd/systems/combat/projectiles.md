@@ -697,6 +697,10 @@ already showing is not shown again. So several stages of one flight share their 
 exhaust, which stay up across the handover rather than vanishing (as the Warlord rocket's did
 for its whole first stage, until this) or restarting a delayed start.
 
+**A phase may shake the screen as it begins** (`EmissionPhase.screen_shake`, a `ScreenShake`
+resource; the Bombard's `cannon_shell` Impact names one) — presentation only, and only for a
+player who can see the emission. See [screen shake](../ux/screen-shake.md).
+
 So an effect that must be seen after impact is paid for with a longer impact phase and
 `payload: once`: the emission stays in the tree showing its explosion, and deals its damage on
 the first tick only. A phase's lifespan is therefore a visual length as well as a mechanical

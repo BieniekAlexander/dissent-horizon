@@ -59,6 +59,8 @@ class TestDeployment:
 	var foreign_at: Array[Vector2] = []
 	var landed_at: Array[Vector2] = []
 	var sites_at: Array[Vector2] = []
+	## The screen shake each landing was asked to raise on touchdown, in landing order.
+	var shakes: Array = []
 
 	## The stand-in command centre; the faction table is not consulted.
 	var centre_scene: PackedScene = null
@@ -74,8 +76,9 @@ class TestDeployment:
 	func units_on(_a_area: Rect2) -> Array:
 		return []
 
-	func _land(_a_scene: PackedScene, a_centre: Vector2) -> Actor:
+	func _land(_a_scene: PackedScene, a_centre: Vector2, a_shake: ScreenShake = null) -> Actor:
 		landed_at.append(a_centre)
+		shakes.append(a_shake)
 		return Actor.new()
 
 	func _land_site(a_centre: Vector2) -> void:
@@ -255,6 +258,21 @@ func test_each_extractor_drop_lands_on_a_new_site_and_the_last_spends_the_deploy
 	assert_eq(
 		_deployment.verdict(Deployment.Drop.EXTRACTOR, _aim(Vector2i(20, 4), Vector2i(2, 2))),
 		Deployment.Verdict.NO_CHARGE
+	)
+
+
+func test_each_drop_lands_with_its_own_touchdown_shake() -> void:
+	autofree(_deployment.drop(Deployment.Drop.COMMAND_CENTRE, _aim(Vector2i(2, 2)))[0])
+	autofree(
+		_deployment.drop(Deployment.Drop.EXTRACTOR, _aim(Vector2i(12, 12), Vector2i(2, 2)))[0]
+	)
+	assert_eq(
+		_deployment.shakes,
+		[
+			Deployment.drop_shake(Deployment.Drop.COMMAND_CENTRE),
+			Deployment.drop_shake(Deployment.Drop.EXTRACTOR),
+		],
+		"each landing carries the shake DROP_SHAKES names for its drop"
 	)
 
 

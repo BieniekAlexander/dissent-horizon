@@ -399,13 +399,16 @@ func model_top_offset() -> float:
 #region Descent
 ## Drop the model onto its spot: start `a_height` above where it rests and settle over
 ## `a_seconds`, decelerating. Presentation only — the piece is where it is from the start, and
-## nothing about it waits for the model to land. Used by a deployment drop.
-func play_descent(a_height: float, a_seconds: float) -> void:
+## nothing about it waits for the model to land. Used by a deployment drop. Returns the tween,
+## whose `finished` is the touchdown — dies with the model, so it never fires for a freed one.
+func play_descent(a_height: float, a_seconds: float) -> Tween:
 	var rest_y: float = position.y
 	position.y = rest_y + a_height
-	create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT).tween_property(
+	var tween: Tween = create_tween()
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT).tween_property(
 		self, "position:y", rest_y, a_seconds
 	)
+	return tween
 
 
 #endregion

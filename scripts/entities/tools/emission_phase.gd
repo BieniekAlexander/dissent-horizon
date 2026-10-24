@@ -127,6 +127,10 @@ const NEAR_VERTICAL_COSINE: float = 0.9
 ## Nodes shown while this phase is current, relative to the emission root. A node named by any
 ## phase is hidden while no phase naming it is current, so stages may share one.
 @export var visuals: Array[NodePath] = []
+## The screen shake this phase raises as it begins, or null for none. A shell's burst phase is
+## where one belongs: entering it is the moment of impact. Presentation only, and only for a
+## player who can see the emission (ScreenShake.play).
+@export var screen_shake: ScreenShake = null
 #endregion
 
 

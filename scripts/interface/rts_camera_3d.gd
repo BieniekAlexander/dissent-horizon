@@ -128,6 +128,102 @@ var move_reference_position: Vector2
 @export var clamp_to_map_bounds: bool = true
 #endregion
 
+#region Shake
+@export_category("Shake")
+## A multiplier on every screen shake's throw: 0 turns shaking off. Exported so it can become an
+## options-menu setting (and an accessibility one) without moving the rule; nothing wires it to
+## one today.
+@export_range(0.0, 2.0, 0.05) var shake_scale: float = 1.0
+
+## The shakes still running, each [ScreenShake, seconds elapsed]. Several overlap rather than
+## queue: the strongest throw at each instant is the one shown (see shake_amplitude).
+var _shakes: Array = []
+## The random walk the lens follows: the throw it is leaving, the one it is heading for, and how
+## far between the two it is, in [0, 1). Directions only — the amplitude scales them.
+var _shake_from: Vector2 = Vector2.ZERO
+var _shake_to: Vector2 = Vector2.ZERO
+var _shake_progress: float = 0.0
+## The shake's own generator, never the gameplay one: a shake is presentation, and drawing from
+## SU.rng would make two peers that see different shakes play different matches.
+var _shake_rng := RandomNumberGenerator.new()
+
+
+## Start `a_shake`. Gating — whether the player can see what raised it — is ScreenShake.play's
+## job; this only shakes.
+func shake(a_shake: ScreenShake) -> void:
+	if a_shake == null or a_shake.magnitude <= 0.0 or a_shake.duration_seconds <= 0.0:
+		return
+	_shakes.append([a_shake, 0.0])
+
+
+## Whether any shake is still running.
+func is_shaking() -> bool:
+	return not _shakes.is_empty()
+
+
+## The throw the running shakes ask for now, as a fraction of the visible height, before
+## shake_scale: the STRONGEST of them, not their sum, so a salvo of shells landing together
+## shakes as hard as the biggest one rather than piling up into a blur.
+func shake_amplitude() -> float:
+	var strongest: float = 0.0
+	for entry: Array in _shakes:
+		strongest = maxf(strongest, (entry[0] as ScreenShake).amplitude_at(entry[1]))
+	return strongest
+
+
+## Advance every running shake by `a_delta` seconds, drop the finished ones, and move the lens.
+## The lens is the camera's h_offset / v_offset, not its position: an offset moves the picture
+## and the cursor's ray with it, but not ground_focus, so panning, the map bounds and center_on
+## never see a shake.
+func _apply_shake(a_delta: float) -> void:
+	if _shakes.is_empty():
+		return
+	var frequency: float = 0.0
+	var strongest: float = -1.0
+	for entry: Array in _shakes:
+		entry[1] = float(entry[1]) + a_delta
+		var throw: float = (entry[0] as ScreenShake).amplitude_at(entry[1])
+		if throw > strongest:
+			strongest = throw
+			frequency = (entry[0] as ScreenShake).frequency_hz
+	_shakes = _shakes.filter(
+		func(entry: Array) -> bool: return entry[1] < (entry[0] as ScreenShake).duration_seconds
+	)
+	if _shakes.is_empty():
+		h_offset = 0.0
+		v_offset = 0.0
+		_shake_progress = 0.0
+		_shake_from = Vector2.ZERO
+		_shake_to = Vector2.ZERO
+		return
+	# Walk to a fresh random direction `frequency` times a second, gliding between them so the
+	# lens slews rather than teleporting a whole throw in one frame.
+	_shake_progress += a_delta * frequency
+	while _shake_progress >= 1.0:
+		_shake_progress -= 1.0
+		_shake_from = _shake_to
+		_shake_to = Vector2.from_angle(_shake_rng.randf() * TAU)
+	var offset: Vector2 = (
+		_shake_from.lerp(_shake_to, _shake_progress)
+		* shake_amplitude()
+		* shake_scale
+		* visible_height()
+	)
+	h_offset = offset.x
+	v_offset = offset.y
+
+
+## The height of the view in world units at the ground focus — what a ScreenShake's magnitude is
+## a fraction of. An orthographic camera's `size` is exactly that; a perspective one's depends
+## on how far away the ground is.
+func visible_height() -> float:
+	if projection == PROJECTION_ORTHOGONAL:
+		return size
+	var focus: Vector2 = ground_focus()
+	var distance: float = global_position.distance_to(Vector3(focus.x, 0.0, focus.y))
+	return 2.0 * distance * tan(deg_to_rad(fov) * 0.5)
+#endregion
+
 #region Zoom
 @export_category("Zoom")
 @export var zoom_speed: float = 20.0
@@ -325,6 +421,9 @@ func _process(a_delta: float) -> void:
 	_clamp_zoom()
 	_apply_edge_pan(real_delta)
 	_clamp_to_map_bounds()
+	# Last, and in real time like the rest of the camera: a shake is felt by the player, and a
+	# hold that freezes the world does not stop the screen settling.
+	_apply_shake(real_delta)
 
 
 #endregion
