@@ -45,6 +45,8 @@ them, not how they work.
 - **A warning is a note raised on first sight.** The Watch Tower warning fires the first time a
   tower is visible to the player (`ConditionGroupVisible`). Use this for any threat the player
   should avoid until later in the mission.
+- **Teach a system once, not each of its instances.** The sanction system is taught once; the
+  player learns later ordnances and abilities from their tooltips (Alex, 2026-10-27).
 - **The Teaches list matches what is actually taught.** Each item maps to a note or a beat. When
   a lesson is dropped (stop, in mission 1), take it off the list.
 - **A constraint is re-checked against the built scene.** "No mechanic before it is explained"

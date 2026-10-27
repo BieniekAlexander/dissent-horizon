@@ -138,9 +138,9 @@ Help notes (proposed). "New" notes are to be written for the How to Play library
 
 - Tech capped at Tier 1. The Clandestine Lab and its units (Condor, Hijacker) are excluded.
 - The [MLRS](../../factions/anarchical/units/an_mechMedium_artillery.md) is excluded. It needs a spotter, and spotting isn't part of the prologue; it's planned for the [challenge series](../challenges/README.md).
-- Sanctions are bought with dominion the player generates in this mission; nothing carries over
-  from mission 2. TODO: which cells of the grid are offered. ("No sanctions" and "No upgrades"
-  were dropped, Alex, 2026-10-27.)
+- Every sanction is offered, bought with dominion the player generates in this mission; nothing
+  carries over from mission 2. Those not taught in mission 2 are learned from their tooltips
+  (Alex, 2026-10-27). ("No sanctions" and "No upgrades" were dropped the same day.)
 - No mechanic before it is explained, checked against every placed and spawned piece.
 
 ## Scenario file

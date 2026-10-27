@@ -92,7 +92,8 @@ are from the [design framework](../../design-framework/README.md).
 | MLRS and spotting | Shared | none (shown in 1, the ally's) | — | challenge C2 |
 | Modifiers, selector keys, control groups | Generic | none | — | challenge C1 |
 | Requisition | Generic | none | — | challenge C3 |
-| Anarchist signatures (EMP, scavenging); the Hijacker; Dignify, Ambush, Scavenge | — | none | — | main campaign |
+| Individual sanctions and abilities beyond those used to teach a system | — | tooltips | — | not taught one by one: the sanction system is taught in 2, and the player reads the tooltips for any later ordnance or ability (Alex, 2026-10-27) |
+| Anarchist signatures (EMP, scavenging); the Hijacker | — | none | — | main campaign |
 
 ### The enemy's mechanics (what the player must read)
 
@@ -126,6 +127,9 @@ are from the [design framework](../../design-framework/README.md).
   Informant) is there to teach. Its "no sanctions" and "no upgrades" constraints are dropped,
   and upgrades are no longer kept out of the prologue.
 - Anarchist healing is deferred.
+- Individual ordnances and abilities aren't taught one by one. The sanction system is taught in
+  mission 2, and later ones are learned from their tooltips. Mission 3 offers every sanction.
+- Mission 2 has no upgrades because the player can't afford the structures that research them.
 
 ## Deliberately left out
 
@@ -137,7 +141,7 @@ Kept out of the prologue to avoid overloading it. Each is either a challenge or 
 | Spatial counters (outpacing projectiles, kiting, turrets), spotting. Spotting-dependent pieces, like the MLRS, are kept out of the player's hands in the prologue (mission 1's allied relief carries MLRS the player never commands) | [Challenge series](../challenges/README.md) |
 | Requisition | [Challenge series](../challenges/README.md) |
 | Command centre drop and the free extractor drops | Main campaign or skirmish onboarding; the prologue starts players with a base |
-| Anarchist signature mechanics (disable/EMP, scavenging), the Hijacker, Dignify, Ambush, Scavenge | Main campaign |
+| Anarchist signature mechanics (disable/EMP, scavenging), the Hijacker | Main campaign |
 | Shelters, static defence design, aerial rearm, alliances, superweapons | Main campaign |
 
 ## Decisions

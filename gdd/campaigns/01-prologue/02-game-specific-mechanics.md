@@ -134,7 +134,8 @@ will need them too.
 
 - No production or construction. The base is defunct.
 - Only two sanctions in the grid.
-- No commander-wide upgrades.
+- No upgrades: the player hasn't the resources to build the structures that research them
+  (Alex, 2026-10-27).
 - No aircraft on either side, and no spotting-dependent pieces.
 - No mechanic before it is explained. Check every placed and spawned piece against this,
   including the reinforcements: the Toxin Tractor's crush comes after the Crushing note.
