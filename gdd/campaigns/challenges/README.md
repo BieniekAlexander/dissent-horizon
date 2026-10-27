@@ -74,8 +74,7 @@ a dependent aborted). None exists.
 **Q1. When to build these.** The challenges menu is greyed out. Build them after the prologue,
 or interleave them (for example C1 right after mission 1, which is the first time a player
 commands a group)?
-*Leaning:* after the prologue's missions 2 and 3 are scoped, since those share the engine work
-(prologue mission 2's Q5).
+*Leaning:* after the prologue's missions 2 and 3 are scoped.
 
 **Q2. Controls as one challenge or three?** Three drills in one is long for a challenge, and
 the modifier vocabulary is what the selector and control group drills build on.
@@ -88,6 +87,7 @@ turrets are a Colonial Matilda, and its spotting may be Colonial once Bombards a
 **Q4. Scoring.** Pass/fail, or rated (time, units lost)?
 *Leaning:* rated, recorded in the match log.
 
-**Q5. Engine work.** Each challenge needs conditions that observe the player's input or
+**Engine work (decided).** Each challenge needs conditions that observe the player's input or
 queue, not just the world: how an order was given, selector and control-group use, and
-purchase-queue state. Scope these as one task?
+purchase-queue state. To be built, scoped on their own, apart from the prologue's
+scenario restrictions (Alex, 2026-10-27).

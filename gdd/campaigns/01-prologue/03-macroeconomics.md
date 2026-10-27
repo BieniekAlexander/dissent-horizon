@@ -31,8 +31,9 @@ The cell that held out becomes a war band able to take the fight to the Colonial
 ## Narrative justification
 
 Breaking the siege in mission 1 and holding out in mission 2 earn the Anarchists the space and
-the following to rebuild. TODO: what the target is (Q1). The earlier hook, "the Colonial base
-that sustained the siege", is gone, because mission 1 ends with that base's Citadel destroyed.
+the following to rebuild. The target is a larger Colonial base than mission 1's, with more
+Colonial technology to contend with (Alex, 2026-10-27). TODO: the story is to be reframed by
+Alex once the mechanics each mission teaches are settled (README §Mechanics by mission).
 
 ## Setup
 
@@ -69,8 +70,8 @@ Each section is a different question, and each answer is something the player ha
 | --- | --- | --- |
 | Armour park | [Matildas](../../factions/colonial/units/cl_mechMedium_antiMech.md) and [Sloops](../../factions/colonial/units/cl_mechMedium_antiLight.md) | Anti-MECH: [Shock Troopers](../../factions/anarchical/units/an_bioMedium_antiMech.md) from the Redoubt, or [Kamikazes](../../factions/anarchical/units/an_aircraftLight_antiMech.md) from the Hangar |
 | Kill zone | Open ground covered by [Watch Towers](../../factions/colonial/structures/cl_defense_antiLight.md), where infantry on foot are cut down | A ground transport: a [Collective](../../factions/anarchical/units/an_mechLight_transport.md) early, or a [War Wagon](../../factions/anarchical/units/an_mechStrong_transport.md) after the Stockpile |
-| Plateau battery | [Bombards](../../factions/colonial/structures/cl_defense_antiStructure.md) on high ground with no ground route up. TODO — how the Bombards are used is deferred to a separate session | An air transport: the [Raven](../../factions/anarchical/units/an_aircraftLight_transport.md). Reinforcement: mission 1 taught it |
-| SAM screen | [SAM sites](../../factions/colonial/structures/cl_defense_antiAircraft.md) guarding the approach to the plateau | A ground force clears them before the Raven can fly in. Reinforcement: mission 1's climax had the same shape (Q2) |
+| Plateau battery | [Bombards](../../factions/colonial/structures/cl_defense_antiStructure.md) on high ground with no ground route up. TODO — how the Bombards are used is deferred to a separate session | An air transport: the [Raven](../../factions/anarchical/units/an_aircraftLight_transport.md). Reinforces mission 1 |
+| SAM screen | [SAM sites](../../factions/colonial/structures/cl_defense_antiAircraft.md) guarding the approach to the plateau | A ground force clears them before the Raven can fly in. Like mission 1's climax, which is fine (Alex, 2026-10-27) |
 | Barracks quarter | Massed Colonial infantry in garrisoned buildings | [Sharpshooters](../../factions/anarchical/units/an_bioLight_antiBio.md) or a [Juggernaut](../../factions/anarchical/units/an_bioStrong_antiLight.md) after the Stockpile, and the [Toxin Tractor](../../factions/anarchical/units/an_mechMedium_antiBio.md) to clear garrisons |
 | The Citadel | The [command centre](../../factions/colonial/structures/cl_commandCenter.md), with STRONG armour that resists everything | [Sappers](../../factions/anarchical/units/an_bioLight_antiStructure.md) delivered by transport |
 
@@ -82,9 +83,9 @@ One strict `ObjectiveChain` that reads the beats below.
 2. **Build production and train an army**, in sub-steps: a Redoubt, then a squad rallied to a
    point.
 3. **Reach Tier 1** (the Stockpile).
-4. **Destroy the Colonial base**, section by section, ending with the Citadel (order: Q3).
+4. **Destroy the Colonial base**, section by section, ending with the Citadel (order: Q1).
 
-Failure conditions (proposed, Q4): the Stronghold must survive, and the player must keep at
+Failure conditions (proposed, Q2): the Stronghold must survive, and the player must keep at
 least one builder or the means to train one.
 
 **What the player is shown.** Marked: the neutral buildings fit for a Safehouse, the
@@ -103,8 +104,9 @@ which tool to build. None for a route through the kill zone.
   - The first counterattack and the armour park push the player to train counters.
   - The lithium pond offers a faster income that runs out and is exposed.
   - The kill zone makes the Collective worth building.
-- **Twist:** TODO (Q2). Formerly the plateau battery that can't be reached on foot, needing the
-  Hangar, the Raven and a ground push to clear the SAMs first. Mission 1 now ends that way.
+- **Twist:** the plateau battery can't be reached on foot. The player needs the Hangar, the
+  Raven, and a ground push to clear the SAMs first. It echoes mission 1's climax, now with a
+  base the player built behind it (Alex, 2026-10-27: a similar climax is fine).
 - **Conclude:** a combined assault on the barracks quarter and the Citadel, using whatever the player built for each section.
 
 Help notes (proposed). "New" notes are to be written for the How to Play library.
@@ -135,27 +137,7 @@ TODO — link once it exists under `scenes/scenarios/prologue/`.
 
 ## Open questions
 
-**Q1. The story hook.** Mission 1 now destroys the besiegers' Citadel. What is mission 3's
-target?
-1. A second Colonial base, the one that supplies the region, so the prologue ends on taking
-   the fight to the Colonials rather than surviving them.
-2. Mission 1's siege is only broken, not ended: its Citadel falls, but the Colonials hold a
-   larger base nearby.
-3. Change mission 1's ending, so it cripples the base (defection) without destroying the
-   Citadel.
-
-*Leaning:* 1. It needs no change to the built mission.
-
-**Q2. The twist.** "Clear the SAM screen, then fly in by Raven" is now mission 1's climax.
-1. Keep the plateau battery and the SAM screen as a reinforcement section, and make the kill
-   zone the twist: the Collective can't survive it either, so the War Wagon, after the
-   Stockpile, is what crosses.
-2. Replace both sections with a new problem answered by a new tool.
-3. Keep the twist as it is, as deliberate reinforcement.
-
-*Leaning:* 1. It makes the tech-tree lesson the twist, which is what this mission teaches.
-
-**Q3. Section order.** Strict order (as mission 1) or free order once objective 4 is shown?
+**Q1. Section order.** Strict order (as mission 1) or free order once objective 4 is shown?
 *Why it matters:* free order is what an economy mission is about. But sub-steps can't express
 it: reaching a later sub-step completes every earlier one
 ([objectives-and-completion](../../systems/scenario-scripting/objectives-and-completion.md)
@@ -165,6 +147,6 @@ Citadel chained after all of them.
 `ObjectiveChain`, each with objective 3 as its prerequisite, and the Citadel's objective has
 all of them as prerequisites.
 
-**Q4. Failure conditions.** Lose the Stronghold, or lose every builder with no way to train
+**Q2. Failure conditions.** Lose the Stronghold, or lose every builder with no way to train
 one?
 *Leaning:* both.

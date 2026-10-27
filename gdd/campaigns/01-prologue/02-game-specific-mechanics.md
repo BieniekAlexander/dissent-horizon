@@ -169,7 +169,8 @@ needed here too, and in mission 3.
 
 *Leaning:* 1. A note two missions use isn't mission-specific.
 
-**Q5. Engine work.** Two scenario features are needed before this mission can be built: a
-sanction-grid restriction per commander, and switching off production (or training at the
-Stronghold). Mission 3 needs the same family of feature (README §Impact of mission 1's build).
-Scope them together?
+**Engine work (decided).** Two scenario features are needed before this mission can be built:
+a sanction-grid restriction per commander, and switching off production (or training at the
+Stronghold). Mission 3 needs the same family (a tech cap and excluded pieces). Both are to be
+built, scoped on their own, apart from the challenges' input conditions, which belong to a
+different system (Alex, 2026-10-27).

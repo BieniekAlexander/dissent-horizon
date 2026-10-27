@@ -151,7 +151,8 @@ pinned-down cells. Numbers here are illustration; the scene holds the real value
        each, 3 carrying 2 Warlords and 4 Irregulars each. They land in the lane west of the
        Citadel, unload, and fly back off the map past that corner. The infantry attack-move to a point in front of the
        Citadel and Defend it; the MLRS attack the Citadel straight from where they land (Alex,
-       2026-10-26). The MLRS
+       2026-10-26). The MLRS is the ally's, so the player sees it but never commands it, and it
+       stays unintroduced for the player (Alex, 2026-10-27). The MLRS
        rides a BIO-only Raven because a scenario's starting load is placement, not an order,
        and ignores the masks.
      - Defection also ends the enemy's lane waves, so the relief walks through (Alex,
@@ -284,7 +285,6 @@ Objectives 8 and 9 (defection, the Citadel) get no notes, and the stop order is 
 - No enemy ground vehicles. That rules out crushing and wrecks (scavenging) before the missions that explain them.
 - Losing every unit fails the mission.
 - Damage relationships are told by the *Damage types* note, at the ramp to the outpost. TODO: whether anything in play shows them (a readout or a cue) is undecided.
-- Keep counter matchups readable: one enemy type per encounter until the mixed beat. TODO: the built mission breaks this. The guard post past the ford (4 Recruits, 2 Clippers) and both sides' waves are mixed, and there is no single "mixed beat" (open question below).
 
 ## Map rework
 
@@ -301,20 +301,4 @@ so its position is authored directly; only what arrives during play is spawned b
 
 ## Open questions
 
-Raised 2026-10-27 when the campaign was re-read against the built mission
-([README](README.md) §Impact of mission 1's build).
-
-**Q1. The MLRS in the allied relief.** The prologue leaves out spotting-dependent pieces, and the
-MLRS is one, but 3 of the relief's Ravens carry one each, to shell the Citadel.
-*Why it matters:* the player sees a piece the prologue doesn't explain, and the MLRS may need a
-spotter to hit the Citadel at all.
-1. Swap the MLRS for something already explained (e.g. more Warlords).
-2. Keep it as ally-only spectacle, and write that exception into the README.
-
-*Leaning:* 1. The relief's job is to finish the Citadel, which needs no new piece.
-
-**Q2. One enemy type per encounter.** The constraint above doesn't match the built mission.
-1. Name the guard post past the ford as the mixed beat, and keep the waves as background.
-2. Drop the constraint. The Watch Tower note already says which enemy hits what.
-
-*Leaning:* 1. It keeps the rule as guidance for missions 2 and 3.
+None.
