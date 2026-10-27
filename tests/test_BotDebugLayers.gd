@@ -38,7 +38,7 @@ func before_each() -> void:
 
 func _believe(a_id: int, a_type: StringName, a_is_structure: bool, a_seen_at: float) -> void:
 	var entry := CommanderBlackboard.Entry.new()
-	entry.instance_id = a_id
+	entry.serial = a_id
 	entry.type = a_type
 	entry.is_structure = a_is_structure
 	entry.last_known_location = Vector3(a_id, 0.0, 0.0)

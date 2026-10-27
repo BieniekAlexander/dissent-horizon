@@ -362,3 +362,11 @@ func activate(
 	event.execute(a_manager)
 	event.queue_free()
 	return true
+
+
+#region Snapshot
+## The event prototype is instanced from `event_scene` on first use, out of the tree: a snapshot
+## leaves it to be made again (SimulationSnapshot).
+func snapshot_skip() -> Array:
+	return [&"_prototype"]
+#endregion

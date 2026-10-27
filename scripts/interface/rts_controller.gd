@@ -2731,6 +2731,30 @@ static func live_members(group: Array) -> Array:
 	)
 
 
+## Every control group as its members' spawn serials, for a saved game (SaveGame): the player's
+## own setup, which a load gives back. A garrisoned member is kept, as the group keeps it.
+func control_group_serials() -> Array:
+	var out: Array = []
+	for group: Array in _control_groups:
+		var serials: Array = []
+		for member: Variant in group:
+			if is_instance_valid(member) and member is Entity:
+				serials.append((member as Entity).spawn_serial)
+		out.append(serials)
+	return out
+
+
+## Set every control group from the serials a saved game held (control_group_serials).
+func restore_control_groups(a_serials: Array, a_scenario: Scenario) -> void:
+	for i: int in mini(a_serials.size(), _control_groups.size()):
+		var members: Array = []
+		for serial: Variant in a_serials[i]:
+			var piece: Entity = a_scenario.piece_by_serial(int(serial))
+			if piece != null:
+				members.append(piece)
+		_control_groups[i] = members
+
+
 ## The live membership of group `a_index`, or empty for an index out of range.
 func control_group(a_index: int) -> Array:
 	if a_index < 0 or a_index >= _control_groups.size():

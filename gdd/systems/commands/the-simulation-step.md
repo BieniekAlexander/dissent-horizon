@@ -9,8 +9,10 @@ type: system-note
 
 Scoped 2026-10-15 ([`gdd/tasks.md`](../../tasks.md) T-110), decisions Alex's. **Built: stage 1,
 the serial stepper; the decide pass with the hot reads it holds so far; pure command reads with
-writes in `apply_state`; and sleepy updates for idle buildings (all 2026-10-15). PLANNED:
-references by serial with the rollback snapshot, the spatial index, then stage 3 (§Stages).**
+writes in `apply_state`; sleepy updates for idle buildings (all 2026-10-15); the spatial index
+(2026-10-16); and references by serial, through the saved game's snapshot (2026-10-27). PLANNED:
+intents applied in an act phase with re-validation (§Decisions). Stage 3, threads, stays deferred
+(§Stages).**
 
 One tick of the simulation becomes a single step that the scenario drives, in two phases:
 **decide**, where every piece reads the world as the previous tick left it and writes down what it
@@ -98,8 +100,6 @@ writes nothing but itself; the act phase checks it still holds before applying i
 - **Decisions query the physics server** — aggro, range and line of fire, crush, stealth
   detection, impact, blast victims — and Godot Physics answers every query from one shared result
   buffer, so those queries cannot run concurrently.
-- **Pieces hold each other as node references** (`CommandMessage.target`, garrison lists, claims,
-  `Payload.from`), never by serial; `FrostField` keys by instance id, which differs per machine.
 
 ## Decisions
 
@@ -171,15 +171,16 @@ bit between two runs of the same build, and is measured by simulated minute on t
       (checked 2026-10-16).
    2. **Sleepy updates** (§Sleepy updates) — built for idle buildings; their wakes live at the
       handful of places an idle building can be given work.
-   3. **References by serial, with the rollback snapshot** — the state inventory, snapshot and
-      restore of netplay's §Rollback, later. Serials matter only to a snapshot, so they are
-      built with it.
+   3. **References by serial, with the rollback snapshot** — built 2026-10-27 as the saved
+      game's snapshot ([saved-games](saved-games.md) §The snapshot): a field keeps its node, and
+      the snapshot writes the serial. Rollback's own use of it — many restores a second — is not
+      measured.
    4. **The spatial index** (§The spatial index) — built for decide's aggro scans, and armed
       idle pieces sleep on it. The per-piece aggro, vision and detection shapes turned out to be
       disabled already (2026-10-16): only ever read as shapes, never in the physics server, so
       there is nothing to remove. Two range shapes on one unit are live by mistake — T-112.
-3. **Worker threads for decide**, on the spatial index. TODO: deferred by Alex (2026-10-15) until
-   the first two stages are built and measured.
+3. **Worker threads for decide**, on the spatial index. TODO: deferred by Alex (2026-10-15), and
+   again (2026-10-27) with most of stage 2 built: not until a tick-cost target is set.
 
 ## The spatial index
 
@@ -260,8 +261,8 @@ the gate, met for 9000 ticks of a bot match.
   parting, and only if the match exercises it.
 - TODO: countdowns beyond income and weapons — ability recharges, shelter production,
   sentences — keep their entity awake; each could promise its remaining ticks the way income does.
-- TODO: a rollback snapshot of a sleeping entity must include its slept ticks
-  (`Entity._slept_ticks`), or its counters restore short.
+- A snapshot of a sleeping entity carries its wake tick and slept ticks (`Entity._slept_ticks`),
+  or its counters restore short ([saved-games](saved-games.md) §The snapshot).
 - Measured on an i5-1245U, the bot match's script phase, sleeping off against on, two
   interleaved runs each: unarmed buildings only (2026-10-15), 14.4 ms against 13.5–13.7 ms;
   armed pieces too (2026-10-16), 15.5–15.6 ms against 14.6–14.9 ms. About 0.8 ms either way —

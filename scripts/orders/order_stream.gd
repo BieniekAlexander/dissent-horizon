@@ -104,6 +104,8 @@ func go_live() -> void:
 func _physics_process(_a_delta: float) -> void:
 	if _scenario == null:
 		return
+	_scenario.reseed_global_stream()
+	AvoidanceAgent3D.settle_order()
 	# The tick being simulated, read before Scenario counts it: what an order is stamped with
 	# live and what playback matches on, so the two agree by construction.
 	var now: int = _scenario.tick

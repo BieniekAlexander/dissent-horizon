@@ -106,7 +106,7 @@ func test_a_piece_in_sight_is_believed_at_where_it_stands() -> void:
 	assert_eq(entry.last_known_location, FAR)
 	assert_eq(entry.last_seen_time, 10.0)
 	assert_false(entry.is_structure)
-	assert_true(_board.believes(unit.get_instance_id()))
+	assert_true(_board.believes(unit.identity_key()))
 
 
 func test_a_re_sighting_refreshes_the_place_and_the_time_without_a_second_entry() -> void:
@@ -133,14 +133,14 @@ func test_a_unit_out_of_sight_stays_believed_inside_the_expiry_window() -> void:
 	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
 	_look([], CommanderBlackboard.BLACKBOARD_EXPIRATION - 1.0)
-	assert_true(_board.believes(unit.get_instance_id()), "still inside the window")
+	assert_true(_board.believes(unit.identity_key()), "still inside the window")
 
 
 func test_a_unit_out_of_sight_lapses_once_the_window_has_passed() -> void:
 	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
 	_look([], CommanderBlackboard.BLACKBOARD_EXPIRATION + 1.0)
-	assert_false(_board.believes(unit.get_instance_id()))
+	assert_false(_board.believes(unit.identity_key()))
 	assert_eq(_board.believed(), [])
 
 
@@ -149,7 +149,7 @@ func test_a_unit_belief_does_not_lapse_while_it_keeps_being_seen() -> void:
 	_see([unit], 0.0)
 	_see([unit], CommanderBlackboard.BLACKBOARD_EXPIRATION - 1.0)
 	_look([], CommanderBlackboard.BLACKBOARD_EXPIRATION + 1.0)
-	assert_true(_board.believes(unit.get_instance_id()), "the clock runs from the LAST sighting")
+	assert_true(_board.believes(unit.identity_key()), "the clock runs from the LAST sighting")
 
 
 func test_a_unit_belief_is_not_dropped_by_seeing_its_spot_empty() -> void:
@@ -160,7 +160,7 @@ func test_a_unit_belief_is_not_dropped_by_seeing_its_spot_empty() -> void:
 	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
 	_look([FAR], 1.0)
-	assert_true(_board.believes(unit.get_instance_id()))
+	assert_true(_board.believes(unit.identity_key()))
 
 
 func test_a_unit_killed_in_sight_is_dropped_at_once() -> void:
@@ -168,7 +168,7 @@ func test_a_unit_killed_in_sight_is_dropped_at_once() -> void:
 	# the army it believed it faced — measured 2026-10-07 at two to four times the real one.
 	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
-	var id: int = unit.get_instance_id()
+	var id: int = unit.identity_key()
 	unit.free()
 	_look([FAR], 0.2)
 	assert_false(_board.believes(id))
@@ -178,7 +178,7 @@ func test_a_unit_that_dies_out_of_sight_is_still_believed() -> void:
 	var unit: Actor = _piece(false, FAR)
 	_see([unit], 0.0)
 	_look([], 1.0)  # it has walked out of view
-	var id: int = unit.get_instance_id()
+	var id: int = unit.identity_key()
 	unit.free()
 	_look([], 2.0)
 	assert_true(_board.believes(id), "nobody saw it go: the belief stands")
@@ -191,14 +191,14 @@ func test_a_structure_out_of_sight_is_believed_indefinitely() -> void:
 	var structure: Actor = _piece(true, FAR)
 	_see([structure], 0.0)
 	_look([], CommanderBlackboard.BLACKBOARD_EXPIRATION * 10.0)
-	assert_true(_board.believes(structure.get_instance_id()), "structures do not move")
+	assert_true(_board.believes(structure.identity_key()), "structures do not move")
 
 
 func test_a_structure_is_dropped_when_its_spot_is_in_vision_and_it_is_not_there() -> void:
 	var structure: Actor = _piece(true, FAR)
 	_see([structure], 0.0)
 	_look([FAR], 1.0)
-	assert_false(_board.believes(structure.get_instance_id()), "seen gone")
+	assert_false(_board.believes(structure.identity_key()), "seen gone")
 
 
 func test_a_structure_still_in_sight_at_its_spot_is_kept() -> void:
@@ -206,7 +206,7 @@ func test_a_structure_still_in_sight_at_its_spot_is_kept() -> void:
 	_see([structure], 0.0)
 	_commander.clear_at = [FAR]
 	_see([structure], 1.0)
-	assert_true(_board.believes(structure.get_instance_id()))
+	assert_true(_board.believes(structure.identity_key()))
 
 
 func test_a_structure_is_dropped_by_vision_not_by_its_node_being_freed() -> void:
@@ -216,7 +216,7 @@ func test_a_structure_is_dropped_by_vision_not_by_its_node_being_freed() -> void
 	# §The fog boundary lists third.
 	var structure: Actor = _piece(true, FAR)
 	_see([structure], 0.0)
-	var id: int = structure.get_instance_id()
+	var id: int = structure.identity_key()
 	structure.free()
 	_look([], 1.0)
 	assert_true(_board.believes(id), "not looked: still believed, whatever happened to the node")
@@ -228,7 +228,7 @@ func test_vision_elsewhere_drops_nothing() -> void:
 	var structure: Actor = _piece(true, FAR)
 	_see([structure], 0.0)
 	_look([-FAR], 1.0)
-	assert_true(_board.believes(structure.get_instance_id()))
+	assert_true(_board.believes(structure.identity_key()))
 
 
 # ─── BELIEVES ────────────────────────────────────────────────────────────────

@@ -562,7 +562,10 @@ func set_active(a_active: bool, a_commander_id: int) -> void:
 		if a_commander_id > 0:
 			enable_avoidance(a_commander_id)
 	else:
-		_nav_agent.avoidance_enabled = false
+		if _nav_agent is AvoidanceAgent3D:
+			(_nav_agent as AvoidanceAgent3D).disable_avoidance()
+		else:
+			_nav_agent.avoidance_enabled = false
 		var body := get_parent() as Node3D
 		if body != null and body.is_inside_tree():
 			_submit_target(body.global_position)
@@ -1681,4 +1684,15 @@ func _line_is_navigable(a_from: Vector3, a_to: Vector3) -> bool:
 		NavAgentClass.erosion_rings(nav_agent_class, cs),
 		NavAgentClass.required_clearance(nav_agent_class, cs)
 	)
+
+
+#endregion
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): the path query's parameters and result
+## are scratch, refilled by every query; the centre-line probe is made on first use; `mode` and
+## `target_position` are accessors, and setting the target would submit it again.
+func snapshot_skip() -> Array:
+	return [&"_path_query", &"_path_result", &"_centre_line_shape", &"mode", &"target_position"]
 #endregion

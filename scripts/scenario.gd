@@ -141,7 +141,7 @@ var replay_to_play: ReplayFile = null
 ## the tree. It takes the seed from the save and re-simulates the save's orders up to the tick it
 ## was saved on, then the player plays on (SaveResume). Null otherwise.
 var save_to_resume: ReplayFile = null
-## The re-simulation of `save_to_resume` while it runs.
+## The restore of `save_to_resume`, until it has run.
 var _resume: SaveResume = null
 ## A save asked for mid-tick (an autosave trigger), written by the recorder at the start of the
 ## next tick, between ticks, as every save is taken. "" when none is pending.
@@ -226,9 +226,8 @@ func _ready() -> void:
 		order_stream.play_back(ReplayRecorder.orders_of(replay_to_play))
 	else:
 		recorder.begin()
-	# A resumed save is recorded afresh as it re-simulates, so the recording ends up the save's.
+	# A resumed save is restored from its snapshot once the scene has booted (SaveResume).
 	if save_to_resume != null and replay_to_play == null:
-		order_stream.play_back(ReplayRecorder.orders_of(save_to_resume))
 		_resume = SaveResume.new(self, save_to_resume)
 		add_child(_resume)
 
@@ -238,6 +237,10 @@ func _ready() -> void:
 	players_node.set_owner(self)
 
 	for commander in commanders:
+		# Named by id, so a node under it has the same path in every run of the scenario — what a
+		# snapshot names it by (SimulationSnapshot). The human rig keeps its scene's name.
+		if String(commander.name).is_empty():
+			commander.name = "Commander%d" % commander.id
 		players_node.add_child(commander)
 		commander.set_owner(self)
 
@@ -594,6 +597,10 @@ func local_player() -> Commander:
 ## the golden-ratio constant used as a bit-mixer everywhere; nothing depends on which
 ## constant it is, only that it is fixed.
 const _GLOBAL_STREAM_SALT: int = 0x9E3779B9
+## How far apart consecutive ticks' global-stream seeds are: the 64-bit golden-ratio constant
+## (0x9E3779B97F4A7C15, written signed — GDScript ints are), so neighbouring ticks' seeds share no
+## low bits.
+const _GLOBAL_STREAM_TICK_STRIDE: int = -7046029254386353131
 
 
 ## Seed every generator the simulation draws from, from this scenario's `rng_seed`: `SU.rng`
@@ -603,6 +610,15 @@ const _GLOBAL_STREAM_SALT: int = 0x9E3779B9
 func seed_simulation() -> void:
 	SU.rng.seed = rng_seed
 	seed(rng_seed ^ _GLOBAL_STREAM_SALT)
+
+
+## Seed Godot's GLOBAL generator afresh for the tick about to run, from the seed and the tick
+## alone. Its state cannot be read, so a snapshot cannot carry it; seeded per tick, it needs no
+## carrying — a load only seeds it again (Alex, 2026-10-27; saved-games.md §What the scope found).
+## Called at the start of every frame, held ones too, so each frame's draws start from the same
+## state on every run.
+func reseed_global_stream() -> void:
+	seed((rng_seed ^ _GLOBAL_STREAM_SALT) + tick * _GLOBAL_STREAM_TICK_STRIDE)
 
 
 #endregion
@@ -674,7 +690,7 @@ func slot_start_point(_a_index: int) -> Dictionary:
 	return {}
 
 
-## Whether a saved game is still being re-simulated up to its tick (SaveResume).
+## Whether a saved game is still waiting to be restored (SaveResume).
 func is_resuming() -> bool:
 	return _resume != null and is_instance_valid(_resume) and not _resume.is_done()
 
@@ -1430,6 +1446,46 @@ func register_entity(a_entity: Entity) -> int:
 	a_entity.spawn_serial = serial
 	stepper.enlist(a_entity)
 	return serial
+
+
+## Forget `a_entity`'s serial: a snapshot's restore is freeing an entity the snapshot does not hold.
+func forget_entity(a_entity: Entity) -> void:
+	_pieces_by_serial.erase(a_entity.spawn_serial)
+	stepper.discharge(a_entity)
+
+
+## Know an entity a snapshot's restore spawned under its saved serial, and step it: it took no
+## serial of its own on entering the tree (SimulationSnapshot). The stepper's order is a saved
+## field, set once every entity is in place.
+func adopt_restored_entity(a_entity: Entity) -> void:
+	if a_entity.is_in_group("piece"):
+		_pieces_by_serial[a_entity.spawn_serial] = a_entity
+	stepper.track_restored(a_entity)
+
+
+## Know every entity a snapshot's restore made or kept by its serial (SimulationSnapshot). The
+## serial counter itself is a saved field.
+func adopt_restored_entities(a_entities_by_serial: Dictionary) -> void:
+	for serial: int in a_entities_by_serial:
+		var entity: Entity = a_entities_by_serial[serial]
+		if entity.is_in_group("piece"):
+			_pieces_by_serial[serial] = entity
+
+
+## What a snapshot carries of the scenario itself: its counters and the match's verdicts. The rest
+## is wiring the rebuilt scene makes again (SimulationSnapshot).
+func snapshot_fields() -> Array:
+	return [
+		&"tick",
+		&"_game_over_seen",
+		&"_verdicts",
+		&"_is_match_over",
+		&"_player_has_deployed",
+		&"_player_has_had_base",
+		&"match_log",
+		&"_hegemony_armed",
+		&"_next_spawn_serial",
+	]
 
 
 ## The live piece with spawn serial `a_serial`, or null when none has it or it has been freed.

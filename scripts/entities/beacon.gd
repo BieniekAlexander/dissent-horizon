@@ -54,6 +54,11 @@ var _carrier: Variant = null
 
 ## Whether a shot has been fired on this beacon. See [method mark_used].
 var _is_used: bool = false
+## The shell whose landing dismisses this beacon, and the spotter whose death does
+## (dismiss_on_landing, dismiss_with_spotter), kept so a load can hook them again. Untyped:
+## either may be freed.
+var _shell: Variant = null
+var _spotter: Variant = null
 
 
 func _ready() -> void:
@@ -184,12 +189,17 @@ func dismiss_on_landing(a_shell: Entity) -> void:
 	if a_shell == null:
 		dismiss()
 		return
+	_shell = a_shell
+	_hook_shell(a_shell)
+
+
+# Method callables, not lambdas: a connection to a method is dropped when this beacon is freed
+# first, so a shell outliving its beacon never calls into a freed object.
+func _hook_shell(a_shell: Entity) -> void:
 	var phased: PhasedLocomotion = a_shell.get_node_or_null("Locomotion") as PhasedLocomotion
-	# Method callables, not lambdas: a connection to a method is dropped when this beacon is
-	# freed first, so a shell outliving its beacon never calls into a freed object.
 	if phased != null:
-		phased.phase_entered.connect(_on_shell_phase_entered)
-	a_shell.tree_exiting.connect(dismiss)
+		Entity.reconnect(phased.phase_entered, _on_shell_phase_entered)
+	Entity.reconnect(a_shell.tree_exiting, dismiss)
 
 
 func _on_shell_phase_entered(a_index: int) -> void:
@@ -201,7 +211,17 @@ func _on_shell_phase_entered(a_index: int) -> void:
 ## A used beacon stands regardless: the shell in flight is tracking it.
 func dismiss_with_spotter(a_spotter: Entity) -> void:
 	if a_spotter != null:
-		a_spotter.entity_occurrence.connect(_on_spotter_occurrence)
+		_spotter = a_spotter
+		Entity.reconnect(a_spotter.entity_occurrence, _on_spotter_occurrence)
+
+
+## A loaded save rebuilds the pieces unconnected: the shell's and the spotter's hooks are made
+## again.
+func finish_snapshot_restore() -> void:
+	if is_instance_valid(_shell):
+		_hook_shell(_shell as Entity)
+	if is_instance_valid(_spotter):
+		Entity.reconnect((_spotter as Entity).entity_occurrence, _on_spotter_occurrence)
 
 
 func _on_spotter_occurrence(a_occurrence: Entity.EntityOccurrence, _a_source: Entity) -> void:

@@ -67,10 +67,10 @@ func tick() -> int:
 		claims.claim(carrier, CLAIM_OWNER, BotClaims.Priority.ERRAND)
 		_squad = _bot.squads.create(SQUAD_NAME)
 		_squad.add(carrier)
-		_squad.eligible = func(unit: Actor) -> bool: return claims.owns(unit, CLAIM_OWNER)
+		_squad.eligible = _is_escort_claim
 	if consumer != null:
 		var policy := EscortPolicy.new(_bot, _act, relation, consumer)
-		policy.passenger_eligible = func(unit: Actor) -> bool: return not claims.is_claimed(unit)
+		policy.passenger_eligible = _is_unclaimed
 		if _squad.policy == null or not _squad.policy.same_as(policy):
 			_squad.policy = policy
 	# With no squad going anywhere the STANDING policy is still issued: its consumer's
@@ -170,6 +170,17 @@ func _pick_carrier(a_relation: Relation, a_candidates: Array, a_consumer: Squad)
 
 
 ## A provider nobody holds as strongly as an errand, not mid-construction and not on one.
+## Whether `a_unit` is this escort's: the squad's filter. A method rather than a lambda, so a
+## snapshot can name it (StateCodec).
+func _is_escort_claim(a_unit: Actor) -> bool:
+	return claims.owns(a_unit, CLAIM_OWNER)
+
+
+## Whether nothing has claimed `a_unit`: who may ride as a passenger.
+func _is_unclaimed(a_unit: Actor) -> bool:
+	return not claims.is_claimed(a_unit)
+
+
 func _is_free(a_piece: Actor) -> bool:
 	return (
 		a_piece.is_inside_tree()

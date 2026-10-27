@@ -200,7 +200,7 @@ const CONTESTED_SPOT_RADIUS: float = ABANDONED_SPOT_RADIUS * 2.0
 ## only costs the bot a slightly further site.
 const CLAIMED_SPOT_RADIUS: float = 3.0
 
-## Per constructing unit (by instance id): seconds_elapsed() when that job was first seen.
+## Per constructing unit (by identity key): seconds_elapsed() when that job was first seen.
 ## Keyed by id rather than by the node so a dead builder's entry can be dropped without
 ## touching a freed reference — the BotScout._scout_progress convention.
 var _job_started: Dictionary = {}
@@ -1330,7 +1330,7 @@ func _release_stalled_construction() -> void:
 	for u: Actor in _bot.get_units():
 		if not _is_constructing(u):
 			continue
-		var key: int = u.get_instance_id()
+		var key: int = u.identity_key()
 		live[key] = true
 		if not _job_started.has(key):
 			_job_started[key] = now
@@ -1360,7 +1360,7 @@ func _abort_contested_jobs() -> void:
 		_mark_contested(target)
 		u.update_commands(null)
 		claims.release(u, CLAIM_OWNER)
-		_job_started.erase(u.get_instance_id())
+		_job_started.erase(u.identity_key())
 
 
 ## Whether an ARMED enemy this bot can see stands within defend_threat_radius of `a_site`.

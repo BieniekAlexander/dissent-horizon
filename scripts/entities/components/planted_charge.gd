@@ -32,6 +32,15 @@ func host() -> Actor:
 	return get_parent() as Actor
 
 
+## A loaded save rebuilds the pieces unconnected: the hooks on the planter and the carrier are
+## made again.
+func finish_snapshot_restore() -> void:
+	if planter() != null:
+		Entity.reconnect(planter().entity_occurrence, _on_planter_occurrence)
+	if carrier() != null:
+		Entity.reconnect(carrier().entity_occurrence, _on_carrier_occurrence)
+
+
 static func of(a_node: Variant) -> PlantedCharge:
 	if a_node == null or not is_instance_valid(a_node) or not (a_node is Node):
 		return null

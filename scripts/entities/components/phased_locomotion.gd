@@ -75,7 +75,11 @@ var _lock_lost: bool = false
 var _fall_ticks: int = 0
 ## The visuals currently shown, as NodePath -> true (see _show_visuals_of).
 var _shown_visuals: Dictionary = {}
-## Bodies the impact test passes through: the emission's own and its shooter's.
+## Bodies the impact test passes through: the emission's own and its shooter's. A freed one
+## stays in the list until the emission ends: nothing can strike it.
+var _excluded_bodies: Array[CollisionObject3D] = []
+## Their RIDs, which is what the ray query takes; kept beside the bodies so a shooter freed in
+## flight leaves its RID behind rather than an invalid object to read one from.
 var _excluded: Array[RID] = []
 ## Whether this emission flies FREE: it ends only on striking its intended piece or the
 ## ground, never by arriving at a live target, so it can miss (projectiles.md §Free flight).
@@ -153,7 +157,10 @@ func can_move() -> bool:
 ## A FREE flight (`a_free`) can miss: see _free_flight. Its wobble, if any phase has one, is
 ## seeded here from the gameplay generator, so a replay flies it identically.
 func launch(
-	a_destination: Vector3, a_pursued: Entity, a_excluded: Array[RID], a_free: bool = false
+	a_destination: Vector3,
+	a_pursued: Entity,
+	a_excluded: Array[CollisionObject3D],
+	a_free: bool = false
 ) -> void:
 	set_goal(a_destination, Arrival.PASS_THROUGH, a_pursued)
 	_free_flight = a_free
@@ -165,7 +172,7 @@ func launch(
 	_lead_point = null
 	_lock_lost = false
 	_fall_ticks = 0
-	_excluded = a_excluded
+	_set_excluded(a_excluded)
 	_launch_frame = SimulationClock.physics_frame()
 	_phase_index = 0
 	_phase_ticks = 0
@@ -523,4 +530,41 @@ func _end_by_contact(a_hit: Dictionary) -> void:
 	_phase_over = true
 	_ended_by_impact = true
 	struck.emit(a_hit["collider"])
+
+
+#endregion
+
+
+#region Snapshot
+## The impact test's RIDs are handed out afresh by a rebuilt world, so a snapshot names the
+## bodies instead (SimulationSnapshot). A shooter freed since is dropped: nothing can strike it.
+func _set_excluded(a_bodies: Array[CollisionObject3D]) -> void:
+	_excluded_bodies = a_bodies
+	_excluded.assign(a_bodies.map(func(b: CollisionObject3D) -> RID: return b.get_rid()))
+
+
+func snapshot_skip() -> Array:
+	return [&"_excluded", &"_excluded_bodies"]
+
+
+func snapshot_extra() -> Dictionary:
+	var bodies: Array = _excluded_bodies.filter(is_instance_valid)
+	# By piece and path: the impact test reads the list as a set, and a fixed order lets two
+	# snapshots of one moment compare.
+	bodies.sort_custom(func(a: Node, b: Node) -> bool: return _body_key(a) < _body_key(b))
+	return {"excluded": bodies}
+
+
+static func _body_key(body: Node) -> String:
+	var entity: Entity = Entity.owning(body)
+	var serial: int = entity.identity_key() if entity != null else 0
+	return "%012d %s" % [serial, entity.get_path_to(body) if entity != null else body.name]
+
+
+func restore_snapshot_extra(a_extra: Dictionary) -> void:
+	var bodies: Array[CollisionObject3D] = []
+	for body: Variant in a_extra.get("excluded", []):
+		if is_instance_valid(body):
+			bodies.append(body as CollisionObject3D)
+	_set_excluded(bodies)
 #endregion

@@ -178,14 +178,26 @@ func _register_on(a_commander: Commander) -> void:
 	if brain == null:
 		return
 	_job = BotJob.new(
-		&"tactic",
-		brain,
-		func() -> float: return brain.config.combat_period_seconds,
-		BotBrain.JOB_PRIORITY_MILITARY,
-		func(_a_allowance: int) -> int: return _think()
+		&"tactic", brain, _combat_period_seconds, BotBrain.JOB_PRIORITY_MILITARY, _think_within
 	)
 	_scheduler = BotScheduler.find_or_create(self, _manager)
 	_scheduler.register(_job)
+
+
+## A loaded save's job comes back with its timing but not what it runs (BotJob.snapshot_skip):
+## wire it again.
+func finish_snapshot_restore() -> void:
+	if _job != null:
+		_job.period_seconds = _combat_period_seconds
+		_job.work = _think_within
+
+
+func _combat_period_seconds() -> float:
+	return _brain_of(_registered_on).config.combat_period_seconds
+
+
+func _think_within(_a_allowance: int) -> int:
+	return _think()
 
 
 ## Give back the squad, the claims and the scheduled job, so nothing calls into this tactic

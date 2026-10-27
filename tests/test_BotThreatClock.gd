@@ -42,7 +42,7 @@ func before_each() -> void:
 
 func _believe_unit(a_id: int, a_type: StringName, a_at: Vector3) -> void:
 	var entry := CommanderBlackboard.Entry.new()
-	entry.instance_id = a_id
+	entry.serial = a_id
 	entry.type = a_type
 	entry.is_structure = false
 	entry.last_known_location = a_at
@@ -138,7 +138,7 @@ func test_a_slower_answer_makes_the_far_unit_press_harder() -> void:
 func test_the_demand_map_weighs_units_by_the_clock_and_structures_as_before() -> void:
 	_believe_unit(2, &"raider", Vector3(-90.0, 0.0, 0.0))
 	var entry := CommanderBlackboard.Entry.new()
-	entry.instance_id = 3
+	entry.serial = 3
 	entry.type = &"wall"
 	entry.is_structure = true
 	entry.last_known_location = Vector3(-90.0, 0.0, 0.0)

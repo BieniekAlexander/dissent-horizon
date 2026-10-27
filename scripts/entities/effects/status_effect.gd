@@ -308,4 +308,13 @@ func _on_remove() -> void:
 ## directly (like DoT) don't need this. Default: no-op.
 func _on_stacks_changed(_a_old_stacks: int, _a_new_stacks: int) -> void:
 	pass
+
+
+#endregion
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): an accessor over `_stacks`.
+func snapshot_skip() -> Array:
+	return [&"stacks"]
 #endregion

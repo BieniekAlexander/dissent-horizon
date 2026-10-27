@@ -1700,4 +1700,23 @@ func tick_collection() -> void:
 	if dominion_generator != null:
 		dominion_generator.tick()
 
+
+#endregion
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): accessors over the Orders component, the
+## build progress and the map; the crush probe is made on first use.
+func snapshot_skip() -> Array:
+	return (
+		super()
+		+ [&"command_receiver", &"_command", &"rally_commands", &"is_built", &"map_cells"]
+		+ [&"_crush_scan_shape"]
+	)
+
+
+## A loaded save rebuilds the pieces unconnected: each active builder's hook is made again.
+func finish_snapshot_restore() -> void:
+	for builder: Actor in _active_builders:
+		Entity.reconnect(builder.tree_exiting, unregister_builder.bind(builder), CONNECT_ONE_SHOT)
 #endregion

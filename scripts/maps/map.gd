@@ -717,6 +717,23 @@ func _extraction_site_under(a_extractor: Extractor, a_world_center: Vector2) -> 
 ## Reads the footprint from structure_cell_map rather than from the terrain grid: a fixture
 ## that does not obstruct never registered there. Only cells this structure OCCUPIES are
 ## cleared, so removing an extractor leaves its site in place.
+## Register `a_structure` on exactly `a_cells`, where a saved game had it, without moving it:
+## add_structure derives the cells from a centre and stands the piece on it, which a piece that
+## deployed where it stood does not (SimulationSnapshot).
+func register_saved_cells(a_structure: Entity, a_cells: Array[Vector2i]) -> void:
+	for cell: Vector2i in a_cells:
+		if cell_grid[cell.x][cell.y] == null:
+			cell_grid[cell.x][cell.y] = a_structure
+	structure_cell_map[a_structure] = a_cells
+	if decorator != null:
+		decorator.clear_cells(a_cells)
+	var obs := a_structure.get_node_or_null("Fixture") as Fixture
+	if obs == null or obs.is_obstruction:
+		terrain_grid.place_building(a_cells, a_structure)
+	a_structure.map = self
+	a_structure.refresh_movement_collision()
+
+
 func remove_structure(a_structure: Entity, _a_rebake: bool = true) -> void:
 	var cells: Array = structure_cell_map.get(a_structure, [])
 	for cell: Vector2i in cells:
@@ -1001,6 +1018,8 @@ func _ready() -> void:
 		terrain_grid.set_blocked_mask(terrain_data.blocked_mask())
 
 	nav_manager = NavManager.new()
+	# Named, so a reference to it has the same path in every run (SimulationSnapshot).
+	nav_manager.name = "NavManager"
 	nav_manager.navigation_region = nav_region
 	nav_manager.terrain_grid = terrain_grid
 	add_child(nav_manager)

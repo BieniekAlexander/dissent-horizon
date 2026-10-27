@@ -385,10 +385,10 @@ func test_a_remembered_structure_in_the_water_claims_the_pond() -> void:
 	_add_water(map, WaterBody.NOMINAL_ENERGY)
 	var economy: BotEconomy = _economy_with(map, [])
 	var entry := CommanderBlackboard.Entry.new()
-	entry.instance_id = 1
+	entry.serial = 1
 	entry.is_structure = true
 	entry.last_known_location = map.grid_to_world(_SHALLOW_ORIGIN)
-	economy._bot.blackboard._entries[entry.instance_id] = entry
+	economy._bot.blackboard._entries[entry.serial] = entry
 	assert_null(
 		economy._nearest_workable_pond_spot(),
 		"it last saw an enemy structure standing in the pond, and has not looked since"
@@ -501,8 +501,7 @@ func test_a_site_only_piece_is_refused_the_pond_an_extractor_takes() -> void:
 		"the control: an extractor may go here"
 	)
 	assert_false(
-		EnergyExtractor.valid_placement(aim, _DIMS, false, true, false),
-		"a site-only piece may not"
+		EnergyExtractor.valid_placement(aim, _DIMS, false, true, false), "a site-only piece may not"
 	)
 
 

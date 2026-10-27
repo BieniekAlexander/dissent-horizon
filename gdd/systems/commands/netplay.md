@@ -149,7 +149,8 @@ Decided 2026-10-13 (T-107). PLANNED, except where a decision names the code that
 - **Turns:** one per tick (30 a second). An empty turn is sent explicitly.
 - **Input delay:** fixed for the match, set from the round trip measured in the lobby; the host
   can edit it. Built: the slowest round trip to the host plus a tick (`LobbyLink.measured_delay_seconds`).
-  TODO: joiners' round trips to each other are not measured.
+  PLANNED (Alex, 2026-10-27): measure every pair's round trip over the mesh and set the delay
+  from the slowest; today joiners' round trips to each other are not measured.
 - **Order feedback:** shown at submit, previewed through the dispatcher's own rules
   (`recipients`, `line_destinations`). Nothing fires at apply. Built 2026-10-14:
   - At submit the controller previews each recipient's destination — `recipients`, then
@@ -161,13 +162,16 @@ Decided 2026-10-13 (T-107). PLANNED, except where a decision names the code that
     machine. The old registry, filled from the apply, is gone.
   - Only the local player's own units are drawn: selecting a rival's must not show where it was
     sent. `test_OrderFeedback`.
-- **Transport:** direct ENet by address and port. TODO: NAT traversal and a relay, behind the
-  transport interface.
+- **Transport:** direct ENet by address and port; a player behind a router forwards a port or
+  uses a VPN. TODO: NAT traversal and a relay, behind the transport interface — waits on a
+  distribution platform, whose own service may be the answer (Alex, 2026-10-27).
 - **Peers:** N in a full mesh, tested at 1v1 and 2v2.
 - **A silent peer:** a timeout with a waiting-for-player readout, then that player forfeits.
-  TODO: a bot takes the slot at an agreed tick, for team games. Built 2026-10-14, at Alex's
+  Built 2026-10-14, at Alex's
   leanings: the timeout is 30 s, and forfeiting is losing every command centre — eliminated, its
   pieces freed (`Scenario.forfeit`, a FORFEIT `PlayerOrder`, so a replay plays it back).
+  REJECTED (Alex, 2026-10-27): a bot taking the slot, or allies inheriting its pieces, in a team
+  game; elimination stays.
   - `NetMatch` names who a stalled tick waits on from its first second ("Waiting for Player N…
     forfeits in X s"), and at 30 s VOTES that peer out (`Lockstep.vote_out`).
   - A peer that has voted ignores the silent peer's packets from then on, so its vote — how far it
@@ -178,7 +182,8 @@ Decided 2026-10-13 (T-107). PLANNED, except where a decision names the code that
     before it. In a 1v1 the one remaining peer fences at once.
   - TODO: "still playing" is each peer's own view, so a network split three ways can fence at
     different ticks; and a peer cut off rather than gone forfeits the others on its side — two
-    matches each claiming the win. A relay or a server as judge would settle both.
+    matches each claiming the win. Accepted as a known limit (Alex, 2026-10-27) until there is a
+    relay, which as judge would settle both.
   - `test_Lockstep` (three peers, lossy links, a peer that comes back after its fence),
     `test_NetMatch` (the readout, then the forfeit, in a real scenario).
 - **Platforms:** any OS and CPU architecture may play together — the handshake refused another
@@ -219,7 +224,8 @@ Decided 2026-10-13 (T-107). PLANNED, except where a decision names the code that
   when none is free), and you may move; Play waits until every Open slot is taken. The host always
   plays slot 1, since a watching host would need observers. Built — [ux/ui/menus](../ux/ui/menus.md)
   §Multiplayer.
-- **Chat:** none in the first build (TODO).
+- **Chat:** none yet. PLANNED (Alex, 2026-10-27): text chat to everyone or to allies, and map
+  pings.
 - **The map:** each peer generates from `map_seed`, and peers compare a map digest before tick 0.
   Built: `MapDigest` hashes the terrain (heights, tiles, void cells) and every piece placed with
   the map.
@@ -232,7 +238,8 @@ Decided 2026-10-13 (T-107). PLANNED, except where a decision names the code that
 
 ## Rollback, later
 
-TODO, all of it: none of this is planned yet, and lockstep does not wait on it.
+TODO, all of it: none of this is planned yet, and lockstep does not wait on it. Alex, 2026-10-27:
+rollback stays parked — lockstep is enough for now — and so does the tick-cost work it waits on.
 
 - **Tick cost is the gate, not the netcode.** Rolling back k ticks re-runs k ticks inside one
   frame. A tick cost 12–23 ms between minutes two and six, and 70–85 ms in a fought late game
@@ -240,7 +247,9 @@ TODO, all of it: none of this is planned yet, and lockstep does not wait on it.
   budget; a Brood War step costs about 0.3 ms. Rollback wants a tick roughly ten times cheaper,
   and that measurement comes before any snapshot design.
 - **Snapshot and restore of the whole simulation**, shared with replay seeking
-  ([recording-and-replay](recording-and-replay.md) §Deferred goals). It is a serialization, not a
+  ([recording-and-replay](recording-and-replay.md) §Deferred goals). Built 2026-10-27 for saved
+  games ([saved-games](saved-games.md) §The snapshot); what rollback adds is restoring it many
+  times a second, which is not measured. It is a serialization, not a
   memory copy: Godot allocates nodes, navigation agents and physics bodies during play, and the
   navigation and physics servers hold state outside the tree. Snapshot primary state only; derived
   terrain, visual facets and presentation are rebuilt or left alone.
@@ -249,9 +258,10 @@ TODO, all of it: none of this is planned yet, and lockstep does not wait on it.
 - **Once per frame, not once per re-simulation**: sounds, alerts, effects and the order-feedback
   hooks are matched against what an earlier run of the same tick already did. Viewer-local state
   (camera, selection, the displayed fog) stays out of snapshots.
-- **Update order by serial.** Built 2026-10-15: one stepper steps every entity in spawn-serial
-  order. PLANNED: a decide phase and an act phase, and references between pieces held as
-  serials — [the-simulation-step](the-simulation-step.md).
+- **Update order by serial.** Built: one stepper steps every entity in spawn-serial order
+  (2026-10-15), a decide pass holds the hot reads, and the snapshot writes references between
+  pieces as serials (2026-10-27). PLANNED: intents applied in an act phase —
+  [the-simulation-step](the-simulation-step.md).
 - **Bot state** goes into snapshots, since every peer's bots re-run on rollback.
 - **The match end and a departure are fences**: applied only on a confirmed tick, and never
   rolled back across.
@@ -260,7 +270,7 @@ TODO, all of it: none of this is planned yet, and lockstep does not wait on it.
 - **The library.** Alex's plan named Delta Rollback (C++ GDExtension) and Snopek's Godot rollback
   addon (GDScript). Both expect state to be saved and loaded per node, and Snopek's also expects to
   own the tick loop. Choose, or write our own on top of the input buffer above, once the tick-cost
-  gate is met.
+  gate is met (kept deferred by Alex, 2026-10-27).
 
 ## Reference: ShieldBattery
 

@@ -32,9 +32,9 @@ static func launch(a_emission: Entity, a_from: Variant, a_target: Variant) -> vo
 		target = null
 	if payload != null:
 		payload.arm(from, target)
-	var excluded: Array[RID] = [a_emission.get_rid()]
+	var excluded: Array[CollisionObject3D] = [a_emission]
 	if is_instance_valid(from):
-		excluded += _body_rids(from)
+		excluded += _bodies_of(from)
 	var phased: PhasedLocomotion = a_emission.locomotion_component as PhasedLocomotion
 	# A hitscan shot lands on its target whatever it hits, so it flies guided; anything else
 	# flies free and has to strike something (projectiles.md §Free flight).
@@ -75,9 +75,9 @@ static func _ground_under(a_emission: Entity, a_target: Entity) -> Vector3:
 
 
 ## Every physics body of `a_entity` a ray could strike: its own and its direct children's.
-static func _body_rids(a_entity: Entity) -> Array[RID]:
-	var rids: Array[RID] = [a_entity.get_rid()]
+static func _bodies_of(a_entity: Entity) -> Array[CollisionObject3D]:
+	var bodies: Array[CollisionObject3D] = [a_entity]
 	for child: Node in a_entity.get_children():
 		if child is CollisionObject3D:
-			rids.append((child as CollisionObject3D).get_rid())
-	return rids
+			bodies.append(child as CollisionObject3D)
+	return bodies

@@ -54,9 +54,9 @@ var passenger_eligible: Callable = func(_a_unit: Actor) -> bool: return true
 
 var _bot: Bot
 var _act: BotActuator
-## Carrier instance id → seconds_elapsed when its current loading began.
+## Carrier identity key → seconds_elapsed when its current loading began.
 var _loading_since: Dictionary = {}
-## Carrier instance id → the Action the last issue took for it.
+## Carrier identity key → the Action the last issue took for it.
 var _last_action: Dictionary = {}
 
 
@@ -88,7 +88,7 @@ func destination() -> Variant:
 
 ## What the last issue did for `a_carrier`; NONE for a carrier it has not served.
 func last_action(a_carrier: Actor) -> Action:
-	return _last_action.get(a_carrier.get_instance_id(), Action.NONE)
+	return _last_action.get(a_carrier.identity_key(), Action.NONE)
 
 
 func issue(a_members: Array) -> void:
@@ -96,7 +96,7 @@ func issue(a_members: Array) -> void:
 		return  # TODO: RADIUS and POINT — see the class note.
 	var where: Variant = destination()
 	for carrier: Actor in a_members:
-		_last_action[carrier.get_instance_id()] = _serve(carrier, where)
+		_last_action[carrier.identity_key()] = _serve(carrier, where)
 
 
 #region The run
@@ -113,11 +113,11 @@ func _serve(a_carrier: Actor, a_destination: Variant) -> Action:
 			return Action.UNLOAD
 		var to: Vector3 = a_destination
 		if a_carrier.xz_position.distance_to(VU.in_xz(to)) <= UNLOAD_RADIUS:
-			_loading_since.erase(a_carrier.get_instance_id())
+			_loading_since.erase(a_carrier.identity_key())
 			_act.evacuate([a_carrier])
 			return Action.UNLOAD
 		if boarding.is_empty() or _waited_too_long(a_carrier):
-			_loading_since.erase(a_carrier.get_instance_id())
+			_loading_since.erase(a_carrier.identity_key())
 			_walk_on(boarding, to)
 			_act.move([a_carrier], to)
 			return Action.CARRY
@@ -128,7 +128,7 @@ func _serve(a_carrier: Actor, a_destination: Variant) -> Action:
 	var to: Vector3 = a_destination
 	if not boarding.is_empty():
 		if _waited_too_long(a_carrier):
-			_loading_since.erase(a_carrier.get_instance_id())
+			_loading_since.erase(a_carrier.identity_key())
 			_walk_on(boarding, to)
 			return Action.NONE
 		return Action.WAIT
@@ -141,7 +141,7 @@ func _serve(a_carrier: Actor, a_destination: Variant) -> Action:
 		return Action.APPROACH
 	for passenger: Actor in passengers:
 		_act.garrison_into(passenger, a_carrier)
-	_loading_since[a_carrier.get_instance_id()] = _bot.seconds_elapsed()
+	_loading_since[a_carrier.identity_key()] = _bot.seconds_elapsed()
 	return Action.COLLECT
 
 
@@ -160,7 +160,7 @@ func _boarding(a_carrier: Actor) -> Array:
 
 
 func _waited_too_long(a_carrier: Actor) -> bool:
-	var since: Variant = _loading_since.get(a_carrier.get_instance_id(), null)
+	var since: Variant = _loading_since.get(a_carrier.identity_key(), null)
 	return since != null and _bot.seconds_elapsed() - float(since) > LOAD_TIMEOUT_SECONDS
 
 

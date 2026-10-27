@@ -70,6 +70,44 @@ func _exit_tree() -> void:
 	get_tree().node_removed.disconnect(_on_tree_changed)
 
 
+## Set the decide round, as a snapshot's restore does (SimulationSnapshot).
+static func restore_round(a_round: int) -> void:
+	_round = a_round
+
+
+## Every entity in play, held off the tree included, in serial order.
+func entities() -> Array:
+	return _entities.filter(
+		func(item: Variant) -> bool:
+			return is_instance_valid(item) and not (item as Node).is_queued_for_deletion()
+	)
+
+
+## The entity in play with `a_serial`, or null.
+func entity_with_serial(a_serial: int) -> Entity:
+	for entity: Entity in entities():
+		if entity.spawn_serial == a_serial:
+			return entity
+	return null
+
+
+## Step `a_entity`, which a snapshot's restore spawned under its saved serial. Out of serial order,
+## which the restore then sets by the saved list (snapshot_fields).
+func track_restored(a_entity: Entity) -> void:
+	_entities.append(a_entity)
+	index.track(a_entity)
+
+
+## Stop stepping `a_entity`, which a snapshot's restore is about to free.
+func discharge(a_entity: Entity) -> void:
+	_entities.erase(a_entity)
+
+
+## What a snapshot carries of the stepper (SimulationSnapshot): the spatial index is rebuilt.
+func snapshot_fields() -> Array:
+	return [&"_tick", &"_entities", &"_last_serial"]
+
+
 ## Step `a_entity` from now on. Called once, as the entity takes its serial, so arrival order is
 ## serial order.
 func enlist(a_entity: Entity) -> void:
@@ -140,8 +178,19 @@ func _act(a_entity: Entity, a_delta: float) -> void:
 
 
 ## A node joined or left some entity's subtree: that entity rebuilds the list of nodes it steps
-## before its next tick.
+## before its next tick, and wakes. Only for a node that steps something: a badge or a model drawn
+## for the piece changes nothing its sleep foresaw, and presentation must not move the
+## simulation — a loaded save rebuilds its presentation, and would otherwise wake what slept.
 func _on_tree_changed(a_node: Node) -> void:
 	var entity: Entity = Entity.owning(a_node)
-	if entity != null:
+	if entity != null and _steps_anything(a_node):
 		entity.invalidate_step_list()
+
+
+static func _steps_anything(node: Node) -> bool:
+	if node.has_method(&"simulation_step") or node.has_method(&"simulation_decide"):
+		return true
+	for child: Node in node.get_children():
+		if not child is Entity and _steps_anything(child):
+			return true
+	return false

@@ -59,10 +59,10 @@ func _extractor_at(a_position: Vector3, a_owner_id: int) -> Actor:
 ## Tell `a_bot` it remembers an enemy structure at `a_position`.
 func _remember_structure_at(a_bot: StubBot, a_position: Vector3) -> void:
 	var entry := CommanderBlackboard.Entry.new()
-	entry.instance_id = 1
+	entry.serial = 1
 	entry.is_structure = true
 	entry.last_known_location = a_position
-	a_bot.blackboard._entries[entry.instance_id] = entry
+	a_bot.blackboard._entries[entry.serial] = entry
 
 
 ## A real extraction site piece, loaded inside the test (a file-scope preload of an entity

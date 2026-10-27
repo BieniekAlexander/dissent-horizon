@@ -50,9 +50,7 @@ func knows_of(a_entity: Entity) -> bool:
 		return true
 	if _commander.has_vision_at(a_entity.global_position):
 		return true
-	return (
-		_commander.blackboard == null or _commander.blackboard.believes(a_entity.get_instance_id())
-	)
+	return _commander.blackboard == null or _commander.blackboard.believes(a_entity.identity_key())
 
 
 ## Whether the commander believes a structure occupies `a_cell`. Unexplored ground is not

@@ -146,6 +146,24 @@ func test_an_ordinary_structure_occupies_and_obstructs() -> void:
 	assert_true(building.is_grid_obstruction())
 
 
+func test_a_structure_freed_in_play_frees_its_cells() -> void:
+	# Not every exit is a death: a blueprint cancelled, a piece transformed. The grid must not
+	# keep the freed building.
+	var building: Entity = _place(BUILDING_SCENE, _neutral)
+	building.free()
+	assert_true(_all_passable(), "its cells rejoin the navmesh")
+	assert_true(_all_occupied_by(null), "nothing occupies them")
+	assert_eq(_map.terrain_grid.buildings().size(), 0, "the grid holds no freed building")
+
+
+func test_an_eliminated_commanders_structures_leave_the_grid() -> void:
+	_place(BUILDING_SCENE, _commander)
+	_commander.eliminate()
+	await get_tree().process_frame
+	assert_true(_all_passable(), "removed from the match, its buildings stop obstructing")
+	assert_eq(_map.terrain_grid.buildings().size(), 0, "the grid holds no freed building")
+
+
 func test_removing_an_ordinary_structure_frees_its_cells() -> void:
 	var building: Entity = _place(BUILDING_SCENE, _neutral)
 	_map.remove_structure(building)

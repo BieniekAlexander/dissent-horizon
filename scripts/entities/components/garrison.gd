@@ -37,6 +37,10 @@ signal occupant_left(unit: Actor)
 ## `1 << value`, because Movement.Mode is NOT a dense enum (GROUNDED = 0x0,
 ## HOVERING = 0x10, FLYING = 0x11) — shifting by those values would run off the mask.
 ## Keep the constants, the maps, and the @export_flags hint strings in step.
+## The name a unit's weapon inventory has under the unit (Entity.weapon_inventory), and what it is
+## named for while a bunker holds it (hoisted_loadout_name).
+const LOADOUT_NAME: String = "Loadout"
+const HOISTED_LOADOUT_PREFIX: String = "HoistedLoadout"
 const FRAME_BIO: int = 1 << 0
 const FRAME_MECH: int = 1 << 1
 const FRAME_ANY: int = FRAME_BIO | FRAME_MECH
@@ -553,6 +557,8 @@ func garrison(a_unit: Actor) -> void:
 	# stays, reparented under the owner.
 	var owner_node := get_parent()
 	if bunker and owner_node != null and a_unit.weapon_inventory != null:
+		# Named for its unit, so it has the same path on every run (SimulationSnapshot).
+		a_unit.weapon_inventory.name = hoisted_loadout_name(a_unit)
 		a_unit.weapon_inventory.reparent(owner_node, false)
 	# Already-orphaned units reach here too (a captive handed straight into a hold),
 	# so the detach is conditional rather than assuming a parent.
@@ -771,6 +777,21 @@ func _restore_loadout(a_unit: Actor) -> void:
 	var loadout := a_unit.weapon_inventory
 	if loadout != null and loadout.get_parent() != a_unit:
 		loadout.reparent(a_unit, false)
+		loadout.name = LOADOUT_NAME
+
+
+## What a unit's Loadout is called while a bunker holds it on its owner.
+static func hoisted_loadout_name(unit: Entity) -> String:
+	return HOISTED_LOADOUT_PREFIX + str(unit.spawn_serial)
+
+
+## The spawn serial of the unit whose Loadout `node` is, held on a bunker's owner; 0 for any other
+## node. Read off the name, because the hoist leaves the Loadout no owner to say whose it is.
+static func lender_of(node: Node) -> int:
+	var name: String = String(node.name)
+	if not (node is Loadout) or not name.begins_with(HOISTED_LOADOUT_PREFIX):
+		return 0
+	return name.trim_prefix(HOISTED_LOADOUT_PREFIX).to_int()
 
 
 ## Evacuation path for garrison owners that occupy the terrain grid (structures).
@@ -1007,4 +1028,10 @@ static func _release_commands(
 	if a_owner_cmd != null:
 		commands.append_array(a_owner_cmd.rally_chain())
 	return commands
+
+
+## A loaded save rebuilds the pieces unconnected: each pending occupant's hook is made again.
+func finish_snapshot_restore() -> void:
+	for unit: Actor in _pending_garrison_units:
+		Entity.reconnect(unit.tree_exiting, unregister_garrison_intent.bind(unit), CONNECT_ONE_SHOT)
 #endregion

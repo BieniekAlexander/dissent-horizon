@@ -272,6 +272,11 @@ int FogRaster::footprint_for(CollisionShape3D *p_vision_shape) {
 	const int hx = static_cast<int>(half_x * points_per_unit + FOOTPRINT_TOLERANCE_PX);
 	const int hz = static_cast<int>(half_z * points_per_unit + FOOTPRINT_TOLERANCE_PX);
 
+	return intern_footprint(kind, hx, hz, turn_x, turn_z);
+}
+
+// The footprint id for a footprint's key, built and interned on first use.
+int FogRaster::intern_footprint(int kind, int hx, int hz, int turn_x, int turn_z) {
 	const auto key = std::make_tuple(kind, hx, hz, turn_x, turn_z);
 	const auto found = footprint_ids.find(key);
 	if (found != footprint_ids.end()) {
@@ -298,6 +303,7 @@ int FogRaster::footprint_for(CollisionShape3D *p_vision_shape) {
 	}
 	const int id = static_cast<int>(footprints.size());
 	footprints.push_back(std::move(offsets));
+	footprint_keys.push_back(key);
 	footprint_ids[key] = id;
 	return id;
 }
@@ -439,6 +445,55 @@ void FogRaster::set_fog_bytes(const PackedByteArray &p_bytes) {
 	texture_stale = true;
 }
 
+void FogRaster::set_explored_bytes(const PackedByteArray &p_bytes) {
+	ERR_FAIL_COND_MSG(p_bytes.size() != static_cast<int64_t>(explored.size()),
+			"FogRaster.set_explored_bytes: size mismatch");
+	explored.assign(p_bytes.ptr(), p_bytes.ptr() + p_bytes.size());
+	for (size_t i = 0; i < explored.size(); i++) {
+		if (counts[i] == 0) {
+			fog[i] = explored[i];
+		}
+	}
+	texture_stale = true;
+}
+
+Array FogRaster::sight_stamps() const {
+	Array out;
+	for (const auto &[source, stamp] : stamps) {
+		const auto &[kind, hx, hz, turn_x, turn_z] = footprint_keys[stamp.footprint];
+		PackedInt64Array record;
+		record.append(static_cast<int64_t>(source));
+		record.append(stamp.px);
+		record.append(stamp.py);
+		record.append(kind);
+		record.append(hx);
+		record.append(hz);
+		record.append(turn_x);
+		record.append(turn_z);
+		out.push_back(record);
+	}
+	return out;
+}
+
+void FogRaster::set_sight_state(
+		const PackedInt32Array &p_counts, const PackedByteArray &p_fog, const Array &p_stamps) {
+	ERR_FAIL_COND_MSG(p_counts.size() != static_cast<int64_t>(counts.size()) ||
+					p_fog.size() != static_cast<int64_t>(fog.size()),
+			"FogRaster.set_sight_state: size mismatch");
+	counts.assign(p_counts.ptr(), p_counts.ptr() + p_counts.size());
+	fog.assign(p_fog.ptr(), p_fog.ptr() + p_fog.size());
+	stamps.clear();
+	for (int64_t i = 0; i < p_stamps.size(); i++) {
+		const PackedInt64Array record = p_stamps[i];
+		ERR_CONTINUE_MSG(record.size() != 8, "FogRaster.set_sight_state: a stamp is not 8 integers");
+		const int footprint = intern_footprint(static_cast<int>(record[3]), static_cast<int>(record[4]),
+				static_cast<int>(record[5]), static_cast<int>(record[6]), static_cast<int>(record[7]));
+		stamps[static_cast<uint64_t>(record[0])] =
+				Stamp{ static_cast<int>(record[1]), static_cast<int>(record[2]), footprint };
+	}
+	texture_stale = true;
+}
+
 void FogRaster::_bind_methods() {
 	BIND_CONSTANT(EXPLORED_ALPHA);
 	BIND_CONSTANT(UNEXPLORED_BYTE);
@@ -469,6 +524,10 @@ void FogRaster::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_texture_stale"), &FogRaster::is_texture_stale);
 	ClassDB::bind_method(D_METHOD("mark_texture_uploaded"), &FogRaster::mark_texture_uploaded);
 	ClassDB::bind_method(D_METHOD("set_fog_bytes", "bytes"), &FogRaster::set_fog_bytes);
+	ClassDB::bind_method(D_METHOD("set_explored_bytes", "bytes"), &FogRaster::set_explored_bytes);
+	ClassDB::bind_method(D_METHOD("sight_stamps"), &FogRaster::sight_stamps);
+	ClassDB::bind_method(
+			D_METHOD("set_sight_state", "counts", "fog", "stamps"), &FogRaster::set_sight_state);
 }
 
 } // namespace dissent

@@ -67,3 +67,19 @@ func has_pending_work() -> bool:
 ## The period in physics ticks: the seconds converted once, here, at the boundary.
 func period_ticks() -> int:
 	return maxi(1, roundi(float(period_seconds.call()) * TimeUtils.ticks_per_second()))
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): what a job runs is wired by whoever made
+## it, and a restore fills the rebuilt brain's own jobs (a tactic rewires its own,
+## ScenarioTactic.finish_snapshot_restore); the microseconds are wall-clock profile, which no
+## decision reads.
+func snapshot_skip() -> Array:
+	return [&"period_seconds", &"work", &"is_pending", &"last_usec", &"total_usec"]
+
+
+## A job is its brain's job of that name: a restore pairs the saved ones with the rebuilt brains'
+## by it, whatever order they were made in.
+func snapshot_identity_fields() -> Array:
+	return ["brain", "name"]
+#endregion

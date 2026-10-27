@@ -46,6 +46,9 @@ var _acknowledged: bool = false
 ## The number the trigger manager gave this dialog when it was raised (raise_dialog), the same on
 ## every run of a seed — how a recorded acknowledgement names it. 0 until raised.
 var serial: int = 0
+## The event that raised it, which raises it again when a save holding it open is loaded; null
+## for a dialog raised by anything else, which a snapshot does not carry.
+var raised_by: EventShowDialog = null
 #endregion
 
 

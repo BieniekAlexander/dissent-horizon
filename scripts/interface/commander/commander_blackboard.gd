@@ -38,7 +38,8 @@ const SNAPSHOT_FOG_TINT: Color = Color(0.45, 0.45, 0.55)
 
 ## One remembered enemy entity.
 class Entry:
-	var instance_id: int
+	## The piece's identity key (Entity.identity_key): the same in every run of a match.
+	var serial: int
 	var type: StringName  # piece id (see EntityIds)
 	var is_structure: bool
 	var last_known_location: Vector3
@@ -58,6 +59,11 @@ class Snapshot:
 	# structures that derive from Entity. is_instance_valid may go false on destruction.
 	var entity: Entity
 	var node: Node3D  # duplicated MeshVisual, world-positioned in the container
+
+	## The image is drawn again after a load (CommanderBlackboard.finish_snapshot_restore).
+	func snapshot_skip() -> Array:
+		return [&"node"]
+
 	# Captured at creation (stays valid after `entity` is freed): an ExtractionSite yields its
 	# cell to any structure overlaid on it (an Extractor) when both are remembered — see
 	# _suppress_overlapping_snapshots.
@@ -65,7 +71,7 @@ class Snapshot:
 
 
 var _commander: Commander
-var _entries: Dictionary = {}  # instance_id -> Entry
+var _entries: Dictionary = {}  # identity key -> Entry
 var _snapshots: Dictionary = {}  # "id:cell" -> Snapshot
 ## The ids in view at the last update: what the commander was watching, so a death among them
 ## is one it saw.
@@ -96,7 +102,7 @@ func update() -> void:
 	# 1. Refresh / add an entry for every enemy currently in view.
 	var visible_ids: Dictionary = {}
 	for e: Actor in _commander.visible_enemies():
-		visible_ids[e.get_instance_id()] = true
+		visible_ids[e.identity_key()] = true
 		_upsert(e, now)
 
 	# 2. Age out beliefs. Structures: drop only when we can see their spot and they
@@ -121,23 +127,23 @@ func believed() -> Array:
 	return _entries.values()
 
 
-## Whether the piece with `a_instance_id` is still believed — the fog-honest form of "is it
+## Whether the piece with `a_serial` is still believed — the fog-honest form of "is it
 ## still standing": a structure stays believed until the commander SEES its cell empty, a
 ## unit until its sighting goes stale. What a decision asks instead of is_instance_valid.
-func believes(a_instance_id: int) -> bool:
-	return _entries.has(a_instance_id)
+func believes(a_serial: int) -> bool:
+	return _entries.has(a_serial)
 
 
-## Where the piece with `a_instance_id` was last seen, or null when it is not believed.
-func last_known_location(a_instance_id: int) -> Variant:
-	var entry: Entry = _entries.get(a_instance_id) as Entry
+## Where the piece with `a_serial` was last seen, or null when it is not believed.
+func last_known_location(a_serial: int) -> Variant:
+	var entry: Entry = _entries.get(a_serial) as Entry
 	return entry.last_known_location if entry != null else null
 
 
-## Whether the piece with `a_instance_id` was in view at the last update: a CONFIRMED belief
+## Whether the piece with `a_serial` was in view at the last update: a CONFIRMED belief
 ## rather than a remembered one.
-func is_in_view(a_instance_id: int) -> bool:
-	return _in_view.has(a_instance_id)
+func is_in_view(a_serial: int) -> bool:
+	return _in_view.has(a_serial)
 
 
 ## Believed enemy structures (last-known locations; persist until verified gone).
@@ -161,11 +167,11 @@ func believed_units() -> Array:
 
 
 func _upsert(a_e: Actor, a_now: float) -> void:
-	var id: int = a_e.get_instance_id()
+	var id: int = a_e.identity_key()
 	var entry: Entry = _entries.get(id)
 	if entry == null:
 		entry = Entry.new()
-		entry.instance_id = id
+		entry.serial = id
 		entry.type = a_e.id
 		entry.is_structure = a_e.structure_is_active()
 		_entries[id] = entry
@@ -202,7 +208,7 @@ func _ensure_snapshots() -> void:
 		return
 	for s: Entity in _commander.visible_foreign_structures():
 		var cell: Vector2i = map.world_to_grid(VU.in_xz(s.global_position))
-		var key: String = _snapshot_key(s.get_instance_id(), cell)
+		var key: String = _snapshot_key(s.identity_key(), cell)
 		if not _snapshots.has(key):
 			_create_snapshot(s, cell, key)
 
@@ -287,7 +293,7 @@ func _suppress_overlapping_snapshots() -> void:
 ## True when `a` should be the single visible snapshot on a shared cell, beating `b`. A
 ## An ExtractionSite yields to any non-site overlaying it (the Extractor wins); equal-rank
 ## ties break
-## by instance id so the choice is stable frame-to-frame (no flicker).
+## by identity key so the choice is stable frame-to-frame (no flicker).
 func _snapshot_outranks(a_a: Snapshot, a_b: Snapshot) -> bool:
 	var pa: int = 0 if a_a.is_extraction_site else 1
 	var pb: int = 0 if a_b.is_extraction_site else 1
@@ -297,9 +303,24 @@ func _snapshot_outranks(a_a: Snapshot, a_b: Snapshot) -> bool:
 
 
 func _create_snapshot(a_structure: Entity, a_cell: Vector2i, a_key: String) -> void:
+	var node: MeshVisual = _snapshot_visual(a_structure)
+	if node == null:
+		return
+	var snap := Snapshot.new()
+	snap.structure_id = a_structure.identity_key()
+	snap.cell = a_cell
+	snap.entity = a_structure
+	snap.node = node
+	snap.is_extraction_site = ExtractionSite.of(a_structure) != null
+	_snapshots[a_key] = snap
+
+
+## The remembered image of `a_structure`: a dimmed, still copy of its model where it stands, or
+## null for a structure with none.
+func _snapshot_visual(a_structure: Entity) -> MeshVisual:
 	var visual := a_structure.get_node_or_null("MeshVisual") as MeshVisual
 	if visual == null:
-		return
+		return null
 	if _snapshot_container == null or not is_instance_valid(_snapshot_container):
 		_snapshot_container = Node3D.new()
 		_snapshot_container.name = "StructureSnapshots_%d" % _commander.id
@@ -320,14 +341,31 @@ func _create_snapshot(a_structure: Entity, a_cell: Vector2i, a_key: String) -> v
 	# Darken it so it reads as "under the fog of war". The copy's captured design albedo is the
 	# already-team-tinted colour, so this multiply keeps the team hue and just dims it.
 	node.set_team_color(SNAPSHOT_FOG_TINT)
+	return node
 
-	var snap := Snapshot.new()
-	snap.structure_id = a_structure.get_instance_id()
-	snap.cell = a_cell
-	snap.entity = a_structure
-	snap.node = node
-	snap.is_extraction_site = ExtractionSite.of(a_structure) != null
-	_snapshots[a_key] = snap
+
+#region Snapshot
+## The images are drawn, not saved: a restore makes them again (finish_snapshot_restore).
+func snapshot_skip() -> Array:
+	return [&"_snapshot_container"]
+
+
+## Make the image of every remembered structure again, from the structure as it now stands. One
+## whose structure is gone cannot be drawn and is forgotten: TODO a loaded save loses the
+## remembered image of a structure destroyed out of sight, until its cell is scouted again.
+func finish_snapshot_restore() -> void:
+	for key: String in _snapshots.keys():
+		var snap: Snapshot = _snapshots[key]
+		var node: MeshVisual = (
+			_snapshot_visual(snap.entity) if is_instance_valid(snap.entity) else null
+		)
+		if node == null:
+			_snapshots.erase(key)
+		else:
+			snap.node = node
+
+
+#endregion
 
 
 func _snapshot_key(a_structure_id: int, a_cell: Vector2i) -> String:

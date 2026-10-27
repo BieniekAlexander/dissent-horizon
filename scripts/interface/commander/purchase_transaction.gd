@@ -263,6 +263,15 @@ static func reset_ids() -> void:
 	_next_id = 1
 
 
+## The id the next transaction takes, and setting it, for a snapshot (SimulationSnapshot).
+static func next_id() -> int:
+	return _next_id
+
+
+static func restore_next_id(a_next: int) -> void:
+	_next_id = a_next
+
+
 static func _take_id() -> int:
 	var next: int = _next_id
 	_next_id += 1

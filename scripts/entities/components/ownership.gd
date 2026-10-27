@@ -38,3 +38,11 @@ var commander_id: int:
 	get:
 		return _commander.id if _commander != null else 0
 #endregion
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): accessors over `_commander`, which a
+## restore sets by spawning or reassigning the piece.
+func snapshot_skip() -> Array:
+	return [&"commander", &"commander_id", &"_commander"]
+#endregion

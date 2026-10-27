@@ -26,7 +26,7 @@ func draw(a_bot: Bot, a_pen: BotDebugPen) -> void:
 	var now: float = a_bot.seconds_elapsed()
 	for entry: CommanderBlackboard.Entry in board.believed():
 		var color: Color = belief_color(
-			board.is_in_view(entry.instance_id), entry.is_structure, now - entry.last_seen_time
+			board.is_in_view(entry.serial), entry.is_structure, now - entry.last_seen_time
 		)
 		var at: Vector3 = entry.last_known_location
 		if entry.is_structure:
@@ -46,7 +46,7 @@ func readout(a_bot: Bot) -> PackedStringArray:
 	var units: Array = board.believed_units()
 	var in_view: int = (
 		units
-		. filter(func(e: CommanderBlackboard.Entry) -> bool: return board.is_in_view(e.instance_id))
+		. filter(func(e: CommanderBlackboard.Entry) -> bool: return board.is_in_view(e.serial))
 		. size()
 	)
 	var lines: PackedStringArray = PackedStringArray(

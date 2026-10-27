@@ -196,7 +196,7 @@ var _guard: Squad
 ## AssaultPolicy at launch, which orders an arrived member to ATTACK it. Untyped: a belief
 ## outlives the thing it remembers, and a freed object fails a typed field.
 var _objective_entity: Variant = null
-## Its instance id, kept apart from the reference so the belief can be asked about after the
+## Its identity key, kept apart from the reference so the belief can be asked about after the
 ## node is freed (a freed object cannot answer get_instance_id).
 var _objective_id: int = 0
 ## seconds_elapsed() when the current objective was set, or the wave was last seen fighting
@@ -399,7 +399,7 @@ func _size_guard(a_threats: Array) -> void:
 		func(a: Array, b: Array) -> bool:
 			if a[1] != b[1]:
 				return a[1] > b[1]
-			return a[0].get_instance_id() < b[0].get_instance_id()
+			return a[0].identity_key() < b[0].identity_key()
 	)
 	var chosen: Array = []
 	var strength: float = 0.0
@@ -824,14 +824,14 @@ func _objective_for(a_posture: Posture) -> Variant:
 				)
 				if centre != null:
 					_objective_entity = centre.entity
-					_objective_id = centre.instance_id
+					_objective_id = centre.serial
 					return centre.last_known_location
 			var believed: CommanderBlackboard.Entry = _bot.nearest_believed_enemy_structure_entry(
 				actionable
 			)
 			if believed != null:
 				_objective_entity = believed.entity
-				_objective_id = believed.instance_id
+				_objective_id = believed.serial
 				return believed.last_known_location
 			# Nothing of theirs standing that we know of: go after the last place we saw a unit.
 			return _bot.nearest_believed_enemy_unit_position(_home_anchor_position(), actionable)

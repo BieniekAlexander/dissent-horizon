@@ -238,6 +238,16 @@ func _physics_process(_a_delta: float) -> void:
 	set_physics_process(false)
 
 
+## Build the managers and hand the jobs over now rather than on a later frame: a loaded save's
+## restore fills them in place, so they must exist first (SimulationSnapshot).
+func prepare_snapshot_restore() -> void:
+	if bot == null or not _ensure_managers():
+		return
+	var host: Node = bot.get_parent() if bot.get_parent() != null else bot
+	register_jobs(BotScheduler.find_or_create(self, host))
+	set_physics_process(false)
+
+
 ## Hand this brain's jobs to `a_scheduler`. Once only.
 func register_jobs(a_scheduler: BotScheduler) -> void:
 	if _registered or not _ensure_managers():

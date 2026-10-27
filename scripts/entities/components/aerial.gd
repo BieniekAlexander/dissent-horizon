@@ -1553,4 +1553,14 @@ func _set_velocity(a_velocity: Vector3) -> void:
 	var movement: Movement = _movement()
 	if movement != null:
 		movement.set_current_velocity(a_velocity)
+
+
+#endregion
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): an accessor over the orbit's speed and
+## radius.
+func snapshot_skip() -> Array:
+	return [&"orbit_angular_speed"]
 #endregion

@@ -107,6 +107,35 @@ func test_shelter_unregisters_a_resident_that_leaves_the_tree():
 	resident.queue_free()
 
 
+## What a loaded save hands a shelter: residents restored, but the hook each resident's
+## registration made is gone with the old scene.
+func _unhooked(a_shelter: Shelter, a_resident: Actor) -> void:
+	a_resident.tree_exiting.disconnect(a_shelter.unregister.bind(a_resident))
+
+
+func test_shelter_prunes_a_resident_freed_without_leaving_the_tree_first():
+	var host := _stub_host()
+	var s := _shelter_on(host, 10.0)
+	var resident := _stub_resident()
+	s.register(resident)
+	_unhooked(s, resident)
+	resident.free()
+	s._prune()
+	assert_eq(s.resident_count(), 0, "a freed resident is dropped, not tripped over")
+
+
+func test_shelter_rehooks_its_residents_after_a_load():
+	var host := _stub_host()
+	var s := _shelter_on(host, 10.0)
+	var resident := _stub_resident()
+	s.register(resident)
+	_unhooked(s, resident)
+	s.finish_snapshot_restore()
+	resident.get_parent().remove_child(resident)
+	assert_eq(s.resident_count(), 0, "leaving the tree frees the slot again")
+	resident.queue_free()
+
+
 func test_shelter_registration_is_idempotent():
 	var host := _stub_host()
 	var s := _shelter_on(host, 10.0)

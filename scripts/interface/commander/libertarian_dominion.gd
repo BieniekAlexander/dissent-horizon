@@ -342,10 +342,10 @@ func claim_key() -> Variant:
 		for node: Node in side.get_children():
 			var piece := node as Actor
 			if piece != null and piece.is_planned:
-				planned.append([piece.get_instance_id(), piece.global_position])
+				planned.append([piece.identity_key(), piece.global_position])
 	return [
-		sources().map(func(c: Actor) -> int: return c.get_instance_id()),
-		pending_sources().map(func(c: Actor) -> int: return c.get_instance_id()),
+		sources().map(func(c: Actor) -> int: return c.identity_key()),
+		pending_sources().map(func(c: Actor) -> int: return c.identity_key()),
 		planned,
 		map.structure_cell_map.size()
 	]

@@ -106,6 +106,12 @@ func _process(_a_delta: float) -> void:
 		temp_label.text = "Shelter %d/%d (%ds)" % [resident_count(), capacity, int(_remaining)]
 
 
+## A loaded save rebuilds the pieces unconnected: each resident's hook is made again.
+func finish_snapshot_restore() -> void:
+	for resident: Actor in _residents:
+		Entity.reconnect(resident.tree_exiting, unregister.bind(resident), CONNECT_ONE_SHOT)
+
+
 #endregion
 
 
@@ -118,10 +124,13 @@ func _host() -> Entity:
 ## hands (a capture that leaves the unit in place rather than replacing it) — either
 ## way they are no longer this shelter's population.
 func _prune() -> void:
-	var host_id: int = _commander_id_of(_host())
-	_residents = _residents.filter(
-		func(r: Actor) -> bool: return is_instance_valid(r) and _commander_id_of(r) == host_id
-	)
+	_residents.assign(_residents.filter(_is_still_resident.bind(_commander_id_of(_host()))))
+
+
+# Untyped: a freed resident cannot be passed to an Actor parameter, and finding one is the
+# point of the check.
+func _is_still_resident(a_resident: Variant, a_host_id: int) -> bool:
+	return is_instance_valid(a_resident) and _commander_id_of(a_resident as Node) == a_host_id
 
 
 ## Owning commander id of [a_node], resolved through its Ownership child rather than

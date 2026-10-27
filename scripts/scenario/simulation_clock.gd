@@ -51,6 +51,10 @@ const REASON_NETWORK_WAIT: StringName = &"network_wait"
 ## Reason used from a scenario's first frame until its navmesh is first built (Scenario), so tick
 ## 0 is the same tick however the scene entered the tree.
 const REASON_BOOT: StringName = &"boot"
+
+## Reason used while a loaded save's structure settles, before its state is laid over it
+## (SaveResume): the rebuilt scene must not play on meanwhile.
+const REASON_RESTORE: StringName = &"restore"
 #endregion
 
 #region Properties
@@ -65,6 +69,16 @@ static var _held_since_frame: int = -1
 #endregion
 
 
+#region Snapshot
+## A restore drops the rebuilt scene's holds and raises the save's dialogs, which take their own
+## (ScenarioTriggerManager.clear_for_restore); the pause menu's hold is the viewer's, not saved.
+func snapshot_skip() -> Array:
+	return [&"_holds"]
+
+
+#endregion
+
+
 #region Simulation frames
 ## The engine's physics frame count less every frame the world was held: the frame counter for
 ## simulation code that measures time in frames (a weapon's lock-on, stealth's detection,
@@ -76,6 +90,13 @@ static func physics_frame() -> int:
 	var now: int = Engine.get_physics_frames()
 	var open: int = now - _held_since_frame if _held_since_frame >= 0 else 0
 	return now - _frames_held - open
+
+
+## Make physics_frame() read `a_frame` now, as it did when a snapshot was taken: the held-frame
+## count absorbs the difference, so frames the restored match stamped keep their meaning.
+static func restore_physics_frame(a_frame: int) -> void:
+	_held_since_frame = -1
+	_frames_held = Engine.get_physics_frames() - a_frame
 
 
 static func _close_held_interval() -> void:

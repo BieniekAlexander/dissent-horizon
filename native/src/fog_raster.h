@@ -10,6 +10,7 @@
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
+#include <godot_cpp/variant/packed_int64_array.hpp>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 #include <godot_cpp/variant/vector2i.hpp>
@@ -83,6 +84,15 @@ public:
 	// Overwrite the display bytes. A test seam: a fixture that wants a known pattern in sight
 	// without placing vision sources for it.
 	void set_fog_bytes(const godot::PackedByteArray &p_bytes);
+	// What has been explored, as a loaded save had it; every pixel out of sight shows it again.
+	void set_explored_bytes(const godot::PackedByteArray &p_bytes);
+	// Each stamp as [source instance id, px, py, footprint kind, half_x px, half_z px, turn x,
+	// turn z]: with sight_counts and fog_bytes, the whole sight state, which a save carries.
+	godot::Array sight_stamps() const;
+	// The sight state as a loaded save had it, its stamps' sources renumbered to this run's
+	// instance ids by the caller.
+	void set_sight_state(
+			const godot::PackedInt32Array &p_counts, const godot::PackedByteArray &p_fog, const godot::Array &p_stamps);
 
 	// Visibility of the pixel at flat index `p_idx` (which must be on the raster), for the
 	// minimap's per-pixel compose.
@@ -117,11 +127,13 @@ private:
 	// rectangle's local X axis in XZ, quantised (TURN_STEPS); (0, 0) for everything unturned.
 	std::map<std::tuple<int, int, int, int, int>, int> footprint_ids;
 	std::vector<std::vector<godot::Vector2i>> footprints;
+	std::vector<std::tuple<int, int, int, int, int>> footprint_keys;
 	std::unordered_map<int, std::vector<godot::Vector2i>> discs;
 
 	bool on_raster(int p_px, int p_py) const { return p_px >= 0 && p_px < width && p_py >= 0 && p_py < height; }
 	bool in_play(int p_idx) const { return !play_bounds_active || play_mask[p_idx] != 0; }
 	int footprint_for(godot::CollisionShape3D *p_vision_shape);
+	int intern_footprint(int kind, int hx, int hz, int turn_x, int turn_z);
 	static std::vector<godot::Vector2i> turned_rectangle(int p_hx, int p_hz, double p_axis_x, double p_axis_z);
 	void apply_stamp(const Stamp &p_stamp, int p_delta);
 	const std::vector<godot::Vector2i> &disc(int p_radius_px);

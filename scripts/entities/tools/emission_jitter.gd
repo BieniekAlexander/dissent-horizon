@@ -22,8 +22,11 @@ var _phases: PackedFloat32Array
 
 
 ## A wobble with phases drawn from `a_rng` — the seeded gameplay generator in play, so a
-## scenario replays the same flights.
-func _init(a_rng: RandomNumberGenerator) -> void:
+## scenario replays the same flights. Without one, a blank wobble whose phases a snapshot fills.
+func _init(a_rng: RandomNumberGenerator = null) -> void:
+	if a_rng == null:
+		_phases = PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
+		return
 	_phases = PackedFloat32Array(
 		[a_rng.randf() * TAU, a_rng.randf() * TAU, a_rng.randf() * TAU, a_rng.randf() * TAU]
 	)

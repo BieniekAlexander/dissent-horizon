@@ -27,7 +27,7 @@ static func position_of(
 	if entity != null and entity.is_on_side_of(commander_id):
 		return piece.global_position
 	var members: Array[Commander] = members_of(manager, commander_id)
-	var id: int = piece.get_instance_id()
+	var id: int = entity.identity_key() if entity != null else 0
 	for member: Commander in members:
 		if member.blackboard != null:
 			var believed: Variant = member.blackboard.last_known_location(id)

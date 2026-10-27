@@ -46,6 +46,12 @@ func begin() -> void:
 	_scenario.order_stream.order_applied.connect(_on_order_applied)
 
 
+## Carry on a recording made before this session: a loaded save's (SaveResume), so a recording of
+## the loaded match still holds the match from tick 0.
+func adopt_records(a_records: Array[Dictionary]) -> void:
+	replay.records = a_records.duplicate(true)
+
+
 ## Check this run against `a_recording` instead of recording it.
 func verify_against(recording: ReplayFile) -> void:
 	replay = recording

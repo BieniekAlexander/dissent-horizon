@@ -83,10 +83,10 @@ func test_a_flushed_neutral_building_is_neutral_again() -> void:
 
 func test_the_dead_take_their_guns_off_the_bunker() -> void:
 	var host: Actor = _held_building(1)
-	assert_not_null(host.get_node_or_null("Loadout"), "a bunker hoists its occupant's Loadout")
+	assert_true(_holds_a_loadout(host), "a bunker hoists its occupant's Loadout")
 	host.garrison.flush()
 	await get_tree().process_frame
-	assert_null(host.get_node_or_null("Loadout"))
+	assert_false(_holds_a_loadout(host))
 
 
 func test_a_garrison_that_is_not_flushable_cannot_be_flushed() -> void:
@@ -190,4 +190,11 @@ func test_the_flush_makes_the_room_it_enters() -> void:
 	assert_false(host.garrison.accepts(stormer), "full")
 	assert_true(order.can_act(stormer), "but it is about to be emptied")
 
+
 #endregion
+
+
+func _holds_a_loadout(a_host: Node) -> bool:
+	return a_host.get_children().any(
+		func(child: Node) -> bool: return child is Loadout and not child.is_queued_for_deletion()
+	)

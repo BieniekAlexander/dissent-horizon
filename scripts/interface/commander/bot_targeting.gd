@@ -237,9 +237,7 @@ static func _can_run_over(a_unit: Actor) -> bool:
 ## The first gate: would `a_unit` reach `a_target` with RUN_OVER_MAX_HP_SPENT of its hp or
 ## less spent on the way? `a_nearby` is the visible enemy set the candidates were drawn from;
 ## the ones that can shoot the crusher are the ones that will.
-static func _run_over_is_survivable(
-	a_unit: Actor, a_target: Actor, a_nearby: Array
-) -> bool:
+static func _run_over_is_survivable(a_unit: Actor, a_target: Actor, a_nearby: Array) -> bool:
 	if a_unit.defense == null or a_unit.defense.hp <= 0.0:
 		return false
 	var speed: float = a_unit.movement.effective_max_speed() if a_unit.movement != null else 0.0
@@ -353,9 +351,7 @@ func _current_target(a_unit: Actor) -> Actor:
 ## Highest-scoring candidate that clears the commitment margin over the current
 ## target, or null to keep the current target. A null current target (attack-moving)
 ## means any positively-scored candidate qualifies.
-func _best_candidate(
-	a_unit: Actor, a_current: Actor, a_candidates: Array
-) -> Actor:
+func _best_candidate(a_unit: Actor, a_current: Actor, a_candidates: Array) -> Actor:
 	var threshold: float = _score(a_unit, a_current) * switch_margin if a_current != null else 0.0
 	var best: Actor = null
 	var best_score: float = threshold
@@ -445,3 +441,11 @@ static func proximity_signal(unit: Actor, candidate: Actor) -> float:
 		VU.in_xz(candidate.global_position)
 	)
 	return 1.0 / (1.0 + dist)
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): the scoring signals are registered when it
+## is made.
+func snapshot_skip() -> Array:
+	return [&"_signals"]
+#endregion

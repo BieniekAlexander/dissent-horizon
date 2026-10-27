@@ -57,7 +57,14 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 
 	if is_tutorial_note:
 		a_manager.note_tutorial_shown(page)
+	raise(a_manager)
+
+
+## Raise this event's dialog. `a_serial`: the number it had when a snapshot was taken, to raise
+## it again on a load (ScenarioTriggerManager.reraise_saved_dialogs), or 0 for a new one.
+func raise(a_manager: ScenarioTriggerManager, a_serial: int = 0) -> void:
 	var dialog := ScenarioDialog.new(page)
+	dialog.raised_by = self
 	if pause_simulation:
 		var clock: SimulationClock = a_manager.simulation_clock
 		if clock != null:
@@ -80,5 +87,5 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 	if a_manager.dialog_requested.get_connections().is_empty():
 		dialog.acknowledge()
 		return
-	a_manager.raise_dialog(dialog)
+	a_manager.raise_dialog(dialog, a_serial)
 #endregion

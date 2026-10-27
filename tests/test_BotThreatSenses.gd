@@ -326,9 +326,9 @@ func test_the_threat_axis_faces_the_map_centre_when_nothing_believed_can_attack(
 
 func _believe_unit(a_type: StringName, a_at: Vector3) -> void:
 	var entry := CommanderBlackboard.Entry.new()
-	entry.instance_id = _bot.blackboard._entries.size() + 1
+	entry.serial = _bot.blackboard._entries.size() + 1
 	entry.type = a_type
 	entry.is_structure = false
 	entry.last_known_location = a_at
 	entry.last_seen_time = 0.0
-	_bot.blackboard._entries[entry.instance_id] = entry
+	_bot.blackboard._entries[entry.serial] = entry

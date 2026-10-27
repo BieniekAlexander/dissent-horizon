@@ -303,7 +303,9 @@ func advance(a_allowance: int) -> int:
 			queue.pop_front()
 	if queue.is_empty():
 		_swap_in()
-		_build["stage"] = Stage.DONE
+		# Only the stage is kept: the rest now belongs to the snapshot, and a second hold on
+		# its containers would make one dictionary two once a save reloads it.
+		_build = {"stage": Stage.DONE}
 	return spent
 
 

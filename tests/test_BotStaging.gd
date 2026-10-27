@@ -173,7 +173,7 @@ func _launch_wave(a_members: Array, a_value: float) -> void:
 	)
 	_military._main._issued = _military._main.policy
 	for unit: Actor in a_members:
-		_military._main._reached[unit.get_instance_id()] = true
+		_military._main._reached[unit.identity_key()] = true
 
 
 ## One ATTACK think with nothing changed: the reinforcement rules, then every squad's dispatch.
@@ -631,10 +631,10 @@ func _set_objective(a_building: Actor) -> void:
 		_bot.blackboard = CommanderBlackboard.new(_bot)
 	_bot.blackboard._upsert(a_building, 0.0)
 	_military._objective_entity = a_building
-	_military._objective_id = a_building.get_instance_id()
+	_military._objective_id = a_building.identity_key()
 	var assault: AssaultPolicy = _military._main.policy as AssaultPolicy
 	assault.target = a_building
-	assault.target_id = a_building.get_instance_id()
+	assault.target_id = a_building.identity_key()
 
 
 func test_an_idle_wave_member_at_the_objective_attacks_the_building_behind_it() -> void:
@@ -683,7 +683,7 @@ func test_an_objective_no_longer_believed_is_not_attacked() -> void:
 	var veteran := _armed_unit(OBJECTIVE)
 	_launch_wave([veteran], 1000.0)
 	_set_objective(building)
-	_bot.blackboard._entries.erase(building.get_instance_id())
+	_bot.blackboard._entries.erase(building.identity_key())
 	_tick_attack()
 	assert_eq(_act.attacks, [], "no belief, no Attack — whatever the node says")
 

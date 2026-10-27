@@ -206,4 +206,14 @@ static func deep_copy(message: CommandMessage) -> CommandMessage:
 	copy.transaction = message.transaction
 	copy.planned_structure = message.planned_structure
 	return copy
+
+
+#endregion
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): accessors over the target and world
+## position.
+func snapshot_skip() -> Array:
+	return [&"position", &"xz_position"]
 #endregion

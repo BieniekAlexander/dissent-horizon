@@ -187,8 +187,7 @@ func _nearest(a_units: Array, a_world_pos: Vector3) -> Actor:
 ## the bot's captures stopped for the rest of the match.
 func _free_carriers() -> Array:
 	return _bot.get_interactors().filter(
-		func(u: Actor) -> bool:
-			return not u.has_command() or u.current_command() is AttackMove
+		func(u: Actor) -> bool: return not u.has_command() or u.current_command() is AttackMove
 	)
 
 
@@ -341,3 +340,11 @@ func _bunker_garrison_utility(a_unit: Actor, a_distance: float) -> float:
 		a_unit.weapon_inventory.total_damage() if a_unit.weapon_inventory != null else 0.0
 	)
 	return attack_value - a_distance * 0.5
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): the gatherers are registered when it is
+## made.
+func snapshot_skip() -> Array:
+	return [&"_gatherers"]
+#endregion

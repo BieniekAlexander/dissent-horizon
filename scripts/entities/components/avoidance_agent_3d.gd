@@ -47,6 +47,7 @@ extends NavigationAgent3D
 ## playback to match.
 func _init() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	velocity_computed.connect(func(a_safe: Vector3) -> void: last_safe_velocity = a_safe)
 
 
 #endregion
@@ -71,6 +72,10 @@ const STANDING_OBSTACLE_BIT: int = 1 << 31
 ## Free unique bits (bits POOL_START..31) handed out to agents in an exception.
 static var _free_bits: Array[int] = []
 static var _pool_ready: bool = false
+## Every agent in the tree, and whether the server's avoidance list may be out of canonical order
+## since settle_order last ran. Static: there is one navigation server.
+static var _registry: Array = []
+static var _is_order_dirty: bool = true
 
 ## This agent's team channel bit (1 << commander_id), set by enable_avoidance().
 var _team_bit: int = 0
@@ -78,6 +83,11 @@ var _team_bit: int = 0
 var _unique_bit: int = 0
 ## Set of AvoidanceAgent3D this agent is currently ignoring (mutually).
 var _exceptions: Dictionary = {}  # AvoidanceAgent3D -> true
+
+## The velocity avoidance last handed back: the navigation server's current velocity for this
+## agent, which its neighbours avoid, and which the server will not report (agent_get_velocity
+## answers with the velocity asked for). What a snapshot's restore puts back (SimulationSnapshot).
+var last_safe_velocity: Vector3 = Vector3.ZERO
 
 ## Whether this agent is PLANTED (see the class doc, 3): out of RVO both ways.
 var _is_planted: bool = false
@@ -94,8 +104,59 @@ var _is_planted: bool = false
 var _crush_excluded_obstacles: int = 0
 #endregion
 
+#endregion
+
+
+#region Avoidance order
+## Put the navigation server's avoidance agents in spawn-serial order, when any has joined, left or
+## been switched since the last time. Called at the start of every frame (OrderStream), and by a
+## snapshot's restore with `is_forced`.
+##
+## Why: the server steps avoidance one agent at a time, each agent's new velocity written back
+## before the next is computed, so the ORDER of its agent list decides what neighbours do — and
+## that list, kept by appending and by swap-removal, can be neither read nor set. Kept in a
+## canonical order, it is the same on every run and can be rebuilt by a restore
+## (gdd/systems/commands/saved-games.md §The snapshot). Each agent is switched off, then on again
+## in order, and handed its wanted velocity again, which switching on overwrites.
+static func settle_order(is_forced: bool = false) -> void:
+	if not (_is_order_dirty or is_forced):
+		return
+	_is_order_dirty = false
+	var active: Array = _registry.filter(
+		func(agent: Variant) -> bool:
+			return (
+				is_instance_valid(agent)
+				and (agent as AvoidanceAgent3D).avoidance_enabled
+				and Entity.owning(agent as Node) != null
+			)
+	)
+	active.sort_custom(
+		func(a: AvoidanceAgent3D, b: AvoidanceAgent3D) -> bool:
+			return Entity.owning(a).identity_key() < Entity.owning(b).identity_key()
+	)
+	for agent: AvoidanceAgent3D in active:
+		NavigationServer3D.agent_set_avoidance_enabled(agent.get_rid(), false)
+	for agent: AvoidanceAgent3D in active:
+		NavigationServer3D.agent_set_avoidance_enabled(agent.get_rid(), true)
+		NavigationServer3D.agent_set_velocity(agent.get_rid(), agent.velocity)
+
+
+#endregion
+
 
 #region Static helpers
+## The free exception bits, in the order they are handed out, for a snapshot: which bit an agent
+## takes next decides which agents avoid which (SimulationSnapshot).
+static func snapshot_pool() -> Array:
+	_ensure_pool()
+	return Array(_free_bits)
+
+
+static func restore_pool(bits: Array) -> void:
+	_pool_ready = true
+	_free_bits.assign(bits.map(func(bit: Variant) -> int: return int(bit)))
+
+
 static func _ensure_pool() -> void:
 	if _pool_ready:
 		return
@@ -126,6 +187,7 @@ static func obstacle_bit(commander_id: int) -> int:
 ## is one-sided via NavigationObstacle3D (see Actor._on_commander_changed).
 func enable_avoidance(a_commander_id: int) -> void:
 	avoidance_enabled = true
+	_is_order_dirty = true
 	_team_bit = team_bit(a_commander_id)
 	avoidance_layers = _broadcast_bit()
 	avoidance_mask = _current_mask()
@@ -272,7 +334,22 @@ func _maybe_release_bit() -> void:
 		avoidance_layers = _broadcast_bit()
 
 
+## Turn avoidance off: the agent leaves the server's avoidance list until enable_avoidance.
+func disable_avoidance() -> void:
+	avoidance_enabled = false
+	_is_order_dirty = true
+
+
 func _notification(a_what: int) -> void:
-	if a_what == NOTIFICATION_PREDELETE:
-		clear_avoidance_exceptions()
+	match a_what:
+		NOTIFICATION_PREDELETE:
+			clear_avoidance_exceptions()
+		NOTIFICATION_ENTER_TREE:
+			_registry.append(self)
+			_is_order_dirty = true
+		NOTIFICATION_EXIT_TREE:
+			_registry.erase(self)
+			_is_order_dirty = true
+		NOTIFICATION_PAUSED, NOTIFICATION_UNPAUSED:
+			_is_order_dirty = true
 #endregion

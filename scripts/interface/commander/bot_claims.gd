@@ -28,8 +28,9 @@ enum Priority {
 	EXCLUSIVE = 4,
 }
 
-## instance id -> {"owner": StringName, "priority": int}. Keyed by id so a freed unit's claim
-## can be dropped without touching the dead reference.
+## identity key (Entity.identity_key) -> {"owner": StringName, "priority": int, "unit": Actor}: the
+## same in every run of a match, so a loaded save's claims still name their units; the unit rides
+## along so a freed one's claim can be dropped.
 var _claims: Dictionary = {}
 
 
@@ -38,13 +39,13 @@ var _claims: Dictionary = {}
 func claim(a_unit: Actor, a_owner: StringName, a_priority: Priority) -> bool:
 	if not can_claim(a_unit, a_owner, a_priority):
 		return false
-	_claims[a_unit.get_instance_id()] = {"owner": a_owner, "priority": a_priority}
+	_claims[a_unit.identity_key()] = {"owner": a_owner, "priority": a_priority, "unit": a_unit}
 	return true
 
 
 ## Whether `claim` would succeed, without claiming.
 func can_claim(a_unit: Actor, a_owner: StringName, a_priority: Priority) -> bool:
-	var held: Variant = _live_claim(a_unit.get_instance_id())
+	var held: Variant = _live_claim(a_unit.identity_key())
 	return held == null or held["owner"] == a_owner or int(held["priority"]) < a_priority
 
 
@@ -52,7 +53,7 @@ func can_claim(a_unit: Actor, a_owner: StringName, a_priority: Priority) -> bool
 func release(a_unit: Variant, a_owner: StringName) -> void:
 	if not is_instance_valid(a_unit):
 		return
-	var key: int = (a_unit as Object).get_instance_id()
+	var key: int = (a_unit as Entity).identity_key()
 	var held: Variant = _live_claim(key)
 	if held != null and held["owner"] == a_owner:
 		_claims.erase(key)
@@ -64,18 +65,18 @@ func release(a_unit: Variant, a_owner: StringName) -> void:
 func owns(a_unit: Variant, a_owner: StringName) -> bool:
 	if not is_instance_valid(a_unit):
 		return false
-	var held: Variant = _live_claim((a_unit as Object).get_instance_id())
+	var held: Variant = _live_claim((a_unit as Entity).identity_key())
 	return held != null and held["owner"] == a_owner
 
 
 ## True when anybody has claimed `a_unit` — i.e. it is not the army's to take.
 func is_claimed(a_unit: Actor) -> bool:
-	return _live_claim(a_unit.get_instance_id()) != null
+	return _live_claim(a_unit.identity_key()) != null
 
 
 ## Who holds `a_unit`, or &"" when nobody does.
 func owner_of(a_unit: Actor) -> StringName:
-	var held: Variant = _live_claim(a_unit.get_instance_id())
+	var held: Variant = _live_claim(a_unit.identity_key())
 	return held["owner"] if held != null else &""
 
 
@@ -83,7 +84,7 @@ func owner_of(a_unit: Actor) -> StringName:
 ## a unit WITHOUT taking it (a one-shot cast mid-fight), and so needs only to know that nobody
 ## holds it harder than a fight.
 func priority_of(a_unit: Actor) -> int:
-	var held: Variant = _live_claim(a_unit.get_instance_id())
+	var held: Variant = _live_claim(a_unit.identity_key())
 	return int(held["priority"]) if held != null else 0
 
 
@@ -93,15 +94,15 @@ func units_of(a_owner: StringName) -> Array:
 	for key: int in _claims.keys():
 		var held: Variant = _live_claim(key)
 		if held != null and held["owner"] == a_owner:
-			out.append(instance_from_id(key))
+			out.append(held["unit"])
 	return out
 
 
-## The claim on instance `a_key`, or null — dropping it first if the unit has been freed.
+## The claim on the unit keyed `a_key`, or null — dropping it first if the unit has been freed.
 func _live_claim(a_key: int) -> Variant:
 	if not _claims.has(a_key):
 		return null
-	if not is_instance_id_valid(a_key):
+	if not is_instance_valid(_claims[a_key]["unit"]):
 		_claims.erase(a_key)
 		return null
 	return _claims[a_key]

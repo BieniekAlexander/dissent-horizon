@@ -34,9 +34,10 @@ var records: Array[Dictionary] = []
 
 ## The bytes of this replay as written to disk.
 func to_bytes() -> PackedByteArray:
-	var lines: PackedStringArray = [JSON.stringify(header)]
+	# At full precision: a save's snapshot must read back to the bit (SimulationSnapshot).
+	var lines: PackedStringArray = [JSON.stringify(header, "", true, true)]
 	for record: Dictionary in records:
-		lines.append(JSON.stringify(record))
+		lines.append(JSON.stringify(record, "", true, true))
 	return ("\n".join(lines) + "\n").to_utf8_buffer().compress(FileAccess.COMPRESSION_GZIP)
 
 

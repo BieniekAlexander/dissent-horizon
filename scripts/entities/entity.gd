@@ -866,11 +866,35 @@ func _ready() -> void:
 
 ## Seed `yaw` from the basis the piece was given. A yaw-only basis's Z axis is (sin, 0, cos) of
 ## its yaw, and the stored basis's bits are the same everywhere, so DMath reads the same yaw.
+## Take the yaw from the basis now if it has not been yet, as reading `yaw` would.
+func settle_yaw() -> void:
+	if not _has_yaw:
+		_take_yaw_from_basis()
+
+
 func _take_yaw_from_basis() -> void:
 	_has_yaw = true
 	var given: Basis = basis
 	_root_scale = given.get_scale()
 	_yaw = DMath.atan2(given.z.x, given.z.z)
+
+
+## A key for this entity in a dictionary the simulation keeps: its spawn serial, the same in every
+## run of a match (so a loaded save's keys still name their pieces, and a networked peer's agree);
+## an entity outside any scenario — a test's fixture — has none and falls back to its instance id,
+## negated so the two never collide.
+func identity_key() -> int:
+	return spawn_serial if spawn_serial != 0 else -get_instance_id()
+
+
+## The entity `a_key` names (identity_key), or null when it is gone. `a_from`: any node in its
+## scenario, which resolves a serial.
+static func from_identity_key(a_from: Node, a_key: int) -> Entity:
+	if a_key < 0:
+		var found: Object = instance_from_id(-a_key)
+		return found as Entity if is_instance_valid(found) else null
+	var scenario: Scenario = Scenario.of(a_from) if a_key > 0 else null
+	return scenario.piece_by_serial(a_key) if scenario != null else null
 
 
 ## Number this entity on its first entry into a scenario, and hand its stepping to the
@@ -946,6 +970,17 @@ func _notification(a_what: int) -> void:
 		or a_what == NOTIFICATION_EXIT_TREE
 	):
 		mark_spatial_dirty()
+	elif a_what == NOTIFICATION_PREDELETE:
+		_release_cells_on_free()
+
+
+## A fixture freed in play without dying — its commander removed from the match, a blueprint
+## cancelled, a piece transformed — hands its cells back as a death does (_on_death), or the
+## grid keeps a freed building. Not at teardown: a scenario being freed leaves the tree before
+## its pieces are deleted, and its map goes with them.
+func _release_cells_on_free() -> void:
+	if is_inside_tree() and is_instance_valid(map) and map.structure_cell_map.has(self):
+		map.remove_structure(self)
 
 
 ## Step on the next tick that comes, whatever the entity last promised: something changed
@@ -1363,4 +1398,31 @@ func _resolve_trigger_manager() -> ScenarioTriggerManager:
 			scene_root.get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
 		)
 	return _trigger_manager
+
+
+#endregion
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): the spatial index is the stepper's,
+## rebuilt; the rest are accessors over state saved under its own name (the transform, `_yaw`, the
+## Ownership component).
+func snapshot_skip() -> Array:
+	return [
+		&"_spatial_index",
+		&"commander",
+		&"commander_id",
+		&"movement",
+		&"locomotion",
+		&"xz_position",
+		&"yaw",
+		&"target_priority",
+	]
+
+
+## Connect `callable` to `a_signal` with `flags` unless it already is: how a component makes
+## again, after a load, a hook one piece put on another in play, which the rebuilt scene lacks.
+static func reconnect(a_signal: Signal, callable: Callable, flags: int = 0) -> void:
+	if not a_signal.is_connected(callable):
+		a_signal.connect(callable, flags)
 #endregion

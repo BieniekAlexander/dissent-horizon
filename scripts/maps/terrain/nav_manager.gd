@@ -532,6 +532,56 @@ func _advance_changes() -> void:
 			change.is_landed = true
 
 
+#region Snapshot
+## The change history a snapshot carries (SimulationSnapshot): units compare the serial they last
+## checked against it to decide when to re-plan, so it is simulation state, though the mesh is
+## not — the mesh is rebuilt from the grid.
+func snapshot_state() -> Dictionary:
+	var changes: Array = []
+	for change: NavChange in _changes:
+		var area: Rect2 = change.world_area
+		var bounds: Array = [area.position.x, area.position.y, area.size.x, area.size.y].map(
+			StateCodec.float_bits
+		)
+		changes.append([change.serial, bounds, change.is_landed])
+	return {"next_serial": _next_change_serial, "changes": changes}
+
+
+## Rebuild the mesh now for whatever the grid has changed by, rather than at the end of the frame,
+## and sync the map. Called in the physics step, where map_force_update is valid: a snapshot's
+## restore, whose grid has just been laid down.
+func rebuild_now() -> void:
+	# Nothing changed, nothing synced: a map sync also steps avoidance, which would move every
+	# agent's current velocity on from what a restore put back.
+	if not _has_dirty and _built_once:
+		return
+	_rebuild_navmesh()
+	NavigationServer3D.map_force_update(navigation_region.get_navigation_map())
+
+
+## Take the saved change history in place of the rebuilt scene's, the mesh rebuilt for the grid a
+## restore has laid down. A change still landing when the save was taken lands after the next map
+## sync, as it would have.
+func restore_snapshot_state(a_state: Dictionary) -> void:
+	rebuild_now()
+	var nav_map: RID = navigation_region.get_navigation_map()
+	var map_iteration: int = NavigationServer3D.map_get_iteration_id(nav_map)
+	_changes.clear()
+	for saved: Array in a_state["changes"]:
+		var area: Array = (saved[1] as Array).map(StateCodec.float_from_bits)
+		var change := NavChange.new(int(saved[0]), Rect2(area[0], area[1], area[2], area[3]))
+		change.is_landed = bool(saved[2])
+		if not change.is_landed:
+			change.ready_map_iteration = map_iteration
+		_changes.append(change)
+	_next_change_serial = int(a_state["next_serial"])
+	_recording = null
+	set_physics_process(_changes.any(func(c: NavChange) -> bool: return not c.is_landed))
+
+
+#endregion
+
+
 ## World XZ bounds of the cells in `a_cells`.
 func _world_rect(a_cells: Rect2i) -> Rect2:
 	var hs: HeightMapShape3D = terrain_grid.height_shape()

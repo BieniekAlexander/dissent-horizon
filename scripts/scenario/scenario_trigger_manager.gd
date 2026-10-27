@@ -89,6 +89,8 @@ var _open_dialogs: Dictionary = {}
 ## save rebuilds it by replaying the events that showed them.
 var tutorial_notes_shown: Array[PackedScene] = []
 var _next_dialog_serial: int = 1
+## The dialogs a snapshot's restore raises again once the rest of the state is in place.
+var _dialogs_to_raise: Array = []
 #endregion
 
 
@@ -565,13 +567,58 @@ func get_fog() -> Node:
 ## GlobalTrigger), exposed to events through reaction_source for the duration of the run.
 ## Put `a_dialog` up: number it, keep it findable until it is resolved, and hand it to whoever
 ## draws dialogs (dialog_requested).
-func raise_dialog(a_dialog: ScenarioDialog) -> void:
-	a_dialog.serial = _next_dialog_serial
-	_next_dialog_serial += 1
+func raise_dialog(a_dialog: ScenarioDialog, a_serial: int = 0) -> void:
+	if a_serial > 0:
+		a_dialog.serial = a_serial
+	else:
+		a_dialog.serial = _next_dialog_serial
+		_next_dialog_serial += 1
 	_open_dialogs[a_dialog.serial] = a_dialog
 	var serial: int = a_dialog.serial
 	a_dialog.acknowledged.connect(func() -> void: _open_dialogs.erase(serial))
 	dialog_requested.emit(a_dialog)
+
+
+#region Snapshot
+## Rebuilt by the scene, or raised again rather than saved (SimulationSnapshot).
+func snapshot_skip() -> Array:
+	return [&"_open_dialogs", &"_fog", &"condition_poller", &"_dialogs_to_raise"]
+
+
+## The open dialogs, by serial and the event that raised each.
+func snapshot_extra() -> Dictionary:
+	var serials: Array = _open_dialogs.keys()
+	serials.sort()
+	var raised: Array = serials.map(
+		func(serial: int) -> Array:
+			return [serial, (_open_dialogs[serial] as ScenarioDialog).raised_by]
+	)
+	return {"dialogs": raised.filter(func(pair: Array) -> bool: return pair[1] != null)}
+
+
+func restore_snapshot_extra(a_extra: Dictionary) -> void:
+	_dialogs_to_raise = a_extra.get("dialogs", [])
+
+
+## Resolve the rebuilt scene's own open dialogs and drop its holds, before a snapshot's are put
+## back: what the scene did on booting is not what the save held.
+func clear_for_restore() -> void:
+	for dialog: ScenarioDialog in _open_dialogs.values():
+		dialog.acknowledge()
+	_open_dialogs.clear()
+	if simulation_clock != null:
+		simulation_clock.clear()
+
+
+## Raise again every dialog the snapshot held open, under its own serial, so a recorded answer
+## still finds it.
+func reraise_saved_dialogs() -> void:
+	for pair: Array in _dialogs_to_raise:
+		(pair[1] as EventShowDialog).raise(self, int(pair[0]))
+	_dialogs_to_raise = []
+
+
+#endregion
 
 
 ## Whether the scenario this host runs in is playing a recording back (Scenario.is_playback).

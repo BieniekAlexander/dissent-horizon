@@ -127,7 +127,7 @@ const SCOUT_STALL_SECONDS: float = 12.0
 ## grid intervals of slack, so ordinary path wiggle and obstacle avoidance never read as stuck.
 const SCOUT_STALL_DISTANCE: float = 2.0
 
-## Per scout (by instance id): { "at": Vector3, "since": float, "goal": Variant } — where it
+## Per scout (by identity key): { "at": Vector3, "since": float, "goal": Variant } — where it
 ## was when it last made progress, and when, and the waypoint it was last sent to (null before
 ## its first). The goal is kept because nothing else records the errand: the unit's own order
 ## may since have been replaced by a manager that borrowed it. Keyed by id rather than by the
@@ -328,7 +328,7 @@ func debug_scouts() -> Array:
 	for scout: Variant in _scouts:
 		if not is_instance_valid(scout) or not (scout as Node).is_inside_tree():
 			continue
-		var record: Dictionary = _scout_progress.get((scout as Node).get_instance_id(), {})
+		var record: Dictionary = _scout_progress.get((scout as Entity).identity_key(), {})
 		(
 			out
 			. append(
@@ -585,7 +585,7 @@ func _send_to(a_scout: Actor, a_idx: Vector2i, a_now: float) -> void:
 	_scout_grid[a_idx] = a_now
 	_act.move([a_scout], _scout_grid_positions[a_idx])
 	# A fresh waypoint restarts the stall clock: the scout has not failed at this one yet.
-	_scout_progress[a_scout.get_instance_id()] = {
+	_scout_progress[a_scout.identity_key()] = {
 		"at": a_scout.global_position, "since": a_now, "goal": _scout_grid_positions[a_idx]
 	}
 
@@ -594,7 +594,7 @@ func _send_to(a_scout: Actor, a_idx: Vector2i, a_now: float) -> void:
 ## SCOUT_STALL_DISTANCE — i.e. it is not going to get there. Records progress as a side
 ## effect, so calling it once per think is what keeps the measurement honest.
 func _is_stalled(a_scout: Actor, a_now: float) -> bool:
-	var key: int = a_scout.get_instance_id()
+	var key: int = a_scout.identity_key()
 	var record: Variant = _scout_progress.get(key)
 	if record == null or a_scout.global_position.distance_to(record["at"]) > SCOUT_STALL_DISTANCE:
 		var goal: Variant = record["goal"] if record != null else null
@@ -608,7 +608,7 @@ func _is_stalled(a_scout: Actor, a_now: float) -> bool:
 func _prune_progress() -> void:
 	var live: Dictionary = {}
 	for scout: Actor in _scouts:
-		live[scout.get_instance_id()] = true
+		live[scout.identity_key()] = true
 	for key: int in _scout_progress.keys():
 		if not live.has(key):
 			_scout_progress.erase(key)

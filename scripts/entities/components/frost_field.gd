@@ -19,11 +19,11 @@ extends Node
 ## Most units one field can weigh in a tick; a query cap, not a design limit.
 @export var max_victims: int = 64
 
-## Unit instance id -> ticks of exposure, capped at the threshold.
+## Unit identity key -> ticks of exposure, capped at the threshold.
 var _exposure: Dictionary = {}
-## Unit instance id -> true for the units this field has frozen and is holding.
+## Unit identity key -> true for the units this field has frozen and is holding.
 var _held: Dictionary = {}
-## The instance id of the piece that fired this field, credited with its freezes; 0 for none
+## The identity key of the piece that fired this field, credited with its freezes; 0 for none
 ## (a Blizzard). An id rather than a reference because the source may die before the field.
 var _source_id: int = 0
 
@@ -45,7 +45,7 @@ func threshold_ticks() -> int:
 
 ## How much exposure `a_unit` has built in this field, in ticks.
 func exposure_of(a_unit: Entity) -> int:
-	return int(_exposure.get(a_unit.get_instance_id(), 0))
+	return int(_exposure.get(a_unit.identity_key(), 0))
 
 
 #region Ticking
@@ -63,7 +63,7 @@ func tick_exposure(a_inside: Array[Actor]) -> void:
 	var threshold: int = threshold_ticks()
 	var inside_ids: Dictionary = {}
 	for unit: Actor in a_inside:
-		var id: int = unit.get_instance_id()
+		var id: int = unit.identity_key()
 		inside_ids[id] = unit
 		_exposure[id] = mini(int(_exposure.get(id, 0)) + 1, threshold)
 	for id: int in _exposure.keys():
@@ -91,7 +91,7 @@ func _hold_freeze(a_unit: Actor, a_id: int) -> void:
 		_exposure[a_id] = 0
 		return
 	var effect: FreezeStatusEffect = freeze_effect.instantiate() as FreezeStatusEffect
-	var source: Variant = instance_from_id(_source_id) if _source_id != 0 else null
+	var source: Variant = Entity.from_identity_key(self, _source_id)
 	effect.apply_to(a_unit, source as Actor if is_instance_valid(source) else null)
 	if effect.is_active():
 		_held[a_id] = true
@@ -101,11 +101,11 @@ func _hold_freeze(a_unit: Actor, a_id: int) -> void:
 
 
 #region Source
-## The instance id of the piece that fired this field, read off its Payload, or 0.
+## The identity key of the piece that fired this field, read off its Payload, or 0.
 func _source_of_shot() -> int:
 	var payload: Payload = Payload.of(host())
 	var from: Variant = payload.from if payload != null else null
-	return (from as Object).get_instance_id() if is_instance_valid(from) else 0
+	return (from as Entity).identity_key() if is_instance_valid(from) else 0
 
 
 #endregion

@@ -1608,4 +1608,21 @@ func _refresh_resource_bars() -> void:
 	var infrastructure_bar := get_node_or_null("Controller/InfrastructureBar") as InfrastructureBar
 	if infrastructure_bar != null:
 		infrastructure_bar.refresh()
+
+
+#endregion
+
+
+#region Snapshot
+## Fields a snapshot does not carry (SimulationSnapshot): the build previews are out-of-tree
+## stand-ins for the HUD; `infrastructure` is an accessor; the dominion route's faction id, and the
+## pending pieces, are memos.
+func snapshot_skip() -> Array:
+	return [
+		&"_build_preview_instances",
+		&"infrastructure",
+		&"_dominion_route_faction_id",
+		&"_pending_pieces_key",
+		&"_pending_pieces",
+	]
 #endregion
