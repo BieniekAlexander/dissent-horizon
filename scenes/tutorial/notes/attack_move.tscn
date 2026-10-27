@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="AttackMove" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "Attack-move"
+body = "With units selected, press Attack Move ({{ command_attack_move }}) on the command card, then {{ command_issue }} the ground: your units walk there and fight whatever they meet on the way."
+acknowledge_text = "Got it"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

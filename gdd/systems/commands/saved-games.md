@@ -46,7 +46,14 @@ which is 64× real time at 60 Hz, or less on a machine that cannot keep up. Ten 
 loads in about ten seconds at best.
 
 Scripted dialogs during the re-simulation open and are resolved by their recorded orders, exactly
-as in a replay. A trigger that would autosave during it is skipped: the save is still loading
+as in a replay. **That needs every trigger to arm on the same tick in the match and in its
+re-simulation.** Triggers arm on `NavManager.navmesh_ready`, after the navmesh's first build, and
+that build is deferred, so how many physics frames ran before it used to depend on how the scene
+entered the tree: a mission played from the editor raised its opening dialogs on tick 2, its
+reload on tick 1, and the reload stood at 0% for good, held by dialogs whose recorded answers
+were stamped for a tick it could not reach (2026-10-26). A scenario now holds the world from its
+first frame until that build (`SimulationClock.REASON_BOOT`), so no tick is counted before it,
+however the scene was entered. Saves made before this do not load. A trigger that would autosave during it is skipped: the save is still loading
 (`SaveGame.refusal_to_save`).
 
 ## Autosaves
@@ -56,8 +63,8 @@ the last. A player keeps one by renaming the file, and a save cannot be given th
 from the menu. Nothing is written in a headless run unless `EventAutosave.directory` points
 somewhere else: the suite and self-play would otherwise overwrite a player's autosave.
 
-Prologue mission 1 autosaves on the way down the narrow passage from the fork to the main corridor
-(`AutosaveToMainLane`).
+A mission autosaves where its author puts an `EventAutosave`, and nowhere else: there is no timed
+or automatic autosave. Prologue mission 1's three are listed in its note.
 
 ## Menus
 

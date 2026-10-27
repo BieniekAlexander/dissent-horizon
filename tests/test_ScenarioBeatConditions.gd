@@ -50,6 +50,18 @@ func test_a_trigger_fired_check_follows_its_trigger() -> void:
 	assert_true(condition.evaluate(_manager), "the beat has happened")
 
 
+func test_an_until_fired_check_holds_only_before_its_trigger() -> void:
+	var trigger := GlobalTrigger.new()
+	trigger.name = "RendezvousReached"
+	_manager.add_child(trigger)
+	var condition := ConditionTriggerFired.new()
+	condition.trigger_name = "RendezvousReached"
+	condition.is_until_fired = true
+	assert_true(condition.evaluate(_manager), "still waiting")
+	trigger.has_fired = true
+	assert_false(condition.evaluate(_manager), "the beat has happened")
+
+
 func test_a_missing_trigger_never_fires_and_says_so() -> void:
 	var condition := ConditionTriggerFired.new()
 	condition.trigger_name = "NoSuchTrigger"
@@ -58,6 +70,11 @@ func test_a_missing_trigger_never_fires_and_says_so() -> void:
 
 
 # --- ConditionGarrisonOccupied ------------------------------------------------------------
+
+
+func test_a_garrison_check_marks_its_host() -> void:
+	var host: Actor = _piece(HOST, 0, "Farmhouse")
+	assert_eq(_occupied(1).highlight_entities(_manager), [host] as Array[Entity])
 
 
 func _occupied(a_count: int, a_commander_id: int = 1) -> ConditionGarrisonOccupied:
@@ -83,6 +100,69 @@ func test_a_garrison_check_ignores_another_commanders_units() -> void:
 	host.garrison.garrison(_piece(UNIT, 2))
 	assert_false(_occupied(1).evaluate(_manager), "someone else's soldier")
 	assert_true(_occupied(1, -1).evaluate(_manager), "unless anyone's will do")
+
+
+func test_an_everyone_inside_check_waits_for_the_last_unit() -> void:
+	var host: Actor = _piece(HOST, 0, "Farmhouse")
+	var condition := _occupied(1)
+	condition.should_hold_every_unit = true
+	host.garrison.garrison(_piece(UNIT, 1))
+	var straggler: Actor = _piece(UNIT, 1)
+	_piece(UNIT, 2)
+	assert_false(condition.evaluate(_manager), "one of ours is still outside")
+	host.garrison.garrison(straggler)
+	assert_true(condition.evaluate(_manager), "everyone in; another commander's unit is not ours")
+
+
+# --- ConditionUnitCount.should_count_carried ----------------------------------------------
+
+
+func test_carried_units_are_the_hosts_own_through_any_nesting() -> void:
+	var transport: Actor = _piece(HOST, 1)
+	var house: Actor = _piece(HOST, 1)
+	var rider: Actor = _piece(UNIT, 1)
+	var captive: Actor = _piece(UNIT, 2)
+	house.garrison.garrison(rider)
+	house.garrison.garrison(captive)
+	transport.garrison.garrison(house)
+	assert_eq(
+		ConditionUnitCount.carried_units(transport),
+		[house, rider] as Array[Actor],
+		"what it carries, and what that carries; not another commander's captive"
+	)
+
+
+# --- TacticRule.holds_fire ---------------------------------------------------------------
+
+
+func _tactic_with(a_rules: Array[bool]) -> Array:
+	var tactic := ScenarioTactic.new()
+	add_child_autofree(tactic)
+	var rules: Array[TacticRule] = []
+	for holds: bool in a_rules:
+		var rule := TacticRule.new()
+		rule.holds_fire = holds
+		tactic.add_child(rule)
+		rules.append(rule)
+	return [tactic, rules]
+
+
+func test_a_rule_that_holds_fire_holds_the_cluster_until_another_takes_over() -> void:
+	var made: Array = _tactic_with([true, false])
+	var tactic: ScenarioTactic = made[0]
+	var members: Array[Actor] = [_piece(UNIT, 2), _piece(UNIT, 2)]
+	tactic._hold_fire(members, made[1][0])
+	assert_true(members.all(func(m: Actor) -> bool: return m.is_holding_fire), "held")
+	tactic._hold_fire(members, made[1][1])
+	assert_true(members.all(func(m: Actor) -> bool: return not m.is_holding_fire), "released")
+
+
+func test_a_rule_without_hold_fire_leaves_a_pieces_own_hold_alone() -> void:
+	var made: Array = _tactic_with([false])
+	var member: Actor = _piece(UNIT, 2)
+	member.is_holding_fire = true
+	(made[0] as ScenarioTactic)._hold_fire([member] as Array[Actor], made[1][0])
+	assert_true(member.is_holding_fire, "a stealthy piece keeps its own hold")
 
 
 func test_a_missing_host_holds_nobody() -> void:

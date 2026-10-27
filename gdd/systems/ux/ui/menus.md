@@ -19,12 +19,13 @@ one page, `MainMenu.page`:
 
 | Page | What it is |
 |---|---|
-| MAIN | Campaign · Arcade (WIP) · Skirmish · Replays · Options · Quit |
+| MAIN | Campaign · Load Game · Arcade (WIP) · Skirmish · Multiplayer · Replays · How to Play · Options · Quit |
 | CAMPAIGN | one button per campaign: Prologue · Challenges (WIP) |
 | PROLOGUE | the difficulty picker, then one button per authored mission (`scenarios`, ScenarioEntry rows): the three prologue missions |
 | SKIRMISH | the lobby, `SkirmishLobby` — below |
 | REPLAYS | every replay under `user://replays/`, newest first; an unplayable one is refused with the reason |
 | OPTIONS | master volume (not saved, `TODO`) and the alert jump key's scope (saved) |
+| HOW_TO_PLAY | the tutorial library, read as How to Play — [scenario-scripting/dialogs-and-pause](../../scenario-scripting/dialogs-and-pause.md) §How to Play |
 
 - **Arcade** is a disabled button labelled WIP: the mode is not built. So is **Challenges** on
   the Campaign page: the [challenge series](../../../campaigns/challenges/README.md) is a stub.

@@ -255,6 +255,15 @@ func refresh_snapshots() -> void:
 		_suppress_overlapping_snapshots()
 
 
+## Whether a remembered image of `a_entity` is on screen now: the structure is under the fog
+## and this commander's memory of it is what the viewer sees.
+func is_snapshot_shown(a_entity: Entity) -> bool:
+	for snap: Snapshot in _snapshots.values():
+		if snap.entity == a_entity and is_instance_valid(snap.node) and snap.node.visible:
+			return true
+	return false
+
+
 ## Enforce "at most one visible snapshot per grid cell". Among the snapshots that want
 ## to show at the same cell this frame, keep only the highest-priority one visible and
 ## hide the rest — so an Extractor's remembered image, not the ExtractionSite it was built on, is

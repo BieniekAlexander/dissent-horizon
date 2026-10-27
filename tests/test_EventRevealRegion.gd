@@ -151,3 +151,38 @@ func test_the_reveal_is_permanent_by_default() -> void:
 func test_the_reveal_belongs_to_the_player_by_default() -> void:
 	# The revealed area is only visible to its owner, so a mission reveal is the human's.
 	assert_eq(_event.commander_id, 1)
+
+
+# --- A turned box ---------------------------------------------------------------
+
+
+func _turned_region(a_size: Vector2, a_yaw: float) -> CollisionShape3D:
+	var region := CollisionShape3D.new()
+	region.name = "Region"
+	var box := BoxShape3D.new()
+	box.size = Vector3(a_size.x, 4.0, a_size.y)
+	region.shape = box
+	_event.add_child(region)
+	region.transform = Transform3D(VU.with_yaw(Basis(), a_yaw), Vector3(3.0, 0.0, -2.0))
+	return region
+
+
+func test_a_region_is_seen_by_one_piece_turned_as_it_is() -> void:
+	var region: CollisionShape3D = _turned_region(Vector2(60.0, 20.0), 0.3)
+	var scout: Actor = autofree(FakePieces.unit(SCOUT))
+	EventRevealRegion._see_region(scout, region)
+	var vision := scout.get_node("VisionRange") as CollisionShape3D
+	assert_eq(vision.shape, region.shape, "the region's own shape")
+	assert_almost_eq(
+		vision.transform.basis.x, region.global_transform.basis.x, Vector3.ONE * 1e-6, "turned"
+	)
+
+
+func test_cover_points_hold_a_turned_region() -> void:
+	var shape := HighlightShape.rect(Vector2(3.0, -2.0), Vector2(20.0, 4.0), 0.3)
+	var points: Array[Vector2] = EventRevealRegion.cover_points(shape, 2.0)
+	for corner: Vector2 in shape.outline():
+		var nearest: float = INF
+		for point: Vector2 in points:
+			nearest = minf(nearest, point.distance_to(corner))
+		assert_lt(nearest, 0.01, "a circle on corner %s" % corner)

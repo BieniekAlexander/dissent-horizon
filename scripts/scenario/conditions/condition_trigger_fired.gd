@@ -15,6 +15,9 @@ extends Condition
 #region Properties
 ## Node name of the GlobalTrigger to watch.
 @export var trigger_name: String = ""
+## Turned round: true UNTIL the trigger fires — "the rendezvous has not been reached yet", the
+## rule a mission's pre-placed group waits under before its beat (Alex, 2026-10-26).
+@export var is_until_fired: bool = false
 
 var _watched: GlobalTrigger = null
 var _resolved: bool = false
@@ -24,7 +27,9 @@ var _resolved: bool = false
 #region Public API
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	_resolve(a_manager)
-	return _watched != null and is_instance_valid(_watched) and _watched.has_fired
+	if _watched == null or not is_instance_valid(_watched):
+		return false
+	return _watched.has_fired != is_until_fired
 
 
 func reset() -> void:

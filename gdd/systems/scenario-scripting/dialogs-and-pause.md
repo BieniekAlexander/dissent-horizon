@@ -36,7 +36,7 @@ The rule holds for a hold taken at the start of a frame, as `OrderStream`'s is. 
 ## Dialog copy lives in PAGE SCENES
 
 
-Pop-up copy is authored as `DialogPage` scenes under `scenes/dialogs/` — one file per page, referenced by whoever shows it. That exists for REUSE: a tutorial explains the same controls the help book explains, so the copy is written once and a typo is fixed once. Inline text on each event node couldn't be shared and drifted the moment anyone edited one copy.
+Pop-up copy is authored as `DialogPage` scenes under `scenes/dialogs/` — one file per page, referenced by whoever shows it. That exists for REUSE: a pop-up shows the same page How to Play lists, so the copy is written once and a typo is fixed once. Inline text on each event node couldn't be shared and drifted the moment anyone edited one copy.
 
 `DialogPage extends VBoxContainer` with `title` / `body` / `acknowledge_text` / `content_width`, rendering its own labels in `_ready` — so the usual page is "make a scene, fill in three inspector fields". It is a Control rather than a Resource so a page can outgrow three strings: authored child Controls (a diagram, a bindings grid) stack under the body text.
 
@@ -70,18 +70,49 @@ The **hold belongs to the request, not the window**: `EventShowDialog` takes the
 PLANNED: a dialog's dismissal is a recorded order, replayed on the tick it happened — see
 [commands/recording-and-replay](../commands/recording-and-replay.md) §Watching.
 
-## The help button (`HelpBook`)
+## The corner button
 
+`ScenarioDialogView` draws the scripted pop-ups (above) and one corner button, which opens the
+pause menu: labelled **Briefing** in a scenario that has shown an objective and **How to Play**
+otherwise, it opens the menu on that tab. It lives on the dialog view rather than on the pause
+menu because the menu's layer is hidden whenever the menu is closed.
 
-`ScenarioDialogView` is one panel in **two modes**, because both show the same `DialogPage` scenes:
+## The pause menu: Briefing, How to Play, Configuration
 
-| | Raised by | Navigation | Dismissed by | Hold |
-| --- | --- | --- | --- | --- |
-| **Event** | `EventShowDialog` | none — one page | acknowledge button | `REASON_DIALOG` |
-| **Help** | the HUD help button | ◀ / ▶ through the book | the help button again | `REASON_HELP` |
+The pause menu (`PauseMenu`, Escape) has three tabs (Alex, 2026-10-26), with saving, loading and
+the way out below them; it holds `REASON_PAUSE_MENU`, which a networked match refuses, so it
+pauses only a game that is not networked.
 
-Distinct hold reasons so closing the book can never release a scripted dialog's hold, or vice versa.
+- **Briefing** — the objectives the checklist has shown so far, each with its
+  `GlobalTrigger.details`, key placeholders resolved (`BriefingObjectivesView`). Hidden in a
+  scenario with no objectives.
+- **How to Play** — below.
+- **Configuration** — the volume.
 
-**Event mode takes precedence**: the help button is disabled while a scripted dialog is up, and an incoming dialog closes an open book. A beat that stopped the world to ask something must be answered — letting the book cover it would strand the player behind a window they can't see.
+## How to Play
 
-The book is a `HelpBook` node (named `HelpBook`, child of the `Scenario`) listing `PackedScene` pages in reading order; `Scenario._create_scenario_hud` hands it to the view, and a scenario without one has no help button. It is **deliberately unrelated to what the trigger system has raised** — not a log of dialogs seen. It's available from frame one, reads in authored order rather than play order, and doesn't grow duplicates when a trigger repeats. Keeping it consistent with the tutorial's dialogs is an authoring choice; pointing both at one page scene is what makes that cheap. Page stepping **clamps** rather than wrapping, so the end of the book is somewhere you arrive at.
+How to Play is the player's name; the developer's is the **tutorial library**. It is one
+game-wide scene, `scenes/tutorial/tutorial_library.tscn`: a `TutorialLibrary` whose
+`TutorialCategory` children each list `DialogPage` notes (under `scenes/tutorial/notes/`) in
+reading order. It reads as a manual on its own, from the title screen's How to Play page and from
+the pause menu in any match (`HowToPlayView`, a category list beside the chosen note).
+
+- **A scenario refers to library notes; it never owns them.** An `EventShowDialog` with
+  `is_tutorial_note` pops a library note up when the scenario makes it relevant, and records it
+  (`ScenarioTriggerManager.tutorial_notes_shown`, once each, in the order first shown).
+- **In the pause menu the notes shown so far are highlighted**, and How to Play opens on the
+  newest — never a note the player has not met yet (Alex, 2026-10-26).
+- **A note only one scenario needs lives in that scenario** (`scenes/dialogs/<scenario>/`), and is
+  raised the same way; once shown it is listed under a category of its own at the end, "This
+  mission".
+- **One topic per note.** A trigger that teaches two raises two notes, one after the other.
+- The record is simulation state rebuilt by the events that wrote it, so a save — a replay of the
+  match's orders — restores it; nothing is saved for it.
+
+REJECTED: `HelpBook`, an authored list of pages a help button flipped through — replaced by the
+library (Alex, 2026-10-26); no shipped scene used it. REJECTED: the briefing as a panel of the
+dialog window with a Notes tab logging every note a scenario raised — replaced by the pause menu's
+tabs and the game-wide library the same day.
+
+TODO: the field manual (units, structures and counters from the spec docs), the third part of
+the view as first proposed — deferred (Alex, 2026-10-26); tasks.md T-125.

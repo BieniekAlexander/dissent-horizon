@@ -29,6 +29,12 @@ const PASS_COUNT: int = Pass.VISUALS
 ## unit column moving through every choke on every map, and a carve samples its width from it.
 ## Chokes made by resource footprints are not held to it.
 const MIN_CHOKE_WIDTH: int = 10
+## The default height between neighbouring terrace levels, for generated maps and for maps
+## imported from a drawing alike, so the two read with the same relief (Alex, 2026-10-22). Each
+## tool's own step parameter starts here and stays tunable.
+const LEVEL_STEP: float = 1.0
+## The least drop, in terraces, that stands as a cliff: one terrace is graded into a slope.
+const MIN_CLIFF_DROP_TERRACES: int = 2
 #endregion
 
 #region Grouping
@@ -332,8 +338,8 @@ const DESCRIPTIONS: Dictionary = {
 	"elevation_levels": "Terrace levels the ground steps through. 1 keeps the ground level.",
 	"elevation_step":
 	(
-		"Height of one terrace step. Keep it under the walkable slope limit, or every "
-		+ "step becomes a cliff."
+		"Height of one terrace step. Neighbouring levels are joined by a slope graded "
+		+ "across the ground between them."
 	),
 	"cliff_cut_fraction":
 	"Share of eligible barriers realised as cliffs rather than ridges or rivers.",
@@ -614,18 +620,18 @@ var obstruction_tolerance: float = 0.15
 ## relief: regions a walker can cross between differ by at most one, and a cliff is where a cut's
 ## sides end several apart (map-generation.md §6).
 var elevation_levels: int = 6
-## Height between neighbouring terrace levels. **Keep it at or under TerrainGrid.MAX_SLOPE_DIFF**:
-## a terrace step is meant to be walked over, so elevation may not divide ground that pass 4
-## left open. Only the cells on the step lose their buildability.
-var elevation_step: float = 0.5
+## Height between neighbouring terrace levels. Steeper than a walker climbs sheer, so a step is
+## graded across the free ground beside it; only the cells on that slope lose their buildability.
+var elevation_step: float = LEVEL_STEP
 ## Share of the eligible cuts — thin, uncarved, and not already crossed on foot — pass 6 tries to
 ## realise as cliffs rather than as the ridge or river pass 4 drew. One whose sides cannot be
 ## held far enough apart stays a ridge or river.
 var cliff_cut_fraction: float = 0.5
-## A cliff's drop in terrace steps, drawn per cliff. At least two, or the step would be walked
-## over; at most what the way round can climb a terrace per region, and what the apron hides.
+## A cliff's drop in terrace steps, drawn per cliff. At least two, or the step would be graded
+## into a slope (MapElevation.is_step); at most what the way round can climb a terrace per
+## region, and what the apron hides from the lowest camera pitch (_cliff_warnings).
 var cliff_drop_terraces_min: int = 2
-var cliff_drop_terraces_max: int = 4
+var cliff_drop_terraces_max: int = 2
 ## How much of a unit standing at an obstacle's foot the obstacle may hide, in height. An
 ## obstacle cell may stand at most this plus its distance from walkable ground times the tangent
 ## of the lowest camera pitch above that ground, so masses rise toward their middle.
@@ -688,16 +694,6 @@ func warnings() -> PackedStringArray:
 				% [play_size_min, play_size_max]
 			)
 		)
-	if elevation_step > TerrainGrid.MAX_SLOPE_DIFF:
-		found.append(
-			(
-				(
-					"A terrace step of %.2f is steeper than %.2f, so every terrace boundary "
-					% [elevation_step, TerrainGrid.MAX_SLOPE_DIFF]
-				)
-				+ "becomes a cliff and elevation will divide ground pass 4 left open."
-			)
-		)
 	if not energy_value_per_player > 0.0:
 		found.append(
 			(
@@ -754,11 +750,17 @@ func _cliff_warnings() -> PackedStringArray:
 	var found := PackedStringArray()
 	if cliff_drop_terraces_min > cliff_drop_terraces_max:
 		found.append("The smallest cliff drop exceeds the largest.")
-	if cliff_drop_terraces_min * elevation_step <= TerrainGrid.MAX_SLOPE_DIFF:
-		found.append(
-			(
-				"A cliff drop of %d terraces is walkable, so the smallest cliffs will not divide."
-				% cliff_drop_terraces_min
+	if cliff_drop_terraces_min < MIN_CLIFF_DROP_TERRACES:
+		(
+			found
+			. append(
+				(
+					(
+						"A cliff drop of %d terrace is graded into a slope, so the smallest cliffs will "
+						% cliff_drop_terraces_min
+					)
+					+ "not divide."
+				)
 			)
 		)
 	var hidden_cells: float = (

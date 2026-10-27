@@ -134,6 +134,7 @@ func test_the_main_page_leads_everywhere() -> void:
 				"Skirmish",
 				"Multiplayer",
 				"Replays",
+				"How to Play",
 				"Options",
 				"Quit",
 			]

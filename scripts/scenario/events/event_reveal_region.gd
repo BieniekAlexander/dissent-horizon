@@ -19,6 +19,9 @@ extends AbstractEvent
 
 #region Constants
 const _SCOUT_SCENE: PackedScene = preload("res://scenes/entities/nt_aircraftLight_recon.tscn")
+## Spacing of the circles that mark a region explored, in world units: also their radius, so
+## neighbours overlap and leave no gap. The explored layer opens only circles.
+const REGION_COVER_SPACING: float = 2.0
 #endregion
 
 #region Properties
@@ -47,6 +50,11 @@ const _SCOUT_SCENE: PackedScene = preload("res://scenes/entities/nt_aircraftLigh
 ## member added, moved or removed later needs no change here.
 @export var target_group: StringName = &""
 
+## A region to open instead of circles: this CollisionShape3D's shape, turned however the node is
+## turned — "the lane", rather than circles along it (Alex, 2026-10-26). With `clears_fog` it is
+## ONE vision source whose sight is that shape. Overrides `radius` and `target_group`.
+@export_node_path("CollisionShape3D") var region_path: NodePath
+
 ## Seconds the cleared fog lasts; negative is forever (see Lifespan.attach).
 ## Only meaningful with `clears_fog` on — marking ground explored is permanent by nature.
 @export var lifespan_seconds: float = -1.0
@@ -70,6 +78,9 @@ func _validate_property(a_property: Dictionary) -> void:
 
 #region Public API
 func execute(a_manager: ScenarioTriggerManager) -> void:
+	if not region_path.is_empty():
+		_open_region(a_manager)
+		return
 	var points: Array[Vector2] = _target_points(a_manager)
 	if points.is_empty():
 		return
@@ -118,6 +129,49 @@ func _clear_fog_at(a_points: Array[Vector2], a_manager: ScenarioTriggerManager) 
 			scout.add_to_group(reveal_label)
 
 
+## The region at `region_path`: one Scout seeing exactly that shape, or the shape marked explored.
+func _open_region(a_manager: ScenarioTriggerManager) -> void:
+	var region := get_node_or_null(region_path) as CollisionShape3D
+	var shape: HighlightShape = HighlightShape.from_collision_shape(region)
+	if shape == null:
+		push_warning("EventRevealRegion %s: region_path names no shaped node" % name)
+		return
+	if not clears_fog:
+		var fog: Node = a_manager.get_fog()
+		if fog == null:
+			return
+		for point: Vector2 in cover_points(shape, REGION_COVER_SPACING):
+			fog.reveal_region(point, REGION_COVER_SPACING)
+		return
+	var commander: Commander = a_manager.get_commander(commander_id)
+	var map: Map = a_manager.map
+	if commander == null or map == null:
+		return
+	var scout: Actor = spawn_vision(commander, map, shape.center, 0.0, lifespan_seconds)
+	if scout == null:
+		return
+	_see_region(scout, region)
+	if not reveal_label.is_empty():
+		scout.add_to_group(reveal_label)
+
+
+## Points `spacing` apart over `shape`, so circles of that radius cover it.
+static func cover_points(shape: HighlightShape, spacing: float) -> Array[Vector2]:
+	var half: Vector2 = shape.half_extents
+	if shape.kind == HighlightShape.Kind.CIRCLE:
+		half = Vector2(shape.radius, shape.radius)
+	var step: float = maxf(spacing, 0.01)
+	var count := Vector2i(maxi(1, ceili(half.x * 2.0 / step)), maxi(1, ceili(half.y * 2.0 / step)))
+	var out: Array[Vector2] = []
+	for i: int in count.x + 1:
+		for j: int in count.y + 1:
+			var local := Vector2(
+				-half.x + half.x * 2.0 * i / count.x, -half.y + half.y * 2.0 * j / count.y
+			)
+			out.append(shape.center + shape.local_to_world_xz(local))
+	return out
+
+
 ## One Scout giving `a_commander` vision of radius `a_radius` at `a_point`, gone after
 ## `a_lifespan_seconds` (negative: never). Null when the scene would not instantiate. Static, so
 ## a reveal that is not an authored event — the HEGEMONY opening's shelter reveal
@@ -151,6 +205,16 @@ static func _make_unseen(a_scout: Actor) -> void:
 		var visual := a_scout.get_node_or_null(path) as Node3D
 		if visual != null:
 			visual.visible = false
+
+
+## Make a Scout's sight `a_region`'s shape, turned and scaled as `a_region` is. The Scout itself
+## is never turned, so the region's global basis becomes its VisionRange's own.
+static func _see_region(a_scout: Actor, a_region: CollisionShape3D) -> void:
+	var vision := a_scout.get_node_or_null("VisionRange") as CollisionShape3D
+	if vision == null:
+		return
+	vision.shape = a_region.shape
+	vision.transform = Transform3D(a_region.global_transform.basis, vision.transform.origin)
 
 
 ## Widen a Scout's VisionRange to `a_radius`.

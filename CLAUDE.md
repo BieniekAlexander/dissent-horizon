@@ -410,9 +410,9 @@ scripts/
 	  cost_spec.gd
 	hud/
 	  button_spec.gd, command_grid.gd, static_grid_button.gd, static_grid_container.gd
-	  scenario_dialog_view.gd     — pop-up panel + help button (built in code; PROCESS_MODE_ALWAYS)
+	  scenario_dialog_view.gd     — scripted pop-ups + the corner button to the pause menu (built in code)
+    how_to_play_view.gd         — How to Play: the tutorial library (scripts/tutorial/) browsed by category
 	  dialog_page.gd              — one page of pop-up copy; authored as scenes/dialogs/*.tscn
-    help_book.gd                — the scenario's help-button page list
     objective_view.gd           — objective checklist; layout authored in scenes/interface/
   rts_camera_3d.gd
   waypoint_indicator.gd
@@ -655,6 +655,7 @@ Map, terrain grid, navmesh, pathing, terrain authoring, mesh baking and water.
 - [`gdd/systems/terrain-and-navigation/water-bodies.md`](gdd/systems/terrain-and-navigation/water-bodies.md)
 - [`gdd/systems/terrain-and-navigation/map-composition.md`](gdd/systems/terrain-and-navigation/map-composition.md)
 - [`gdd/systems/terrain-and-navigation/map-generation.md`](gdd/systems/terrain-and-navigation/map-generation.md) — passes 1–7 built
+- [`gdd/systems/terrain-and-navigation/map-from-image.md`](gdd/systems/terrain-and-navigation/map-from-image.md) — PLANNED: a palette-coded drawing seeds a map
 - [`gdd/systems/terrain-and-navigation/visual-facets.md`](gdd/systems/terrain-and-navigation/visual-facets.md) — pass 7: decoration derived at load, never saved; cosmetic only
 
 Lighting and terrain shading → [`gdd/systems/ux/aesthetics/lighting.md`](gdd/systems/ux/aesthetics/lighting.md), [`terrain-readability.md`](gdd/systems/ux/aesthetics/terrain-readability.md). Preview renders without a display: `tools/terrain_visuals/render.sh`.

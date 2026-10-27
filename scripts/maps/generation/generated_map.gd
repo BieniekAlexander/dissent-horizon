@@ -28,6 +28,9 @@ var elevation: MapElevation = null
 ## The water standing in flooded chasms: one {seed_cell: Vector2i, level: float} per connected
 ## stretch, written as uncharged WaterBodies.
 var chasm_waters: Array[Dictionary] = []
+## Uncharged water an imported drawing put on the map, as {seed_cell, level} like chasm_waters
+## (map-from-image.md §Water). The generator leaves it empty.
+var waters: Array[Dictionary] = []
 ## Shares of the play area a unit can cross, and can build on — measured on the finished
 ## terrain (map-generation.md §Obstacle regions); -1 before pass 5 has shaped it.
 var traversable_fraction: float = -1.0

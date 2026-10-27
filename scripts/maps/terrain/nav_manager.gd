@@ -68,6 +68,9 @@ const CHANGE_HISTORY: int = 64
 ## path on the nav map gate on this so they never run against an empty/unsynced map.
 ## Re-checks should use is_ready() (the signal won't fire again after the first build).
 signal navmesh_ready
+## Emitted once, when the first build has set the meshes: before navmesh_ready, which waits on the
+## physics frames that synchronize them.
+signal first_built
 #endregion
 
 
@@ -325,6 +328,11 @@ func is_ready() -> bool:
 	return _ready_announced
 
 
+## Whether the first build has run (first_built).
+func has_built() -> bool:
+	return _built_once
+
+
 ## Polygons in the base (un-eroded) mesh, summed over its chunks — one per navigable cell.
 func base_polygon_count() -> int:
 	if _meshes.is_empty():
@@ -458,6 +466,8 @@ func _rebuild_navmesh() -> void:
 	if not _ready_announced and not _pending_first_sync:
 		_pending_first_sync = true
 		set_physics_process(true)
+	if is_first_build:
+		first_built.emit()
 
 
 ## First cell of chunk `a_index` along one axis, for a grid starting at `a_offset`. Chunk 0

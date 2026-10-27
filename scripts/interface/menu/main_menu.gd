@@ -20,14 +20,15 @@ extends Control
 ## replay under `user://replays/`, newest first; a replay this build cannot play is listed all
 ## the same and refused, with the reason, when chosen
 ## (gdd/systems/commands/recording-and-replay.md §Watching). OPTIONS holds the master volume
-## (unsaved) and the alert jump key's scope (GameSettings, saved).
+## (unsaved) and the alert jump key's scope (GameSettings, saved). HOW_TO_PLAY reads the
+## tutorial library (HowToPlayView), the same notes the pause menu offers in a match.
 ##
 ## Every transition goes through the SceneManager autoload, which is also what a scenario uses
 ## to come BACK here — one description of what changing scene means, including clearing the
 ## tree-wide pause.
 
 #region Constants
-enum Page { MAIN, CAMPAIGN, PROLOGUE, SKIRMISH, MULTIPLAYER, REPLAYS, OPTIONS, SAVES }
+enum Page { MAIN, CAMPAIGN, PROLOGUE, SKIRMISH, MULTIPLAYER, REPLAYS, OPTIONS, SAVES, HOW_TO_PLAY }
 
 ## The main page's buttons, in order: [name, label, page it opens (or -1), enabled].
 const MAIN_ENTRIES: Array = [
@@ -37,6 +38,7 @@ const MAIN_ENTRIES: Array = [
 	["Skirmish", "Skirmish", Page.SKIRMISH, true],
 	["Multiplayer", "Multiplayer", Page.MULTIPLAYER, true],
 	["Replays", "Replays", Page.REPLAYS, true],
+	["HowToPlay", "How to Play", Page.HOW_TO_PLAY, true],
 	["Options", "Options", Page.OPTIONS, true],
 	["Quit", "Quit", -1, true],
 ]
@@ -116,6 +118,7 @@ func _ready() -> void:
 	_lobby.back_requested.connect(show_page.bind(Page.MAIN))
 	_build_multiplayer_page()
 	_build_saves_page()
+	_build_how_to_play_page()
 	var bus: int = AudioServer.get_bus_index(MASTER_BUS)
 	_volume.value = db_to_linear(AudioServer.get_bus_volume_db(bus)) if bus >= 0 else 1.0
 	_volume.value_changed.connect(_on_volume_changed)
@@ -308,6 +311,25 @@ func _build_saves_page() -> void:
 	page_node.add_child(_back_button(Page.MAIN))
 	_main_page.get_parent().add_child(page_node)
 	_pages[Page.SAVES] = page_node
+
+
+## The How to Play page: built in code, around the same reader the pause menu uses.
+func _build_how_to_play_page() -> void:
+	var page_node := VBoxContainer.new()
+	page_node.name = "HowToPlayPage"
+	page_node.visible = false
+	page_node.add_theme_constant_override("separation", 16)
+	var heading := Label.new()
+	heading.text = "How to Play"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 26)
+	page_node.add_child(heading)
+	var reader := HowToPlayView.new()
+	reader.name = "HowToPlay"
+	page_node.add_child(reader)
+	page_node.add_child(_back_button(Page.MAIN))
+	_main_page.get_parent().add_child(page_node)
+	_pages[Page.HOW_TO_PLAY] = page_node
 
 
 ## One button per replay file, newest first; a line saying there are none when there are none.

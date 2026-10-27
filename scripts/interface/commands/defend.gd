@@ -42,6 +42,14 @@ func _init(a_message: CommandMessage) -> void:
 var _on_station: bool = false
 
 
+## Reaching the post is where a Defend STARTS, not where it ends. Without this the receiver's
+## arrival branch dropped the order whenever the unit reached its post mid-tick — every walk
+## back after an engagement, so a defender that had fought once stood idle with no order.
+## Found in prologue mission 1's relief force (2026-10-21).
+func ends_on_arrival() -> bool:
+	return false
+
+
 func can_act(a_actor: Actor) -> bool:
 	# "Arrived at post": hold here and keep guarding. Reuses the nav agent's own arrival
 	# test — the same one a plain MoveCommand uses — instead of a hand-rolled distance

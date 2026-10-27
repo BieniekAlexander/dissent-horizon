@@ -135,7 +135,9 @@ func build_map(a_map: GeneratedMap, a_terrain_path: String) -> Map:
 			_add(map, entity, map)
 
 	for water: Dictionary in a_map.chasm_waters:
-		_add(map, _chasm_water(water, counts), map)
+		_add(map, _uncharged_water(water, &"Chasm", counts), map)
+	for water: Dictionary in a_map.waters:
+		_add(map, _uncharged_water(water, &"Water", counts), map)
 	return map
 
 
@@ -231,12 +233,12 @@ func _pond(a_feature: MapFeature, a_counts: Dictionary) -> WaterBody:
 	return body
 
 
-## Uncharged water standing in a flooded chasm. Properties set before it joins the Map, as for
-## a pond.
-func _chasm_water(a_water: Dictionary, a_counts: Dictionary) -> WaterBody:
+## Uncharged water — standing in a flooded chasm, or drawn — named `a_prefix` and a count.
+## Properties set before it joins the Map, as for a pond.
+func _uncharged_water(a_water: Dictionary, a_prefix: StringName, a_counts: Dictionary) -> WaterBody:
 	var body := WaterBody.new()
-	a_counts[&"chasm"] = a_counts.get(&"chasm", 0) + 1
-	body.name = "Chasm%d" % a_counts[&"chasm"]
+	a_counts[a_prefix] = a_counts.get(a_prefix, 0) + 1
+	body.name = "%s%d" % [a_prefix, a_counts[a_prefix]]
 	body.seed_cell = a_water.seed_cell
 	body.level = a_water.level
 	return body

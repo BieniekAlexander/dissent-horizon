@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="BoxSelection" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "Selecting a group"
+body = "Hold {{ world_select }} and drag a box over your units to select every one inside it. Hold {{ modifier_additive }} while clicking or dragging to add to the selection, or {{ modifier_narrow }} to take units out of it."
+acknowledge_text = "Got it"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

@@ -67,6 +67,27 @@ func test_a_loaded_save_resumes_the_saved_match_and_plays_on_identically() -> vo
 	await _tear_down(resumed)
 
 
+func test_no_tick_is_counted_before_the_navmesh_is_first_built() -> void:
+	# What arms on navmesh_ready (every scripted trigger, and so a mission's opening dialogs)
+	# must land on the same tick in a match and in its re-simulation, however each entered the
+	# tree, or a save's recorded dialog answers never meet their dialogs.
+	gut.error_tracker.disabled = true
+	var scenario := (load(HARNESS) as PackedScene).instantiate() as Scenario
+	add_child(scenario)
+	var clock: SimulationClock = scenario.trigger_manager().simulation_clock
+	var nav: NavManager = scenario.map.nav_manager
+	var ticks_at_build: Array = []
+	nav.first_built.connect(func() -> void: ticks_at_build.append(scenario.tick))
+	assert_true(clock.is_held_by(SimulationClock.REASON_BOOT), "held from the first frame")
+	for frame: int in 10:
+		if not ticks_at_build.is_empty():
+			break
+		await get_tree().physics_frame
+	assert_eq(ticks_at_build, [0], "the first build lands before tick 0 is counted")
+	assert_false(clock.is_held_by(SimulationClock.REASON_BOOT), "and releases the world")
+	await _tear_down(scenario)
+
+
 func test_an_autosave_is_written_between_ticks_to_the_one_autosave() -> void:
 	EventAutosave.directory = _directory
 	var scenario: Scenario = await _boot()

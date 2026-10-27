@@ -579,8 +579,19 @@ Pass 6 then lifts this flat ground onto discrete levels; within a level it stays
 
 The ground is lifted off the flat. **Levels come from the feature graph**, not from a free
 heightmap (Alex, 2026-09-19): every start and feature is a node, and each node gets a terrace
-level, `elevation_step` apart, at or under `MAX_SLOPE_DIFF` — walked over, so only the cells on
-a step lose their buildability.
+level, `elevation_step` apart. **A one-terrace step is graded**, across the free ground beside it,
+into a slope a walker climbs (Alex, 2026-10-22), so only the cells on that slope lose their
+buildability; two terraces or more is a cliff, and stands only where a barrier does. Where free
+ground meets a barrier, the free ground keeps its own height and the barrier's impassable cells
+take any step, rather than a fringe of steep ground beside them.
+
+The step defaults to `MapGenerationParams.LEVEL_STEP`, 1.0, which the image importer shares
+([map-from-image](map-from-image.md) §Terrain), so generated and drawn maps read with the same
+relief.
+
+> **REJECTED — a step walked over sheer** (0.5, under `MAX_SLOPE_DIFF`, until 2026-10-22): a
+> quarter of the prologue draft's relief, too low to read. Grading a taller step costs about
+> eight points of buildable ground on the review set (75% to 67%), from slopes twice as wide.
 
 **A cliff may stand only where a barrier does** (Alex, 2026-09-19). Elevation marks divisions the
 topology already decided; it adds none of its own. Pass 6 used to draw a full step at every
@@ -626,8 +637,16 @@ halved the map's widest corridor — gen_02 went from 17 cells to 9, below `MIN_
 
 **Grading is what keeps a height change from becoming a wall.** The free ground between two
 regions of different height is pulled to within `_GRADE_PER_CELL` of its neighbours, sweep by
-sweep like a distance transform, until the drop is spread over a band a walker climbs. Two
-things are held out of it:
+sweep like a distance transform, until the drop is spread over a band a walker climbs. **It
+raises first and lowers second:** low ground is lifted to within a grade of every higher
+neighbour, which runs an even slope down from the upper level into the lower one, and only then
+is ground lowered where it still stands too far above held ground below it.
+
+> **REJECTED — grading both ways at once** (until 2026-10-22). A cell held between a neighbour
+> too high and one too low took their midpoint, and both cells either side of a step took it
+> together: a flat landing halfway up every slope, which read as two steps once a terrace was 1.0.
+
+Two things are held out of it:
 
 - **A barrier is where a drop may land whole.** Its cells are excluded, so they neither grade nor
   drag the ground either side toward them — a step across a barrier lands on the barrier, and on
@@ -706,11 +725,11 @@ behind, and of seeds 2000–2011 four had no visible drop at all.
   each held a drop apart in the level constraints, the side whose noise asks higher on top. A
   thin cut's kind — ridge, river or cliff — is decided here; a grown region keeps the kind pass 4
   gave it, because the lake share steers growth.
-- **Drop: 2 to 4 terraces** (`cliff_drop_terraces_min` / `_max`, 1.0 to 2.0), drawn per cliff and
+- **Drop: 2 terraces** (`cliff_drop_terraces_min` / `_max`, 2.0), drawn per cliff and
   tried smaller when the way round cannot climb it: every open route round a cut climbs at most
   a terrace per region it crosses, and on most cuts the shortest is two or three regions.
 - **Ends are graded** (Alex, 2026-10-02): where the two sides touch, the drop is spread over a
-  slope — about four cells for two terraces, eight for four. The one exception to the
+  slope — about eight cells for two terraces. The one exception to the
   one-terrace rule.
 - **Shape: a face, talus and a crest.** Each band cell stands at its own side's level, so the step
   falls on the band's midline. Below the face the band keeps the cells the drop hides from the
@@ -1118,7 +1137,7 @@ count, a seed, and a form of every generation parameter, grouped.
   scenario keeps the map it had, and Save stays disabled.
 - **Known-bad values are warned about as they are typed**: `MapGenerationParams.warnings()`
   names each one, and the dock shows them under its buttons — a building capacity at or above
-  `BUILDING_CAPACITY_FAILURE` (250 per player), a terrace step steeper than `MAX_SLOPE_DIFF`, an energy
+  `BUILDING_CAPACITY_FAILURE` (250 per player), a cliff too tall for its apron, an energy
   budget of zero (refused by pass 3: a map with no ponds or sites is not a map), and a
   `last_pass` short of the last pass, which the warning names.
 - **The form resets when `MapGenerationParams` changes on disk.** The editor hot-reloads the
@@ -1126,6 +1145,9 @@ count, a seed, and a form of every generation parameter, grouped.
   null there rather than as its default — which once generated maps with no resources at all,
   after the energy budget was renamed. Generate rebuilds the form from the new defaults first,
   and the report says so.
+
+PLANNED — a second mode of the dock imports a palette-coded drawing as a map instead of
+generating one, behind the same replace warning: [map-from-image](map-from-image.md).
 
 `tools/map_generation/generate_maps.tscn` is the batch form of the same pipeline: five
 two-player MAP scenes from fixed seeds, plus `report.md`, for reviewing the defaults. They land
@@ -1224,9 +1246,9 @@ no longer join its levels either. Regenerate or rescale before reuse. Also undec
 | `ridge_height` / `chasm_depth` | 3.0 / 4.0 | anything above `MAX_SLOPE_DIFF` blocks; these read as terrain |
 | `flat_fraction` | ≥ 0.55 of in-play walkable cells | structures need flat ground and slopes cost it |
 | `elevation_levels` | 1 … 6; 6 | terrace levels, the map's whole relief; 1 leaves the ground level. Seven or more failed the one-terrace rule on a quarter of seeds while tiers stood (2026-10-02); not re-measured since |
-| `elevation_step` | ≤ `MAX_SLOPE_DIFF`; 0.5 | a terrace step is walked over. Above the limit every boundary cliffs, and elevation starts dividing ground pass 4 left open — the dock warns |
+| `elevation_step` | `LEVEL_STEP`, 1.0 | a terrace step is graded into a slope; shared with the image importer |
 | `cliff_cut_fraction` | 0 … 1; 0.5 | share of candidate cuts drawn as cliffs (§Cliffs) |
-| `cliff_drop_terraces_min` / `_max` | 2 / 4 | a cliff's drop: at least two or it is walked over; at most what the apron hides from the lowest camera — the dock warns past either |
+| `cliff_drop_terraces_min` / `_max` | 2 / 2 | a cliff's drop: at least two or it is graded; at most what the apron hides from the lowest camera, which at a 1.0 step is two — the dock warns past either |
 | `occlusion_allowance` | 0.5 | the part of a unit at an obstacle's foot the obstacle may hide (§Seeing the ground) |
 | `elevation_scale_cells` | 40 … 90; 60 | the noise's feature size; smaller breaks the map into more plateaus and needs more ramps |
 | `start_level_fraction_min` / `_max` | 0.5 / 0.75 | starts on high ground, not always the highest (Alex) |

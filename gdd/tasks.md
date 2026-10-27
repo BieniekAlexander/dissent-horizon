@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-116**
+> Next id: **T-130**
 
 # Tasks
 
@@ -117,13 +117,6 @@ The macro valuation (demand map → strength per energy → savings) is one addi
 > **Answer:** My only feedback here is that I will frequently be making changes to the roster, and I'm aware that changes to the pieces will impact the quality of the bot's evaluations. I think the simulations can represent safe expectations of the evaluations, and failing simulations implies that retraining is warranted.
 
 ## Combat
-
-### T-013 · Should aggro rise for long-reach pieces? #effort/low #scoped #done
-`AGGRO_MAX_RADIUS` sits below both artillery classes and below `ground_range_long` / `air_range_long`, so a target in that band is never picked up idle.
-→ [combat/range-buckets](systems/combat/range-buckets.md) §Asymmetries between the families
-
-> [!check] Status — 2026-10-19
-> Obsolete by request: aggro is now the reach itself (floored at `ground_range_short`), with no ceiling, so the band is gone; a 5-unit SC2-style leash bounds the chase instead. Rule in [combat/range-buckets](systems/combat/range-buckets.md) §Aggro is derived from reach and [combat/target-acquisition](systems/combat/target-acquisition.md) §The leash.
 
 ### T-014 · Which units out-see structures? #effort/low #needs-input
 Meant to be rare; which unit vision bucket, if any, sits above `vision_ground_large`.
@@ -355,7 +348,52 @@ Close enough to crush a unit standing against it. Today a Stock Truck cannot rea
 Seen in the two-bot skirmish probe (`tools/_perf_probe_tmp.tscn`, both slots MEDIUM, `--fixed-fps 30`), which plays the same match every run. From tick ~11,100, `Map.cell_grid` and `TerrainGrid.buildings()` hold a structure that has been freed. The bot's placement reads (`PlacementKnowledge.believes_occupied`, `NavPlacement._ClassProbe.neighbours_keep_access`) then raise "Trying to assign invalid previously freed instance" ~5,000 times by tick 18,000, and those placement checks fail for as long as it lasts. `Map.remove_structure` never ran for it. A probe on every registered building's `tree_exiting` found none freed or taken out of the tree while still registered, so the entry arrives some other way: the next suspects are registration of a piece already out of the tree, and a write while the occupant is freed (`== null` is true for a freed object). Reproduce with `--ticks=11600`.
 → [ai/bot-performance](systems/ai/bot-performance.md) §Re-measured 2026-10-16
 
+### T-127 · Import a map from a palette-coded drawing (.ora / .aseprite / .png) #effort/high #needs-input #shelved
+A second mode of the Map Generator dock: a drawing in a fixed palette seeds a map once — six levels, cliffs and ramps on their own layer, water and lithium ponds, chasms, neutral shelters and buildings, start points — with a palette view, an import report, and re-import replacing only what the importer placed. Scoped 2026-10-22; every decision is in the note.
+→ [terrain-and-navigation/map-from-image](systems/terrain-and-navigation/map-from-image.md)
+
+> [!check] Status — 2026-10-23
+> Built and in the main checkout (uncommitted, `claude/prologue-scenarios`): core `scripts/maps/image_import/`, dock tab `addons/map_generator/map_image_mode.gd` + `map_image_readout.gd`; the exporter (former T-128) and a rough palette meaning came with it. Levels are 1.0 apart, one constant shared with the generator (`MapGenerationParams.LEVEL_STEP`). All decisions are in the note.
+> Tests: full suite 4883/4883 via `gut_shards.py` (2026-10-23); lint clean.
+> **Not done:** the palette colours are still the scoping proposal (TODO in the note §The palette); neither a real Aseprite nor a Pixelorama file has been tried; the draft tool is not retired — parked on the question below. The worktree `.claude/worktrees/infallible-merkle-3445ec` holds an older copy of this work and can be removed.
+
+> [!question] Q — 2026-10-22
+> How should the prologue m1 sketch be brought into the strict palette, so the draft tool can be retired?
+> **Why it matters:** `gdd/campaigns/01-prologue/m1_topology_sketch.png` carries marks over its terrain, which only the draft tool's vote reads; the importer refuses any colour not in the palette, so retiring `tools/missions/prologue_m1_topology_draft.gd` first loses the only reader of that sketch.
+> **Options:**
+> 1. I write a strict-palette `.ora` of it once, from the draft tool's own classification (levels, water, cliff strokes; marks dropped), for you to correct in Aseprite; then retire the draft tool and its draft outputs.
+> 2. You redraw it in the palette yourself; the draft tool is retired once your redraw imports.
+> 3. Retire the draft tool now and keep the sketch only as a picture.
+>
+> **Leaning:** 1 — it saves the redraw, and the draft's classification already reads the sketch.
+>
+> **Answer:**
+
 ## UX
+
+### T-123 · The pond crust's texture reads as messy #effort/low #needs-input
+The crust (the cultivated pond rims, `water-bodies.md` §How the surface is drawn) is mottled by two octaves of value noise, and Alex finds it messy (2026-10-21).
+→ [terrain-and-navigation/water-bodies](systems/terrain-and-navigation/water-bodies.md) §How the surface is drawn
+
+> [!question] Q — 2026-10-21
+> What should the crust's texture be?
+> **Why it matters:** the crust's mottling is two octaves of value noise, and the fine one is a few pixels across at game zoom, where it crawls. Each option replaces it differently in `water_surface.gdshader`; all of them can measure from the shoreline contour, which is now exact per pixel.
+> **Options:**
+> 1. Tide rings: two or three bands parallel to the waterline, the rings a falling level leaves, gently warped.
+> 2. Salt polygons: the cracked hexagonal crust of a salt flat (a Voronoi pattern), low contrast, fading out with distance.
+> 3. Plain: a clean, exact-distance gradient with no texture at all.
+>
+> **Leaning:** 1 — rings say "evaporation" without high-frequency detail.
+>
+> **Answer:**
+
+### T-121 · New alien flora forms, possibly procedural #effort/high #unscoped
+Deferred by Alex (2026-10-21). Study Spore's procedural alien flora first. Sporadic props are fine; dense brush that looks impassable on walkable ground is not.
+→ [setting/natural-environment.md](setting/natural-environment.md) §Native life
+
+### T-122 · Land-use zones as an input to the decoration pass #effort/high #unscoped
+Farmland, industry, housing, corridors and ponds, with the biome re-skinning each; not yet scoped against pass 7.
+→ [setting/natural-environment.md](setting/natural-environment.md) §Land-use zones
 
 ### T-103 · Menus: the skirmish lobby's open decisions #effort/medium #unscoped
 Built 2026-10-10 (branch `claude/menus`): title pages (Campaign, Arcade WIP, Skirmish, Replays, Options with unsaved volume, Quit) and a skirmish lobby (2–8 players, faction or Random, teams, a You box on slot 1) that generates a map off the main thread from the player count and alliances and starts a HEGEMONY match; replays of lobby matches rebuild from the recorded recipe. Left: the decisions below, tuning the map size per start count, a settings system, generating a replay's map off the main thread.
@@ -554,18 +592,81 @@ Hull and turret; an upgrade's model swap; later cosmetics. **Blocked** on the mo
 
 ## Scenario scripting
 
+### T-125 · A mission briefing view: objective detail, notes logged by triggers, a field manual #effort/high #unscoped #shelved
+Alex, 2026-10-21: one view the player opens during a mission, with (1) the objectives in more detail than the HUD checklist, (2) mission notes that triggers raise — the first sight of a Watch Tower logs its warning, reviewable afterwards — and (3) a game-wide field manual of units, structures and counters. It would rework the `HelpBook`, which today is deliberately an authored list rather than a log of what was shown ([scenario-scripting/dialogs-and-pause](systems/scenario-scripting/dialogs-and-pause.md) §The help button); no shipped scene uses the book or raises a dialog yet. Needs a `/scope` pass: UI, persistence through saves, the dialog hold. Decided 2026-10-21 (Alex): the field manual lives alongside the spec docs and pulls their information as is for now; opening the view pauses any game that is not networked.
+
+> [!check] Status — 2026-10-26
+> Reshaped and built (Alex, 2026-10-26): the pause menu has Briefing (objectives with their `GlobalTrigger.details`), How to Play and Configuration tabs; How to Play reads a game-wide tutorial library (`scenes/tutorial/tutorial_library.tscn`, categories of `DialogPage` notes), also on the title screen, with the notes a scenario has shown (`EventShowDialog.is_tutorial_note`) highlighted and its own notes under "This mission". `HelpBook` is gone. Rule in [dialogs-and-pause](systems/scenario-scripting/dialogs-and-pause.md) §How to Play (the §The help button link above now points there).
+> **Not done:** (3) the field manual, deferred (Alex, 2026-10-26) and still unscoped — the spec docs are markdown outside the shipped game, so it needs its own data path. The library's categories and copy are kept as they are for now (Alex, 2026-10-26).
+
+### T-126 · Mission 1 terrain and enemy presence rework #effort/high #unscoped
+Reshape the grey-boxed map so the route is non-obvious and the walks between beats have something in them, keeping the nine beats. Decided 2026-10-21 (Alex): the hand-made terrain and scene are the source of truth and no script overwrites them; warnings are lethal and become reviewable notes (T-125); elevation is topology and look only; deep water as walls, shallow fords as crossings, lithium ponds as scenery, and the opening teaches what can and cannot be crossed; skirmishes, hazards and scripted glimpses between beats, including one showing that SAM sites hit air only. The proposal (P1–P10, a map and the measured walk times) is the review page https://claude.ai/artifact/6BL53FsVQyofM5Y7vkTisj; its five questions are copied below so they can be answered here.
+→ [01-pervasive-mechanics](campaigns/01-prologue/01-pervasive-mechanics.md) §Setup
+
+> [!done] Q — resolved — 2026-10-21
+> Is the start's Watch Tower picket (P2) the "can't pass until you have air transport" beat moved there, or a separate picket, with the tower field past the fork kept?
+> **Why it matters:** moving the beat changes the fork's tower field from a lesson into scenery, and decides what the first lethal warning note says.
+> **Options:**
+> 1. Move the beat to the start; the tower field past the fork stays as a place to come back to.
+> 2. A separate picket at the start; both tower positions stay.
+>
+> **Leaning:** 1 — the lesson lands earliest, where the shortcut makes it matter.
+>
+> **Answer:** (in chat) the tower beat can be earlier, even in the initial navigation tutorial section, right at the start
+> **Resolved:** option 1: the Watch Tower lesson moves into the opening navigation section; recorded on the plan page, not yet built.
+
+> [!done] Q — resolved — 2026-10-21
+> The P2 shortcut leads toward the south lane, past the north loop. Can the player ever clear the picket in this mission?
+> **Why it matters:** a clearable picket opens a sequence break past beats 2–5, so either the shortcut dead-ends before the lane or the picket is permanent.
+> **Options:**
+> 1. Permanent: the picket is never cleared this mission.
+> 2. Clearable once the player has air, and the shortcut then only leads to beats already done.
+>
+> **Leaning:** 1 — simplest, and the lesson is to stay away.
+>
+> **Answer:** (in chat) the pick I referred to was meant to be in the northeast section of the map, where it is in the scene now; in general the lanes of the map should be updated
+> **Resolved:** superseded: the towers the player cannot pass until they have air stay in the northeast tower field; whether the start picket can be cleared is decided with the lane rework.
+
+> [!done] Q — resolved — 2026-10-21
+> Where does the SAM-hits-air-only demo (P7) go, and whose aircraft is shot down?
+> **Why it matters:** site A teaches it in the main corridor beside the lane battle; site B teaches it just before the SAM field, where the player needs it.
+> **Options:**
+> 1. Site A, the main corridor, an allied aircraft shot down while infantry walk past.
+> 2. Site B, the approach to the lane-end SAM field, an allied aircraft.
+> 3. Both.
+>
+> **Leaning:** 2 — closest to where the lesson is used.
+>
+> **Answer:** (in chat) allied aircraft; no strong view on where, as long as it happens before the beat where the player destroys SAM sites to get their own aircraft
+> **Resolved:** allied aircraft, at any site before the lane-end SAM field; the site is chosen with the lane rework.
+
+> [!done] Q — resolved — 2026-10-21
+> How far should the first build go?
+> **Why it matters:** sculpting is slow to review; a sample beat tests the look before the rest is laid down.
+> **Options:**
+> 1. Sculpt P1 (the crossing primer) as a sample for review first.
+> 2. Lay down every accepted proposal in one pass on a copy of the terrain.
+>
+> **Leaning:** 1 — the crossing rules are new to the player and the look is new to the map.
+>
+> **Answer:** (in chat) hold off on sculpting
+> **Resolved:** neither: no sculpting until the topology is settled (see the status below).
+
+> [!check] Status — 2026-10-21
+> No sculpting yet. Open: the plan's topology is still discrete, and Alex is weighing whether to answer guiding questions, draw the topology he wants, or sculpt it himself. Suggested in chat: draw it as a graph of places and the kind of crossing between them, have an agent realise it once through the map generator's organic barrier, terrace and water passes onto a copy, then sculpt the detail by hand.
+> Then, 2026-10-21: Alex sent a level sketch (south detailed, north empty). A draft built from it and extrapolated, in new files only: `tools/missions/prologue_m1_topology_draft.gd` writes `resources/terrain/prologue_m1_draft_terrain.tres` (+ `_surface.res`) and the map-only `scenes/scenarios/prologue/m1_topology_draft_map.tscn`, and refuses to overwrite them without `-- --overwrite`. No pieces placed; the mission scene still uses the old terrain. Rebuilt the same day from Alex's second sketch, `gdd/campaigns/01-prologue/m1_topology_sketch.png`, which the tool now reads pixel by pixel (legend colours, black strokes as cliffs, marks ignored); first about 343 × 260 units, then cut by a third (2026-10-22) to about 230 × 174. Every beat is reachable; garrison building → SAM sites is about 113 s on foot. Light water over level 3 is a waterfall (Alex), skipped and built dry until water can fall between levels; lithium ponds to add later — both TODO in the tool. Pieces laid from the sketch's marks by `tools/missions/prologue_m1_draft_layout.gd` into `scenes/scenarios/prologue/m1_draft_layout.tscn` (77 pieces at the cut scale, waves as the mission runs them, enemy waves from beside the Citadel); it refuses to overwrite. No mission triggers there yet.
+> Then, 2026-10-23: Alex's iterated drawing `resources/maps/prologue_mission_1_draft_drawing.ora` imported into the mission itself (terrain `scenes/scenarios/prologue/m1_pervasive_mechanics_map_terrain.tres`); every grey-boxed piece and trigger moved onto it beat by beat, following the sketch; outposts scattered (Alex). All beats reachable on foot; the infrastructure ledger is unchanged. **Not done:** the positions are a first pass for Alex to refine; no walk-time or playthrough check yet. The old terrain (`resources/terrain/prologue_m1_terrain*`) and its tools (`tools/missions/prologue_m1_terrain.gd`, `prologue_m1_layout.gd`) are no longer used.
+> Then, 2026-10-26: shrunk at Alex's request — the start's corner (the sea and its shallows) kept, everything else 0.56 along each axis — into `resources/maps/prologue_mission_1_draft_drawing_scaled.ora`, imported into the mission with every piece and trigger moved through the same mapping. Play size 82 × 110 (was 123 × 162); the drawing keeps the original's walkable topology; all beats reachable; ledger unchanged. **Not done:** positions still a first pass for Alex to refine; no playthrough yet.
+> Then, 2026-10-26: Alex's tweaked scaled drawing replaced `prologue_mission_1_draft_drawing.ora` and was re-imported; the first prisons moved to the plateau south-east of the start's shallows, and two Watch Towers (`RampTower1`, `RampTower2`) line the top of the ramp east of it.
+> Then, 2026-10-26: Alex re-laid the structures by hand; the scene was repaired (stray models, HP bars and duplicate captives inside the first prisons, an overlap, off-grid and tilted pieces, ground faults) and triggers re-aimed: the west prison is optional, Objective 7 sits in the SAM gap east of the Citadel. **Open:** the defection threshold is now 4 of 16 base Compounds (25%) — a TODO in the note's §Setup, Infrastructure.
+> Then, 2026-10-26: objective markers built — a bobbing chevron over marked pieces, all marks gated by the fog with a snapshot exception (`HighlightSight`; highlights-and-fog-reveal.md §Marks are gated by the fog); every objective but 7 marked; reveals for objectives 1–2 and the lane; a second plateau prison. **Open:** which other objectives get a reveal (TODO in the mission note).
+> Then, 2026-10-26: the rescue's groups placed in the scene, waiting on hold fire until the rendezvous (`TacticRule.holds_fire`, `ConditionTriggerFired.is_until_fired`); the rendezvous halved to radius 5; regions drawn as a draped edge band; the squad holds fire at the prisons. A headless run showed the wait, the fight and the untouched prisons.
+> Then, 2026-10-26: Alex's drawing edit (a wadeable crossing in the west lake) re-imported with every piece kept; two refused cliff pixels at px (63, 91) and (62, 92) cleared in the main copy (`_scaled.ora` left as Alex saved it). Garrison beat moved to `NtBuildingLarge3`; the squad leads toward the outpost once the prisons fall; the 6 remaining chargers guard the crossing until the lane buildings call them. Headless run: all of it fires as written.
+> Then, 2026-10-26: another drawing edit re-imported, pieces kept (the same two refused cliff pixels cleared again in the main copy); a third optional prison, two Warlords, on the plateau north-east of the allied base; the outpost revealed while objective 3 is current; the Clippers launched from the field plateau; the lane revealed as one turned box once they are down (`EventRevealRegion.region_path`). **Open:** the western prison's two battery racks now stand on slope or water (TODO in the mission note).
+
 ### T-082 · Does `MISSION` keep the implicit wipe-out loss? #effort/low #needs-input
 Built provisionally as KEEP (the local player still loses on owning nothing / no base), because every shipped mission was written against it.
 → [scenario-scripting/objectives-and-completion](systems/scenario-scripting/objectives-and-completion.md) §Win conditions
-
-### T-106 · Trigger-decided mission commanders #effort/high #scoped #done
-A mission's enemy decides by triggers and tactic rules but perceives and acts as the skirmish Bot does: conditions with an alliance `perspective`, tactic rules on the slot's combat period, shared `SquadPolicy`s, every mission order through `BotActuator`, tactic claims at EXCLUSIVE, runtime Bot job switches, retreat and build as shared verbs, a `difficulty` expression input. Scoped 2026-10-10; every decision is recorded in the note.
-→ [scenario-scripting/tactics](systems/scenario-scripting/tactics.md) §Trigger-decided mission commanders
-
-> [!check] Status — 2026-10-11
-> Built, as the note's section records: alliance `perspective` on conditions and `EventCommandTarget`; a mission difficulty (EASY / MEDIUM / HARD only) picked on the Campaign page that the triggers read as `difficulty` and that never changes a bot slot's tier; `ConditionExpression`; tactics as `BotScheduler` jobs claiming EXCLUSIVE; `TacticRule.action` naming the shared policies plus `RetreatPolicy` and `BuildPolicy`; mission orders through their own `BotActuator`; `EventSetBotJobs`; tactic squads in the bot overlay.
-> Tests: 4444 passing, 0 failing.
-> **Not done:** no shipped mission uses any of it yet — authoring difficulty into the prologue's triggers is Alex's, later. `ConditionEntityKilled`, `ConditionScoutCoverage` and the resource thresholds do not honour a perspective (the dock says so).
 
 ## Authoring, tooling and code health
 

@@ -61,6 +61,10 @@ enum Assignment {
 ## the default of the `count` export this replaced, so an un-authored event is unchanged.
 const DEFAULT_COUNT: int = 1
 
+## How far apart, in body radii, spawn_in_flight lines its aircraft up: clear of each other's
+## avoidance radius with a little air between.
+const FLIGHT_SPACING_RADII: float = 3.0
+
 ## Optional spawn-anchor override: spawn at this node's position instead of the event's
 ## own. Lets you point spawning at a marker elsewhere in the (inline) scene.
 ##
@@ -93,6 +97,13 @@ const DEFAULT_COUNT: int = 1
 ## HOVERING one) does; the rest spawn as usual. A movement order lifts them.
 ## Added for prologue mission 1 (Alex, 2026-10-18).
 @export var spawn_landed: bool = false
+
+## Spawned aircraft start IN THE AIR at the anchor itself, at cruise height, in a row across
+## world X — not scattered onto the navmesh, which would pull an anchor placed beyond the map
+## edge back onto the map's nearest ground. For a flight that arrives from off the map (prologue
+## mission 1's allied relief, Alex, 2026-10-21), as EventAirDrop's transport does. Pieces that
+## do not fly spawn as usual.
+@export var spawn_in_flight: bool = false
 
 @export_group("Follow a group")
 ## Spawn BESIDE A GROUP, wherever it has walked to: when set, the anchor is the centre of this
@@ -180,9 +191,13 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 		if garrison_host != null:
 			_garrison_all(commandables, [garrison_host], map, commander)
 		else:
-			map.add_entities(commandables, anchor_xz, commander)
+			var grounded: Array[Actor] = commandables
+			if spawn_in_flight:
+				grounded = _launch_aircraft(commandables, map, commander, anchor_xz)
+			if not grounded.is_empty():
+				map.add_entities(grounded, anchor_xz, commander)
 			if spawn_landed:
-				_land_all(commandables)
+				_land_all(grounded)
 
 	var spawned_hosts := _garrisonable(commandables)
 	for child: Node in get_children():
@@ -268,6 +283,34 @@ func resolve_spawn_anchor() -> Vector3:
 	if options.is_empty():
 		return spawn_position.global_position
 	return (AU.pick_random(options, SU.rng) as Node3D).global_position
+
+
+## Put every aircraft among `a_spawned` in the air in a row at `a_anchor_xz` (see
+## spawn_in_flight), spaced by their widest body, and return the rest for ground placement.
+func _launch_aircraft(
+	a_spawned: Array[Actor], a_map: Map, a_commander: Commander, a_anchor_xz: Vector2
+) -> Array[Actor]:
+	var aircraft: Array[Actor] = []
+	var rest: Array[Actor] = []
+	for actor: Actor in a_spawned:
+		if actor.get_node_or_null("Aerial") != null:
+			aircraft.append(actor)
+		else:
+			rest.append(actor)
+	var spacing: float = 0.0
+	for actor: Actor in aircraft:
+		actor.initialize(a_map, a_commander)
+		spacing = maxf(
+			spacing,
+			actor.bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION) * FLIGHT_SPACING_RADII
+		)
+	for i: int in aircraft.size():
+		var actor: Actor = aircraft[i]
+		var xz := a_anchor_xz + Vector2((i - (aircraft.size() - 1) * 0.5) * spacing, 0.0)
+		actor.global_position = Vector3(
+			xz.x, a_map.terrain_height_at(xz) + actor.height_offset(), xz.y
+		)
+	return rest
 
 
 ## Set every aircraft among `a_spawned` down where it stands (see spawn_landed).

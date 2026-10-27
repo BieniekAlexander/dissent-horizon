@@ -174,6 +174,10 @@ enum LandingState {
 ## Which kind of aircraft: Movement.Mode.HOVERING or Movement.Mode.FLYING. GROUNDED is not a
 ## flight mode — a piece that does not fly carries no Aerial at all.
 @export var mode: Movement.Mode = Movement.Mode.HOVERING
+## A scene-placed aircraft starts ON THE GROUND, as land_in_place leaves it, rather than in the
+## air: "transports parked beside the SAM sites" (prologue mission 1, Alex, 2026-10-21). The
+## placed-piece counterpart of EventSpawnEntities.spawn_landed; only a HOVERING unit can.
+@export var should_start_landed: bool = false
 
 @export_group("Flying")
 ## Orbit parameters for FLYING mode. The unit circles the anchor while idle.
@@ -326,6 +330,8 @@ func _ready() -> void:
 	var host: Node3D = _host()
 	if host != null:
 		_anchor = host.global_position
+	if should_start_landed:
+		land_in_place()
 
 
 func simulation_step(_a_delta: float) -> void:

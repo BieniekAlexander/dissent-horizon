@@ -102,7 +102,7 @@ func outline(a_segments: int = 32) -> Array[Vector2]:
 			Vector2(-half_extents.x, half_extents.y),
 		]
 		for corner: Vector2 in corners:
-			points.append(center + _local_to_world_xz(corner))
+			points.append(center + local_to_world_xz(corner))
 		return points
 	for i: int in a_segments:
 		var angle: float = TAU * float(i) / float(a_segments)
@@ -134,7 +134,7 @@ func perimeter_points(a_spacing: float) -> Array[Vector2]:
 ## `rotation_y` is a 3D yaw, i.e. Basis(Vector3.UP, rotation_y), whose X axis is
 ## (cos, 0, -sin). Mapping that onto a Vector2 whose y component IS z flips the sense of
 ## the rotation, so a rect authored at +30° would paint mirrored about its own axis.
-func _local_to_world_xz(a_local: Vector2) -> Vector2:
+func local_to_world_xz(a_local: Vector2) -> Vector2:
 	var c: float = DMath.cos(rotation_y)
 	var s: float = DMath.sin(rotation_y)
 	return Vector2(a_local.x * c + a_local.y * s, -a_local.x * s + a_local.y * c)

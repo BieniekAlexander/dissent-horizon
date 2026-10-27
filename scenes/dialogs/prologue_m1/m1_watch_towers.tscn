@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="WatchTowers" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "Watch Towers and SAM sites"
+body = "A Watch Tower's machine gun shreds lightly armoured infantry. Steer clear of them until you have more heavily armoured units.\n\nWatch Towers shoot only at units on the ground, and SAM sites only at aircraft."
+acknowledge_text = "Got it"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

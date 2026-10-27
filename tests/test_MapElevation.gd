@@ -21,6 +21,8 @@ const _SEEDS: Array[int] = [2004, 2005]
 ## fixed — each wants a new reproducing seed before the pending case means anything again.
 const _NARROWS_SEED: int = -1
 const _WALKABLE_BARRIER_SEED: int = -1
+## A grid wide enough that a graded terrace step fits inside it, either side of the middle.
+const _STEP_GRID := Vector2i(24, 6)
 ## Erosion rounds the corridor measure gives up after; wider than MIN_CHOKE_WIDTH either way.
 const _CORRIDOR_LIMIT: int = 12
 
@@ -76,8 +78,8 @@ func test_the_maps_are_not_all_flat() -> void:
 	assert_gt(heights.size(), 1)
 
 
-## A terrace step is meant to be walked over, so regions the topology left open to each other
-## may differ by at most one. Across an uncarved cut the barrier carries any gap.
+## A terrace step is graded into a slope a walker climbs, so regions the topology left open to
+## each other may differ by at most one. Across an uncarved cut the barrier carries any gap.
 func test_neighbouring_regions_stay_within_one_terrace() -> void:
 	for map: GeneratedMap in _maps():
 		var levels: PackedInt32Array = map.elevation.level_of_node
@@ -183,6 +185,61 @@ func test_a_pond_still_floods_exactly_its_pan() -> void:
 				map.terrain, pond.pond_seed_cell, pond.pond_level
 			)
 			assert_eq(basin.covered_cells().size(), pond.pond_cells.size())
+
+
+## A terrace step taller than a walker climbs sheer is graded into a slope, not drawn as a cliff:
+## no steep ground stands off a barrier beside a ridge or chasm, which carries the step itself.
+func test_a_tall_terrace_step_is_graded_not_cliffed() -> void:
+	assert_gt(
+		_params().elevation_step, TerrainGrid.MAX_SLOPE_DIFF, "the step is not walkable sheer"
+	)
+	for map: GeneratedMap in _maps():
+		for cell: Vector2i in map.elevation.cliff_cells:
+			assert_false(
+				_touches_uncliffed_barrier(map, cell), "steep fringe beside a barrier at %s" % cell
+			)
+
+
+func _touches_uncliffed_barrier(a_map: GeneratedMap, a_cell: Vector2i) -> bool:
+	for dx: int in range(-1, 2):
+		for dz: int in range(-1, 2):
+			var near: Vector2i = a_cell + Vector2i(dx, dz)
+			if (
+				a_map.topology.barrier_of.has(near)
+				and not a_map.elevation.is_cliff(a_map.topology.barrier_of[near])
+			):
+				return true
+	return false
+
+
+## A graded step climbs at an even rate, with no landing halfway up: a straight step between two
+## free terraces, graded, rises cell by cell along every row that crosses it.
+func test_a_graded_step_rises_without_a_landing() -> void:
+	var elevation := MapElevation.new()
+	elevation._params = _params()
+	elevation._width = _STEP_GRID.x
+	elevation._depth = _STEP_GRID.y
+	elevation._topology = MapTopology.new()
+	var cell_count: int = _STEP_GRID.x * _STEP_GRID.y
+	elevation._topology._in_play.resize(cell_count)
+	elevation._topology._in_play.fill(1)
+	elevation._priority.resize(cell_count)
+	elevation._priority.fill(MapElevation._FREE)
+	elevation._height.resize(cell_count)
+	var step: float = elevation._params.elevation_step
+	for at: int in cell_count:
+		elevation._height[at] = step if at % _STEP_GRID.x >= _STEP_GRID.x / 2 else 0.0
+	elevation._sweep_grade()
+	for z: int in _STEP_GRID.y:
+		var row: PackedFloat32Array = []
+		for x: int in _STEP_GRID.x:
+			row.append(elevation._height[z * _STEP_GRID.x + x])
+		# From the last cell left on the lower terrace to the first on the upper one.
+		var foot: int = Array(row).rfind(0.0)
+		var top: int = Array(row).find(step)
+		assert_lt(foot, top, "row %d is graded: %s" % [z, row])
+		for x: int in range(foot + 1, top + 1):
+			assert_gt(row[x], row[x - 1], "row %d rises at %d: %s" % [z, x, row])
 
 
 func test_cliffs_are_steep_and_the_ground_stays_joined() -> void:

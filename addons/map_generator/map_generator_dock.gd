@@ -2,7 +2,8 @@
 extends VBoxContainer
 
 ## The map-generation dock: set the parameters and a seed, generate into the Scenario you have
-## open, inspect it, re-roll, and save a keeper as a map scene.
+## open, inspect it, re-roll, and save a keeper as a map scene. Its second tab imports a
+## palette-coded drawing instead (map_image_mode.gd), with the same install, warning and save.
 ##
 ## **Generation edits the OPEN SCENE** (Alex, 2026-09-20): the new Map becomes the Scenario's
 ## `Map` child, which is how every Scenario finds its map. A Scenario that already has one is
@@ -24,22 +25,33 @@ const DEFAULT_MAP_NAME: String = "generated_%d.tscn"
 const TERRAIN_SUFFIX: String = "_terrain.tres"
 ## Terrain for a map generated into a scene that has never been saved.
 const SCRATCH_TERRAIN_PATH: String = "res://scenes/scenarios/generated/unsaved_map_terrain.tres"
-const NO_SCENARIO_MESSAGE: String = ("Open a Scenario scene first: a generated map becomes its "
-	+ "Map child, and a map only plays inside a Scenario.")
-const REPLACE_WARNING: String = ("%s already has a Map. Generating replaces it, and an "
-	+ "unsaved map is gone — save it as a map scene first if you want to keep it.")
+const NO_SCENARIO_MESSAGE: String = (
+	"Open a Scenario scene first: a generated map becomes its "
+	+ "Map child, and a map only plays inside a Scenario."
+)
+const REPLACE_WARNING: String = (
+	"%s already has a Map. Generating replaces it, and an "
+	+ "unsaved map is gone — save it as a map scene first if you want to keep it."
+)
 ## Properties the form does not offer: piece facts, and the alliance count, which has its own
 ## field because changing it resets the defaults that depend on it.
 const HIDDEN_PROPERTIES: Array[StringName] = [
-	&"alliance_count", &"site_energy_per_second", &"pond_rate_multiplier",
+	&"alliance_count",
+	&"site_energy_per_second",
+	&"pond_rate_multiplier",
 ]
-const STALE_WARNING: String = ("The generation parameters changed on disk since this form was "
-	+ "built. Generate resets it to the new defaults first.")
-const STALE_RESET_NOTICE: String = ("The generation parameters changed on disk, so the form was "
-	+ "reset to the new defaults; any edits made to it before then are gone.")
+const STALE_WARNING: String = (
+	"The generation parameters changed on disk since this form was "
+	+ "built. Generate resets it to the new defaults first."
+)
+const STALE_RESET_NOTICE: String = (
+	"The generation parameters changed on disk, so the form was "
+	+ "reset to the new defaults; any edits made to it before then are gone."
+)
 const MIN_ALLIANCES: int = 2
 const MAX_ALLIANCES: int = 8
 const MAX_SEED: int = 2147483647
+const MapImageMode := preload("res://addons/map_generator/map_image_mode.gd")
 ## Step for float fields: fine enough for the occupancy fractions, the smallest knobs there are.
 const FLOAT_STEP: float = 0.0001
 const REPORT_MIN_HEIGHT_PX: float = 240.0
@@ -62,6 +74,15 @@ var _warnings: Label
 var _save_button: Button
 var _save_dialog: EditorFileDialog
 var _replace_dialog: ConfirmationDialog
+## What the replace dialog does once confirmed: generate, or install an import.
+var _on_replace_confirmed: Callable = Callable()
+## The default file name the save dialog offers.
+var _save_name: String = ""
+## The image-import tab.
+var _image_mode: Control
+## The Scenario an action works on: the open scene in the editor. Replaceable so a test can hand
+## the dock a Scenario of its own, since a headless run has no edited scene.
+var scenario_source: Callable = _open_scenario
 #endregion
 
 
@@ -72,19 +93,34 @@ func _ready() -> void:
 
 #region Building
 func _build_controls() -> void:
+	var modes := TabContainer.new()
+	modes.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_child(modes)
+	var page := VBoxContainer.new()
+	page.name = "Generate"
+	modes.add_child(page)
+	_image_mode = MapImageMode.new(self)
+	_image_mode.name = "From image"
+	modes.add_child(_image_mode)
+
 	var header := GridContainer.new()
 	header.columns = 2
-	add_child(header)
+	page.add_child(header)
 	_alliances = _spin_box(MIN_ALLIANCES, MAX_ALLIANCES, 1.0)
 	_alliances.value_changed.connect(func(value: float) -> void: _reset_params(int(value)))
-	_labelled(header, "Alliances", _alliances,
-		MapGenerationParams.DESCRIPTIONS.get("alliance_count", ""))
+	_labelled(
+		header, "Alliances", _alliances, MapGenerationParams.DESCRIPTIONS.get("alliance_count", "")
+	)
 	_seed = _spin_box(0, MAX_SEED, 1.0)
-	_labelled(header, "Seed", _seed,
-		"The random seed. The same seed and parameters always make the same map.")
+	_labelled(
+		header,
+		"Seed",
+		_seed,
+		"The random seed. The same seed and parameters always make the same map."
+	)
 
 	var buttons := HBoxContainer.new()
-	add_child(buttons)
+	page.add_child(buttons)
 	_button(buttons, "Generate", _generate)
 	_button(buttons, "Re-roll", _reroll)
 	_save_button = _button(buttons, "Save map as scene…", _ask_save_path)
@@ -93,19 +129,19 @@ func _build_controls() -> void:
 	_warnings = Label.new()
 	_warnings.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_warnings.add_theme_color_override(&"font_color", WARNING_COLOR)
-	add_child(_warnings)
+	page.add_child(_warnings)
 
 	_report = TextEdit.new()
 	_report.editable = false
 	_report.custom_minimum_size.y = REPORT_MIN_HEIGHT_PX
 	_report.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_report.placeholder_text = "Generate a map to see its balance report."
-	add_child(_report)
+	page.add_child(_report)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	add_child(scroll)
+	page.add_child(scroll)
 	_form = GridContainer.new()
 	_form.columns = 2
 	_form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -119,8 +155,10 @@ func _reset_params(a_alliances: int) -> void:
 		child.queue_free()
 	var by_name: Dictionary = {}
 	for property: Dictionary in _params.get_property_list():
-		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE \
-				and not HIDDEN_PROPERTIES.has(StringName(property.name)):
+		if (
+			property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE
+			and not HIDDEN_PROPERTIES.has(StringName(property.name))
+		):
 			by_name[String(property.name)] = property
 	for group: Dictionary in MapGenerationParams.PROPERTY_GROUPS:
 		var shown: Array[Dictionary] = []
@@ -160,8 +198,8 @@ func _add_group(a_title: String, a_properties: Array[Dictionary]) -> void:
 
 
 ## An editor for one int, float, enum, bool or Vector2i property, bound to _params; null for
-## anything else. An enum-typed parameter reports its names in the property's hint, so it gets a menu of
-## them rather than a number nobody can read.
+## anything else. An enum-typed parameter reports its names in the property's hint, so it gets a
+## menu of them rather than a number nobody can read.
 func _field_for(a_property: Dictionary) -> Control:
 	var property_name: StringName = a_property.name
 	if a_property.type == TYPE_INT and a_property.hint == PROPERTY_HINT_ENUM:
@@ -170,9 +208,11 @@ func _field_for(a_property: Dictionary) -> Control:
 		TYPE_BOOL:
 			var check := CheckBox.new()
 			check.button_pressed = _params.get(property_name)
-			check.toggled.connect(func(on: bool) -> void:
-				_params.set(property_name, on)
-				_refresh_warnings())
+			check.toggled.connect(
+				func(on: bool) -> void:
+					_params.set(property_name, on)
+					_refresh_warnings()
+			)
 			return check
 		TYPE_INT, TYPE_FLOAT:
 			var is_float: bool = a_property.type == TYPE_FLOAT
@@ -180,9 +220,11 @@ func _field_for(a_property: Dictionary) -> Control:
 			spin.allow_greater = true
 			spin.allow_lesser = true
 			spin.value = _params.get(property_name)
-			spin.value_changed.connect(func(value: float) -> void:
-				_params.set(property_name, value if is_float else int(value))
-				_refresh_warnings())
+			spin.value_changed.connect(
+				func(value: float) -> void:
+					_params.set(property_name, value if is_float else int(value))
+					_refresh_warnings()
+			)
 			return spin
 		TYPE_VECTOR2I:
 			return _vector2i_field(property_name)
@@ -199,11 +241,13 @@ func _vector2i_field(a_property: StringName) -> Control:
 		spin.allow_greater = true
 		spin.allow_lesser = true
 		spin.value = current[axis]
-		spin.value_changed.connect(func(value: float) -> void:
-			var vector: Vector2i = _params.get(a_property)
-			vector[axis] = int(value)
-			_params.set(a_property, vector)
-			_refresh_warnings())
+		spin.value_changed.connect(
+			func(value: float) -> void:
+				var vector: Vector2i = _params.get(a_property)
+				vector[axis] = int(value)
+				_params.set(a_property, vector)
+				_refresh_warnings()
+		)
 		row.add_child(spin)
 	return row
 
@@ -221,9 +265,11 @@ func _enum_field(a_property: StringName, a_hint: String) -> Control:
 		menu.set_item_id(menu.item_count - 1, value)
 		if value == current:
 			menu.select(menu.item_count - 1)
-	menu.item_selected.connect(func(index: int) -> void:
-		_params.set(a_property, menu.get_item_id(index))
-		_refresh_warnings())
+	menu.item_selected.connect(
+		func(index: int) -> void:
+			_params.set(a_property, menu.get_item_id(index))
+			_refresh_warnings()
+	)
 	return menu
 
 
@@ -238,8 +284,10 @@ func _refresh_warnings() -> void:
 func _params_are_stale() -> bool:
 	var fresh := MapGenerationParams.new()
 	for property: Dictionary in fresh.get_property_list():
-		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE \
-				and typeof(_params.get(property.name)) != typeof(fresh.get(property.name)):
+		if (
+			property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE
+			and typeof(_params.get(property.name)) != typeof(fresh.get(property.name))
+		):
 			return true
 	return false
 
@@ -274,6 +322,8 @@ func _button(a_parent: Container, a_text: String, a_pressed: Callable) -> Button
 	button.pressed.connect(a_pressed)
 	a_parent.add_child(button)
 	return button
+
+
 #endregion
 
 
@@ -281,21 +331,31 @@ func _button(a_parent: Container, a_text: String, a_pressed: Callable) -> Button
 ## Generate from the current parameters and seed into the open Scenario. Asks first when that
 ## Scenario already holds a map, since generating replaces it.
 func _generate() -> void:
-	var scenario: Node = _open_scenario()
+	var scenario: Node = scenario_source.call()
 	if scenario == null:
 		_report.text = NO_SCENARIO_MESSAGE
 		_save_button.disabled = true
 		return
-	var held: Map = _map_of(scenario)
-	if held == null:
-		_generate_into(scenario)
+	confirm_replace(
+		scenario,
+		REPLACE_WARNING % scenario.name,
+		func() -> void: _generate_into(scenario_source.call())
+	)
+
+
+## Run `a_then` at once when `a_scenario` holds no map, or once the author confirms replacing
+## it, warned with `a_warning`.
+func confirm_replace(a_scenario: Node, a_warning: String, a_then: Callable) -> void:
+	if map_of(a_scenario) == null:
+		a_then.call()
 		return
 	if _replace_dialog == null:
 		_replace_dialog = ConfirmationDialog.new()
 		_replace_dialog.title = "Replace this Scenario's map?"
-		_replace_dialog.confirmed.connect(func() -> void: _generate_into(_open_scenario()))
+		_replace_dialog.confirmed.connect(func() -> void: _on_replace_confirmed.call())
 		add_child(_replace_dialog)
-	_replace_dialog.dialog_text = REPLACE_WARNING % scenario.name
+	_on_replace_confirmed = a_then
+	_replace_dialog.dialog_text = a_warning
 	_replace_dialog.popup_centered()
 
 
@@ -313,21 +373,50 @@ func _generate_into(a_scenario: Node) -> void:
 	_save_button.disabled = not _map.is_valid()
 	if not _map.is_valid():
 		return
+	var built: Map = build_for(a_scenario, _map)
+	if built == null:
+		return
+	var held: Map = detach_map(a_scenario)
+	if held != null:
+		held.queue_free()
+	install(a_scenario, built)
+	_save_name = DEFAULT_MAP_NAME % _map.generation_seed
+
+
+## `a_map` built as a Map node, its terrain written where `a_scenario`'s map terrain goes; null,
+## with the error pushed, when it could not be written.
+func build_for(a_scenario: Node, a_map: GeneratedMap) -> Map:
 	var terrain_path: String = _terrain_path_for(a_scenario)
 	DirAccess.make_dir_recursive_absolute(
-		ProjectSettings.globalize_path(terrain_path.get_base_dir()))
-	var built: Map = _writer.build_map(_map, terrain_path)
+		ProjectSettings.globalize_path(terrain_path.get_base_dir())
+	)
+	var built: Map = _writer.build_map(a_map, terrain_path)
 	if built == null:
 		push_error("Map Generator: could not write %s" % terrain_path)
-		return
-	var held: Map = _map_of(a_scenario)
+	return built
+
+
+## Default generation parameters with every piece fact read from the piece scenes: what an
+## image import matches its structures against.
+func piece_facts() -> MapGenerationParams:
+	return _writer.default_params(MIN_ALLIANCES)
+
+
+## Take `a_scenario`'s map out of it, unfreed, or null when it has none.
+static func detach_map(a_scenario: Node) -> Map:
+	var held: Map = map_of(a_scenario)
 	if held != null:
 		a_scenario.remove_child(held)
-		held.queue_free()
-	GeneratedMapWriter.adopt(a_scenario, built)
-	EditorInterface.mark_scene_as_unsaved()
-	EditorInterface.get_selection().clear()
-	EditorInterface.get_selection().add_node(built)
+	return held
+
+
+## Hand `a_built` to `a_scenario` as its map, leaving the scene unsaved with the map selected.
+func install(a_scenario: Node, a_built: Map) -> void:
+	GeneratedMapWriter.adopt(a_scenario, a_built)
+	if Engine.is_editor_hint():
+		EditorInterface.mark_scene_as_unsaved()
+		EditorInterface.get_selection().clear()
+		EditorInterface.get_selection().add_node(a_built)
 
 
 func _reroll() -> void:
@@ -342,7 +431,7 @@ func _open_scenario() -> Node:
 	return root if root is Scenario else null
 
 
-static func _map_of(a_scenario: Node) -> Map:
+static func map_of(a_scenario: Node) -> Map:
 	for child: Node in a_scenario.get_children():
 		if child is Map:
 			return child as Map
@@ -361,6 +450,11 @@ static func _terrain_path_for(a_scenario: Node) -> String:
 ## The dialog is made on first use: an EditorFileDialog exists only inside the editor, and
 ## building it with the dock would fail wherever the dock is built outside one.
 func _ask_save_path() -> void:
+	ask_save_path(_save_name)
+
+
+## Ask where to save the open Scenario's map, offering `a_default_name`.
+func ask_save_path(a_default_name: String) -> void:
 	if _save_dialog == null:
 		_save_dialog = EditorFileDialog.new()
 		_save_dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
@@ -368,26 +462,27 @@ func _ask_save_path() -> void:
 		_save_dialog.file_selected.connect(_save_to)
 		add_child(_save_dialog)
 	_save_dialog.current_dir = SAVE_DIR
-	_save_dialog.current_file = DEFAULT_MAP_NAME % _map.generation_seed
+	_save_dialog.current_file = a_default_name
 	_save_dialog.popup_file_dialog()
 
 
 ## Write the open Scenario's map — as the author has it, hand edits included — to `a_path`,
 ## with its terrain beside it.
 func _save_to(a_path: String) -> void:
-	var scenario: Node = _open_scenario()
-	var held: Map = _map_of(scenario) if scenario != null else null
+	var scenario: Node = scenario_source.call()
+	var held: Map = map_of(scenario) if scenario != null else null
 	if held == null:
 		_report.text = NO_SCENARIO_MESSAGE
 		return
 	# Duplicated first: the scene still refers to the terrain written beside it, and a save
 	# takes the resource's path over.
 	held.terrain_data = held.terrain_data.duplicate() as TerrainData
-	if ResourceSaver.save(held.terrain_data, a_path.get_basename() + TERRAIN_SUFFIX) != OK \
-			or GeneratedMapWriter.pack(held, a_path) != OK:
+	if (
+		ResourceSaver.save(held.terrain_data, a_path.get_basename() + TERRAIN_SUFFIX) != OK
+		or GeneratedMapWriter.pack(held, a_path) != OK
+	):
 		push_error("Map Generator: could not write %s" % a_path)
 		return
 	EditorInterface.get_resource_filesystem().scan()
-
 
 #endregion

@@ -331,7 +331,7 @@ floor of a bowl at its own height) or when it would overlap a body that already 
 map indexes cells to bodies one-to-one, and two bodies claiming a cell is not expressible.
 
 The map generator places ponds too, writing each as a `WaterBody` with the same authored values
-(a seed cell and a level), charged by its size — see [map-generation.md](map-generation.md).
+(a seed cell and a level), charged by its size — see [map-generation.md](map-generation.md). PLANNED — so will the image importer, from painted water: [map-from-image.md](map-from-image.md) §Water.
 
 ---
 

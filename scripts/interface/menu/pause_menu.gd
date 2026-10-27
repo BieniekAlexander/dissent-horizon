@@ -2,7 +2,11 @@ class_name PauseMenu
 extends CanvasLayer
 
 ## The in-scenario pause screen. `show_pause_menu` (Escape) raises it, the same key drops it,
-## and while it is up the simulation is held. It offers the way out of a running scenario:
+## and while it is up the simulation is held. Three tabs (Alex, 2026-10-26): Briefing, the
+## objectives so far with their details (BriefingObjectivesView; hidden in a scenario without
+## objectives); How to Play, the tutorial library with the notes this scenario has shown
+## highlighted (HowToPlayView); and Configuration, the volume. Below them is the way out of a
+## running scenario:
 ## back to the title screen, through SceneManager — the same call the victory dialog's return
 ## button makes — saving the match and loading a saved one (SavesPanel), and, while the debug
 ## view is up, the match summary read from the match's event
@@ -15,7 +19,7 @@ extends CanvasLayer
 ## ── On the pause ──
 ##
 ## Taken as a SimulationClock hold (REASON_PAUSE_MENU), not as a direct write to
-## SceneTree.paused, so it COMPOSES with holds a scripted dialog or the help book may already
+## SceneTree.paused, so it COMPOSES with holds a scripted dialog or the briefing view may already
 ## have out: closing this menu resumes the world only if nothing else still wants it stopped.
 ## A direct write would have let closing the pause menu resume a world that a victory dialog
 ## was deliberately holding.
@@ -30,7 +34,7 @@ extends CanvasLayer
 ##
 ## The rest of the HUD stays live underneath, because RTSController is PROCESS_MODE_ALWAYS
 ## and the hold only suppresses _physics_process. So the player can still pan the camera and
-## queue orders behind this menu, exactly as they can behind the help book. That is the
+## queue orders behind this menu, exactly as they can behind the briefing view. That is the
 ## existing meaning of "paused" in this project (see SimulationClock), not an oversight — but
 ## it does mean this is a pause menu, not a modal.
 
@@ -46,13 +50,25 @@ const ACTION: StringName = &"show_pause_menu"
 const LAYER: int = 20
 #endregion
 
+## The tabs, in the order they appear.
+enum Tab { BRIEFING, HOW_TO_PLAY, CONFIGURATION }
+
+## Each tab's title, by Tab.
+const TAB_TITLES: Array[String] = ["Briefing", "How to Play", "Configuration"]
+
 #region Properties
 @onready var _return_button: Button = %ReturnButton
+@onready var _tabs: TabContainer = %Tabs
+@onready var _objectives: BriefingObjectivesView = %Objectives
+@onready var _how_to_play: HowToPlayView = %HowToPlay
 @onready var _volume_slider: HSlider = %VolumeSlider
 @onready var _match_summary: MatchSummaryView = %MatchSummary
 
 ## The scenario's clock, supplied by Scenario.bind. Null in a scene with no trigger manager.
 var _clock: SimulationClock = null
+## The scenario's trigger manager: its objectives and the tutorial notes it has shown. Null
+## outside a scenario.
+var _manager: ScenarioTriggerManager = null
 ## The match's event log, supplied by Scenario. Null outside a scenario: no summary is offered.
 var _match_log: MatchLog = null
 
@@ -75,6 +91,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group(GROUP)
 	visible = false
+	for tab: int in TAB_TITLES.size():
+		_tabs.set_tab_title(tab, TAB_TITLES[tab])
 	_return_button.pressed.connect(return_to_main_menu)
 	# Reads back whatever the bus is already at, so re-opening this menu — or a fresh one in
 	# the next scenario — picks up wherever the player last left it. AudioServer is a
@@ -105,6 +123,8 @@ func _exit_tree() -> void:
 ## Give the menu the scenario's clock. Called by Scenario when it builds the menu; idempotent.
 func bind(a_manager: ScenarioTriggerManager) -> void:
 	_clock = a_manager.simulation_clock
+	_manager = a_manager
+	_objectives.bind(a_manager)
 	if saves_panel == null and a_manager.scenario != null:
 		saves_panel = SavesPanel.new()
 		saves_panel.name = "SavesPanel"
@@ -123,6 +143,11 @@ func is_open() -> bool:
 	return _open
 
 
+## The tab on screen.
+func current_tab() -> Tab:
+	return _tabs.current_tab as Tab
+
+
 func toggle() -> void:
 	if _open:
 		close()
@@ -130,7 +155,19 @@ func toggle() -> void:
 		open()
 
 
+## Open on the Briefing in a scenario with objectives, on How to Play otherwise.
 func open() -> void:
+	open_on(Tab.BRIEFING if _objectives.has_objectives() else Tab.HOW_TO_PLAY)
+
+
+## Open on `a_tab` — the corner button's way in (ScenarioDialogView).
+func open_on(a_tab: Tab) -> void:
+	_tabs.set_tab_hidden(Tab.BRIEFING, not _objectives.has_objectives())
+	if _manager != null:
+		_how_to_play.show_notes_shown(_manager.tutorial_notes_shown)
+	if a_tab == Tab.BRIEFING and not _objectives.has_objectives():
+		a_tab = Tab.HOW_TO_PLAY
+	_tabs.current_tab = a_tab
 	if _open:
 		return
 	_open = true
@@ -144,7 +181,7 @@ func open() -> void:
 	if saves_panel != null:
 		saves_panel.refresh()
 	# So the menu is operable from the keyboard the moment it appears.
-	_return_button.grab_focus()
+	_tabs.get_tab_bar().grab_focus()
 
 
 func close() -> void:

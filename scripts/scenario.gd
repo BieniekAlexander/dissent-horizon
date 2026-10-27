@@ -296,6 +296,7 @@ func _ready() -> void:
 	_center_player_camera_on_starting_entities()
 
 	var event_manager := _ensure_trigger_manager()
+	_hold_until_navmesh_built(event_manager)
 	event_manager.message_requested.connect(_on_scenario_message)
 	event_manager.game_over.connect(_on_game_over)
 	event_manager.scenario_completed.connect(_on_scenario_completed)
@@ -1082,6 +1083,20 @@ func _is_omniscient(a_commander: Commander) -> bool:
 ## otherwise the bots' (and player's) sanctions would have nowhere to run and
 ## silently no-op. Idempotent: returns the existing node when the scene has one.
 ## This scenario's trigger host, or null before _ready made it.
+## Count no tick until the navmesh's first build. That build is deferred, so how many physics
+## frames run before it depends on how the scene entered the tree (a menu launch, a save load, a
+## replay), and everything armed on NavManager.navmesh_ready, every scripted trigger among it,
+## would land on a different tick each way: a save's recorded dialog answers would then never
+## meet their dialogs. gdd/systems/commands/saved-games.md §Loading.
+func _hold_until_navmesh_built(a_manager: ScenarioTriggerManager) -> void:
+	var nav: NavManager = map.nav_manager
+	var clock: SimulationClock = a_manager.simulation_clock
+	if nav == null or clock == null or nav.has_built():
+		return
+	clock.hold(SimulationClock.REASON_BOOT)
+	nav.first_built.connect(clock.release.bind(SimulationClock.REASON_BOOT), CONNECT_ONE_SHOT)
+
+
 func trigger_manager() -> ScenarioTriggerManager:
 	return get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
 
@@ -1116,9 +1131,6 @@ func _create_scenario_hud(a_event_manager: ScenarioTriggerManager) -> void:
 	add_child(dialog_view)
 	dialog_view.set_owner(self)
 	dialog_view.bind(a_event_manager)
-	# The help book is authored per scenario (a HelpBook child listing DialogPage scenes).
-	# A scenario without one simply has no help button.
-	dialog_view.bind_help_book(get_node_or_null("HelpBook") as HelpBook)
 
 	# The elapsed-time readout: here and not in the player rig, so a spectator sees it too.
 	var timer_layer := CanvasLayer.new()

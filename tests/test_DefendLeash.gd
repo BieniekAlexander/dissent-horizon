@@ -122,3 +122,10 @@ func test_an_ordinary_aggro_attack_is_still_leashed_to_its_actor() -> void:
 	assert_true(attack._target_within_leash(actor), "point blank is in range")
 	target.global_position = Vector3(200.0, 0.0, 0.0)
 	assert_false(attack._target_within_leash(actor), "and a fleeing target is let go")
+
+
+func test_reaching_the_post_does_not_end_the_order() -> void:
+	# A defender walking back to its post after an engagement arrives mid-tick; an order that
+	# ended on arrival was dropped there and the unit stood idle with nothing to do.
+	var defend := Defend.new(CommandMessage.new(null, null, null, Vector3.ZERO))
+	assert_false(defend.ends_on_arrival())

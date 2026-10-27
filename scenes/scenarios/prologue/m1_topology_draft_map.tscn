@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/maps/map.gd" id="1_map"]
+[ext_resource type="Resource" path="res://resources/terrain/prologue_m1_draft_terrain.tres" id="2_data"]
+[ext_resource type="ArrayMesh" path="res://resources/terrain/prologue_m1_draft_terrain_surface.res" id="3_mesh"]
+[ext_resource type="Script" path="res://scripts/maps/terrain/terrain_surface.gd" id="4_surface"]
+[ext_resource type="Shader" path="res://scripts/rendering/shaders/terrain_surface.gdshader" id="5_shader"]
+[ext_resource type="Script" path="res://scripts/maps/terrain/water_body.gd" id="6_water"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_1"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
+render_priority = 0
+shader = ExtResource("5_shader")
+
+[node name="Map" type="Node3D"]
+script = ExtResource("1_map")
+terrain_data = ExtResource("2_data")
+terrain_source_mesh = ExtResource("3_mesh")
+
+[node name="NavigationRegion" type="NavigationRegion3D" parent="." groups=["navigation_mesh_source_group"]]
+navigation_mesh = SubResource("NavigationMesh_1")
+
+[node name="Body" type="StaticBody3D" parent="NavigationRegion"]
+collision_layer = 128
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="NavigationRegion/Body"]
+
+[node name="TerrainSurface" type="MeshInstance3D" parent="NavigationRegion/Body"]
+script = ExtResource("4_surface")
+material = SubResource("ShaderMaterial_1")
+
+[node name="Water1" type="Node3D" parent="."]
+script = ExtResource("6_water")
+level = -0.3
+seed_cell = Vector2i(177, 69)
+
+[node name="Water2" type="Node3D" parent="."]
+script = ExtResource("6_water")
+level = -0.3
+seed_cell = Vector2i(40, 199)
+
+[node name="Water3" type="Node3D" parent="."]
+script = ExtResource("6_water")
+level = -0.3
+seed_cell = Vector2i(120, 267)

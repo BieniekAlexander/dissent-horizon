@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="Attacking" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "Attacking"
+body = "With units selected, {{ command_issue }} an enemy to attack it. Units and structures alike: your units close to their weapons' range and keep firing until it is destroyed."
+acknowledge_text = "Got it"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

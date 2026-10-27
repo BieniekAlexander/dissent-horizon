@@ -13,7 +13,7 @@ the trigger system rather than beside it, so composition, region scoping and cha
 | [triggers-and-events.md](triggers-and-events.md) | the three ways an event runs, unconditional triggers, prerequisites, wave groups |
 | [conditions-and-regions.md](conditions-and-regions.md) | condition lifetime across sessions, and region shape nodes |
 | [objectives-and-completion.md](objectives-and-completion.md) | objective scope, chains, scenario completion, elimination |
-| [dialogs-and-pause.md](dialogs-and-pause.md) | `SimulationClock` holds, dialog page scenes, input prompts, the help book |
+| [dialogs-and-pause.md](dialogs-and-pause.md) | `SimulationClock` holds, dialog page scenes, input prompts, the pause menu's Briefing and How to Play |
 | [highlights-and-fog-reveal.md](highlights-and-fog-reveal.md) | world and minimap highlights, and opening the fog |
 | [tactics.md](tactics.md) | `ScenarioTactic`/`TacticRule`: ongoing behaviour for one cluster |
 | [starting-formations.md](starting-formations.md) | where a `Skirmish` deploys a faction's opening force, and how it is arranged |

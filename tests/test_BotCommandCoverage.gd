@@ -85,6 +85,11 @@ const NOT_THE_BOTS: Dictionary = {
 		"a called-in aircraft's transit leg, flown by its Sortie component. Nothing orders"
 		+ " it; a bot's gunship flies it exactly as a player's does"
 	),
+	"LeaveMap":
+	(
+		"a scripted transport going home off the map, issued by a mission's command chain."
+		+ " No commander keeps pieces by sending them off the board"
+	),
 }
 
 ## KNOWN GAPS — things a commander plausibly wants and this bot cannot do. Enumerated

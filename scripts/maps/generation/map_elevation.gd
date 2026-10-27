@@ -4,8 +4,8 @@ extends RefCounted
 
 ## Pass 6 of gdd/systems/terrain-and-navigation/map-generation.md: discrete ground levels.
 ## Every start and feature — a node of pass 4's FeatureGraph — gets a height, and each cell takes
-## the height of the region it lies in. A height is a TERRACE level, and a terrace step is under
-## MAX_SLOPE_DIFF, so it is walked over.
+## the height of the region it lies in. A height is a TERRACE level, and a terrace step is graded
+## across the free ground beside it into a slope a walker climbs (Alex, 2026-10-22).
 ##
 ## - **Regions a walker can cross between differ by at most one terrace** (Alex, 2026-10-02): a
 ##   larger step would be graded into a long slope. **Elevation may not divide ground the
@@ -21,9 +21,11 @@ extends RefCounted
 
 #region Constants
 ## Cell priorities when a corner is shared by cells of different levels: the highest wins, so a
-## reserved zone keeps its footprints level and the neighbouring free ground takes the step.
-const _FREE: int = 1
-const _BARRIER: int = 2
+## reserved zone keeps its footprints level and the neighbouring free ground takes the step, and
+## free ground keeps its own height against a barrier, whose impassable cells take the step
+## instead of a fringe of steep ground beside them.
+const _BARRIER: int = 1
+const _FREE: int = 2
 const _OWNED: int = 3
 ## Ramp attempts per stranded stretch of ground before the generation fails.
 const _REPAIRS: int = 32
@@ -521,7 +523,8 @@ func _region_of(a_cell: Vector2i) -> int:
 	return _owner.get(a_cell, _nearest[a_cell.y * _width + a_cell.x])
 
 
-## Terraces are walked over, so regions a walker crosses between may differ by at most one step.
+## A terrace step is graded into a slope, so regions a walker crosses between may differ by at
+## most one step.
 ## Across an uncarved cut a barrier already divides them, and any gap is its to carry (Alex,
 ## 2026-09-30). The levels are solved to this; a re-level breaks it near the groups it moves, and
 ## this restores it. Relaxation: pull each group to within one of its walkable neighbours,
@@ -559,9 +562,13 @@ func node_height(a_node: int) -> float:
 	return level_of_node[a_node] * _params.elevation_step
 
 
-## Whether the step between two nodes is a cliff rather than something a walker crosses.
+## Whether the step between two nodes is a cliff rather than something a walker crosses: more
+## than one terrace, since a single terrace is graded into a slope however tall the step.
 func is_step(a_node: int, b_node: int) -> bool:
-	return absf(node_height(a_node) - node_height(b_node)) > TerrainGrid.MAX_SLOPE_DIFF
+	return (
+		absi(level_of_node[a_node] - level_of_node[b_node])
+		>= MapGenerationParams.MIN_CLIFF_DROP_TERRACES
+	)
 
 
 func _find_plateaus() -> void:
@@ -734,12 +741,23 @@ func _sweep_grade() -> void:
 		fixed[at] = 1 if _priority[at] != _FREE or in_play[at] == 0 else 0
 		ignored[at] = 1 if _priority[at] == _BARRIER or in_play[at] == 0 else 0
 	var active: PackedInt32Array = _grading_frontier(fixed)
-	var last: int = active.size() - 1
+	_relax_grade(active, ignored, true)
+	_relax_grade(active, ignored, false)
+
+
+## One direction of the grade, swept until nothing moves. Raising first lifts low ground to
+## within a grade of every higher neighbour, which runs an even slope down from the upper level;
+## lowering then pulls ground down to within a grade of a lower neighbour only where raising
+## could not, against held ground below it. Both at once, a cell squeezed between the two took
+## their midpoint, and both cells either side of a terrace step took it together: a flat landing
+## halfway up every slope.
+func _relax_grade(a_active: PackedInt32Array, a_ignored: PackedByteArray, a_raise: bool) -> void:
+	var last: int = a_active.size() - 1
 	for _sweep: int in _GRADE_SWEEPS:
 		var moved: bool = false
 		for pass_index: int in 2:
-			for k: int in active.size():
-				var at: int = active[k] if pass_index == 0 else active[last - k]
+			for k: int in a_active.size():
+				var at: int = a_active[k] if pass_index == 0 else a_active[last - k]
 				var x: int = at % _width
 				var z: int = at / _width
 				var low: float = INF
@@ -747,20 +765,16 @@ func _sweep_grade() -> void:
 				for nz: int in range(maxi(z - 1, 0), mini(z + 2, _depth)):
 					for nx: int in range(maxi(x - 1, 0), mini(x + 2, _width)):
 						var near: int = nz * _width + nx
-						if ignored[near] == 1:
+						if a_ignored[near] == 1:
 							continue
 						low = minf(low, _height[near])
 						high = maxf(high, _height[near])
 				if is_inf(low):
 					continue  # walled in by barriers: nothing to grade against
-				var floor_height: float = high - _GRADE_PER_CELL
-				var ceiling: float = low + _GRADE_PER_CELL
-				# Squeezed between a high neighbour and a low one: sit between them and let the
-				# next sweep pull both ends toward this.
 				var graded: float = (
-					(low + high) * 0.5
-					if floor_height > ceiling
-					else clampf(_height[at], floor_height, ceiling)
+					maxf(_height[at], high - _GRADE_PER_CELL)
+					if a_raise
+					else minf(_height[at], low + _GRADE_PER_CELL)
 				)
 				if not is_equal_approx(graded, _height[at]):
 					_height[at] = graded

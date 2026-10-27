@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://b60p17fa5hvfc" path="res://scripts/interface/hud/dialog_page.gd" id="1_page"]
+
+[node name="CommandCard" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_page")
+title = "The command card"
+body = "The command card at the bottom left shows the orders your selected units can take. Click a button, or press its key; hover over a button to see what it does and which key it is."
+acknowledge_text = "Got it"
+metadata/_custom_type_script = "uid://b60p17fa5hvfc"

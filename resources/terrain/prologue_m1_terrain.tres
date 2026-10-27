@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="TerrainData" format=3]
+[gd_resource type="Resource" script_class="TerrainData" format=3 uid="uid://djj41l0avsn3c"]
 
-[ext_resource type="Resource" path="res://resources/terrain/tile_catalog.tres" id="1_hmb0g"]
-[ext_resource type="Script" path="res://scripts/maps/terrain/terrain_data.gd" id="2_mn7ff"]
+[ext_resource type="Resource" uid="uid://benq5jyol51xy" path="res://resources/terrain/tile_catalog.tres" id="1_hmb0g"]
+[ext_resource type="Script" uid="uid://cjrhe6bgh6ja8" path="res://scripts/maps/terrain/terrain_data.gd" id="2_mn7ff"]
 
 [resource]
 script = ExtResource("2_mn7ff")

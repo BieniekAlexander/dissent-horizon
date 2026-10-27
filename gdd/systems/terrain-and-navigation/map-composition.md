@@ -74,6 +74,10 @@ The two obstructions look alike from above and behave differently, deliberately:
 - **Deep water obstructs completely.** A cell submerged past `WADE_DEPTH` is impassable, so no
   navmesh is generated under a lake at all and the disjoint-island case never arises there.
 
+PLANNED — a map drawn as an image gets no walkable chasm floor (Alex, 2026-10-22: troops could
+be flown onto it): its chasms are dry with a floor broken too steep to stand on —
+[map-from-image](map-from-image.md) §Chasms.
+
 A ground order into a disjoint component is left exactly as clicked and the navigation agent walks
 as close as it can — see [navigation-and-pathing.md](navigation-and-pathing.md) §An unreachable
 destination is left alone. Correcting the destination would draw the player a map of where the

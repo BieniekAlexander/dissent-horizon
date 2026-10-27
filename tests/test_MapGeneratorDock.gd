@@ -150,3 +150,192 @@ func test_the_last_pass_is_chosen_from_named_passes() -> void:
 	menu.item_selected.emit(menu.get_item_index(MapGenerationParams.Pass.TOPOLOGY))
 	assert_eq(_dock._params.last_pass, MapGenerationParams.Pass.TOPOLOGY)
 	assert_string_contains(_dock._warnings.text, "topology")
+
+
+#region Image mode
+## The image tab, driven against a stand-in Scenario: a headless run has no edited scene, so the
+## dock's scenario_source is pointed at one built here. The drawing is a synthetic flat diamond
+## written as an OpenRaster file, so no shipped content is read but the piece facts.
+const _IMAGE_PATH: String = "user://test_dock_image.ora"
+const _IMAGE_PLAY := Vector2i(10, 10)
+const _EXPORT_PATH: String = "user://test_dock_export.ora"
+## A docked panel at about its narrowest in the editor's default layout.
+const _DOCKED_PANEL_PX: float = 300.0
+## A readout picture and the canvas it is drawn on: ten screen pixels a cell.
+const _READOUT_CELLS: int = 10
+const _READOUT_PX: float = 100.0
+
+
+## Kept OUT of the tree: a Map entering one outside the editor builds its runtime navmesh, whose
+## deferred rebuilds would outlive the test and fail whichever test runs next.
+func _image_scenario() -> Node3D:
+	var scenario: Node3D = autofree(Node3D.new())
+	scenario.name = "Scenario"
+	_dock.scenario_source = func() -> Node: return scenario
+	return scenario
+
+
+## A flat level-2 diamond with one deep pond, or with a stray colour when `a_broken`, and a
+## shelter at `a_shelter` (its footprint's origin) when that is not negative.
+func _write_drawing(a_broken: bool = false, a_shelter := Vector2i(-1, -1)) -> void:
+	var probe := TerrainData.new()
+	probe.play_size = _IMAGE_PLAY
+	var side: int = probe.grid_width()
+	var terrain := Image.create_empty(side, side, false, Image.FORMAT_RGBA8)
+	var water := Image.create_empty(side, side, false, Image.FORMAT_RGBA8)
+	for z: int in side:
+		for x: int in side:
+			var is_in: bool = probe.is_cell_in_play(Vector2i(x, z))
+			terrain.set_pixel(x, z, Color8(0xC8, 0xCE, 0x8C) if is_in else Color8(0x3C, 0x3C, 0x46))
+			if absi(x - side / 2) <= 2 and absi(z - side / 2) <= 2:
+				water.set_pixel(x, z, Color8(0x7C, 0x8B, 0xC8))
+	if a_broken:
+		terrain.set_pixel(side / 2, side / 2, Color8(1, 2, 3))
+	var named: Array[Dictionary] = [
+		{name = "water", image = water}, {name = "terrain", image = terrain}
+	]
+	if a_shelter.x >= 0:
+		var structures := Image.create_empty(side, side, false, Image.FORMAT_RGBA8)
+		var footprint: Vector2i = _dock.piece_facts().shelter_piece.footprint
+		structures.fill_rect(Rect2i(a_shelter, footprint), Color8(0xFF, 0x00, 0xFF))
+		named.insert(0, {name = "structures", image = structures})
+	assert_eq(OpenRaster.write(_IMAGE_PATH, Vector2i(side, side), named), OK)
+
+
+## Nothing on the image tab may widen it past a docked panel: a row of buttons once did, and
+## pushed the Browse button off the panel's edge, leaving the path a bare text field.
+func test_the_image_tab_fits_a_docked_panel() -> void:
+	var width: float = _dock._image_mode.get_combined_minimum_size().x
+	assert_lte(width, _DOCKED_PANEL_PX, "the image tab's narrowest width")
+
+
+## The readout draws a cell as a whole number of screen pixels and names the cell under the
+## pointer: on a 100-pixel canvas a 10-cell picture is ten pixels a cell.
+func test_the_readout_names_the_cell_under_the_pointer() -> void:
+	var readout: Node = _dock._image_mode._readout
+	var image := Image.create_empty(_READOUT_CELLS, _READOUT_CELLS, false, Image.FORMAT_RGBA8)
+	readout.show_image(image, func(cell: Vector2i) -> String: return "cell %s" % cell)
+	var canvas: Control = readout._canvas
+	canvas.size = Vector2.ONE * _READOUT_PX
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2(55.0, 25.0)
+	canvas._gui_input(motion)
+	assert_eq(readout._info.text, "cell (5, 2)")
+	assert_eq(canvas.drawn_rect(), Rect2(Vector2.ZERO, Vector2.ONE * _READOUT_PX))
+
+
+func test_the_readout_scrolls_with_the_palette() -> void:
+	var readout: Node = _dock._image_mode._readout
+	var palette: Node = _dock._image_mode.find_child("Palette", true, false)
+	assert_eq(readout.get_parent(), palette.get_parent(), "one column, one scroll")
+	assert_true(readout.get_parent().get_parent() is ScrollContainer)
+
+
+func test_the_image_tab_lists_every_palette_colour() -> void:
+	var view: VBoxContainer = _dock._image_mode.palette_view()
+	var swatches: int = view.find_children("*", "ColorRect", true, false).size()
+	assert_eq(swatches, MapImagePalette.ENTRIES.size())
+	var texts: Array[Node] = view.find_children("*", "RichTextLabel", true, false)
+	assert_eq(texts.size(), swatches, "one text per colour")
+	assert_true(
+		texts.all(func(text: RichTextLabel) -> bool: return text.selection_enabled),
+		"every colour's text can be selected and copied"
+	)
+	view.free()
+
+
+func test_importing_a_drawing_installs_a_tagged_map() -> void:
+	var scenario: Node3D = _image_scenario()
+	_write_drawing()
+	_dock._image_mode.set_drawing_path(_IMAGE_PATH)
+	_dock._image_mode.import_drawing()
+	var map: Map = _dock.map_of(scenario)
+	assert_not_null(map, _dock._image_mode.report_text())
+	assert_eq(map.terrain_data.play_size, _IMAGE_PLAY)
+	var waters: Array = map.get_children().filter(func(n: Node) -> bool: return n is WaterBody)
+	assert_eq(waters.size(), 1, _dock._image_mode.report_text())
+	assert_true(MapImageReimport.is_imported(waters[0]))
+	assert_false(MapImageReimport.is_imported(map.get_node("NavigationRegion")))
+
+
+func test_a_failed_import_leaves_the_scenario_alone() -> void:
+	var scenario: Node3D = _image_scenario()
+	_write_drawing(true)
+	_dock._image_mode.set_drawing_path(_IMAGE_PATH)
+	_dock._image_mode.import_drawing()
+	assert_null(_dock.map_of(scenario))
+	assert_string_contains(_dock._image_mode.report_text(), "FAILED")
+	assert_string_contains(_dock._image_mode.report_text(), "#010203")
+	# The readout names the issue under the pointer: here, the stray pixel at the middle.
+	var result: MapImageImporter = _dock._image_mode.last_import
+	# Refused for its colour, before the grid was fitted: the readout is the drawing itself.
+	var middle: Vector2i = result.layers.size / 2
+	assert_not_null(_dock._image_mode._readout.texture(), "a refused drawing still has a readout")
+	assert_string_contains(_dock._image_mode._describe_import(result, middle), "[1, red]")
+
+
+func test_a_reimport_keeps_hand_placed_nodes_and_drops_imported_ones() -> void:
+	var scenario: Node3D = _image_scenario()
+	_write_drawing()
+	_dock._image_mode.set_drawing_path(_IMAGE_PATH)
+	_dock._image_mode.import_drawing()
+	var first: Map = _dock.map_of(scenario)
+	var note := Node3D.new()
+	note.name = "AuthorsNote"
+	first.add_child(note)
+	note.owner = scenario
+	# A second import replaces a map, so it asks first; confirm it as the author would.
+	_dock._image_mode.import_drawing()
+	_dock._on_replace_confirmed.call()
+	var second: Map = _dock.map_of(scenario)
+	assert_ne(second, first)
+	assert_eq(second.get_node_or_null("AuthorsNote"), note, "a hand-placed node moves across")
+	assert_eq(note.owner, scenario, "and is still saved with the scene")
+	var waters: Array = second.get_children().filter(func(n: Node) -> bool: return n is WaterBody)
+	assert_eq(waters.size(), 1, "the old import's water is replaced, not doubled")
+
+
+func test_an_imported_map_exports_to_a_drawing_that_imports_again() -> void:
+	_image_scenario()
+	_write_drawing()
+	_dock._image_mode.set_drawing_path(_IMAGE_PATH)
+	_dock._image_mode.import_drawing()
+	assert_true(_dock._image_mode.prepare_export(), _dock._image_mode.report_text())
+	_dock._image_mode.export_to(_EXPORT_PATH)
+	assert_string_contains(_dock._image_mode.report_text(), "sculpting does not survive")
+	assert_not_null(
+		_dock._image_mode._readout.texture(), "the export shows its passability readout"
+	)
+	var reimported: MapImageImporter = MapImageImporter.import_path(
+		_EXPORT_PATH, _dock._image_mode.params()
+	)
+	assert_true(reimported.is_valid(), "\n".join(reimported.errors))
+	assert_eq(reimported.map.waters.size(), 1)
+
+
+## The shelter is read back off the placed piece — its position and turn — onto the cells it
+## was drawn on.
+func test_an_imported_shelter_exports_onto_its_drawn_cells() -> void:
+	_image_scenario()
+	var origin := Vector2i(5, 9)
+	_write_drawing(false, origin)
+	_dock._image_mode.set_drawing_path(_IMAGE_PATH)
+	_dock._image_mode.import_drawing()
+	assert_true(_dock._image_mode.prepare_export(), _dock._image_mode.report_text())
+	var exported: MapImageExporter = _dock._image_mode._pending_export
+	var structures: Image = exported.images[MapImagePalette.Layer.STRUCTURES]
+	var drawn := Rect2i(origin, _dock.piece_facts().shelter_piece.footprint)
+	for z: int in exported.size.y:
+		for x: int in exported.size.x:
+			assert_eq(
+				structures.get_pixel(x, z).a8 > 0,
+				drawn.has_point(Vector2i(x, z)),
+				"shelter cell %s" % Vector2i(x, z)
+			)
+
+
+func test_exporting_with_no_map_says_so_and_writes_nothing() -> void:
+	_image_scenario()
+	assert_false(_dock._image_mode.prepare_export())
+	assert_eq(_dock._image_mode.report_text(), _dock._image_mode.NO_MAP_MESSAGE)
+#endregion

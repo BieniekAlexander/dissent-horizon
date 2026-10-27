@@ -31,6 +31,12 @@ static func meets_precondition(
 #endregion
 
 
+## Acts where the host already is, so the move queued before it stops at its goal rather than
+## carrying a transport on past it (CommandReceiver._arrival_for), as before a Land.
+func continues_movement() -> bool:
+	return false
+
+
 #region State updates
 ## Structures don't move.
 func should_move(_a_actor: Actor) -> bool:

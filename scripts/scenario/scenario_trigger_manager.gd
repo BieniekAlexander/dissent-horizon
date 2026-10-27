@@ -22,6 +22,9 @@ signal game_over(won: bool)
 ## Emitted whenever any objective trigger changes state. The cue for the objective HUD to
 ## repaint; carries nothing because the checklist is rebuilt from objective_triggers().
 signal objectives_changed
+
+## A tutorial note was shown for the first time this session (note_tutorial_shown).
+signal tutorial_note_shown(page: PackedScene)
 ## Emitted once, the moment every PRIMARY trigger in the scene has fired. A scenario with no
 ## primary objectives never emits this — "zero of zero done" is not a finished mission.
 signal scenario_completed
@@ -80,6 +83,11 @@ var reaction_source: Entity = null
 ## Every dialog raised and not yet resolved, by serial — how a recorded acknowledgement finds its
 ## dialog. Entries leave as their dialog is acknowledged.
 var _open_dialogs: Dictionary = {}
+
+## The tutorial notes shown this session, in the order first shown: How to Play highlights the
+## library's among them and lists the rest as the scenario's own. Simulation state, so a loaded
+## save rebuilds it by replaying the events that showed them.
+var tutorial_notes_shown: Array[PackedScene] = []
 var _next_dialog_serial: int = 1
 #endregion
 
@@ -115,6 +123,15 @@ func _ready() -> void:
 			global_triggers.append_array(chain.steps)
 		elif child is ScenarioTactic:
 			scenario_tactics.append(child)
+	# Sub-steps, at any depth, right after the trigger they belong to.
+	var with_sub_steps: Array[GlobalTrigger] = []
+	for trigger: GlobalTrigger in global_triggers:
+		with_sub_steps.append_array(_with_sub_steps(trigger))
+	global_triggers = with_sub_steps
+	# A sub-step starts switched off: only its trigger makes it current.
+	for trigger: GlobalTrigger in global_triggers:
+		if trigger.parent_trigger() != null:
+			trigger.enabled = false
 
 	# Watch every trigger's objective state, so the HUD repaints and completion is re-checked
 	# without anything polling. Connected for all of them rather than only the player-facing
@@ -124,6 +141,8 @@ func _ready() -> void:
 		# A trigger firing can satisfy someone else's prerequisites, which is what advances the
 		# objective DAG.
 		trigger.fired.connect(_arm_satisfied_triggers)
+		if trigger.parent_trigger() != null:
+			trigger.fired.connect(_on_sub_step_fired.bind(trigger))
 
 	# Conditions are Resources shared with the PREVIOUS run of this scenario, so clear their
 	# state before anything reads it.
@@ -166,6 +185,19 @@ func _reset_session_conditions() -> void:
 		tactic.reset_conditions()
 
 
+## Let every authored condition, armed or not, find what it watches while the world is still as
+## authored (Condition.prime) — before the starting events or any trigger can change it.
+func _prime_session_conditions() -> void:
+	for trigger: GlobalTrigger in global_triggers:
+		for condition: Condition in trigger.conditions:
+			if condition != null:
+				condition.prime(self)
+	for tactic: ScenarioTactic in scenario_tactics:
+		for rule: Node in tactic.get_children():
+			if rule is TacticRule and (rule as TacticRule).condition != null:
+				(rule as TacticRule).condition.prime(self)
+
+
 ## Wait for the navmesh to be built and synced, then arm every enabled trigger. NavManager
 ## builds the mesh via call_deferred and the NavigationServer syncs it on a later step, so
 ## the map isn't queryable during _ready — it announces readiness via NavManager.navmesh_ready
@@ -173,6 +205,7 @@ func _reset_session_conditions() -> void:
 func _arm_triggers_when_navmesh_ready() -> void:
 	if map != null and map.nav_manager != null and not map.nav_manager.is_ready():
 		await map.nav_manager.navmesh_ready
+	_prime_session_conditions()
 	run_starting_events()
 	_arm_triggers()
 	_arm_scenario_tactics()
@@ -210,11 +243,16 @@ func run_starting_events() -> void:
 ## change (Condition.state_changed) and the aggregate crosses into satisfied.
 func _arm_triggers() -> void:
 	for e: GlobalTrigger in global_triggers:
+		# A sub-step is armed by its trigger instead (on_trigger_watching).
+		if e.parent_trigger() != null:
+			continue
 		# One gate: a trigger is in the opening round unless something it depends on hasn't
 		# happened yet.
 		e.enabled = e.prerequisites_satisfied()
 		if e.enabled:
 			e.arm(self)
+		elif e.resolves_earlier:
+			e.watch_early(self)
 
 
 ## Arm every trigger whose prerequisites have just become satisfied. Connected to each
@@ -227,10 +265,125 @@ func _arm_satisfied_triggers() -> void:
 	for trigger: GlobalTrigger in global_triggers:
 		if trigger.enabled or trigger.has_fired:
 			continue
-		if not trigger.has_prerequisites():
+		if not trigger.has_prerequisites() or trigger.parent_trigger() != null:
 			continue
 		if trigger.prerequisites_satisfied():
 			trigger.set_active(true, self)
+
+
+#endregion
+
+
+#region Sub-steps and resolving earlier steps
+## `a_trigger` and its sub-steps at every depth, each right after its own trigger.
+static func _with_sub_steps(a_trigger: GlobalTrigger) -> Array[GlobalTrigger]:
+	var out: Array[GlobalTrigger] = [a_trigger]
+	for step: GlobalTrigger in a_trigger.sub_steps():
+		out.append_array(_with_sub_steps(step))
+	return out
+
+
+## A trigger has started watching: its sub-steps start too. The first not yet reached is current
+## (marked) while the trigger itself is; every other one watches unseen, so reaching it early
+## still counts.
+func on_trigger_watching(a_trigger: GlobalTrigger) -> void:
+	var is_current_given: bool = not a_trigger.enabled
+	for step: GlobalTrigger in a_trigger.sub_steps():
+		if step.has_fired:
+			continue
+		if not is_current_given:
+			is_current_given = true
+			if not step.enabled:
+				step.set_active(true, self)
+		else:
+			step.watch_early(self)
+
+
+## A sub-step was reached: the next one becomes current, or, after the last, its trigger
+## completes.
+func _on_sub_step_fired(a_step: GlobalTrigger) -> void:
+	var parent: GlobalTrigger = a_step.parent_trigger()
+	if parent == null or parent.has_fired:
+		return
+	var remaining: Array[GlobalTrigger] = parent.sub_steps().filter(
+		func(step: GlobalTrigger) -> bool: return not step.has_fired
+	)
+	if remaining.is_empty():
+		complete_trigger(parent)
+	elif parent.enabled and not remaining[0].enabled:
+		remaining[0].set_active(true, self)
+
+
+## Fire `a_trigger`, first completing whatever it resolves: the sub-steps before it, and with
+## `resolves_earlier` every ancestor not yet done. How a trigger fires when its conditions are
+## met.
+func complete_trigger(a_trigger: GlobalTrigger) -> void:
+	for earlier: GlobalTrigger in _resolved_by(a_trigger):
+		_force_complete(earlier)
+	# Fired whatever its history: a repeating or re-armed trigger fires again. Only an ancestor
+	# completed on its behalf is skipped once done.
+	a_trigger.fire(self)
+
+
+## Complete `a_trigger` as though it had been reached: every ancestor first, then its sub-steps
+## in order, then itself — all of their events run, in that order.
+func _force_complete(a_trigger: GlobalTrigger) -> void:
+	if a_trigger.has_fired:
+		return
+	for earlier: GlobalTrigger in _ancestors_of(a_trigger):
+		_force_complete(earlier)
+	for step: GlobalTrigger in a_trigger.sub_steps():
+		_force_complete(step)
+	if not a_trigger.has_fired:
+		a_trigger.fire(self)
+
+
+## What reaching `a_trigger` completes first: the sub-step before it, and its ancestors when it
+## (or, for its first sub-step, its trigger) resolves earlier steps.
+func _resolved_by(a_trigger: GlobalTrigger) -> Array[GlobalTrigger]:
+	var out: Array[GlobalTrigger] = []
+	if a_trigger.resolves_earlier:
+		out.append_array(_prerequisites_to_resolve(a_trigger))
+	var parent: GlobalTrigger = a_trigger.parent_trigger()
+	if parent == null:
+		return out
+	var siblings: Array[GlobalTrigger] = parent.sub_steps()
+	var index: int = siblings.find(a_trigger)
+	if index > 0:
+		out.append(siblings[index - 1])
+	elif parent.resolves_earlier:
+		out.append_array(_prerequisites_to_resolve(parent))
+	return out
+
+
+## Every ancestor one step up: the sub-step before it, or for a first sub-step its trigger's
+## prerequisites; and its own prerequisites.
+func _ancestors_of(a_trigger: GlobalTrigger) -> Array[GlobalTrigger]:
+	var out: Array[GlobalTrigger] = _prerequisites_to_resolve(a_trigger)
+	var parent: GlobalTrigger = a_trigger.parent_trigger()
+	if parent == null:
+		return out
+	var siblings: Array[GlobalTrigger] = parent.sub_steps()
+	var index: int = siblings.find(a_trigger)
+	if index > 0:
+		out.append(siblings[index - 1])
+	else:
+		out.append_array(_prerequisites_to_resolve(parent))
+	return out
+
+
+## The prerequisites completing `a_trigger` early takes with it: all of them under ALL_OF; under
+## ANY_OF none once one is done, else only the first, since any one route is enough.
+static func _prerequisites_to_resolve(a_trigger: GlobalTrigger) -> Array[GlobalTrigger]:
+	var live: Array[GlobalTrigger] = []
+	for prerequisite: GlobalTrigger in a_trigger.prerequisites:
+		if prerequisite != null:
+			live.append(prerequisite)
+	if a_trigger.prerequisite_mode == GlobalTrigger.PrerequisiteMode.ALL_OF or live.is_empty():
+		return live
+	if live.any(func(t: GlobalTrigger) -> bool: return t.has_fired):
+		return []
+	return [live[0]]
 
 
 #endregion
@@ -303,6 +456,15 @@ func mission_actuator() -> BotActuator:
 	if _mission_actuator == null:
 		_mission_actuator = BotActuator.new(map)
 	return _mission_actuator
+
+
+## Record that the tutorial note `a_page` was shown, once: a trigger that raises it again does not
+## list it twice.
+func note_tutorial_shown(a_page: PackedScene) -> void:
+	if a_page == null or tutorial_notes_shown.has(a_page):
+		return
+	tutorial_notes_shown.append(a_page)
+	tutorial_note_shown.emit(a_page)
 
 
 func get_commander(a_id: int) -> Commander:
@@ -416,6 +578,11 @@ func raise_dialog(a_dialog: ScenarioDialog) -> void:
 func is_playback() -> bool:
 	var scenario: Scenario = Scenario.of(self) if is_inside_tree() else null
 	return scenario != null and scenario.is_playback()
+
+
+## Whether any dialog raised is still waiting on the player.
+func has_open_dialog() -> bool:
+	return not _open_dialogs.is_empty()
 
 
 ## The open dialog numbered `a_serial`, or null once it is resolved.

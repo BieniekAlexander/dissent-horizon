@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synthesise the placeholder alert sounds into assets/audio/alerts/.
+"""Synthesise the placeholder alert sounds into assets/audio/alerts/, and the new-objective cue.
 
 These are stand-ins, not the game's sound design: plain sine tones with a short envelope, one
 per AlertCatalog.Tone, distinct enough to tell apart by ear. Generated rather than downloaded so
@@ -29,6 +29,10 @@ TONES = {
     # COMPLETE — a soft falling major third: "done". The generic completion, until purchases
     # have their own.
     "alert_complete": [(880.0, 0.00, 0.12), (698.5, 0.10, 0.22)],
+    # OBJECTIVE — a rising major arpeggio, longer than any alert: "a new task". ObjectiveView
+    # plays it when the checklist gains a row (gdd/systems/scenario-scripting/
+    # objectives-and-completion.md §A new objective is announced).
+    "objective_added": [(523.3, 0.00, 0.14), (659.3, 0.12, 0.14), (784.0, 0.24, 0.30)],
 }
 
 PEAK = 0.45  # of full scale; the bus sits at -6 dB and these sit under unit barks

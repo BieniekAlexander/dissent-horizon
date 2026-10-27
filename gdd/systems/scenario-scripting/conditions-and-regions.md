@@ -32,6 +32,8 @@ Every spatial condition scopes itself through `RegionAwareCondition`: a `region_
 
 **An unresolved region matches EVERYWHERE, it does not fail.** That is the silent misconfiguration this layer is most prone to, so `GlobalTrigger.arm()` calls `RegionAwareCondition.warn_about_missing_region()` and pushes a warning naming the trigger when (a) `region_shape_path` is set but doesn't resolve, or (b) the condition overrides `_region_is_required()` (i.e. `ConditionUnitsInRegion`) and no region is bound. An *optional* region left unset — `ConditionUnitCount` counting map-wide — is legitimate and stays quiet.
 
+**A carried unit is off the tree, so a plain count reads it as dead.** `ConditionUnitCount.should_count_carried` adds the units the commander's own pieces carry (a building it occupies, a transport), so "keep one Warlord alive" holds while the Warlord shelters; a captive in someone else's prison is not counted. It is ignored with a region, which a carried unit is not in.
+
 Prefer `ConditionUnitCount` (`AT_LEAST 1` + region) for "get a unit here". Reach for `ConditionUnitsInRegion` only when you need its `check` modes: `ALL_INSIDE`, or the falling edge `ANY_EXIT`. `ANY_INSIDE` on a one-shot trigger already means "when a unit first arrives", because `GlobalTrigger` fires on the rising edge of its aggregate.
 
 `EventHighlight` has two lifetimes:
@@ -61,6 +63,14 @@ objects, still holding the state they were left in:
 
 reset() is the existing per-fire hook a repeating trigger already uses and every stateful
 condition implements, so re-running it here is exactly "start with nothing carried over".
+
+**Priming.** Right after the reset, and once the placed pieces are in the world, the manager
+calls `Condition.prime` on every authored condition — armed or not — before any starting event
+or trigger runs. A condition that must FIND its subject does it there: `ConditionEntityKilled`
+resolves its entity by name while it certainly stands. Before 2026-10-21 it resolved on its first
+evaluation, so a trigger armed behind a prerequisite, whose entity died first, never found it and
+never fired (prologue mission 1's `SquadMovesOn` stalled when the prisons fell before the ambush
+was beaten).
 
 Deliberately NOT folded into GlobalTrigger.arm(): arm() also runs mid-session when an
 EventChainTrigger switches a trigger back on, and state accumulated up to that point (a

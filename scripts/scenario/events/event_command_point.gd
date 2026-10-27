@@ -15,11 +15,19 @@ extends EventCommand
 ## player", wherever the player's army stands by then. This node's position is then only where
 ## the search starts, and the fallback when that commander has no unit.
 ##
+## `evacuate` turns the host's garrison out where the chain has brought it (Evacuate), setting a
+## hovering transport down first: placed after a move, it makes "fly in and drop the squad
+## there". Its own position is not used either.
+##
+## `leave_map` flies the unit to THIS node's position, unsnapped, and removes it once it is off
+## the map (LeaveMap): place the node beyond the map edge, for a transport that goes home.
+##
 ## The editor marker (a clickable Sprite3D, so it can be dragged in the viewport) comes
 ## from EditorMarkerSprite3D via EventCommand.
 
 #region Properties
-@export_enum("move", "attack_move", "defend", "land") var command_type: String = "attack_move"
+@export_enum("move", "attack_move", "defend", "land", "evacuate", "leave_map")
+var command_type: String = "attack_move"
 ## A commander whose nearest unit the point moves to when the order is given; -1 for none.
 @export var near_commander_id: int = -1
 ## With `near_commander_id`: how far short of that unit the point stops, back toward this node —
@@ -34,6 +42,10 @@ func to_command(
 ) -> MoveCommand:
 	if command_type == "land":
 		return Land.new(CommandMessage.new(a_manager.map, null, null, global_position))
+	if command_type == "evacuate":
+		return Evacuate.new(CommandMessage.new(a_manager.map, null, null, global_position))
+	if command_type == "leave_map":
+		return LeaveMap.new(CommandMessage.new(a_manager.map, null, null, global_position))
 	var nav_map := a_manager.map.nav_region.get_navigation_map()
 	var dest := NavigationServer3D.map_get_closest_point(
 		nav_map, destination(a_manager) + a_post_offset

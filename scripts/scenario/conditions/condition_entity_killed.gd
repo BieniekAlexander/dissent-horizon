@@ -63,6 +63,12 @@ func _entity_is_alive() -> bool:
 
 
 #region Public API
+## Find the entity at session start, while it is certainly standing: a check first evaluated
+## after the entity died would find nothing and stay false forever.
+func prime(a_manager: ScenarioTriggerManager) -> void:
+	_resolve(a_manager)
+
+
 func evaluate(a_manager: ScenarioTriggerManager) -> bool:
 	_resolve(a_manager)
 	# Never resolved: report false rather than "it's gone", so a typo'd entity_name fails

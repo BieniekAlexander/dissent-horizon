@@ -39,3 +39,36 @@ func test_the_footprint_is_the_same_at_every_heading() -> void:
 		if size != upright:
 			differing.append([step, size])
 	assert_eq(differing, [], "every heading stamps the upright footprint (degree, size)")
+
+
+# --- A box ----------------------------------------------------------------------
+
+
+func _box_at_yaw(a_size: Vector2, a_yaw: float) -> CollisionShape3D:
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(a_size.x, 4.0, a_size.y)
+	shape.shape = box
+	add_child_autofree(shape)
+	shape.global_transform = Transform3D(VU.with_yaw(Basis(), a_yaw), Vector3.ZERO)
+	return shape
+
+
+func test_a_box_at_a_right_angle_keeps_its_grid_aligned_footprint() -> void:
+	var raster: FogRaster = _fog()._raster
+	var upright: Array = raster.vision_offsets(_box_at_yaw(Vector2(20.0, 6.0), 0.0))
+	var quarter: Array = raster.vision_offsets(_box_at_yaw(Vector2(20.0, 6.0), PI / 2.0))
+	assert_eq(quarter, upright, "as every footprint was before turned ones")
+
+
+func test_a_turned_box_opens_turned() -> void:
+	var raster: FogRaster = _fog()._raster
+	var yaw: float = 0.5
+	var half := Vector2(20.0, 4.0)
+	var offsets: Array = raster.vision_offsets(_box_at_yaw(half * 2.0, yaw))
+	var turned := HighlightShape.rect(Vector2.ZERO, half, yaw)
+	var area: float = half.x * half.y * 4.0
+	assert_almost_eq(float(offsets.size()), area, area * 0.1, "about the box's own area")
+	var far: Vector2 = turned.local_to_world_xz(Vector2(half.x - 1.0, 0.0))
+	assert_true(offsets.has(Vector2i(roundi(far.x), roundi(far.y))), "reaches along its length")
+	assert_false(offsets.has(Vector2i(roundi(half.x - 1.0), 0)), "not along the world axis")
