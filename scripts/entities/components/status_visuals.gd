@@ -326,14 +326,12 @@ func _shows_hold_fire() -> bool:
 
 
 ## The defective badge shows on a dark structure that has something to lose by it — weapons,
-## or an ability pool — and only to the LOCAL player's side: which turrets are dark is the
-## enemy's to find out. Production is not switched off by the shortfall (it only slows), so a
-## building that merely trains carries no badge.
+## or an ability pool — to every viewer, enemies included (Alex, 2026-10-27): seeing a base's
+## defences go dark is how a player learns that cutting its infrastructure worked. Production
+## is not switched off by the shortfall (it only slows), so a building that merely trains
+## carries no badge.
 func _shows_defective() -> bool:
 	if not _host.is_defective():
-		return false
-	var viewer: Commander = _host.commander
-	if viewer == null or not viewer.shares_side_with(RTSController.PLAYER_COMMANDER_ID):
 		return false
 	if _host.weapon_inventory != null and not _host.weapon_inventory.get_weapons().is_empty():
 		return true

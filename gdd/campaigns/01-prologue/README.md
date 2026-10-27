@@ -70,12 +70,12 @@ are from the [design framework](../../design-framework/README.md).
 | Garrisoning: cover, firing from it, leaving it | Generic | 1 | 2, 3 | built |
 | Shooting aircraft; what hits air and what doesn't | Generic | 1 | 3 | built |
 | Air transport | Generic | 1 | 3 | built |
-| Defection, cutting the enemy's infrastructure | Generic | 1 | 3 | taught by the defective indicator; TODO: shown only to the owner's side (Q-A) |
+| Defection, cutting the enemy's infrastructure | Generic | 1 | 3 | taught by the defective badge, now shown to everyone |
 | Volatile pieces (chain explosions) | Shared | 1 | 2 (Q2 prisons) | the hazards are marked as objective 2 targets (TODO: scene) |
 | Crushing | Generic | 2 | 3 | |
 | Unit abilities: arm, target, charge, cooldown (Sapper) | Generic | 2 | 3 | |
-| Dominion: Retinue | Slot | 2 | — | none in 3, which has no sanctions |
-| Sanctions and ordnances (Informant, Mortar Strike) | Generic | 2 | — | as above |
+| Dominion: Retinue | Slot | 2 | 3 (required) | |
+| Sanctions and ordnances (Informant, Mortar Strike) | Generic | 2 | 3 | |
 | Stealth and detection | Slot | 2 | 3? | the Watch Tower's detection |
 | Garrison clearing (Toxin Tractor) | Slot | 3 | — | moved from 2 |
 | Structure production, the Safehouse | Generic | 3 | — | |
@@ -85,14 +85,14 @@ are from the [design framework](../../design-framework/README.md).
 | Tech tree and prerequisites | Generic | 3 | — | |
 | Ground transports | Generic | 3 | — | |
 | Stagger: a hit blocks a channel, building and healing | Generic | 2, with Plant | 3 | |
-| Shared ability pools | Generic | 3, the Stronghold | — | TODO: its pool holds only sanctions (Q-B) |
+| Shared ability pools | Generic | 3, the Stronghold (Dignify, Informant) | — | |
 | Repair (Sapper) | Generic | 3 | — | |
-| Healing | Generic | 3 | — | TODO: no Anarchist healer is built (Q-C) |
+| Healing | Generic | none | — | Anarchist healing deferred |
 | Veterancy | Generic | none | — | deferred |
 | MLRS and spotting | Shared | none (shown in 1, the ally's) | — | challenge C2 |
 | Modifiers, selector keys, control groups | Generic | none | — | challenge C1 |
 | Requisition | Generic | none | — | challenge C3 |
-| Upgrades; Anarchist signatures (EMP, scavenging); the Hijacker; Dignify, Ambush, Scavenge | — | none | — | main campaign |
+| Anarchist signatures (EMP, scavenging); the Hijacker; Dignify, Ambush, Scavenge | — | none | — | main campaign |
 
 ### The enemy's mechanics (what the player must read)
 
@@ -116,34 +116,16 @@ are from the [design framework](../../design-framework/README.md).
   player's Stronghold. Veterancy is deferred.
 - Mission 3's extra Colonial technology is not scoped yet.
 
-### Open
+### Resolved (Alex, 2026-10-27)
 
-- **Q-A. The defective indicator is hidden from the enemy.** The defective badge shows only to
-  the defective commander's own side, on purpose: "which turrets are dark is the enemy's to find
-  out" (`StatusVisuals._shows_defective`, [condition-visuals](../../systems/ux/ui/condition-visuals.md)).
-  So mission 1's player would never see the Colonial defences go dark.
-  1. A scenario-level switch that shows every commander's badge (missions only).
-  2. Show it to everyone, everywhere, giving up the hidden-information rule.
-  3. A different cue everyone sees, such as dark lights on a defective structure, with the
-     badge kept as is.
-
-  *Leaning:* 1. It keeps competitive play as designed, and the badge is already drawn.
-- **Q-B. Mission 3's Stronghold pool holds only sanctions.** The Stronghold's one pool grants
-  Dignify and Informant, both bought with dominion, and mission 3 has no sanctions.
-  1. Grant both in mission 3 without a purchase, so the pool is there to share. Dominion stays
-     out.
-  2. Allow buying them, which brings dominion back into mission 3.
-  3. Teach pools on a different structure whose pool needs no sanction.
-
-  *Leaning:* 1. It teaches the pool without reopening the economy of sanctions.
-- **Q-C. Mission 3 has no healer to teach with.** The Anarchists' heal is planned as the
-  Collective's "Bio Heal" upgrade, which isn't built (the Field Hospital was removed), and
-  mission 3 has no upgrades.
-  1. Build Bio Heal and grant it in mission 3, as an exception to "no upgrades".
-  2. Make the heal a Collective default rather than an upgrade.
-  3. Teach repair only, and defer healing.
-
-  *Leaning:* 2 if that is where Bio Heal is heading anyway, else 1.
+- The defective badge is shown to everyone, so the player sees the enemy's defences go dark.
+  It used to show only to the defective commander's side, a rule an agent session added on
+  2026-10-04 (commit 9fe29674); `StatusVisuals._shows_defective` and
+  [condition-visuals](../../systems/ux/ui/condition-visuals.md) are changed.
+- Mission 3 has sanctions and requires dominion generation, so the Stronghold's pool (Dignify,
+  Informant) is there to teach. Its "no sanctions" and "no upgrades" constraints are dropped,
+  and upgrades are no longer kept out of the prologue.
+- Anarchist healing is deferred.
 
 ## Deliberately left out
 
@@ -156,7 +138,7 @@ Kept out of the prologue to avoid overloading it. Each is either a challenge or 
 | Requisition | [Challenge series](../challenges/README.md) |
 | Command centre drop and the free extractor drops | Main campaign or skirmish onboarding; the prologue starts players with a base |
 | Anarchist signature mechanics (disable/EMP, scavenging), the Hijacker, Dignify, Ambush, Scavenge | Main campaign |
-| Shelters, static defence design, upgrades, aerial rearm, alliances, superweapons | Main campaign |
+| Shelters, static defence design, aerial rearm, alliances, superweapons | Main campaign |
 
 ## Decisions
 

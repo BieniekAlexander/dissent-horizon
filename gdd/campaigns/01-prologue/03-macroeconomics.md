@@ -19,20 +19,18 @@ climbing the tech tree and using ground transports.
 - **Garrison clearing:** flushing Colonial infantry out of buildings, with the
   [Toxin Tractor](../../factions/anarchical/units/an_mechMedium_antiBio.md), in the barracks
   quarter. Moved from mission 2 (Alex, 2026-10-27).
-- **Shared ability pools:** the Stronghold's abilities share one pool of charges, so casting
-  one spends the other's (Alex, 2026-10-27). TODO: the Stronghold's pool grants Dignify and
-  Informant, both sanctions, which this mission doesn't allow (README §Mechanics by mission).
-- **Healing and repair** (Alex, 2026-10-27): the [Sapper](../../factions/anarchical/units/an_bioLight_antiStructure.md)
-  repairs. TODO: the Anarchists have no healer today. The Field Hospital was removed, and its
-  heal is planned as a Collective upgrade, "Bio Heal", which isn't built, and this mission
-  has no upgrades (README §Mechanics by mission).
+- **Shared ability pools:** the Stronghold's abilities, Dignify and Informant, share one pool
+  of charges, so casting one spends the other's (Alex, 2026-10-27).
+- **Repair:** the [Sapper](../../factions/anarchical/units/an_bioLight_antiStructure.md)
+  repairs. Anarchist healing is deferred (Alex, 2026-10-27).
 
 ## Reinforces
 
 - From mission 1: counters, garrisoning, defection (cutting the enemy's Compounds), shooting
   aircraft, air transport through a gap in SAM coverage, the Watch Tower warning
-- From mission 2: crushing, Sapper abilities, stagger (now while building under fire). Not
-  ordnances: this mission has no sanctions (the earlier draft listed both).
+- From mission 2: crushing, Sapper abilities, stagger (now while building under fire),
+  dominion generation (Retinue) and buying and casting sanctions. Dominion generation is
+  required here (Alex, 2026-10-27).
 
 ## Player fantasy
 
@@ -130,7 +128,6 @@ Help notes (proposed). "New" notes are to be written for the How to Play library
 | Objective 2 done | The tech tree (new) |
 | Your infrastructure falls short | Defection, from your side (new; mission 1 told it only through objective text) |
 | Kill zone first sighted | Ground transports (new) |
-| TODO: once there is a healer | Healing (new) |
 | First structure damaged | Repair (new) |
 | Barracks quarter first sighted | Clearing garrisons (new) |
 | Stronghold's pool first charged | Shared ability pools (new) |
@@ -141,8 +138,9 @@ Help notes (proposed). "New" notes are to be written for the How to Play library
 
 - Tech capped at Tier 1. The Clandestine Lab and its units (Condor, Hijacker) are excluded.
 - The [MLRS](../../factions/anarchical/units/an_mechMedium_artillery.md) is excluded. It needs a spotter, and spotting isn't part of the prologue; it's planned for the [challenge series](../challenges/README.md).
-- No sanctions. Missions are self-contained, so nothing from mission 2 carries over.
-- No upgrades.
+- Sanctions are bought with dominion the player generates in this mission; nothing carries over
+  from mission 2. TODO: which cells of the grid are offered. ("No sanctions" and "No upgrades"
+  were dropped, Alex, 2026-10-27.)
 - No mechanic before it is explained, checked against every placed and spawned piece.
 
 ## Scenario file
