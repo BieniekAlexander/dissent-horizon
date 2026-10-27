@@ -16,13 +16,23 @@ climbing the tech tree and using ground transports.
 - **The tech tree:** prerequisites, and that a higher tier unlocks the units for parts of the base the starting roster can't crack.
 - **Ground transports:** carrying infantry across ground they can't survive on foot. Air
   transport is mission 1's.
+- **Garrison clearing:** flushing Colonial infantry out of buildings, with the
+  [Toxin Tractor](../../factions/anarchical/units/an_mechMedium_antiBio.md), in the barracks
+  quarter. Moved from mission 2 (Alex, 2026-10-27).
+- **Shared ability pools:** the Stronghold's abilities share one pool of charges, so casting
+  one spends the other's (Alex, 2026-10-27). TODO: the Stronghold's pool grants Dignify and
+  Informant, both sanctions, which this mission doesn't allow (README §Mechanics by mission).
+- **Healing and repair** (Alex, 2026-10-27): the [Sapper](../../factions/anarchical/units/an_bioLight_antiStructure.md)
+  repairs. TODO: the Anarchists have no healer today. The Field Hospital was removed, and its
+  heal is planned as a Collective upgrade, "Bio Heal", which isn't built, and this mission
+  has no upgrades (README §Mechanics by mission).
 
 ## Reinforces
 
 - From mission 1: counters, garrisoning, defection (cutting the enemy's Compounds), shooting
   aircraft, air transport through a gap in SAM coverage, the Watch Tower warning
-- From mission 2: crushing, garrison clearing, Sapper abilities. Not ordnances: this mission has
-  no sanctions (the earlier draft listed both).
+- From mission 2: crushing, Sapper abilities, stagger (now while building under fire). Not
+  ordnances: this mission has no sanctions (the earlier draft listed both).
 
 ## Player fantasy
 
@@ -120,6 +130,10 @@ Help notes (proposed). "New" notes are to be written for the How to Play library
 | Objective 2 done | The tech tree (new) |
 | Your infrastructure falls short | Defection, from your side (new; mission 1 told it only through objective text) |
 | Kill zone first sighted | Ground transports (new) |
+| TODO: once there is a healer | Healing (new) |
+| First structure damaged | Repair (new) |
+| Barracks quarter first sighted | Clearing garrisons (new) |
+| Stronghold's pool first charged | Shared ability pools (new) |
 | Objective 3 done | Air transport (reused, shown again as a reminder) |
 | Watch Tower first sighted | the Watch Tower warning (see mission 2's Q4) |
 

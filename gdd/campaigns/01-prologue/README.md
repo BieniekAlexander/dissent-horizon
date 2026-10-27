@@ -70,23 +70,25 @@ are from the [design framework](../../design-framework/README.md).
 | Garrisoning: cover, firing from it, leaving it | Generic | 1 | 2, 3 | built |
 | Shooting aircraft; what hits air and what doesn't | Generic | 1 | 3 | built |
 | Air transport | Generic | 1 | 3 | built |
-| Defection, cutting the enemy's infrastructure | Generic | 1 | 3 | taught by objective text only; no note (M1) |
-| Volatile pieces (chain explosions) | Shared | 1, untaught | 2 (Q2 prisons) | the *Attacking* note doesn't cover it (M1) |
+| Defection, cutting the enemy's infrastructure | Generic | 1 | 3 | taught by the defective indicator; TODO: shown only to the owner's side (Q-A) |
+| Volatile pieces (chain explosions) | Shared | 1 | 2 (Q2 prisons) | the hazards are marked as objective 2 targets (TODO: scene) |
 | Crushing | Generic | 2 | 3 | |
 | Unit abilities: arm, target, charge, cooldown (Sapper) | Generic | 2 | 3 | |
 | Dominion: Retinue | Slot | 2 | — | none in 3, which has no sanctions |
 | Sanctions and ordnances (Informant, Mortar Strike) | Generic | 2 | — | as above |
 | Stealth and detection | Slot | 2 | 3? | the Watch Tower's detection |
-| Garrison clearing (Toxin Tractor) | Slot | 2 | 3 | (M2) |
+| Garrison clearing (Toxin Tractor) | Slot | 3 | — | moved from 2 |
 | Structure production, the Safehouse | Generic | 3 | — | |
 | Infrastructure, from the player's side | Generic | 3 | — | proposed 2026-10-27 |
 | Unit production, rally points | Generic | 3 | — | |
 | Extractors and lithium ponds | Generic | 3 | — | |
 | Tech tree and prerequisites | Generic | 3 | — | |
 | Ground transports | Generic | 3 | — | |
-| Stagger: a hit blocks building and healing | Generic | none | — | met constantly once the player builds under fire (M3) |
-| Shared ability pools | Generic | none | — | (M4) |
-| Veterancy, repair and healing | Generic | none | — | (M4) |
+| Stagger: a hit blocks a channel, building and healing | Generic | 2, with Plant | 3 | |
+| Shared ability pools | Generic | 3, the Stronghold | — | TODO: its pool holds only sanctions (Q-B) |
+| Repair (Sapper) | Generic | 3 | — | |
+| Healing | Generic | 3 | — | TODO: no Anarchist healer is built (Q-C) |
+| Veterancy | Generic | none | — | deferred |
 | MLRS and spotting | Shared | none (shown in 1, the ally's) | — | challenge C2 |
 | Modifiers, selector keys, control groups | Generic | none | — | challenge C1 |
 | Requisition | Generic | none | — | challenge C3 |
@@ -101,30 +103,47 @@ are from the [design framework](../../design-framework/README.md).
 | Compounds as infrastructure, and as prisons | 1 | prisons shown, capture not explained until 2 |
 | Stock Truck capture | 2 | |
 | Vehicles that crush (Sloop, Matilda) | 2, 3 | |
-| "More Colonial technology" in mission 3 | 3 | which? (M5) |
+| "More Colonial technology" in mission 3 | 3 | not scoped yet (Alex, 2026-10-27) |
 | Bombard spotting, Freeze | none | the Colonial signatures; Bombards deferred to their own session |
 
-### Questions to settle the list
+### Decided (Alex, 2026-10-27)
 
-- **M1. Mission 1's untaught mechanics.** Defection is taught only through objective text, and
-  the volatile chain not at all. Add two library notes, *Infrastructure and defection* (raised
-  with objective 8) and *Volatile pieces* (with objective 2)? *Leaning:* yes, both. Mission 3
-  can reuse the first.
-- **M2. Mission 2's load.** It teaches six mechanics (abilities, crushing, stealth, dominion,
-  ordnances, garrison clearing) against mission 3's six, but they are newer and less familiar.
-  Garrison clearing could move to mission 3, whose barracks quarter already needs the Toxin
-  Tractor. *Leaning:* move it, keeping mission 2's twist as stealth routing past detection.
-- **M3. Stagger.** It is generic and high-prevalence, and the first time a player sees a builder
-  stop under fire is mission 3. Teach it there, with a note raised the first time a build is
-  blocked? *Leaning:* yes.
-- **M4. Generic mechanics with no home:** shared ability pools, veterancy, repair and healing.
-  Main campaign, a challenge, or somewhere in the prologue? *Leaning:* main campaign, except
-  shared pools if mission 2's Sappers draw on one.
-- **M5. Mission 3's Colonial technology.** The base is larger, with more Colonial technology.
-  Which? Candidates: Freeze (a Colonial signature, and a disable the player has not met), the
-  Gunship or other Colonial sanctions cast against the player, Bombards (deferred), and
-  higher-tier units. *Why it matters:* each one the player must read is a mechanic to teach,
-  and mission 3 already teaches six.
+- Mission 1 marks the prison hazards as objective 2 targets, beside the Compounds. Defection is
+  taught by its visual indicator, with no note.
+- Garrison clearing moves from mission 2 to mission 3.
+- Stagger is taught in mission 2 with Plant. The note also covers building and healing.
+- Shared ability pools, healing and repair are taught in mission 3, the pools through the
+  player's Stronghold. Veterancy is deferred.
+- Mission 3's extra Colonial technology is not scoped yet.
+
+### Open
+
+- **Q-A. The defective indicator is hidden from the enemy.** The defective badge shows only to
+  the defective commander's own side, on purpose: "which turrets are dark is the enemy's to find
+  out" (`StatusVisuals._shows_defective`, [condition-visuals](../../systems/ux/ui/condition-visuals.md)).
+  So mission 1's player would never see the Colonial defences go dark.
+  1. A scenario-level switch that shows every commander's badge (missions only).
+  2. Show it to everyone, everywhere, giving up the hidden-information rule.
+  3. A different cue everyone sees, such as dark lights on a defective structure, with the
+     badge kept as is.
+
+  *Leaning:* 1. It keeps competitive play as designed, and the badge is already drawn.
+- **Q-B. Mission 3's Stronghold pool holds only sanctions.** The Stronghold's one pool grants
+  Dignify and Informant, both bought with dominion, and mission 3 has no sanctions.
+  1. Grant both in mission 3 without a purchase, so the pool is there to share. Dominion stays
+     out.
+  2. Allow buying them, which brings dominion back into mission 3.
+  3. Teach pools on a different structure whose pool needs no sanction.
+
+  *Leaning:* 1. It teaches the pool without reopening the economy of sanctions.
+- **Q-C. Mission 3 has no healer to teach with.** The Anarchists' heal is planned as the
+  Collective's "Bio Heal" upgrade, which isn't built (the Field Hospital was removed), and
+  mission 3 has no upgrades.
+  1. Build Bio Heal and grant it in mission 3, as an exception to "no upgrades".
+  2. Make the heal a Collective default rather than an upgrade.
+  3. Teach repair only, and defer healing.
+
+  *Leaning:* 2 if that is where Bio Heal is heading anyway, else 1.
 
 ## Deliberately left out
 

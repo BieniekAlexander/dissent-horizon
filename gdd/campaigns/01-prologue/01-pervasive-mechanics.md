@@ -232,7 +232,10 @@ the world and on the minimap, behind the fog
 ([highlights-and-fog-reveal](../../systems/scenario-scripting/highlights-and-fog-reveal.md)
 §Marks are gated by the fog): the rendezvous region; the plateau prisons; the outpost's
 Recruits; the garrison building; the Clippers; the lane-end SAM sites; the base's Compounds
-(group `prologue_m1_base_compounds`); the Citadel. Objective 7, the gap in the SAM coverage, is
+(group `prologue_m1_base_compounds`); the Citadel. Objective 2 also marks the hazards against the
+plateau prisons, the power cells and battery racks, so the player sees what to shoot (Alex,
+2026-10-27). TODO: not in the scene yet; the hazards need a group and a second `EventHighlight`
+under `Objective2Captives`. Objective 7, the gap in the SAM coverage, is
 deliberately unmarked: finding it is the objective. Reveals:
 
 - waypoint 1 is in sight from the start, each waypoint until it is reached, and the rendezvous
@@ -270,7 +273,10 @@ events.
 | `WatchTowerSighted`: a Watch Tower first visible to the player | — | the mission's own note, `scenes/dialogs/prologue_m1/m1_watch_towers.tscn`: avoid Watch Towers until you have heavier armour; Watch Towers shoot only at the ground, SAM sites only at aircraft |
 
 Objectives 8 and 9 (defection, the Citadel) get no notes, and the stop order is not taught
-(Alex, 2026-10-26).
+(Alex, 2026-10-26). Defection is taught by its visual indicator on the enemy's structures,
+with no note (Alex, 2026-10-27). TODO: the defective badge shows only to the defective
+commander's own side (`StatusVisuals._shows_defective`), so the player never sees the
+Colonial structures go dark. Open question in the [README](README.md) §Mechanics by mission.
 
 - `WatchTowerSighted` is `ConditionGroupVisible` over the group `prologue_m1_watch_towers`, true
   while any tower is visible to the player by the test that decides whether a commander sees a

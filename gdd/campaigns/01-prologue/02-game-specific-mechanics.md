@@ -8,12 +8,13 @@ firepower to finish the mission.
 
 ## Teaches
 
+- **Stagger:** a hit interrupts a channelled action. Taught with Plant, whose channel a hit
+  stops; the note also covers the other cases, building and healing (Alex, 2026-10-27).
 - **Unit abilities:** the [Sapper](../../factions/anarchical/units/an_bioLight_antiStructure.md)'s [Plant](../../factions/anarchical/abilities/plant.md) and [Detonate](../../factions/anarchical/abilities/detonate.md). These cover arming an ability, choosing its target, and reading its charge and cooldown. A planted charge holds the Sapper's recharge until it goes off. Detonate fires from anywhere, with or without vision of the charge.
 - **Crushing:** vehicles run over clumped infantry, and spread-out infantry survives and kills the vehicle. The player's infantry is the main target, and the player crushes too.
 - **Stealth:** stealthed units move unseen until they attack, and detectors reveal them.
 - **Dominion generation:** the Anarchist route, [Retinue](../../factions/anarchical/abilities/retinue.md). Friendly infantry standing with a Warlord bank dominion.
 - **Ordnances:** buying a sanction with dominion, then casting it from the structure that holds its charge, with a cooldown before the next charge. This reuses the charge-and-cooldown vocabulary the Sapper introduced, moved from a unit to a structure.
-- **Garrison clearing:** flushing Colonial infantry out of buildings.
 
 ## Reinforces
 
@@ -46,7 +47,7 @@ Numbers are illustration; the scene will hold the real values.
     Stronghold yet (README §Impact of mission 1's build).
 - **Starting force**, placed in the scene:
   - [Warlords](../../factions/anarchical/units/an_bioMedium_dominionGen.md) and infantry
-  - A [Toxin Tractor](../../factions/anarchical/units/an_mechMedium_antiBio.md) for garrison clearing. It's a vehicle, so it also gives the player something to crush with.
+  - A [Toxin Tractor](../../factions/anarchical/units/an_mechMedium_antiBio.md), the player's vehicle to crush with. Its garrison clearing is taught in mission 3 (Alex, 2026-10-27).
 - **Received during the mission:** [Sappers](../../factions/anarchical/units/an_bioLight_antiStructure.md),
   arriving as reinforcements before the critical strikes. They spawn relative to the base, from
   off the map (`spawn_in_flight` or a ground arrival), out of the raiders' reach.
@@ -64,7 +65,6 @@ Numbers are illustration; the scene will hold the real values.
     with hazards against it, as in mission 1, so the player can win the captive back
     (open question Q2).
   - [Watch Towers](../../factions/colonial/structures/cl_defense_antiLight.md) as the detectors guarding the strike targets, each defending group sharing one defended area
-  - Colonial infantry garrisoned in buildings on the route out, placed in the scene
 
 ## The tension the mission is built on
 
@@ -107,7 +107,9 @@ the final strike.
   - Buy Informant. The ordnance's charge and cooldown show on the Stronghold.
   - Stealthed Irregulars slip past patrols to make the critical strikes.
   - A Watch Tower reveals any unit that strays into its detection range, so routes matter.
-- **Twist:** Colonial infantry garrison the buildings on the route. The Toxin Tractor flushes them out, where plain fire wouldn't.
+- **Twist:** the route to the strike targets runs past the Watch Towers' detection, and only
+  one way through keeps the stealthed units hidden. Garrison clearing, the earlier twist, moved
+  to mission 3 (Alex, 2026-10-27).
 - **Conclude:**
   - Buy Mortar Strike and call it in on the final objective.
   - The shells arrive from the map edge nearest the Distress Signal that called them, so the caster's position matters.
@@ -123,10 +125,9 @@ will need them too.
 | Sloop sighted | Crushing (new) |
 | Toxin Tractor's first crush, or a beat after the Sloop raid | Crushing with your own vehicles (new, or folded into Crushing) |
 | Objective 1 done | Sanctions and ordnances (new) |
-| Sappers arrive | Abilities (new: arm, target, charge, cooldown); Holding a charge (new) |
+| Sappers arrive | Abilities (new: arm, target, charge, cooldown); Holding a charge (new); Stagger (new: a hit stops a channel, a build or a heal) |
 | Objective 2 done (Informant bought) | Stealth and detection (new) |
 | First Watch Tower sighted | the Watch Tower warning, already shown in mission 1 (Q4) |
-| First garrisoned Colonial building sighted | Clearing garrisons (new) |
 | Objective 3 done | Ordnance delivery: where the shells come from (new) |
 
 ## Constraints
