@@ -21,8 +21,9 @@ the trigger system rather than beside it, so composition, region scoping and cha
 | [simulation-tests.md](simulation-tests.md) | the `sims/*.sim.yaml` grammar and its runner: commanders, groups, symbolic order targets, a run window, a boolean tree of checks; why none of it runs in GUT |
 
 Reference scenarios: the prologue missions, designed in
-[`gdd/campaigns/01-prologue/`](../../campaigns/01-prologue/README.md) (TODO: their scenes are not
-built yet). They are authored content, so nothing unit-tests their contents; the mechanics are
+[`gdd/campaigns/01-prologue/`](../../campaigns/01-prologue/README.md) (mission 1 is built; 2 and 3
+are not), and the lessons of building them in
+[`gdd/campaigns/mission-design.md`](../../campaigns/mission-design.md). They are authored content, so nothing unit-tests their contents; the mechanics are
 tested against fixtures, and any scene a test boots lives in `scenes/harnesses/`
 ([simulation-tests](simulation-tests.md) §Where the harnesses live).
 

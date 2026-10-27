@@ -4,9 +4,12 @@ Status: draft, first scene built for iteration. The player arrives mid-battle in
 
 ## Teaches
 
-- **Unit control:** selecting, box-selecting, move, attack, attack-move, stop
+- **Unit control:** selecting, box-selecting, move, attack, attack-move. The stop order is not taught (Alex, 2026-10-26).
+- **The camera, the minimap and the command card**
 - **Garrisoning:** entering and leaving a neutral building, and the protection and range a garrison gives
 - **The counter system:** Frame (BIO vs MECH) × Armour (Light, Medium, Strong) against damage types, including a matchup where one unit can barely hurt another
+- **Shooting aircraft and anti-air:** the Warlord hits air; Watch Towers hit only the ground, SAM sites only aircraft.
+- **Air transport:** loading the Ravens and flying them through a gap in the SAM coverage.
 - **Defection:** destroying the structures that supply a commander's infrastructure puts it in **defection**, and its structures become **defective**, so defences lose their weapons and abilities. Units are unaffected. That's how a small force breaks into a defended base. Rules: [production-and-economy](../../systems/macroeconomics/production-and-economy.md) §Defection.
 
 ## Reinforces
@@ -280,8 +283,8 @@ Objectives 8 and 9 (defection, the Citadel) get no notes, and the stop order is 
 - No base, production, sanctions, ordnances or unit abilities. The Sapper is left out for this reason: its only way to damage anything is its Plant ability, which mission 2 teaches.
 - No enemy ground vehicles. That rules out crushing and wrecks (scavenging) before the missions that explain them.
 - Losing every unit fails the mission.
-- TODO — how damage relationships are communicated to the player is undecided.
-- Keep counter matchups readable: one enemy type per encounter until the mixed beat.
+- Damage relationships are told by the *Damage types* note, at the ramp to the outpost. TODO: whether anything in play shows them (a readout or a cue) is undecided.
+- Keep counter matchups readable: one enemy type per encounter until the mixed beat. TODO: the built mission breaks this. The guard post past the ford (4 Recruits, 2 Clippers) and both sides' waves are mixed, and there is no single "mixed beat" (open question below).
 
 ## Map rework
 
@@ -298,4 +301,20 @@ so its position is authored directly; only what arrives during play is spawned b
 
 ## Open questions
 
-None.
+Raised 2026-10-27 when the campaign was re-read against the built mission
+([README](README.md) §Impact of mission 1's build).
+
+**Q1. The MLRS in the allied relief.** The prologue leaves out spotting-dependent pieces, and the
+MLRS is one, but 3 of the relief's Ravens carry one each, to shell the Citadel.
+*Why it matters:* the player sees a piece the prologue doesn't explain, and the MLRS may need a
+spotter to hit the Citadel at all.
+1. Swap the MLRS for something already explained (e.g. more Warlords).
+2. Keep it as ally-only spectacle, and write that exception into the README.
+
+*Leaning:* 1. The relief's job is to finish the Citadel, which needs no new piece.
+
+**Q2. One enemy type per encounter.** The constraint above doesn't match the built mission.
+1. Name the guard post past the ford as the mixed beat, and keep the waves as background.
+2. Drop the constraint. The Watch Tower note already says which enemy hits what.
+
+*Leaning:* 1. It keeps the rule as guidance for missions 2 and 3.
