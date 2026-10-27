@@ -159,6 +159,8 @@ Decided 2026-09-28.
   commander's units on it make the spot invalid.
 - **The structure is in play the instant the drop is issued.** Its model descends onto the spot
   over 2 seconds, decelerating — presentation only; nothing about the structure waits for it.
+  Touchdown shakes the screen, by drop (`Deployment.DROP_SHAKES`), for a player who can see it —
+  see [screen shake](../ux/screen-shake.md).
 - **What an ordnance creates is selected**, unless `modifier_additive` was held when it was
   issued. This is a general ordnance rule, not a deployment one.
   TODO: only the deployment drops apply it; no other ordnance creates actors yet.

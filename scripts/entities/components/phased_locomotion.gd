@@ -125,6 +125,7 @@ func simulation_step(_a_delta: float) -> void:
 		Step.ENTERED:
 			phase_entered.emit(_phase_index)
 			_show_visuals_of(_phase_index)
+			ScreenShake.play(current_phase().screen_shake, _body())
 	var phase: EmissionPhase = current_phase()
 	phase_ticking.emit(phase)
 	if is_on_cadence(phase.event_period_ticks()):
@@ -179,6 +180,7 @@ func launch(
 	var phase: EmissionPhase = current_phase()
 	if phase != null:
 		redirect(phase.launch_velocity(_body().global_position, goal_position))
+		ScreenShake.play(phase.screen_shake, _body())
 
 
 ## Set the emission's heading outright — a launch, or an emitter's aim error applied to it.

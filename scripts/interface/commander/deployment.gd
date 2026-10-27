@@ -53,6 +53,13 @@ const DISPLACE_MARGIN_RINGS: int = 4
 const DESCENT_HEIGHT: float = 12.0
 const DESCENT_SECONDS: float = 2.0
 
+## The screen shake each drop raises as its model touches down, by Drop. A drop missing here
+## lands without one; the magnitudes live in the resources (gdd/systems/ux/screen-shake.md).
+const DROP_SHAKES: Dictionary = {
+	Drop.COMMAND_CENTRE: "res://resources/screen_shake/command_centre_drop.tres",
+	Drop.EXTRACTOR: "res://resources/screen_shake/extractor_drop.tres",
+}
+
 var _commander: Commander
 ## Drop -> charges left.
 var _charges: Dictionary = {Drop.COMMAND_CENTRE: 1, Drop.EXTRACTOR: 0}
@@ -265,13 +272,13 @@ func drop(a_drop: Drop, a_xz: Vector2) -> Array[Actor]:
 	var displaced: Array = units_on(footprint_area(map, origin, dims))
 	match a_drop:
 		Drop.COMMAND_CENTRE:
-			landed.append(_land(preview_scene(a_drop), centre))
+			landed.append(_land(preview_scene(a_drop), centre, drop_shake(a_drop)))
 			_commander.add_energy(_bank_energy)
 			_commander.add_dominion(_bank_dominion)
 			_charges[Drop.EXTRACTOR] = EXTRACTOR_DROP_CHARGES
 		Drop.EXTRACTOR:
 			_land_site(centre)
-			landed.append(_land(preview_scene(a_drop), centre))
+			landed.append(_land(preview_scene(a_drop), centre, drop_shake(a_drop)))
 	_charges[a_drop] = charges(a_drop) - 1
 	# After the structure is registered, so the ground it now holds is no longer a place to
 	# stand. verdict() has already refused the spot if any of these were someone else's.
@@ -281,13 +288,24 @@ func drop(a_drop: Drop, a_xz: Vector2) -> Array[Actor]:
 	return landed
 
 
-## Put one `a_scene` structure in play for the commander at `a_centre`, its model descending.
-func _land(a_scene: PackedScene, a_centre: Vector2) -> Actor:
+## The screen shake `a_drop` raises on touchdown (DROP_SHAKES), or null for none.
+static func drop_shake(a_drop: Drop) -> ScreenShake:
+	return load(DROP_SHAKES[a_drop]) as ScreenShake if DROP_SHAKES.has(a_drop) else null
+
+
+## Put one `a_scene` structure in play for the commander at `a_centre`, its model descending, and
+## `a_shake` the screen as it touches down. The shake is asked for at touchdown, not at the drop,
+## so whether the player sees it is judged where the camera and the fog are by then.
+func _land(a_scene: PackedScene, a_centre: Vector2, a_shake: ScreenShake = null) -> Actor:
 	var structure: Actor = a_scene.instantiate() as Actor
 	_commander.map.add_entities([structure], a_centre, _commander)
 	var model := structure.get_node_or_null("MeshVisual") as MeshVisual
-	if model != null:
-		model.play_descent(DESCENT_HEIGHT, DESCENT_SECONDS)
+	if model == null:
+		ScreenShake.play(a_shake, structure)
+		return structure
+	var descent: Tween = model.play_descent(DESCENT_HEIGHT, DESCENT_SECONDS)
+	if a_shake != null:
+		descent.finished.connect(ScreenShake.play.bind(a_shake, structure))
 	return structure
 
 

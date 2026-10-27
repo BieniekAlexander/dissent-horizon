@@ -12,6 +12,7 @@ Everything the player experiences apart from the rules themselves, in two halves
 | [ui/](ui/) | the **interface**: the concrete panels, buttons, cursor, input and on-screen readouts that are built |
 | [aesthetics/](aesthetics/) | the **experience**: art direction, and the quality considerations each asset is judged by |
 | [scoring.md](scoring.md) | the arcade grade — numerical underneath, but its job is feedback to the player |
+| [screen-shake.md](screen-shake.md) | screen shake: what raises one, how hard, and the gate on what the player can see |
 
 **Belongs here:** how any game state is presented — seen or heard — and what assets the game
 must carry to present it.

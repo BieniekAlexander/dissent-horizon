@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://scenes/effects/emissions/artillery_shell_model.tscn" id="fx_shell"]
 [ext_resource type="PackedScene" path="res://scenes/effects/emissions/artillery_trail.tscn" id="fx_trail"]
 [ext_resource type="PackedScene" path="res://scenes/effects/emissions/artillery_explosion.tscn" id="fx_shell_boom"]
+[ext_resource type="Resource" path="res://resources/screen_shake/cannon_shell_impact.tres" id="shake_impact"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_hchit"]
 radius = 3.0
@@ -45,6 +46,7 @@ ends_on_arrival = false
 lifespan_seconds = 2.6
 applies_payload = true
 visuals = Array[NodePath]([NodePath("PostImpactParticles")])
+screen_shake = ExtResource("shake_impact")
 
 [node name="Locomotion" type="Node" parent="."]
 script = ExtResource("4_loco")

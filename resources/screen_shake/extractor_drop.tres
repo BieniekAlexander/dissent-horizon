@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ScreenShake" format=3]
+
+[ext_resource type="Script" path="res://scripts/interface/screen_shake.gd" id="1_shake"]
+
+[resource]
+script = ExtResource("1_shake")
+magnitude = 0.015
+duration_seconds = 0.35
+frequency_hz = 22.0

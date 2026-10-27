@@ -694,6 +694,13 @@ One vocabulary for every grid button — train tools, build tools, verbs and abi
 the blocker, its colour, the charge pips and the cooldown countdown.
 → **[`gdd/systems/ux/ui/command-card-and-hotkeys.md`](gdd/systems/ux/ui/command-card-and-hotkeys.md)** §What a darkened button means
 
+## Screen shake
+
+A `ScreenShake` resource (magnitude as a fraction of the view, duration, frequency) named by a
+source — a deployment drop, an emission phase — and played only when the source is on screen
+and out of the displayed fog. It moves the camera's lens, never anything the simulation reads.
+→ **[`gdd/systems/ux/screen-shake.md`](gdd/systems/ux/screen-shake.md)**
+
 ## Debug mode
 
 `Scenario.debug_allowed` and the `;` toggle; the debug menu: piece spawner, debug delete, commanding any piece, playing as another commander, bot difficulty.
