@@ -21,6 +21,10 @@ options not taken yet. Placeholder values throughout.
   from the upper left of the screen at 50° — the illustration convention, so shading falls
   down-right. The fill is a weak, cool light from the opposite side so faces turned from the key
   keep their form. No light casts shadows (§Sun shadows, deferred).
+- **Per-biome tint.** The rig's suns and the ambient's sky and ground colours come from the
+  map's `Biome` (the star's temperature); a scenario that authors its own sun or
+  WorldEnvironment keeps it ([natural-environment](../../../setting/natural-environment.md)
+  §Biomes and palettes).
 - **Terrain cues that do lighting's job cheaply** — cavity shading from a mipmapped height
   texture, hypsometric tint, height-field normals: [terrain-readability](terrain-readability.md).
 
@@ -53,8 +57,8 @@ normals pointed down. Maps still carry no lighting by design: lighting belongs t
 ## Sun shadows, deferred
 
 **No light casts shadows** (Alex, 2026-10-15): `shadow_enabled` is off on the default rig's key
-sun and on every scenario's own sun (blue_hole, skirmish_tournament_desert and the two
-mesh-terrain test scenarios). Their other shadow settings stay as they were, so turning one back
+sun and on every scenario's own sun (the two mesh-terrain test scenarios; blue_hole and
+skirmish_tournament_desert carried one too until they were removed on 2026-10-17). Their other shadow settings stay as they were, so turning one back
 on is a single property.
 
 **TODO — revisit what the sun's shadows are worth.** Measured on an i5-1245U's Iris Xe,
@@ -73,8 +77,7 @@ faster once the terrain stopped drawing twice.
   RTS fallback if a large army's shadow pass costs too much. Not needed until measured.
 - TODO: **a rim or back light** for silhouette readability against dark ground — SC2's third
   light, or a fresnel term in the unit shader.
-- TODO: **per-map lighting presets** (time of day, biome) once biomes exist
-  ([README](systems/ux/aesthetics/README.md) §Art direction).
+- TODO: **time of day** — low priority, and only where it costs no readability.
 - TODO: **SSAO** as a Forward+ quality option; the Compatibility renderer has none, so nothing
   may depend on it.
 - TODO: whether the purple clear colour in project.godot is meant to show anywhere; the default

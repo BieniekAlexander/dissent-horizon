@@ -521,7 +521,10 @@ func _draw_selection_rect() -> void:
 ## Deliberately NOT fog-gated. The world painter already rings these targets through terrain,
 ## so hiding them here would only make the minimap disagree with what is on screen; and an
 ## objective naming a target the player cannot find is not an objective.
+## Objective markers, gated like the world's (HighlightSight): a piece while it or its snapshot
+## is shown, a region's outline where its ground is in sight.
 func _draw_objective_markers() -> void:
+	var sight: HighlightSight = HighlightSight.for_viewer(self)
 	for node: Node in get_tree().get_nodes_in_group(ScenarioHighlight.GROUP):
 		var highlight := node as ScenarioHighlight
 		if highlight == null:
@@ -532,18 +535,22 @@ func _draw_objective_markers() -> void:
 		for entity: Entity in highlight.marked_entities():
 			if not is_instance_valid(entity) or not entity.is_inside_tree():
 				continue
+			if not sight.shows_entity(entity):
+				continue
 			var pixel: Vector2i = world_to_minimap(VU.in_xz(entity.global_position))
 			if pixel.x != -1:
 				_draw_pixels(pixel, _objective_ring_offsets, color)
 
 		for shape: HighlightShape in highlight.marked_shapes():
-			_draw_shape_outline(shape, color)
+			_draw_shape_outline(shape, color, sight)
 
 
-## Trace a footprint's perimeter onto the minimap. Sampled at half a pixel's worth of world
-## distance so the outline is continuous rather than a dotted line.
-func _draw_shape_outline(a_shape: HighlightShape, a_color: Color) -> void:
+## Trace a footprint's perimeter onto the minimap, where its ground is in sight. Sampled at half
+## a pixel's worth of world distance so the outline is continuous rather than a dotted line.
+func _draw_shape_outline(a_shape: HighlightShape, a_color: Color, a_sight: HighlightSight) -> void:
 	for point: Vector2 in a_shape.perimeter_points(_world_units_per_pixel * 0.5):
+		if not a_sight.shows_point(point):
+			continue
 		var pixel: Vector2i = world_to_minimap(point)
 		if pixel.x != -1:
 			_image.set_pixel(pixel.x, pixel.y, a_color)

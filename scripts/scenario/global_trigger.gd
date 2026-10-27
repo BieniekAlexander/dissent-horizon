@@ -21,6 +21,11 @@ extends EditorMarkerSprite3D
 ## a global trigger at a location in the game world.
 ##
 ## Add these as children of a ScenarioTriggerManager, each with its own child events.
+##
+## A GlobalTrigger's own GlobalTrigger children are its SUB-STEPS, reached in scene-tree order:
+## one objective line walked as several places (gdd/systems/scenario-scripting/
+## objectives-and-completion.md §Sub-steps). A trigger with sub-steps fires when its last one
+## does, never on its own conditions.
 
 #region Signals
 ## Emitted after this trigger's events have run. The hook an ObjectiveChain advances on,
@@ -100,6 +105,11 @@ enum ObjectiveState {
 ## when `scope` is not NONE.
 @export_multiline var description: String = ""
 
+## The objective in more detail, shown under its line in the briefing view. Empty shows the line
+## alone. Only read when `scope` is not NONE. `{{ action }}` placeholders name key bindings
+## (InputPrompt).
+@export_multiline var details: String = ""
+
 ## When true the trigger disables itself after firing once.
 ##
 ## IGNORED (treated as true) on a conditionless trigger, which would otherwise re-fire every
@@ -135,6 +145,12 @@ enum ObjectiveState {
 ## ANY_OF is the sanction-DAG shape, where reaching a node by any route unlocks it.
 @export var prerequisite_mode: PrerequisiteMode = PrerequisiteMode.ALL_OF
 
+## Watch this trigger's conditions from the start, unseen, and when they are met complete every
+## ancestor not yet done first — its prerequisites, theirs, and so on, each with its sub-steps —
+## so a player who gets ahead of the mission is never soft-locked behind a step they skipped.
+## Off by default: it credits steps the player never did (Alex, 2026-10-26).
+@export var resolves_earlier: bool = false
+
 ## Runtime state — not serialized. Whether this trigger is currently watching. Set from
 ## prerequisites_satisfied() by ScenarioTriggerManager when it arms; toggled by set_active().
 var enabled: bool = true
@@ -153,6 +169,9 @@ var fire_count: int = 0
 
 ## The manager this trigger is armed against; null until armed.
 var _manager: ScenarioTriggerManager
+## Whether the conditions are armed while the trigger is not yet current: a `resolves_earlier`
+## trigger, or a sub-step ahead of the current one. Nothing is shown for it meanwhile.
+var _is_watching_early: bool = false
 ## Last aggregate satisfaction, for rising-edge firing.
 var _was_satisfied: bool = false
 ## The stand-in watched when no conditions were authored; created on first use by _watched().
@@ -200,6 +219,24 @@ func prerequisites_satisfied() -> bool:
 	if prerequisite_mode == PrerequisiteMode.ALL_OF:
 		return live.all(func(t: GlobalTrigger) -> bool: return t.has_fired)
 	return live.any(func(t: GlobalTrigger) -> bool: return t.has_fired)
+
+
+## The trigger this one is a sub-step of, or null for a trigger that is not a sub-step.
+func parent_trigger() -> GlobalTrigger:
+	return get_parent() as GlobalTrigger
+
+
+## This trigger's sub-steps, in the order they are reached.
+func sub_steps() -> Array[GlobalTrigger]:
+	var out: Array[GlobalTrigger] = []
+	for child: Node in get_children():
+		if child is GlobalTrigger:
+			out.append(child as GlobalTrigger)
+	return out
+
+
+func has_sub_steps() -> bool:
+	return get_children().any(func(child: Node) -> bool: return child is GlobalTrigger)
 
 
 ## Whether anything gates this trigger at all — the check that separates "waiting on a
@@ -294,6 +331,34 @@ func reset_conditions() -> void:
 ## satisfied — no per-tick polling of the trigger itself. Each condition arms its own
 ## driver (push: a bus; pull: the ConditionPoller); we re-check on its state_changed.
 func arm(a_manager: ScenarioTriggerManager) -> void:
+	if not _is_watching_early:
+		_arm_conditions(a_manager)
+	_is_watching_early = false
+	# Now that the conditions are live, show what they're about. Deliberately after arming:
+	# a highlight's target set is derived from the conditions, and a region-aware condition
+	# only has its region bound by _arm_conditions.
+	_set_lifetime_highlights(true)
+	# Arming is what moves an objective from PENDING to ACTIVE — i.e. what reveals it.
+	_notify_objective_state()
+	a_manager.on_trigger_watching(self)
+
+
+## Arm the conditions without making this trigger current: nothing is shown, and the objective
+## stays PENDING. A later arm() makes it current without arming the conditions twice.
+func watch_early(a_manager: ScenarioTriggerManager) -> void:
+	if enabled or _is_watching_early or has_fired:
+		return
+	_arm_conditions(a_manager)
+	_is_watching_early = true
+	a_manager.on_trigger_watching(self)
+
+
+## Whether the conditions are armed, current or not.
+func is_watching() -> bool:
+	return enabled or _is_watching_early
+
+
+func _arm_conditions(a_manager: ScenarioTriggerManager) -> void:
 	_manager = a_manager
 	_was_satisfied = false
 	# An unconditional trigger re-armed by an EventChainTrigger has to fire again, and its
@@ -323,19 +388,19 @@ func arm(a_manager: ScenarioTriggerManager) -> void:
 		condition.arm(a_manager)
 		if not condition.state_changed.is_connected(_on_condition_changed):
 			condition.state_changed.connect(_on_condition_changed)
-	# Now that the conditions are live, show what they're about. Deliberately after arming:
-	# a highlight's target set is derived from the conditions, and a region-aware condition
-	# only has its region bound by the loop above.
-	_set_lifetime_highlights(true)
-	# Arming is what moves an objective from PENDING to ACTIVE — i.e. what reveals it.
-	_notify_objective_state()
 
 
 ## Undo arm(): disconnect from the conditions and let them tear down their drivers.
 func disarm() -> void:
 	if _manager == null:
 		return
+	_is_watching_early = false
 	_set_lifetime_highlights(false)
+	# Its sub-steps go with it; any already reached stay reached.
+	for step: GlobalTrigger in sub_steps():
+		if step.is_watching() and not step.has_fired:
+			step.enabled = false
+			step.disarm()
 	for condition: Condition in _watched():
 		if condition.state_changed.is_connected(_on_condition_changed):
 			condition.state_changed.disconnect(_on_condition_changed)
@@ -364,14 +429,14 @@ func set_active(a_active: bool, a_manager: ScenarioTriggerManager) -> void:
 ## aggregate. Reads each condition's cached truth (Condition.is_met) rather than
 ## re-evaluating, so a side-effecting evaluate() runs at most once per frame (in poll()).
 func _on_condition_changed() -> void:
-	if not enabled:
+	if not is_watching() or has_sub_steps():
 		return
 	var now: bool = _aggregate_met()
 	if now == _was_satisfied:
 		return
 	_was_satisfied = now
 	if now:
-		fire(_manager)
+		_manager.complete_trigger(self)
 
 
 ## AND/OR aggregate over the watched conditions' cached truth (is_met). Never empty — an

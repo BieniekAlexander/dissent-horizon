@@ -56,6 +56,14 @@ func disarm(a_manager: ScenarioTriggerManager) -> void:
 	a_manager.condition_poller.remove(self)
 
 
+## Called once per session for every authored condition, armed or not, once the placed pieces
+## are in the world and before any trigger arms. For a condition that must find its subject
+## while it still exists: a trigger armed late (behind a prerequisite) otherwise looks for it
+## only after play may have destroyed it (ConditionEntityKilled).
+func prime(_a_manager: ScenarioTriggerManager) -> void:
+	pass
+
+
 ## Called when the owning GlobalTrigger resets after firing (repeating triggers only).
 ## Override to clear per-fire state, and call super() to keep edge tracking consistent.
 func reset() -> void:

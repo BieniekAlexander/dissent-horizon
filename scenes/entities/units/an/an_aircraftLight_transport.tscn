@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3 uid="uid://cl268o2nx6nni"]
+[gd_scene load_steps=29 format=3 uid="uid://cl268o2nx6nni"]
 
 [ext_resource type="Shape3D" path="res://resources/generated/shapes/vision_aerial_large.tres" id="1_spec"]
 [ext_resource type="Script" uid="uid://nqlys5q2cjjk" path="res://scripts/entities/actor.gd" id="1_uaypi"]
@@ -24,6 +24,7 @@
 [ext_resource type="Script" uid="uid://04yfk0mkmwom" path="res://scripts/entities/components/aerial.gd" id="2_spec"]
 [ext_resource type="Script" uid="uid://b5vq0ggkn5wow" path="res://scripts/entities/components/docking.gd" id="3_spec"]
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="4_spec"]
+[ext_resource type="Script" uid="uid://dlhe01nj6efuh" path="res://scripts/entities/components/garrison.gd" id="5_spec"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_r7cpa"]
 height = 0.6
@@ -142,6 +143,12 @@ billboard = 2
 [node name="TargetIndicator" parent="." unique_id=686962728 instance=ExtResource("21_g8jl2")]
 
 [node name="AggroRangeAir" parent="." unique_id=309458483 instance=ExtResource("5_oswf5")]
+
+[node name="Garrison" type="Node" parent="."]
+script = ExtResource("5_spec")
+capacity = 8
+bunker = false
+occupiable_frames = 1
 
 [editable path="Selectable"]
 [editable path="HPBar"]

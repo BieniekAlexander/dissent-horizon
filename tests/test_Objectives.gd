@@ -27,7 +27,7 @@ class StubCondition:
 		state_changed.emit()
 
 
-const PAGE: PackedScene = preload("res://scenes/dialogs/welcome.tscn")
+const PAGE: PackedScene = preload("res://scenes/harnesses/dialogs/harness_page_a.tscn")
 const OBJECTIVE_VIEW: PackedScene = preload("res://scenes/interface/objective_view.tscn")
 
 var _manager: ScenarioTriggerManager
@@ -280,18 +280,15 @@ func test_view_lists_only_revealed_objectives() -> void:
 	assert_eq(_bound_view().rows(), ["%s step 0" % ObjectiveView.MARK_ACTIVE])
 
 
-func test_view_crosses_off_completed_objectives() -> void:
+func test_view_drops_completed_objectives() -> void:
 	_start()
 	var view := _bound_view()
 	_conditions[0].satisfy()
 
 	assert_eq(
 		view.rows(),
-		[
-			"%s step 0" % ObjectiveView.MARK_COMPLETE,
-			"%s step 1" % ObjectiveView.MARK_ACTIVE,
-		],
-		"the finished step stays listed, ticked, and the next one appears"
+		["%s step 1" % ObjectiveView.MARK_ACTIVE],
+		"the finished step leaves the checklist (the Briefing tab keeps it) and the next appears"
 	)
 
 
@@ -300,11 +297,66 @@ func test_view_repaints_without_being_told() -> void:
 	# explicit refresh call from gameplay code.
 	_start()
 	var view := _bound_view()
+	_conditions[0].satisfy()
+	assert_eq(view.rows(), ["%s step 1" % ObjectiveView.MARK_ACTIVE])
 	for condition: StubCondition in _conditions:
 		condition.satisfy()
-	assert_eq(view.rows().size(), 3, "every step is listed once the chain is done")
-	for row: String in view.rows():
-		assert_string_starts_with(row, ObjectiveView.MARK_COMPLETE)
+	assert_eq(view.rows(), [], "nothing left to do once the chain is done")
+
+
+func test_a_new_objective_is_announced_once() -> void:
+	_start()
+	var view := _bound_view()
+	var step0: GlobalTrigger = _chain.steps[0]
+	watch_signals(view)
+	assert_true(view.is_awaiting_announcement(step0), "listed, cue not yet given")
+	view._process(0.0)
+	assert_signal_emitted_with_parameters(view, "objectives_announced", [[step0]])
+	assert_true(view.is_flashing(step0))
+	view._process(ObjectiveView.FLASH_SECONDS)
+	assert_false(view.is_flashing(step0), "the flash runs its course")
+	view.refresh()
+	assert_false(view.is_awaiting_announcement(step0), "and is never given again")
+
+
+func test_a_flashing_row_blinks() -> void:
+	_start()
+	var view := _bound_view()
+	view._process(0.0)
+	var row: RichTextLabel = _built_rows(view)[0]
+	view._process(ObjectiveView.FLASH_PERIOD_SECONDS * 0.75)
+	assert_eq(row.modulate.a, ObjectiveView.FLASH_DIM_ALPHA, "the off half of a blink")
+	view._process(ObjectiveView.FLASH_PERIOD_SECONDS * 0.5)
+	assert_eq(row.modulate.a, 1.0, "and back on")
+	view._process(ObjectiveView.FLASH_SECONDS)
+	assert_eq(row.modulate.a, 1.0, "steady once done")
+
+
+func test_the_cue_waits_for_an_open_pop_up() -> void:
+	_start()
+	var view := _bound_view()
+	view._process(0.0)
+	var dialog := ScenarioDialog.new(PAGE)
+	_manager.raise_dialog(dialog)
+	_conditions[0].satisfy()
+	var step1: GlobalTrigger = _chain.steps[1]
+	view._process(1.0)
+	assert_true(view.is_awaiting_announcement(step1), "held behind the pop-up")
+	assert_false(view.is_flashing(step1))
+	dialog.acknowledge()
+	view._process(0.0)
+	assert_true(view.is_flashing(step1), "given once the pop-up is resolved")
+
+
+func test_the_cue_waits_for_the_pause_menu() -> void:
+	_start()
+	var view := _bound_view()
+	_manager.simulation_clock.hold(SimulationClock.REASON_PAUSE_MENU)
+	view._process(0.0)
+	assert_false(view.is_flashing(_chain.steps[0]), "not behind the pause menu")
+	_manager.simulation_clock.release(SimulationClock.REASON_PAUSE_MENU)
+	view._process(0.0)
+	assert_true(view.is_flashing(_chain.steps[0]))
 
 
 func test_view_stays_empty_for_a_scenario_with_no_objectives() -> void:
@@ -414,11 +466,12 @@ func test_row_colour_comes_from_the_scope_not_the_state() -> void:
 		colors.append(row.get_theme_color("default_color"))
 	assert_eq(colors, [view.failure_color, view.primary_color, view.secondary_color])
 
-	# Completing the primary strikes it through but leaves it green.
+	# Completing the primary removes its row; the others keep their colours.
 	_conditions[0].satisfy()
-	var done: RichTextLabel = _built_rows(view)[1]
-	assert_string_starts_with(done.text, "[s]", "a finished objective is crossed out")
-	assert_eq(done.get_theme_color("default_color"), view.primary_color, "and stays green")
+	var rows: Array[RichTextLabel] = _built_rows(view)
+	assert_false(rows.any(func(r: RichTextLabel) -> bool: return r.text.contains("step 0")))
+	assert_eq(rows[0].get_theme_color("default_color"), view.failure_color)
+	assert_eq(rows[-1].get_theme_color("default_color"), view.secondary_color)
 
 
 func test_secondary_and_failure_do_not_hold_up_completion() -> void:

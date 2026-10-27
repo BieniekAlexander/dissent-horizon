@@ -209,6 +209,20 @@ underground. It only collides with other bodies for avoidance, so nothing aims a
   the accepted cost.
 - **Structures take their selection box from the authored grid footprint, not the mesh** — a
   roof or a radar dish that overhangs the footprint must not become clickable ground.
+- **A structure's box stands on the model's bottom and rises to its OUTER EDGE, not its peak**
+  (Alex, 2026-10-18): the highest vertex within 20% of the model's half-width of its sides
+  (`VisualMeasure._edge_top`, `EDGE_BAND_FRACTION`) — the walls, the eaves, a corner post. The
+  camera looks down at an angle, so its ray meets a box as tall as the walls wherever it meets the
+  building; a box as tall as a central tower stands in front of whatever is behind the building,
+  which is how the Compound's hid the battery racks behind it. The accepted cost: the top of a
+  tall central part (the command centre's 4.4 tower over 0.9 walls) does not take a click. The
+  rule it replaced sized every box to the model's whole height and centred it one unit up —
+  the Compound's was 3.9 tall over a 1.15 model, reaching below the ground and above the roof.
+- **A changed rule re-derives what the old one baked.** A selection stamp names its shape class
+  and rule (`BoxShape3D@edge`); a stamp in `VisualDefaults.RETIRED_SELECTION_STAMPS` marks a slot
+  baked under a rule since retired, and the importer rebakes it even though it owns it
+  (`VisualMeasure.selection_is_stale`). A slot baked under the current rule and edited since keeps
+  the current stamp and is left alone, as before.
 - **HP bar width is two thirds of the model's wider horizontal extent**, floored at
   `HP_BAR_MIN_WIDTH`. At 1.0 the bar becomes a second silhouette, and on infantry a wider one
   than the unit itself, which is exactly what the old fixed 0.43 did.

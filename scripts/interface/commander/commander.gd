@@ -19,6 +19,10 @@ var alliance: int = -1
 ## k). 0 until Scenario fills it; read through allied_ids_mask(), which treats 0 as "alone".
 var _allied_ids: int = 0
 
+## Whether this commander's vision counts as its allies' own (PlayerSlot.shares_vision_with_allies).
+## Scenario copies it from the slot at build; a commander no scenario placed keeps the default.
+var shares_vision_with_allies: bool = true
+
 
 ## Place this commander in `a_alliance`, whose members are the commander ids set in
 ## `a_member_ids` (bit k = commander k). Scenario calls it once per commander at build.
@@ -43,6 +47,16 @@ func is_allied_with(a_commander_id: int) -> bool:
 	if a_commander_id <= 0:
 		return false
 	return (allied_ids_mask() >> a_commander_id) & 1 == 1
+
+
+## Whether commander `a_viewer_id` sees what this commander sees: itself always, an ally unless
+## this commander withholds its vision (shares_vision_with_allies), anyone else never. What the
+## fog counts as a viewer's own sight, and what decides whether an allied piece is drawn outside
+## the viewer's own vision.
+func lends_vision_to(a_viewer_id: int) -> bool:
+	if a_viewer_id == id:
+		return true
+	return shares_vision_with_allies and is_allied_with(a_viewer_id)
 
 
 ## Whether `a_commander_id` is on this commander's side — itself or an ally: whose pending
@@ -625,14 +639,21 @@ func eliminate() -> void:
 
 ## WHETHER THIS COMMANDER STILL HAS A BASE: at least one structure in play, or a purchase still
 ## on the production queue — a funded Build whose builder is walking is a comeback in flight. A
-## PLANNED structure is not a foothold. gdd/systems/ai/bot-architecture.md §When a side is
-## beaten.
+## PLANNED structure is not a foothold, and nor is a neutral building held only while this
+## commander's units sit in it (Garrison.is_borrowed): walking out of it again is not losing a
+## base (found 2026-10-18, when leaving cover in prologue mission 1 lost the mission).
+## gdd/systems/ai/bot-architecture.md §When a side is beaten.
 func has_production_base() -> bool:
 	if production_queue != null and not production_queue.is_empty():
 		return true
 	return _owned_commandables().any(
 		func(c: Actor) -> bool:
-			return c.structure_is_active() and not c.is_queued_for_deletion() and not c.is_planned
+			return (
+				c.structure_is_active()
+				and not c.is_queued_for_deletion()
+				and not c.is_planned
+				and not (c.garrison != null and c.garrison.is_borrowed())
+			)
 	)
 
 

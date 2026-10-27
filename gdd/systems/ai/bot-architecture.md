@@ -1291,7 +1291,10 @@ harness alike, and it is `Commander.has_production_base()` in both. Units alone 
 comeback: a commander with no buildings cannot train, cannot expand, and the corpus that made
 the case has the number — 23 of 61 stalemates were one side at zero structures riding a single
 straggler to the clock. PRODUCTION and not just structures, because a funded Build whose
-builder is still walking IS a base being rebuilt.
+builder is still walking IS a base being rebuilt. A neutral building is NOT a base while it only
+carries the commander of the units sheltering in it (`Garrison.is_borrowed`): it goes back to
+neutral when they leave, and leaving cover is not losing a base (found 2026-10-18, when
+evacuating a farmhouse lost prologue mission 1).
 
 `Scenario._check_player_eliminated` runs this clause and the older owns-nothing clause
 together, each behind its own arming latch, so a mission that opens with units and asks the

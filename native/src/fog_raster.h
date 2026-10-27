@@ -112,15 +112,17 @@ private:
 	std::vector<int32_t> counts;
 	std::unordered_map<uint64_t, Stamp> stamps;
 	bool texture_stale = true;
-	// (kind, half_x px, half_z px) -> footprint id; footprints[id] its offsets. Equal footprints
-	// are one entry, so a stamp compares footprints by id.
-	std::map<std::tuple<int, int, int>, int> footprint_ids;
+	// (kind, half_x px, half_z px, turn x, turn z) -> footprint id; footprints[id] its offsets.
+	// Equal footprints are one entry, so a stamp compares footprints by id. The turn is a turned
+	// rectangle's local X axis in XZ, quantised (TURN_STEPS); (0, 0) for everything unturned.
+	std::map<std::tuple<int, int, int, int, int>, int> footprint_ids;
 	std::vector<std::vector<godot::Vector2i>> footprints;
 	std::unordered_map<int, std::vector<godot::Vector2i>> discs;
 
 	bool on_raster(int p_px, int p_py) const { return p_px >= 0 && p_px < width && p_py >= 0 && p_py < height; }
 	bool in_play(int p_idx) const { return !play_bounds_active || play_mask[p_idx] != 0; }
 	int footprint_for(godot::CollisionShape3D *p_vision_shape);
+	static std::vector<godot::Vector2i> turned_rectangle(int p_hx, int p_hz, double p_axis_x, double p_axis_z);
 	void apply_stamp(const Stamp &p_stamp, int p_delta);
 	const std::vector<godot::Vector2i> &disc(int p_radius_px);
 };

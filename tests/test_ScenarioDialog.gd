@@ -10,8 +10,10 @@ extends GutTest
 ## on _ready; that warning is expected and unrelated to what's under test here.
 
 ## Two distinct page scenes, so tests can tell "the right page" from "a page".
-const PAGE: PackedScene = preload("res://scenes/dialogs/welcome.tscn")
-const PAGE_B: PackedScene = preload("res://scenes/dialogs/giving_orders.tscn")
+## Test-owned pages, never the help copy a player reads (simulation-tests.md §Where the
+## harnesses live).
+const PAGE: PackedScene = preload("res://scenes/harnesses/dialogs/harness_page_a.tscn")
+const PAGE_B: PackedScene = preload("res://scenes/harnesses/dialogs/harness_page_b.tscn")
 
 var _manager: ScenarioTriggerManager
 
@@ -113,7 +115,7 @@ func test_view_instantiates_the_page_it_is_given() -> void:
 	assert_true(view.is_showing(), "the view puts the dialog on screen")
 	var page := view.current_page_instance() as DialogPage
 	assert_not_null(page, "the page scene is brought into the game")
-	assert_eq(page.title, "Field Command")
+	assert_eq(page.title, "Harness Page A")
 
 
 func test_view_queues_dialogs_and_each_holds_separately() -> void:
@@ -151,16 +153,6 @@ func _bound_view() -> ScenarioDialogView:
 	return view
 
 
-## A view with a two-page help book bound.
-func _book_view() -> ScenarioDialogView:
-	var view := _bound_view()
-	var book := HelpBook.new()
-	book.pages = [PAGE, PAGE_B]
-	add_child_autofree(book)
-	view.bind_help_book(book)
-	return view
-
-
 # --- DialogPage ----------------------------------------------------------------
 
 
@@ -172,104 +164,37 @@ func test_a_page_renders_its_authored_copy() -> void:
 	assert_false(page.acknowledge_text.is_empty(), "and its own button label")
 
 
-func test_the_same_page_scene_serves_an_event_and_the_book() -> void:
-	# The whole point of pages-as-scenes: one file, referenced from both places, so fixing a
-	# typo fixes it everywhere.
-	var view := _book_view()
-	var event := _make_event()
-	event.page = PAGE
-	_fire(event)
-	var from_event := view.current_page_instance() as DialogPage
-	var event_title: String = from_event.title
-	view.acknowledge_current()
-
-	view.open_help()
-	var from_book := view.current_page_instance() as DialogPage
-	assert_eq(from_book.title, event_title, "same scene, same copy")
+# --- Tutorial notes -----------------------------------------------------------
 
 
-# --- Help book -----------------------------------------------------------------
+func test_a_tutorial_note_is_recorded_once() -> void:
+	_manager.note_tutorial_shown(PAGE)
+	_manager.note_tutorial_shown(PAGE_B)
+	_manager.note_tutorial_shown(PAGE)
+	assert_eq(_manager.tutorial_notes_shown, [PAGE, PAGE_B], "first-shown order, no repeats")
 
 
-func test_no_help_button_without_a_book() -> void:
+func test_a_pop_up_is_a_tutorial_note_only_when_marked() -> void:
+	_bound_view()
+	var plain := _make_event()
+	plain.page = PAGE
+	_fire(plain)
+	assert_eq(_manager.tutorial_notes_shown.size(), 0, "a pop-up is not a note by default")
+	var note := _make_event(false)
+	note.page = PAGE_B
+	note.is_tutorial_note = true
+	_fire(note)
+	assert_eq(_manager.tutorial_notes_shown, [PAGE_B])
+
+
+func test_the_corner_button_names_the_tab_it_opens() -> void:
 	var view := _bound_view()
-	assert_false(view.is_help_available(), "a scenario with no HelpBook offers no help")
-	view.open_help()
-	assert_false(view.is_help_open(), "and opening it does nothing")
-
-
-func test_no_help_button_for_an_empty_book() -> void:
-	var view := _bound_view()
-	var book := HelpBook.new()
-	add_child_autofree(book)
-	view.bind_help_book(book)
-	assert_false(view.is_help_available())
-
-
-func test_the_help_button_toggles_the_book_and_holds_the_world() -> void:
-	var view := _book_view()
-	assert_true(view.is_help_available())
-
-	view.toggle_help()
-	assert_true(view.is_help_open(), "the button opens the book")
-	assert_true(_manager.simulation_clock.is_paused(), "reading never costs you the battle")
-	assert_eq(view.help_index(), 0, "opens at the first page")
-
-	view.toggle_help()
-	assert_false(view.is_help_open(), "a second press closes it")
-	assert_false(_manager.simulation_clock.is_paused(), "and resumes the world")
-
-
-func test_the_book_steps_back_and_forward() -> void:
-	var view := _book_view()
-	view.open_help()
-	var first := (view.current_page_instance() as DialogPage).title
-
-	view.show_next_help_page()
-	assert_eq(view.help_index(), 1)
-	assert_ne((view.current_page_instance() as DialogPage).title, first, "a different page")
-
-	view.show_previous_help_page()
-	assert_eq(view.help_index(), 0)
-	assert_eq((view.current_page_instance() as DialogPage).title, first, "back to the first")
-
-
-func test_the_book_clamps_at_its_ends() -> void:
-	# Clamped rather than wrapping, so the end of the book is somewhere you arrive at.
-	var view := _book_view()
-	view.open_help()
-	view.show_previous_help_page()
-	assert_eq(view.help_index(), 0, "can't step before the first page")
-	view.show_next_help_page()
-	view.show_next_help_page()
-	assert_eq(view.help_index(), 1, "can't step past the last")
-
-
-func test_a_scripted_dialog_takes_precedence_over_the_book() -> void:
-	# A beat that stopped the world to ask something must be answered; the book must not be
-	# openable over it, and must step aside if one arrives while it is open.
-	var view := _book_view()
-	view.open_help()
-	_fire(_make_event())
-	assert_false(view.is_help_open(), "an incoming dialog closes the book")
-	assert_true(view.is_showing())
-
-	view.open_help()
-	assert_false(view.is_help_open(), "and the book can't be opened over it")
-
-	view.acknowledge_current()
-	view.open_help()
-	assert_true(view.is_help_open(), "once answered, help is available again")
-
-
-func test_closing_the_book_releases_only_its_own_hold() -> void:
-	# REASON_HELP is distinct from REASON_DIALOG precisely so these can't cancel each other.
-	var view := _book_view()
-	view.open_help()
-	assert_true(_manager.simulation_clock.is_held_by(SimulationClock.REASON_HELP))
-	assert_false(_manager.simulation_clock.is_held_by(SimulationClock.REASON_DIALOG))
-	view.close_help()
-	assert_false(_manager.simulation_clock.is_paused())
+	assert_eq(view.menu_button_text(), ScenarioDialogView.HOW_TO_PLAY_BUTTON_TEXT, "no objectives")
+	var objective := GlobalTrigger.new()
+	objective.scope = GlobalTrigger.ObjectiveScope.PRIMARY
+	add_child_autofree(objective)
+	_manager.global_triggers.append(objective)
+	assert_eq(view.menu_button_text(), ScenarioDialogView.BRIEFING_BUTTON_TEXT)
 
 
 # --- Window sizing --------------------------------------------------------------

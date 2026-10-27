@@ -32,13 +32,10 @@ signal paused_changed(paused: bool)
 const REASON_DIALOG: StringName = &"dialog"
 ## Reason used by a tutorial beat waiting on a specific player input.
 const REASON_TUTORIAL: StringName = &"tutorial"
-## Reason used while the player has the HUD's help book open. Distinct from REASON_DIALOG so
-## closing the book can never release a scripted dialog's hold, or vice versa.
-const REASON_HELP: StringName = &"help"
 
-## Reason used while the pause menu is up. Its own reason for the same purpose as REASON_HELP:
-## a player who opens the pause menu over a scripted dialog and closes it again must not
-## resume a world the dialog still wants stopped.
+## Reason used while the pause menu is up (and with it the briefing and How to Play). Its own
+## reason, distinct from REASON_DIALOG: a player who opens the pause menu over a scripted dialog
+## and closes it again must not resume a world the dialog still wants stopped.
 const REASON_PAUSE_MENU: StringName = &"pause_menu"
 
 ## Reason used while the debug playback control has the world paused (see PlaybackSpeed).
@@ -50,6 +47,10 @@ const REASON_PLAYBACK_PAUSE: StringName = &"playback_pause"
 ## lasts differs per machine, and a poll per stalled frame would fire a repeating trigger a
 ## different number of times on each.
 const REASON_NETWORK_WAIT: StringName = &"network_wait"
+
+## Reason used from a scenario's first frame until its navmesh is first built (Scenario), so tick
+## 0 is the same tick however the scene entered the tree.
+const REASON_BOOT: StringName = &"boot"
 #endregion
 
 #region Properties
@@ -138,7 +139,7 @@ func hold_count(a_reason: StringName) -> int:
 
 #region Private helpers
 ## In a networked match only the network wait holds the world: every other hold — the pause
-## menu, the help book, a playback pause, a scripted dialog — would stop this machine alone and
+## menu, a playback pause, a scripted dialog — would stop this machine alone and
 ## desync the match, so it is taken (and released) as if it had been, and the world runs on. The
 ## pause menu is then the overlay netplay.md §Rules asks for.
 func _refuses(a_reason: StringName) -> bool:

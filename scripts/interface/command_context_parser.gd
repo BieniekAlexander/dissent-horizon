@@ -267,7 +267,7 @@ static func _can_land(e: Entity) -> bool:
 	return (
 		aerial != null
 		and aerial.mode == Movement.Mode.HOVERING
-		and not aerial.is_permanently_grounded()
+		and not aerial.is_down_or_descending()
 	)
 
 

@@ -23,7 +23,7 @@ extends GutTest
 ## moment fog started working inside GUT — see gdd/systems/ai/bot-engagement-fixes.md
 ## §What this broke.
 
-const SCENE: String = "res://scenes/scenarios/test/test_kamikaze_cluster.tscn"
+const SCENE: String = "res://scenes/harnesses/test_kamikaze_cluster.tscn"
 
 ## Ticks to let the scenario finish booting (navmesh sync, auto-initialize).
 const BOOT_TICKS: int = 30

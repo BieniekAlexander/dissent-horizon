@@ -31,6 +31,12 @@ var aggro_shape: CollisionShape3D
 ## the area it was acquired in — see Attack._target_within_leash.
 var aggro_center: Variant = null
 
+## THE LEASH (Alex, 2026-10-19, SC2-style): where a piece stood when it took up an attack on its
+## own — idle aggro, or answering fire — as a Vector3, or null for an attack it was ordered into.
+## Pursuing its target, it may stray Attack.LEASH_DISTANCE from here; past that it drops the
+## target and walks back (Attack.get_updated_state).
+var leash_origin: Variant = null
+
 ## Identity token for the one player order this snapshot belongs to (minted per call
 ## in RTSController.assign_command_to_units), or null. Every per-unit snapshot from
 ## the same order points at the same object, so `is_same(a.origin, b.origin)`
@@ -188,6 +194,7 @@ static func deep_copy(message: CommandMessage) -> CommandMessage:
 	# object to the typed field errors, so it is scrubbed like `target` above.
 	copy.aggro_shape = message.aggro_shape if is_instance_valid(message.aggro_shape) else null
 	copy.aggro_center = message.aggro_center
+	copy.leash_origin = message.leash_origin
 	copy.target_priority = message.target_priority
 	copy.origin = message.origin
 	copy.match_group_speed = message.match_group_speed

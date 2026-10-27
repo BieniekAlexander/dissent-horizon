@@ -32,6 +32,9 @@ enum Action { COMMANDS, HOLD, STAGE, ASSAULT, ESCORT, RETREAT, BUILD }
 
 @export var condition: Condition
 @export var action: Action = Action.COMMANDS
+## While this rule wins, the cluster holds fire: no member picks a target of its own, though an
+## order to attack still attacks. Released when a rule without it takes over.
+@export var holds_fire: bool = false
 ## The Node3D whose position is the rule's point: HOLD, STAGE, ASSAULT and BUILD need one;
 ## RETREAT falls back to each member's nearest own structure without one.
 @export var point_path: NodePath

@@ -334,6 +334,25 @@ func test_entity_killed_becomes_true_once_the_entity_is_freed() -> void:
 	assert_eq(condition.highlight_entities(manager), [], "and nothing is left to mark")
 
 
+func test_a_primed_entity_killed_check_sees_a_death_before_its_first_evaluation() -> void:
+	# A trigger armed late (behind a prerequisite) first evaluates after the entity may already
+	# be dead. Primed at session start, it has found the entity while it stood; unprimed, it
+	# would look it up only then, find nothing, and stay false forever — which stalled
+	# prologue mission 1 when its prisons fell before its ambush was beaten.
+	var manager := _killed_condition_manager()
+	var entity: Actor = FakePieces.unit(FakePieces.PLAIN)
+	entity.name = "Watched"
+	add_child(entity)
+
+	var condition := ConditionEntityKilled.new()
+	condition.entity_name = "Watched"
+	condition.prime(manager)
+
+	entity.get_parent().remove_child(entity)
+	entity.free()
+	assert_true(condition.evaluate(manager), "the death counts though nothing evaluated before it")
+
+
 func test_entity_killed_fails_closed_on_an_unknown_name() -> void:
 	# A typo'd or renamed target must NOT read as "already destroyed" — that would fire the
 	# trigger on its first tick. It reports false forever, and warns so the author finds out.

@@ -2,7 +2,10 @@ class_name ScenarioHighlight
 extends Node3D
 
 ## Draws "the objective means THIS" markers in the world: a pulsing ring under each entity
-## the player has to act on, and a pulsing footprint on the ground for each region.
+## the player has to act on with a chevron bobbing above it, and a pulsing footprint on the
+## ground for each region — a band traced round its edge on the terrain. What the watching player
+## may see of them is HighlightSight's call:
+## a region only where its ground is in sight, a piece only while it or its snapshot is shown.
 ##
 ## One of these is created per active EventHighlight and lives under the Map, so its
 ## coordinates are world coordinates (the same arrangement WaypointIndicator uses). It draws
@@ -34,8 +37,16 @@ const GROUP: StringName = &"scenario_highlight"
 const Y_LIFT: float = 0.08
 ## Segments used to tessellate a circular footprint or an entity ring.
 const RING_SEGMENTS: int = 28
-## How far above an entity the vertical stalk rises, so the mark reads from the iso camera.
-const STALK_HEIGHT: float = 1.4
+## The chevron hovering over a marked piece: its gap above the model's top, its size in world
+## units, and its slow bob (cycles per second, and the height it sweeps).
+const CHEVRON_CLEARANCE: float = 1.4
+const CHEVRON_HALF_WIDTH: float = 0.55
+const CHEVRON_HEIGHT: float = 0.5
+const CHEVRON_THICKNESS: float = 0.16
+const BOB_HZ: float = 0.45
+const BOB_AMPLITUDE: float = 0.18
+## Height assumed for a piece with no model to measure.
+const DEFAULT_MODEL_TOP: float = 1.0
 ## Ring radius used when an entity's own footprint can't be measured.
 const DEFAULT_ENTITY_RADIUS: float = 0.45
 ## Extra clearance between an entity's footprint and its ring.
@@ -43,16 +54,16 @@ const RING_MARGIN: float = 0.25
 ## Seconds between re-queries of the target set. Conditions can be O(units), and a unit
 ## can't enter or leave a set meaningfully faster than this.
 const REFRESH_INTERVAL: float = 0.2
-## Ground-fill vertices are sampled every this many world units along a footprint edge, so
-## a large region drapes over hills instead of cutting through them.
+## A region's edge is sampled every this many world units, so a large region drapes over hills
+## instead of cutting through them.
 const FILL_SAMPLE_STEP: float = 1.0
+## Half the width of the band traced round a region's edge, in world units.
+const EDGE_HALF_WIDTH: float = 0.12
 
 ## Pulse rate (cycles/second) and the alpha range it sweeps.
 const PULSE_HZ: float = 1.1
 const ALPHA_MIN: float = 0.35
 const ALPHA_MAX: float = 0.9
-## Region fill alpha, as a fraction of the outline's current pulse alpha.
-const FILL_ALPHA_SCALE: float = 0.22
 #endregion
 
 #region Properties
@@ -163,31 +174,38 @@ func _redraw() -> void:
 	# created" if a surface is opened and closed with nothing in it. Killing the last unit a
 	# "destroy these" objective was watching used to log that every frame until the next
 	# refresh.
+	var sight: HighlightSight = HighlightSight.for_viewer(self)
 	var live: Array[Entity] = []
 	for entity: Entity in _entities:
-		if is_instance_valid(entity) and entity.is_inside_tree():
+		if is_instance_valid(entity) and entity.is_inside_tree() and sight.shows_entity(entity):
 			live.append(entity)
-	if live.is_empty() and _shapes.is_empty():
+	var segments: Array[Vector2] = []
+	for shape: HighlightShape in _shapes:
+		segments.append_array(_outline_segments(shape, sight))
+	if live.is_empty() and segments.is_empty():
 		return
 
 	var outline_color: Color = color
 	outline_color.a = _pulse_alpha()
-	var fill_color: Color = color
-	fill_color.a = outline_color.a * FILL_ALPHA_SCALE
+	var chevron_color: Color = color
+	chevron_color.a = ALPHA_MAX
 
-	# Fills first, as translucent triangles, so the outlines drawn after read on top.
-	if not _shapes.is_empty():
-		_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-		for shape: HighlightShape in _shapes:
-			_add_shape_fill(shape, fill_color)
-		_mesh.surface_end()
-
-	_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
-	for shape: HighlightShape in _shapes:
-		_add_shape_outline(shape, outline_color)
+	# Region edges and chevrons are triangles; the rings under pieces are lines.
+	_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	_mesh.surface_set_color(outline_color)
+	for i: int in range(0, segments.size(), 2):
+		_add_edge_band(segments[i], segments[i + 1])
+	_mesh.surface_set_color(chevron_color)
+	var camera: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
 	for entity: Entity in live:
-		_add_entity_marker(entity, outline_color)
+		_add_chevron(entity, camera)
 	_mesh.surface_end()
+
+	if not live.is_empty():
+		_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
+		for entity: Entity in live:
+			_add_entity_ring(entity, outline_color)
+		_mesh.surface_end()
 
 
 ## Alpha sweeping between ALPHA_MIN and ALPHA_MAX. Driven by wall-clock ticks rather than
@@ -197,13 +215,11 @@ func _pulse_alpha() -> float:
 	return lerpf(ALPHA_MIN, ALPHA_MAX, 0.5 + 0.5 * sin(phase))
 
 
-## A ring at the entity's feet plus a stalk rising out of it.
-func _add_entity_marker(a_entity: Entity, a_marker_color: Color) -> void:
-	var origin: Vector3 = a_entity.global_position
-	var center: Vector2 = VU.in_xz(origin)
+## A ring at the entity's feet.
+func _add_entity_ring(a_entity: Entity, a_marker_color: Color) -> void:
+	var center: Vector2 = VU.in_xz(a_entity.global_position)
 	var radius: float = _entity_radius(a_entity)
 	_mesh.surface_set_color(a_marker_color)
-
 	var previous: Vector3 = _ground_point(center + Vector2(radius, 0.0))
 	for i: int in range(1, RING_SEGMENTS + 1):
 		var angle: float = TAU * float(i) / float(RING_SEGMENTS)
@@ -212,9 +228,35 @@ func _add_entity_marker(a_entity: Entity, a_marker_color: Color) -> void:
 		_mesh.surface_add_vertex(to_local(point))
 		previous = point
 
-	var base: Vector3 = _ground_point(center)
-	_mesh.surface_add_vertex(to_local(base))
-	_mesh.surface_add_vertex(to_local(base + Vector3(0.0, STALK_HEIGHT, 0.0)))
+
+## A downward chevron hovering over the piece, facing the camera and bobbing slowly — two
+## quads meeting at the tip. Wall-clock driven like the pulse, so it bobs through a hold.
+func _add_chevron(a_entity: Entity, a_camera: Camera3D) -> void:
+	var right := Vector3.RIGHT
+	var up := Vector3.UP
+	if a_camera != null:
+		right = a_camera.global_basis.x.normalized()
+		up = a_camera.global_basis.y.normalized()
+	var phase: float = float(Time.get_ticks_msec()) / 1000.0 * BOB_HZ * TAU
+	var tip: Vector3 = (
+		a_entity.global_position
+		+ Vector3.UP * (_model_top(a_entity) + CHEVRON_CLEARANCE + BOB_AMPLITUDE * sin(phase))
+	)
+	var thick: Vector3 = up * CHEVRON_THICKNESS
+	for side: float in [-1.0, 1.0]:
+		var outer: Vector3 = tip + right * (side * CHEVRON_HALF_WIDTH) + up * CHEVRON_HEIGHT
+		_add_quad(tip, outer, outer + thick, tip + thick)
+
+
+func _add_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+	for point: Vector3 in [a, b, c, a, c, d]:
+		_mesh.surface_add_vertex(to_local(point))
+
+
+## Height of the piece's visible model above its origin, so the chevron clears the art.
+func _model_top(a_entity: Entity) -> float:
+	var mesh_visual := a_entity.get_node_or_null("MeshVisual") as MeshVisual
+	return mesh_visual.model_top_offset() if mesh_visual != null else DEFAULT_MODEL_TOP
 
 
 ## Ring radius for an entity: its own footprint where that is knowable, with a margin so
@@ -227,33 +269,32 @@ func _entity_radius(a_entity: Entity) -> float:
 	return DEFAULT_ENTITY_RADIUS + RING_MARGIN
 
 
-## Closed outline of a footprint, draped on the terrain.
-func _add_shape_outline(a_shape: HighlightShape, a_outline_color: Color) -> void:
+## The footprint's outline as pairs of XZ endpoints, keeping only the edges whose both ends
+## are in sight — a region is drawn as far as it can be seen.
+func _outline_segments(a_shape: HighlightShape, a_sight: HighlightSight) -> Array[Vector2]:
 	var points: Array[Vector2] = a_shape.perimeter_points(FILL_SAMPLE_STEP)
+	var out: Array[Vector2] = []
 	if points.size() < 2:
-		return
-	_mesh.surface_set_color(a_outline_color)
+		return out
 	for i: int in points.size():
-		var a: Vector3 = _ground_point(points[i])
-		var b: Vector3 = _ground_point(points[(i + 1) % points.size()])
-		_mesh.surface_add_vertex(to_local(a))
-		_mesh.surface_add_vertex(to_local(b))
+		var a: Vector2 = points[i]
+		var b: Vector2 = points[(i + 1) % points.size()]
+		if a_sight.shows_point(a) and a_sight.shows_point(b):
+			out.append(a)
+			out.append(b)
+	return out
 
 
-## Translucent interior, as a triangle fan from the footprint centre. Both footprint kinds
-## are convex, so a fan is always well-formed.
-func _add_shape_fill(a_shape: HighlightShape, a_fill_color: Color) -> void:
-	var points: Array[Vector2] = a_shape.perimeter_points(FILL_SAMPLE_STEP)
-	if points.size() < 3:
-		return
-	_mesh.surface_set_color(a_fill_color)
-	var center: Vector3 = _ground_point(a_shape.center)
-	for i: int in points.size():
-		var a: Vector3 = _ground_point(points[i])
-		var b: Vector3 = _ground_point(points[(i + 1) % points.size()])
-		_mesh.surface_add_vertex(to_local(center))
-		_mesh.surface_add_vertex(to_local(a))
-		_mesh.surface_add_vertex(to_local(b))
+## One piece of a region's edge as a band EDGE_HALF_WIDTH either side of it, each end lifted
+## onto the terrain, so the edge reads as a line painted on the ground.
+func _add_edge_band(a_from: Vector2, a_to: Vector2) -> void:
+	var across: Vector2 = (a_to - a_from).orthogonal().normalized() * EDGE_HALF_WIDTH
+	_add_quad(
+		_ground_point(a_from - across),
+		_ground_point(a_to - across),
+		_ground_point(a_to + across),
+		_ground_point(a_from + across)
+	)
 
 
 ## Lift an XZ point onto the terrain surface. Falls back to the plane at y=0 when there is

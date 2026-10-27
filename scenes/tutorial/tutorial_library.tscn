@@ -1,0 +1,41 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/tutorial/tutorial_library.gd" id="1_lib"]
+[ext_resource type="Script" path="res://scripts/tutorial/tutorial_category.gd" id="2_cat"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/how_to_play.tscn" id="n0"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/camera.tscn" id="n1"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/minimap.tscn" id="n2"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/command_card.tscn" id="n3"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/selecting_and_moving.tscn" id="n4"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/box_selection.tscn" id="n5"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/attacking.tscn" id="n6"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/attack_move.tscn" id="n7"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/damage_types.tscn" id="n8"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/shooting_aircraft.tscn" id="n9"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/taking_cover.tscn" id="n10"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/firing_from_cover.tscn" id="n11"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/leaving_cover.tscn" id="n12"]
+[ext_resource type="PackedScene" path="res://scenes/tutorial/notes/air_transport.tscn" id="n13"]
+
+[node name="TutorialLibrary" type="Node"]
+script = ExtResource("1_lib")
+
+[node name="GettingStarted" type="Node" parent="."]
+script = ExtResource("2_cat")
+title = "Getting started"
+notes = Array[PackedScene]([ExtResource("n0"), ExtResource("n1"), ExtResource("n2"), ExtResource("n3")])
+
+[node name="CommandingUnits" type="Node" parent="."]
+script = ExtResource("2_cat")
+title = "Commanding units"
+notes = Array[PackedScene]([ExtResource("n4"), ExtResource("n5"), ExtResource("n6"), ExtResource("n7")])
+
+[node name="Combat" type="Node" parent="."]
+script = ExtResource("2_cat")
+title = "Combat"
+notes = Array[PackedScene]([ExtResource("n8"), ExtResource("n9")])
+
+[node name="GarrisonsAndTransports" type="Node" parent="."]
+script = ExtResource("2_cat")
+title = "Garrisons and transports"
+notes = Array[PackedScene]([ExtResource("n10"), ExtResource("n11"), ExtResource("n12"), ExtResource("n13")])

@@ -174,6 +174,51 @@ func test_an_enemys_sight_does_not() -> void:
 	assert_false(fog.fog_clear_at(VU.in_xz(there)))
 
 
+func test_an_ally_withholding_its_vision_clears_nothing() -> void:
+	_ally.shares_vision_with_allies = false
+	var fog: Fog = _fog_for(ME)
+	var there := Vector3(10.0, 0.0, 10.0)
+	_unit(SOLDIER, _ally, there)
+	fog._update_sight(get_tree().get_nodes_in_group("los"))
+	assert_false(fog.fog_clear_at(VU.in_xz(there)), "its sight is not this commander's")
+
+
+func test_withholding_vision_is_one_way() -> void:
+	_ally.shares_vision_with_allies = false
+	var fog: Fog = _fog_for(ALLY)
+	var there := Vector3(10.0, 0.0, 10.0)
+	_unit(SOLDIER, _me, there)
+	fog._update_sight(get_tree().get_nodes_in_group("los"))
+	assert_true(fog.fog_clear_at(VU.in_xz(there)), "the withholder still sees what I see")
+
+
+func test_withholding_vision_leaves_the_alliance_whole() -> void:
+	_ally.shares_vision_with_allies = false
+	var theirs: Actor = _unit(SOLDIER, _ally)
+	assert_true(_ally.is_allied_with(ME), "still allies")
+	assert_false(theirs.is_enemy_of(_unit(SOLDIER, _me)), "and never enemies")
+	assert_false(theirs.lends_vision_to(ME), "it only stops lending its sight")
+	assert_true(theirs.lends_vision_to(ALLY), "which its own commander always has")
+	assert_false(_unit(SOLDIER, _foe).lends_vision_to(ME), "an enemy never lends it")
+
+
+func test_a_slot_that_withholds_vision_makes_a_commander_that_does() -> void:
+	var scenario := Scenario.new()
+	var sharing: PlayerSlot = _slot(1)
+	var withholding: PlayerSlot = _slot(1)
+	withholding.shares_vision_with_allies = false
+	scenario.player_slots = [sharing, withholding]
+	var neutral: Commander = _commander(0)
+	var first: Commander = _commander(1)
+	var second: Commander = _commander(2)
+	scenario.commanders = [neutral, first, second]
+	scenario._assign_alliances()
+	assert_true(first.shares_vision_with_allies, "sharing is the default")
+	assert_false(second.shares_vision_with_allies)
+	assert_true(second.is_allied_with(1), "on the same team all the same")
+	scenario.free()
+
+
 # --- What allies may do for each other ------------------------------------------------------
 
 

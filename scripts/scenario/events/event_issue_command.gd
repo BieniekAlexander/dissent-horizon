@@ -12,6 +12,15 @@ extends AbstractEvent
 ## issue_commands_to() directly with the freshly-spawned units, bypassing the selector
 ## pipeline (the recipient list is already known).
 
+## Each unit's post is WHERE IT STANDS when the order is given, not a formation fanned around
+## the last command point: "the Recruits placed at the outpost defend where they were placed",
+## so an author's exact placement survives the order. Added for prologue mission 1 (Alex,
+## 2026-10-21), whose start-time pieces are placed in the scene rather than spawned.
+@export var should_post_in_place: bool = false
+
+## EventCommandPoint kinds that act where the unit already is, so they name no post.
+const PLACELESS: Array[String] = ["land", "evacuate", "leave_map"]
+
 var _commander_id_context: int = -1
 
 
@@ -114,10 +123,18 @@ func _formation_offsets(
 	a_units: Array[Actor], a_manager: ScenarioTriggerManager, a_event_commands: Array[EventCommand]
 ) -> Array[Vector3]:
 	var offsets: Array[Vector3] = []
+	# The last point that is a POST: a Land or an Evacuate has none of its own (it acts where the
+	# chain has brought the unit), a LeaveMap's is off the board, and a point aimed at a
+	# commander's unit is where that unit stands.
 	var anchor: EventCommandPoint = null
 	for ec: EventCommand in a_event_commands:
-		if ec is EventCommandPoint:
+		if ec is EventCommandPoint and not (ec as EventCommandPoint).command_type in PLACELESS:
 			anchor = ec as EventCommandPoint
+	if should_post_in_place and anchor != null:
+		var at: Vector3 = anchor.destination(a_manager)
+		for unit: Actor in a_units:
+			offsets.append(VU.on_xz(unit.global_position - at))
+		return offsets
 	if a_units.size() <= 1 or anchor == null or a_manager.map == null:
 		for _u: Actor in a_units:
 			offsets.append(Vector3.ZERO)
@@ -125,7 +142,7 @@ func _formation_offsets(
 	var map: Map = a_manager.map
 	var radius: float = a_units[0].bounding_radius(CollisionLayers.Mask.MOVEMENT_OBSTRUCTION)
 	var region_radius: float = maxf(5.0, radius * 2.5 * float(a_units.size()))
-	var anchor_xz: Vector2 = VU.in_xz(anchor.global_position)
+	var anchor_xz: Vector2 = VU.in_xz(anchor.destination(a_manager))
 	var points: Array[Vector2] = SU.get_nonoverlapping_points(
 		map,
 		anchor_xz,

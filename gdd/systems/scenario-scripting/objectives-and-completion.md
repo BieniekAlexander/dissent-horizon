@@ -14,14 +14,16 @@ Any trigger can be player-facing: `@export var scope: ObjectiveScope` (`NONE` by
 
 **`scope` is a DISPLAY decision.** Nothing in arming, firing, chaining or prerequisites reads it; win/lose is still authored with `prerequisites` + `EventWinLose`. Its one non-visual consumer is `all_objectives_complete()`, below.
 
-| Scope | Colour | Row | Struck when fired |
+| Scope | Colour | Row | Once fired |
 | --- | --- | --- | --- |
 | `NONE` | — | not shown at all | — |
-| `PRIMARY` | green | checkbox | yes |
-| `SECONDARY` | amber | checkbox | yes |
-| `FAILURE` | red | **bullet** | **no** |
+| `PRIMARY` | green | checkbox | done |
+| `SECONDARY` | amber | checkbox | done |
+| `FAILURE` | red | **bullet** | **never done** |
 
-A `FAILURE` gets a bullet rather than a checkbox because it is a way to LOSE, not a task: a box would invite the player to read it as something to go and do, and a fired failure ends the scenario anyway, so it has no "done" reading worth showing. Colour comes from the scope and the strike comes from the state — the two are independent, so a completed `PRIMARY` is a struck-through *green* line, not a differently-coloured one.
+A `FAILURE` gets a bullet rather than a checkbox because it is a way to LOSE, not a task: a box would invite the player to read it as something to go and do, and a fired failure ends the scenario anyway, so it has no "done" reading worth showing.
+
+**A done objective leaves the HUD checklist and stays in the Briefing** (Alex, 2026-10-26). The HUD (`ObjectiveView`) lists only what is still to do; the pause menu's Briefing tab (`BriefingObjectivesView`) lists every objective shown so far, a done one ticked, struck through and dimmed, details and all. It replaced a HUD that kept finished rows struck through in their scope's colour: the record of what is done belongs where the player goes to read, not on the screen they play on.
 
 **State is derived, never stored** — `GlobalTrigger.objective_state()`:
 
@@ -29,11 +31,15 @@ A `FAILURE` gets a bullet rather than a checkbox because it is a way to LOSE, no
 | --- | --- | --- |
 | `PENDING` | `not enabled and not has_fired` | hidden (an unrevealed step would spoil what's coming) |
 | `ACTIVE` | `enabled and not has_fired` | unchecked |
-| `COMPLETE` | `has_fired` | struck through |
+| `COMPLETE` | `has_fired` | gone from the HUD; struck through in the Briefing |
 
 `has_fired` exists because `enabled` alone can't separate PENDING from COMPLETE (a one-shot disables itself on firing). `has_fired` wins over `enabled` so a REPEATING objective ticks off on its first completion instead of sitting unchecked forever. There is no fallback for a blank `description` — the trigger's inspector name is not player-facing copy, and a row that quietly showed it would ship a node name to the player.
 
 Transitions announce themselves via `objective_state_changed`, emitted from the three places that can move the state: `arm()`, `disarm()`, `fire()`. Nothing polls.
+
+## A new objective is announced
+
+When the HUD checklist gains a row, the row flashes for a few seconds and a chime plays, once per objective, with one chime for objectives that arrive together (Alex, 2026-10-26). **The cue waits until nothing covers the HUD**: while a pop-up is still open (`ScenarioTriggerManager.has_open_dialog()`) or the pause menu holds the clock, the row is listed but not announced, so the cue lands once the player is looking at the HUD again rather than behind a modal panel. An objective finished while it waited is not announced. The flash runs on real time, so it reads the same at any playback speed. The chime, `assets/audio/alerts/objective_added.wav`, is a synthesised placeholder, made by the same tool as the alert tones.
 
 ## Scenario completion
 
@@ -148,6 +154,36 @@ Chaining and being player-facing are **orthogonal**: a chain step left at `Objec
 Unlike the rest of this game's HUD it is an **authored scene** — `scenes/interface/objective_view.tscn`, instanced into `scenes/player.tscn` under `Controller` — so it can be positioned and restyled in the editor. The script only decides which rows exist; it looks everything up by scene-unique name (`%Panel`, `%Rows`, `%Title`), so the tree inside can be rearranged freely. Rows are duplicated from a hidden `%RowTemplate` rather than built in code, which makes restyling a row an edit to one node instead of to a function; it's a `RichTextLabel` so a completed line gets a real `[s]` strikethrough.
 
 `Scenario` finds it by group (`ObjectiveView.GROUP`) and binds it, rather than creating it — so a session with no player rig has no checklist, which is right, since nobody is reading it. Contrast `ScenarioDialogView`, which Scenario still CREATES: a spectator or headless test scenario has no HUD but can still raise scripted dialogs, so that one can't depend on the rig existing.
+
+## Sub-steps: one objective, several places to reach
+
+An objective the checklist shows as ONE line can be completed by reaching several points in
+turn — "navigate to the encampment" walked as three waypoints, each revealing the next (Alex,
+2026-10-26).
+
+- **A `GlobalTrigger`'s `GlobalTrigger` children are its sub-steps**, in scene-tree order, at any
+  depth; the manager collects them with the rest. They are machinery (`scope` NONE), so the
+  checklist shows nothing extra.
+- **Sub-steps watch from the moment their objective does**, and only the first one not yet
+  reached is CURRENT — enabled, so its `EventHighlight` and minimap marker are up. The others
+  watch unseen.
+- **A later sub-step counts.** Reaching one completes each earlier one first, in order, and all
+  of their events run (Alex, 2026-10-26), so a skipped step's help note shows with the next one's.
+- **The objective completes when its last sub-step does**, and never on its own conditions; it
+  needs none.
+- **A sub-step is a trigger**, so whatever sits under it runs when it is reached: a help note, the
+  reveal of the next point, the end of its own.
+
+## `resolves_earlier`: reaching ahead completes what came before
+
+Off by default (Alex, 2026-10-26). A trigger with it set watches its conditions from the start,
+unseen and still PENDING, and when they are met completes every ancestor not yet done before it
+fires: its prerequisites and theirs, transitively, each one's sub-steps before it, all of their
+events run in that order. It guards a mission against soft-locking a player who got ahead of it,
+at the price of crediting steps the player never did, which is why it is opt-in. An objective with
+it set lets its sub-steps watch early too, and a sub-step reached that way resolves the objectives
+before it. Under ANY_OF only one route is taken: none once a prerequisite has fired, else the
+first listed.
 
 ## What counts as still being in play
 

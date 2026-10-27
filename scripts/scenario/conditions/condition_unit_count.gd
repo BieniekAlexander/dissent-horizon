@@ -10,6 +10,10 @@ enum Comparison { AT_LEAST, AT_MOST, EXACTLY }
 @export var unit_type: StringName = &""
 @export var comparison: Comparison = Comparison.AT_LEAST
 @export var count: int = 1
+## Also count units carried by this commander's own pieces: held in a building it occupies, or
+## riding one of its transports. Off the tree, they would otherwise read as dead. A captive in
+## someone else's prison is not counted. Ignored with a region, which a carried unit is not in.
+@export var should_count_carried: bool = false
 ## Optional spatial scope is inherited from RegionAwareCondition (region_shape_path): when
 ## set, only units inside that CollisionShape3D are counted.
 #endregion
@@ -59,15 +63,36 @@ func matching_units(a_manager: ScenarioTriggerManager) -> Array:
 	var commander: Commander = a_manager.get_commander(commander_id)
 	if commander == null:
 		return []
-	return commander.get_children().filter(
+	var units: Array = commander.get_children().filter(
 		func(n: Node) -> bool:
 			return (
 				n is Actor
 				and (n as Actor).is_in_group("unit")
-				and (unit_type == &"" or (n as Actor).id == unit_type)
+				and _is_of_type(n as Actor)
 				and _is_counted(a_manager, n as Actor)
 			)
 	)
+	if should_count_carried and not has_region():
+		for piece: Node in commander.get_children():
+			if piece is Actor:
+				units.append_array(carried_units(piece as Actor).filter(_is_of_type))
+	return units
+
+
+## Every unit `a_host` carries of its own commander, through any nesting of hosts.
+static func carried_units(a_host: Actor) -> Array[Actor]:
+	var result: Array[Actor] = []
+	if a_host.garrison == null:
+		return result
+	for occupant: Actor in a_host.garrison.occupants():
+		if is_instance_valid(occupant) and occupant.commander_id == a_host.commander_id:
+			result.append(occupant)
+			result.append_array(carried_units(occupant))
+	return result
+
+
+func _is_of_type(a_unit: Actor) -> bool:
+	return unit_type == &"" or a_unit.id == unit_type
 
 
 ## Whether `a_unit` is where this check counts: in the region, at the position its perspective

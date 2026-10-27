@@ -23,11 +23,11 @@
 [ext_resource type="Script" uid="uid://bkkmj6vu46umn" path="res://scripts/entities/components/orders.gd" id="2_spec"]
 [ext_resource type="ArrayMesh" path="res://assets/meshes/entities/structures/nt_extractor.res" id="model_nt_extractor"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_wirw3"]
-size = Vector3(2, 3.987007, 2)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurtbox"]
 size = Vector3(2.0, 2.15, 2.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_selection"]
+size = Vector3(2.0, 0.6, 2.0)
 
 [node name="Structure" type="CharacterBody3D" unique_id=1571287935 groups=["piece", "fixture", "structure"]]
 collision_layer = 0
@@ -78,9 +78,9 @@ script = ExtResource("12_3wkan")
 [node name="Selectable" parent="." unique_id=2010096207 instance=ExtResource("13_kok7q")]
 
 [node name="SelectionShape" parent="Selectable" index="0" unique_id=671039273]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-shape = SubResource("BoxShape3D_wirw3")
-metadata/_visual_default_selection = "BoxShape3D"
+transform = Transform3D(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.292249, 0.0)
+shape = SubResource("BoxShape3D_selection")
+metadata/_visual_default_selection = "BoxShape3D@edge"
 
 [node name="Orders" type="Node" parent="."]
 script = ExtResource("2_spec")

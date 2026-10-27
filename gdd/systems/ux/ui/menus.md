@@ -19,17 +19,24 @@ one page, `MainMenu.page`:
 
 | Page | What it is |
 |---|---|
-| MAIN | Campaign · Arcade (WIP) · Skirmish · Replays · Options · Quit |
-| CAMPAIGN | one button per authored mission (`scenarios`, ScenarioEntry rows): the three prologue missions |
+| MAIN | Campaign · Load Game · Arcade (WIP) · Skirmish · Multiplayer · Replays · How to Play · Options · Quit |
+| CAMPAIGN | one button per campaign: Prologue · Challenges (WIP) |
+| PROLOGUE | the difficulty picker, then one button per authored mission (`scenarios`, ScenarioEntry rows): the three prologue missions |
 | SKIRMISH | the lobby, `SkirmishLobby` — below |
 | REPLAYS | every replay under `user://replays/`, newest first; an unplayable one is refused with the reason |
 | OPTIONS | master volume (not saved, `TODO`) and the alert jump key's scope (saved) |
+| HOW_TO_PLAY | the tutorial library, read as How to Play — [scenario-scripting/dialogs-and-pause](../../scenario-scripting/dialogs-and-pause.md) §How to Play |
 
-- **Arcade** is a disabled button labelled WIP: the mode is not built.
-- CAMPAIGN opens a mission at the difficulty picked above its list (EASY / MEDIUM / HARD, MEDIUM
+- **Arcade** is a disabled button labelled WIP: the mode is not built. So is **Challenges** on
+  the Campaign page: the [challenge series](../../../campaigns/challenges/README.md) is a stub.
+- A mission row with a title but no scene yet is a disabled button labelled "(WIP)"
+  (`ScenarioEntry.is_wip`); prologue missions 2 and 3 are that until their scenes are built
+  (TODO). Mission 1 opens its scene. A row with neither title nor scene is skipped and reported.
+- PROLOGUE opens a mission at the difficulty picked above its list (EASY / MEDIUM / HARD, MEDIUM
   until changed, not saved): the `difficulty` its triggers read, which leaves its bots as authored —
   [scenario-scripting/tactics](../../scenario-scripting/tactics.md) §Trigger-decided mission commanders.
-- **Back** on every page, and Escape, return to MAIN. The lobby's Back is its own (it must stay
+- **Back** on every page, and Escape, return to the page's parent (`MainMenu.parent_page`): a
+  campaign's page goes back to CAMPAIGN, every other page to MAIN. The lobby's Back is its own (it must stay
   locked while a map is generating).
 - **Quit** goes through `SceneManager.quit_game`, which announces `quit_requested` before
   closing — the one exit, like the one way in and out of a scenario.

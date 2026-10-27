@@ -208,10 +208,26 @@ uniform, because everything else changes while the mesh does not.
   navmesh boundary — the shoreline a player reads is the line their units actually stop at.
   The ramp is spread over a band around the threshold so it reads as a shoreline; the
   classification behind it stays binary.
-- **Charge** fades the whole surface toward the body's own `charge_color` — a pink, ochre or
-  green picked from `WaterBody.CHARGE_COLORS` when the body is authored and *stored on it*, so
-  a map does not change colour every time it loads. The fade tracks the remaining fraction of
+- **Charge** fades the whole surface toward the body's charged hue — one of its map's biome's
+  pond hues, picked from the seed cell and never stored, so a map looks the same on every load
+  and the hue follows the biome ([natural-environment](../../setting/natural-environment.md)
+  §Lithium ponds are cultivated). The water's own blues are the biome's too. The fade tracks the remaining fraction of
   the pond's original budget, so a pond visibly drains back to plain water.
+- **Shoreline**: the water ends where the terrain the player sees rises through its level —
+  the contour of the SMOOTHED height field the terrain shades from — not at the covered cells'
+  edges. Which cells a body covers is still decided per cell, and the deep/shallow shade is still
+  cell-true, because those are the passability readout; only the outer shoreline is drawn off
+  the contour, and it may be, because shallow water and dry ground are both walkable. The mesh
+  reaches one ring of cells past the covered ones (`RING_CELLS`) so the water can get to a
+  contour that lies outside them. The raw corner heights are not used for this: they step at
+  every cell edge, and their contour zigzags.
+- **Shore**: plain water thins out toward the contour into a darker wet margin on the ground
+  beyond it. A lithium pond that holds energy instead grows a pale evaporite crust in the
+  biome's crust colour, thickest at the contour and thinning a fraction of a cell both ways — a
+  gradual onset that reads as evaporation. Neither climbs a bank. A spent pond loses the crust
+  with its hue: a drained pond is ordinary water. REJECTED — a grid of berms across the pond
+  (2026-10-21): the basin's own rim already reads as the berm. TODO: the crust's texture is two
+  octaves of value noise and reads as messy (gdd/tasks.md T-123).
 - **Fog** is pushed in by `Fog`, through `Map.fogged_materials()`. That function exists rather
   than `Fog` naming one node because **a surface left out of the list is silently unfogged** —
   the shroud stops at the shoreline and the lake stays bright. Any new world-geometry shader
@@ -274,7 +290,7 @@ level is the height of the point under the cursor**, so clicking near a pond's f
 a body a few centimetres deep, which reads as "the water is not visible in game".
 
 `WaterSurfaceMesh` therefore lifts each quad to clear its OWN cell —
-`max(level, highest corner of that cell + GROUND_CLEARANCE)`. Over open water every corner is
+`highest corner of that cell + GROUND_CLEARANCE` when that is above `level`. Over open water every corner is
 below the level, so the surface stays flat at `level` and looks like water; only at the
 shallows does it ride up over the ground rather than vanish inside it. **Shade is unaffected**
 — it comes from the true depth, so the colour still reports real passability — and `level`
@@ -283,6 +299,12 @@ remains the only number gameplay reads.
 Lifting per CORNER was not enough: it cleared the shoreline ring and left the interior at the
 plain level, so the pond drew as a dashed outline with nothing inside it. A quad has to clear
 the cell it covers, not merely the corner it touches.
+
+**The lift is capped at `MAX_LIFT`**, a step or two of relief. A covered cell can stand on a
+cliff edge — its mean is under the level while a corner is on the cliff top — and an uncapped
+lift drew a square of water floating at the top of the wall (found 2026-10-21, up to 3.8 above
+the level on skirmish's chasms). A cell that would need more than the cap is a bank the water
+laps against: it stays at the level and the wall shows through it.
 
 `WaterBasin` also measures two things the author can act on, and the Water brush shows both:
 
@@ -309,7 +331,7 @@ floor of a bowl at its own height) or when it would overlap a body that already 
 map indexes cells to bodies one-to-one, and two bodies claiming a cell is not expressible.
 
 The map generator places ponds too, writing each as a `WaterBody` with the same authored values
-(a seed cell and a level), charged by its size — see [map-generation.md](map-generation.md).
+(a seed cell and a level), charged by its size — see [map-generation.md](map-generation.md). PLANNED — so will the image importer, from painted water: [map-from-image.md](map-from-image.md) §Water.
 
 ---
 

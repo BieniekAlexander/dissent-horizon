@@ -49,7 +49,7 @@ where a producer holding a tool picks `Train`.
 | 6 | `Flush` | delegated to `Flush.meets_precondition` |
 | 7 | `Occupy` | delegated to `Occupy.meets_precondition` |
 | 8 | `Embark` | delegated to `Embark.meets_precondition` |
-| 9 | `Attack` | hostile, and some weapon in the actor's `Loadout` can target it |
+| 9 | `Attack` | hostile — or a volatile piece not on the actor's side, neutral included — and some weapon in the actor's `Loadout` can target it |
 | 10 | `MoveCommand` | everything else — a rally point for a stationary `can_rally()` host, a move for a unit |
 
 ### Branches 4–8 delegate rather than restate
@@ -96,6 +96,12 @@ Hostility is `Entity.is_enemy_of`, the project's one definition, which requires 
 be OWNED (`commander_id > 0`) by another commander. **Neutral / world-owned entities are
 therefore never attacked by a default right-click** — they fall through to move/rally.
 Attacking a neutral deliberately is still available through the attack-move context.
+
+**The exception is a VOLATILE piece** (Alex, 2026-10-18) — a power cell, a battery rack, a
+cryo dewar, anything carrying a `Volatile` component (`volatile:` doc key). Its whole point is
+to be shot so its blast lands on whatever stands beside it, so a right-click on one is an
+`Attack` whoever owns it, neutral included (`RTSController._is_volatile_target`). One on the
+actor's own side is still not a default target: a player's own cell is moved to, not shot.
 
 ---
 

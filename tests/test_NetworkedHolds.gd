@@ -31,7 +31,6 @@ func test_a_local_hold_is_refused_in_a_networked_match() -> void:
 	_network()
 	for reason: StringName in [
 		SimulationClock.REASON_PAUSE_MENU,
-		SimulationClock.REASON_HELP,
 		SimulationClock.REASON_PLAYBACK_PAUSE,
 		SimulationClock.REASON_DIALOG,
 	]:

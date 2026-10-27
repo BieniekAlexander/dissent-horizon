@@ -96,3 +96,37 @@ func test_own_unit_is_never_attacked() -> void:
 func test_empty_ground_resolves_to_a_move() -> void:
 	assert_eq(_resolve(null), MoveCommand)
 	assert_eq(_cursor(null), RTSController.FREE_CURSOR)
+
+
+# --- a volatile piece is shot, whoever owns it -----------------------------
+
+
+## A piece of `a_commander_id` carrying a Volatile, the facet that makes it worth shooting.
+func _volatile(a_commander_id: int) -> Actor:
+	var unit: Actor = FakePieces.unit(ACTOR)
+	var volatile := Volatile.new()
+	volatile.name = "Volatile"
+	unit.add_child(volatile)
+	if a_commander_id != 0:
+		var commander: Commander = Commander.new()
+		commander.id = a_commander_id
+		add_child_autofree(commander)
+		commander.add_child(unit)
+		unit.ownership.commander = commander
+	else:
+		add_child_autofree(unit)
+	return unit
+
+
+func test_a_neutral_volatile_piece_resolves_to_an_attack() -> void:
+	# An OWNED shooter, whatever PLAYER_COMMANDER_ID the run has left behind: a neutral shooter
+	# is on the cell's side.
+	_actor = _spawn(ACTOR, 1)
+	var cell: Actor = _volatile(0)
+	assert_eq(_resolve(cell), Attack, "setting off its blast is what a click on it means")
+	assert_eq(_cursor(cell), RTSController.ATTACK_CURSOR, "and the cursor says so")
+
+
+func test_a_volatile_piece_on_the_actors_side_is_not_shot() -> void:
+	_actor = _spawn(ACTOR, 1)
+	assert_ne(_resolve(_volatile(1)), Attack)

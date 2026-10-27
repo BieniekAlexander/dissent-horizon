@@ -22,6 +22,30 @@ both terrain renderers; its per-map inputs are pushed by `TerrainShading`.
 | Is this a pit or a rise? | cavity shading — ground below its local mean (a coarse mip of the height texture) darkens slightly, ground above it brightens |
 | Is this the same field everywhere? | two-octave world-space noise and pass-7 ground paint ([visual-facets](../../terrain-and-navigation/visual-facets.md)) |
 
+**A cliff's edge is drawn smooth; passability stays per cell.** Two things made diagonal
+cliffs read as staircases, and both are drawing. Alex chose the fully smoothed look over
+rounded squares (2026-10-21):
+
+- *The painted edge.* Rock and the ink line came from the per-cell steep flag, so every cell
+  showed its square. `th_rock_sd` now treats each flag as a sample at its cell centre and draws
+  the contour between samples: a straight edge stays on the cell boundary the navmesh cuts
+  along, and a 45-degree staircase becomes a straight diagonal through the cell-edge midpoints.
+  `rock_edge_smoothing` blends back toward the plain squares with rounded corners — the
+  calibration of how far the drawn edge may stray from the grid (a lone corner strays by up to a
+  quarter cell at full smoothing).
+- *The geometry.* Every cell was split along the same diagonal, so a diagonal cliff stepped in
+  3D however it was painted. `HeightmapMeshGenerator` now splits each cell along its flatter
+  diagonal; the cells stay axis-aligned squares. TODO: the physics `HeightMapShape3D` still uses
+  the fixed split, so collision and the drawn surface differ inside steep cells — which units
+  never stand in, and terrain height for units is bilinear anyway; nothing known depends on it.
+
+REJECTED — the navmesh following the smooth edge (Alex, 2026-10-21): it stays one quad per
+walkable cell. The drawn edge differs from where units stop by at most a quarter cell at a
+corner, mostly covered by the units' own radius. Trimming walkable corners would be cheap, but
+growing walkable area into rock cells hits the T-junction and collinear-vertex failure
+`NavManager._build_chunk` documents, and either way the navmesh would part from the structure
+grid every cell-keyed reader relies on.
+
 **Why the per-cell quads are not lit directly.** The quad-per-cell mesh is the gameplay
 resolution; its facets lit by a sun render every grade as a staircase. The grid mesh's own
 normals were also inverted until 2026-10-01 (they pointed into the ground, so the terrain was
@@ -50,6 +74,10 @@ thinner than a pixel are drawn a pixel wide and fainter rather than breaking int
 the grain's clumps and the hachures fade out once they shrink to a few pixels, where they would
 only crawl and sparkle (2026-10-02). Geometry edges (doodads, buildings, the cell-shaped
 coastlines) are outside the shader's reach; that is the renderer's MSAA setting, still off.
+
+Every colour the shader takes comes from the map's `Biome`, in sRGB as the inspector shows it
+(the tile colours were read raw until 2026-10-21). TODO: each biome was judged by eye on one map
+(skirmish) only; nothing checks that a new palette keeps the rock, ink line and water legible.
 
 TODO: the cues are tuned by eye in the Compatibility renderer under xvfb
 (`tools/terrain_visuals/render.sh`), not in Forward+ on real hardware.

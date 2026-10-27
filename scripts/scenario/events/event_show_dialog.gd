@@ -6,7 +6,7 @@ extends AbstractEvent
 ## player clicks it.
 ##
 ## The copy lives in a DialogPage SCENE (see scenes/dialogs/), not on this node, so the same
-## page can be raised by several triggers and listed in the help book without being written
+## page can be raised by several triggers and kept in How to Play without being written
 ## out more than once. Point `page` at it and the view brings it into the game when this
 ## event fires.
 ##
@@ -41,6 +41,11 @@ extends AbstractEvent
 
 ## Label for that button. Exported so a scenario can word its own ending.
 @export var main_menu_text: String = "Return to Main Menu"
+
+## The page is a tutorial note, so How to Play keeps it once shown: highlighted when it is one of
+## the library's (TutorialLibrary), listed under the scenario's own notes when it is not. Off by
+## default: a win/lose announcement has no place there (Alex, 2026-10-26).
+@export var is_tutorial_note: bool = false
 #endregion
 
 
@@ -50,6 +55,8 @@ func execute(a_manager: ScenarioTriggerManager) -> void:
 		push_warning("EventShowDialog '%s' has no page scene; nothing to show." % name)
 		return
 
+	if is_tutorial_note:
+		a_manager.note_tutorial_shown(page)
 	var dialog := ScenarioDialog.new(page)
 	if pause_simulation:
 		var clock: SimulationClock = a_manager.simulation_clock

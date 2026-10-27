@@ -1,8 +1,9 @@
 extends GutTest
 
-## MainMenu turns its authored `scenarios` list into one button per entry, in order. The
-## list is data, so adding a mission is a new array row rather than a new node — these guard
-## that the row → button mapping stays honest, including the misconfigured cases.
+## MainMenu turns its authored `scenarios` list (the Prologue's missions) into one button per
+## entry, in order. The list is data, so adding a mission is a new array row rather than a new
+## node — these guard that the row → button mapping stays honest, including the misconfigured
+## cases.
 ##
 ## Nothing here PRESSES a button: `open()` calls change_scene_to_node, which would swap the
 ## whole tree out from under the running test. The wiring is covered by asserting the labels
@@ -48,6 +49,14 @@ func test_entry_without_a_scene_is_invalid() -> void:
 	assert_true(_entry("Somewhere").is_valid(), "a scene is all an entry needs to be valid")
 
 
+func test_a_titled_entry_without_a_scene_is_wip() -> void:
+	var wip: ScenarioEntry = _entry("Later", "")
+	assert_true(wip.is_wip(), "named but not built")
+	assert_eq(wip.button_text(), "Later (WIP)", "and its label says so")
+	assert_false(_entry("Now").is_wip(), "an entry with a scene is not WIP")
+	assert_false(_entry("", "").is_wip(), "nor is one with nothing in it")
+
+
 #endregion
 
 
@@ -69,10 +78,8 @@ func test_the_hidden_template_is_not_one_of_the_buttons() -> void:
 	assert_false(menu.get_node("%ButtonTemplate").visible, "and it stays hidden")
 
 
-func test_an_entry_with_no_scene_is_skipped_and_reported() -> void:
-	var menu := _menu(
-		[_entry("Good"), _entry("Broken", ""), _entry("Also good")] as Array[ScenarioEntry]
-	)
+func test_an_entry_with_nothing_in_it_is_skipped_and_reported() -> void:
+	var menu := _menu([_entry("Good"), _entry("", ""), _entry("Also good")] as Array[ScenarioEntry])
 
 	assert_eq(
 		menu.button_labels(),
@@ -80,6 +87,17 @@ func test_an_entry_with_no_scene_is_skipped_and_reported() -> void:
 		"the unusable row is dropped rather than becoming a dead button"
 	)
 	assert_push_error("names no scene", "and the author is told which row is wrong")
+
+
+func test_a_wip_entry_is_a_greyed_out_button() -> void:
+	var menu := _menu([_entry("Built"), _entry("Later", "")] as Array[ScenarioEntry])
+
+	assert_eq(menu.button_labels(), ["Built", "Later (WIP)"] as Array[String])
+	var buttons: Array[Node] = menu.get_node("%Buttons").get_children()
+	var later: Button = buttons.filter(func(b: Node) -> bool: return b.text == "Later (WIP)")[0]
+	var built: Button = buttons.filter(func(b: Node) -> bool: return b.text == "Built")[0]
+	assert_true(later.disabled, "a mission not built cannot be opened")
+	assert_false(built.disabled, "a built one can")
 
 
 func test_an_empty_list_produces_no_buttons_and_warns() -> void:
@@ -109,7 +127,17 @@ func test_the_main_page_leads_everywhere() -> void:
 	assert_eq(
 		menu.main_labels(),
 		(
-			["Campaign", "Arcade (WIP)", "Skirmish", "Multiplayer", "Replays", "Options", "Quit"]
+			[
+				"Campaign",
+				"Load Game",
+				"Arcade (WIP)",
+				"Skirmish",
+				"Multiplayer",
+				"Replays",
+				"How to Play",
+				"Options",
+				"Quit",
+			]
 			as Array[String]
 		)
 	)
@@ -124,6 +152,7 @@ func test_each_entry_opens_its_page_and_back_returns() -> void:
 	var menu: MainMenu = _menu([_entry("First")])
 	for entry: Array in [
 		["Campaign", MainMenu.Page.CAMPAIGN],
+		["LoadGame", MainMenu.Page.SAVES],
 		["Skirmish", MainMenu.Page.SKIRMISH],
 		["Multiplayer", MainMenu.Page.MULTIPLAYER],
 		["Replays", MainMenu.Page.REPLAYS],
@@ -135,10 +164,29 @@ func test_each_entry_opens_its_page_and_back_returns() -> void:
 		menu.show_page(MainMenu.Page.MAIN)
 
 
-func test_the_campaign_lists_the_scenarios() -> void:
+func test_the_campaign_offers_the_prologue_and_greys_out_the_challenges() -> void:
+	var menu: MainMenu = _menu([])
+	assert_false(menu.campaign_button("Prologue").disabled)
+	var challenges: Button = menu.campaign_button("Challenges")
+	assert_true(challenges.disabled, "the challenge series is not built")
+	assert_eq(challenges.text, "Challenges (WIP)")
+
+
+func test_the_prologue_lists_the_scenarios() -> void:
 	var menu: MainMenu = _menu([_entry("First"), _entry("Second")])
 	menu.show_page(MainMenu.Page.CAMPAIGN)
+	menu.campaign_button("Prologue").pressed.emit()
+	assert_eq(menu.page, MainMenu.Page.PROLOGUE)
 	assert_eq(menu.button_labels(), ["First", "Second"] as Array[String])
+
+
+func test_back_from_the_prologue_returns_to_the_campaign() -> void:
+	var menu: MainMenu = _menu([])
+	menu.show_page(MainMenu.Page.PROLOGUE)
+	(menu.get_node("%ProloguePage").get_node("Back") as Button).pressed.emit()
+	assert_eq(menu.page, MainMenu.Page.CAMPAIGN, "a campaign's page backs out to the campaigns")
+	(menu.get_node("%CampaignPage").get_node("Back") as Button).pressed.emit()
+	assert_eq(menu.page, MainMenu.Page.MAIN)
 
 
 func test_quit_asks_to_close_the_application() -> void:

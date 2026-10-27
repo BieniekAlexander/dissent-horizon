@@ -109,17 +109,15 @@ func _push_parameters(a_data: TerrainData) -> void:
 	TerrainShading.push_terrain_uniforms(sm, a_data, center)
 
 	var catalog: TerrainTileCatalog = a_data.catalog
+	var biome: Biome = map.active_biome() if map != null else Biome.default_biome()
+	TerrainShading.push_biome(sm, biome, catalog)
 	if catalog != null:
-		sm.set_shader_parameter("tile_colors", catalog.map_color_array(MAX_TILE_TYPES))
 		sm.set_shader_parameter("tile_has_texture", catalog.texture_flag_array(MAX_TILE_TYPES))
 		var built: Dictionary = catalog.build_texture_array()
 		var array: Texture2DArray = built["array"]
 		sm.set_shader_parameter("tile_textures", array)
 		sm.set_shader_parameter("tile_count", catalog.count() if array != null else 0)
 	else:
-		sm.set_shader_parameter(
-			"tile_colors", TerrainTileCatalog.new().map_color_array(MAX_TILE_TYPES)
-		)
 		sm.set_shader_parameter("tile_count", 0)
 
 	_push_play_bounds(a_data, center)

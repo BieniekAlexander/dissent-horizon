@@ -4,7 +4,7 @@ extends GutTest
 ## booted skirmish: the scenario is the HARNESS, and nothing here depends on what it fields —
 ## only that it has two slots.
 
-const SCENE: String = "res://scenes/scenarios/skirmish.tscn"
+const SCENE: String = "res://scenes/harnesses/human_vs_bot.tscn"
 ## Frames for the opening force to deploy and the HUD to bind.
 const BOOT_FRAMES: int = 60
 

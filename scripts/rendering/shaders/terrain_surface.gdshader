@@ -57,7 +57,7 @@ void fragment() {
 	if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) {
 		vec2 cell = texture(cell_data, uv).rg;
 		idx = clamp(int(cell.r * 255.0 + 0.5), 0, MAX_TILE_TYPES - 1);
-		impassable = step(0.5, cell.g);
+		impassable = th_impassable(v_world.xz);
 	}
 
 	// The surface mesh carries its own authored normals; the height field's are only a

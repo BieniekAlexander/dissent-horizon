@@ -16,6 +16,13 @@ type: system-note
 
 Children are `TacticRule` nodes (`scripts/scenario/tactic_rule.gd`), evaluated in authored order each time the tactic decides (§Trigger-decided mission commanders) — first whose `condition` (an ordinary `Condition` Resource, reused rather than inventing a second predicate language) holds wins, and a rule with **no condition at all** always matches, the same "nothing to wait for" idiom `GlobalTrigger` gives an empty `conditions` array — so a rule with no condition, placed last, is the cluster's default. `TacticRule` **extends `EventIssueCommand`** rather than wrapping one, purely to reuse its existing chain-building for the COMMANDS action (`EventCommand` children, per-unit formation offsets, the `Defend` aggro-shape override) — `ScenarioTactic` calls `issue_commands_to()` directly, never `execute()`, the same bypass `EventSpawnEntities` already relies on for a nested `EventIssueCommand`.
 
+**A rule can hold the cluster's fire** (`TacticRule.holds_fire`, Alex 2026-10-26): while it wins,
+no member picks a target of its own, and when a rule without it takes over the hold is released
+once — a piece's own hold (stealth, a kamikaze's wait) is left alone under rules that never asked.
+With `ConditionTriggerFired.is_until_fired` — true until a beat has happened — it is how a group
+placed in the scene waits for its beat: a first rule holding its post, holding fire, until the
+trigger fires. Prologue mission 1's rescue is the worked case.
+
 **Re-issuing is split two ways, and this is the load-bearing part** — naively "reissue whenever the winning rule is still true" would spam every member's command every tick, but "reissue only when the winning rule changes" doesn't fix the freeze bug at all, because a dynamically-targeted rule (`EventCommandTarget`) can keep winning while its OWN target has gone stale:
 - The rule **changing** redirects every current member unconditionally — a real change of posture (e.g. "defend" → "attack") overrides whatever any individual unit was doing.
 - The rule **staying the same** but a member going **idle** (`CommandReceiver.is_idle()` — its queue ran dry: an `Attack` whose target died, an `AttackMove` that arrived and found nothing) re-runs that SAME rule for that member ALONE, so `EventCommandTarget` re-clusters and picks a fresh live target instead of the unit standing still forever. Members still actively executing their order are left completely alone — reissuing to the whole cluster on every idle member would interrupt units mid-fight for no reason.
@@ -62,7 +69,7 @@ frame, so a heavy read there costs a sweep per frame. A check that cannot honour
   `PlayerSlot.disabled_bot_jobs`. **No event sets what a job READS** (a posture dial, the
   military objective): an authored value inside a scored decision is the merge the boundary rule
   forbids.
-- **One mission difficulty**, picked on the Campaign page from EASY, MEDIUM and HARD only: the
+- **One mission difficulty**, picked above a campaign's mission list from EASY, MEDIUM and HARD only: the
   `difficulty` a `ScenarioExpression` reads (1, 2, 3), recorded in a replay, and nothing else.
   **A mission is made harder by triggers authored against it, never by its bots** — every bot
   slot keeps its authored tier, so a mission plays the same at every difficulty until its

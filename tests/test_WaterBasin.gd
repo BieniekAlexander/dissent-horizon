@@ -180,3 +180,65 @@ func test_the_shade_ramp_is_centred_on_wade_depth() -> void:
 		1.0,
 		"well past wading depth is fully dark"
 	)
+
+
+## Regression: a cell on a cliff edge is covered (its MEAN is under the level) while a corner of
+## it stands on the cliff top, and the surface lifted the whole quad clear of that corner — a
+## square of water floating at the top of the wall.
+func test_a_cliff_edge_cell_is_not_lifted_to_the_cliff_top() -> void:
+	var td: TerrainData = _terrain()
+	_sink(td, Vector2i(8, 8), Vector2i(4, 4), 0.0)
+	var level: float = _GROUND * 0.75
+	var basin: WaterBasin = WaterBasin.fill(td, _CENTRE, level)
+	var edge_covered: bool = false
+	for cell: Vector2i in basin.covered_cells():
+		edge_covered = edge_covered or td.corner_height(cell) >= _GROUND
+	assert_true(edge_covered, "the fixture must cover a cell with a corner on the cliff top")
+	var arrays: Array = WaterSurfaceMesh.build(basin, td).surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+	for i: int in verts.size():
+		if colors[i].a > 0.5:  # a water vertex; the shore skirt lies on the ground by design
+			assert_lte(verts[i].y, level + WaterSurfaceMesh.MAX_LIFT)
+
+
+## The lift that keeps thin water visible over stepped ground survives the cap.
+func test_thin_water_over_a_step_is_still_lifted_clear() -> void:
+	var step: float = WaterSurfaceMesh.MAX_LIFT * 0.5
+	assert_almost_eq(
+		WaterSurfaceMesh.lift_above_level(step - WaterSurfaceMesh.GROUND_CLEARANCE), step, 1e-6
+	)
+	assert_eq(WaterSurfaceMesh.lift_above_level(-1.0), 0.0, "a cell under water stays level")
+	assert_eq(
+		WaterSurfaceMesh.lift_above_level(WaterSurfaceMesh.MAX_LIFT), 0.0, "a wall is not climbed"
+	)
+
+
+## The shoreline follows the terrain's height contour: every vertex carries its true signed
+## depth, and the water reaches one ring of cells past the covered ones so it can get there.
+func test_the_surface_carries_signed_depth_and_a_ring() -> void:
+	var td: TerrainData = _terrain()
+	_sink(td, Vector2i(8, 8), Vector2i(4, 4), _GROUND - 1.0)
+	var level: float = _GROUND - 0.5
+	var basin: WaterBasin = WaterBasin.fill(td, _CENTRE, level)
+	var arrays: Array = WaterSurfaceMesh.build(basin, td).surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var depths: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2]
+	var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+	assert_eq(depths.size(), verts.size())
+	var half := Vector2((td.map_width() - 1) * 0.5, (td.map_depth() - 1) * 0.5)
+	var ring: int = 0
+	for i: int in verts.size():
+		var corner := Vector2i(roundi(verts[i].x + half.x), roundi(verts[i].z + half.y))
+		assert_almost_eq(depths[i].x, level - td.corner_height(corner), 1e-5)
+		if colors[i].a < 0.5:
+			ring += 1
+	assert_gt(ring, 0, "the water reaches past the covered cells")
+
+
+func test_the_ring_is_dry_and_within_reach() -> void:
+	var covered: Dictionary = {_CENTRE: true}
+	var cells: Array[Vector2i] = WaterSurfaceMesh.ring_cells(covered, _terrain())
+	assert_false(cells.has(_CENTRE))
+	var side: int = 2 * WaterSurfaceMesh.RING_CELLS + 1
+	assert_eq(cells.size(), side * side - 1, "every cell within reach, around one water cell")

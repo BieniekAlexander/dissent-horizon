@@ -7,6 +7,6 @@ layout_mode = 3
 anchors_preset = 0
 script = ExtResource("1_page")
 title = "Giving orders"
-body = "With units selected, {{ command_issue }} the ground to send them there.\n\nHold {{ modifier_additive }} to ADD rather than replace: the order is queued behind the ones already given, and a purchase you cannot afford yet is queued too instead of being refused.\n\n{{ command_attack_move }} orders an attack-move; {{ command_stop }} halts."
+body = "With units selected, {{ command_issue }} the ground to send them there.\n\nHold {{ modifier_additive }} to ADD rather than replace: the order is queued behind the ones already given, and a purchase you cannot afford yet is queued too instead of being refused.\n\nOn the command card, Attack Move ({{ command_attack_move }}) orders an attack-move, and Stop ({{ command_stop }}) halts."
 acknowledge_text = "Got it"
 metadata/_custom_type_script = "uid://b60p17fa5hvfc"

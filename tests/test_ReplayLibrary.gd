@@ -6,7 +6,7 @@ extends GutTest
 
 const DIR: String = "user://test_replay_library/"
 ## A cheap scenario to open a recording of: one human slot on a flat map, nothing else.
-const HARNESS: String = "res://scenes/scenarios/test/nav_straight_line.tscn"
+const HARNESS: String = "res://scenes/harnesses/nav_straight_line.tscn"
 
 
 func before_each() -> void:

@@ -15,11 +15,12 @@ extends Node
 ##   shots=   semicolon-separated `name:x,z,size` (world XZ focus, orthographic size);
 ##            defaults to a whole-map overview plus a game-zoom shot at the map centre
 ##   rig=     0 to render with no lighting rig added (the scene's own lights only)
+##   biome=   a Biome resource path to draw the map with, in place of its own
 ##   sun_elevation=  degrees above the horizon for the rig's key light (default: as authored)
 ##   sun_from=       where the key light stands, degrees clockwise from the top of the screen
 ##                   (0 top / back-lit, 90 right, -90 left; default: as authored)
 ##   msaa=           the viewport's 3D MSAA: 0 off, 1 2x, 2 4x, 3 8x (default: project setting)
-##   ambient=        the fallback Environment's ambient energy (default: as authored)
+##   ambient=        the ambient energy of the Environment in use (default: the biome's)
 ##   terrain_specular=  the terrain material's specular_strength; also turns on the key's specular
 ##   facets=  1 to draw MapDecorator's facet markers (where later dressing would go)
 ##
@@ -53,11 +54,21 @@ func _run() -> void:
 	holder.name = "Preview"
 	add_child(holder)
 	holder.add_child(map)
+	if args.has("biome"):
+		map.biome = load(String(args.biome)) as Biome
+		print("visual_preview: biome ", args.biome)
 	if String(args.get("facets", "0")) == "1" and map.decorator != null:
 		map.decorator.show_facet_markers = true
 		map.rebuild_decoration()
 	if String(args.get("rig", "1")) != "0" and ResourceLoader.exists(DEFAULT_RIG):
-		holder.add_child((load(DEFAULT_RIG) as PackedScene).instantiate())
+		var rig: Node = (load(DEFAULT_RIG) as PackedScene).instantiate()
+		map.active_biome().dress_lighting(rig)
+		holder.add_child(rig)
+		var world_environment := WorldEnvironment.new()
+		world_environment.environment = map.active_biome().environment_from(
+			get_viewport().find_world_3d().fallback_environment
+		)
+		holder.add_child(world_environment)
 	_apply_lighting_overrides(args, holder, map)
 	print("visual_preview: map world bounds ", map.world_bounds())
 
@@ -103,7 +114,15 @@ func _apply_lighting_overrides(a_args: Dictionary, a_holder: Node, a_map: Map) -
 		get_viewport().msaa_3d = int(a_args.msaa) as Viewport.MSAA
 		print("visual_preview: msaa_3d ", get_viewport().msaa_3d)
 	if a_args.has("ambient"):
-		var env: Environment = get_viewport().find_world_3d().fallback_environment
+		var world_environment: WorldEnvironment = null
+		for child: Node in a_holder.get_children():
+			if child is WorldEnvironment:
+				world_environment = child
+		var env: Environment = (
+			world_environment.environment
+			if world_environment != null
+			else get_viewport().find_world_3d().fallback_environment
+		)
 		if env != null:
 			env.ambient_light_energy = float(a_args.ambient)
 			print("visual_preview: ambient energy ", env.ambient_light_energy)

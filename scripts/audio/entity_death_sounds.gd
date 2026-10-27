@@ -2,7 +2,8 @@ class_name EntityDeathSounds
 
 ## Per-entity death sound, played once from Entity._on_death() for whichever entity
 ## just died — unlike ControlFeedbackSounds, this isn't player-command feedback, so
-## it fires regardless of who owns the entity or who is currently selecting it.
+## it fires regardless of who owns the entity or who is currently selecting it. It is a WORLD
+## sound, though: heard only near the camera and never under fog (WorldSound).
 ##
 ## Every piece: a structure's collapse is its death sound, not a separate event. A piece with
 ## no entry is silent at runtime; the spec importer reports it as an unfilled asset slot
@@ -58,20 +59,22 @@ static var lines: Dictionary[StringName, Array] = {
 
 
 #region Public interface
-## Plays `entity_id`'s death clip (if it has one) as a fresh, non-positional
-## one-shot under `tree`'s current scene, freeing itself when done. An entity with no
-## entry plays nothing.
-static func play_for(entity_id: StringName, tree: SceneTree) -> void:
-	if tree == null or tree.current_scene == null:
+## Plays `entity_id`'s death clip (if it has one) for a death at world point `a_at` of a piece
+## owned by `a_owner_id`, as loudly as the player hears it there (WorldSound.gain_at): a fresh,
+## non-positional one-shot that frees itself when done. An entity with no entry, or a death too
+## far from the camera or under fog, plays nothing.
+static func play_for(
+	entity_id: StringName, tree: SceneTree, a_at: Vector3, a_owner_id: int
+) -> void:
+	if tree == null:
 		return
 	var clips: Array = lines.get(entity_id, [])
 	if clips.is_empty():
 		return
-	var player := AudioStreamPlayer.new()
-	player.stream = AU.pick_random(clips, _rng)
-	player.finished.connect(player.queue_free)
-	tree.current_scene.add_child(player)
-	player.play()
+	var gain: float = WorldSound.gain_at(a_at, a_owner_id, tree.root)
+	if gain <= 0.0:
+		return
+	WorldSound.play(AU.pick_random(clips, _rng), gain, tree)
 
 
 ## Whether `entity_id` has a death clip — its death-sound slot is filled. Asked by the spec

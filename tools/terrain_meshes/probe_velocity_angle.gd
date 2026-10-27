@@ -11,7 +11,7 @@ extends Node3D
 ## Deliberately measured instead of path length: a polyline can have the right TOTAL length
 ## while the unit zigzags along it, and a length ratio averages exactly that away.
 ##
-## Runs against scenes/scenarios/test/nav_straight_line.tscn — an empty scenario with no other
+## Runs against scenes/harnesses/nav_straight_line.tscn — an empty scenario with no other
 ## unit, no structure and no obstacle, so nothing else can be blamed.
 ##
 ## godot --headless res://tools/terrain_meshes/probe_velocity_angle.tscn -- [distance]
@@ -20,7 +20,7 @@ extends Node3D
 ## simplify_epsilon > 0 turns on NavigationAgent3D.simplify_path at that epsilon, so the
 ## effect of Godot's built-in path simplification can be measured rather than assumed.
 
-const DEFAULT_SCENE := "res://scenes/scenarios/test/nav_straight_line.tscn"
+const DEFAULT_SCENE := "res://scenes/harnesses/nav_straight_line.tscn"
 const DEFAULT_UNIT := "res://scenes/entities/units/cl/cl_bioLight_antiLight.tscn"
 const HEADINGS: Array[float] = [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0, 135.0, 200.0, 315.0]
 const TICKS: int = 4000

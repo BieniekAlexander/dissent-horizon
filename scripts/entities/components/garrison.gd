@@ -368,6 +368,7 @@ func detach(a_unit: Actor) -> void:
 
 #endregion
 
+
 #region Public API
 ## True when at least one more occupant of the smallest possible size (1) can be
 ## accepted. Prefer accepts()/has_room_for() when a specific unit is in hand — this
@@ -433,8 +434,11 @@ func flush(a_by: Actor = null) -> int:
 	if not flushable:
 		return 0
 	var flushed: Array[Actor] = _garrisoned.duplicate()
+	var host := get_parent() as Actor
 	for unit: Actor in flushed:
 		if is_instance_valid(unit):
+			# Heard dying where it was held: detach clears the link world_position follows.
+			unit.dies_at = host.world_position() if host != null else null
 			detach(unit)
 			unit.kill(a_by)
 	_garrisoned.clear()
@@ -577,6 +581,13 @@ func garrison(a_unit: Actor) -> void:
 ## the first garrisoning unit triggers the adoption; subsequent units share the
 ## same commander (enforced by the Occupy precondition), so this is a no-op
 ## for them. A garrison that already had a real commander is never touched.
+## Whether the host's commander is BORROWED from its occupants: a neutral building that took the
+## commander of whoever moved in, and goes back to neutral when they leave. Such a building is
+## theirs to shoot from, not a base (Commander.has_production_base).
+func is_borrowed() -> bool:
+	return _adopted_commander
+
+
 func _adopt_commander_if_neutral(a_unit: Actor) -> void:
 	if _adopted_commander:
 		return

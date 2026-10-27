@@ -29,7 +29,7 @@ Three rules follow:
 
 1. **Simulation tests do not run in GUT, and nothing under `tests/` is one.** GUT is the gate —
    what CI blocks on, once CI exists. A balance question failing there would train everyone to
-   ignore red. Specs live in `sims/`, editor-authored scenarios in `scenes/scenarios/test/`,
+   ignore red. Specs live in `sims/`, editor-authored scenarios in `scenes/harnesses/`,
    and both are driven by `tools/simulation/`.
 2. **If a thing driving a live scenario is checking programmatic stability, it is a REGRESSION
    test and belongs in GUT** — a nav path that must resolve, a command that must not deadlock,
@@ -634,9 +634,25 @@ content.
 2026-09-12.** The rename and the move out of GUT are the same correction: these ask design
 questions, and one of the three was `pending()` for flakiness — which is what a design question
 looks like when it is made to sit in a regression gate. Outside the gate all three pass and the
-flaky one is reported as flaky rather than hidden. `scenes/scenarios/test/` keeps its name
-because it also holds genuine regression fixtures (`mesh_terrain_*`, `nav_straight_line`) that
-GUT does drive.
+flaky one is reported as flaky rather than hidden. The same folder also holds genuine
+regression fixtures (`mesh_terrain_*`, `nav_straight_line`, `human_vs_bot`) that GUT does drive.
+
+### Where the harnesses live
+
+**Every scene a test or a simulation boots lives in `scenes/harnesses/`, apart from the
+scenarios made for players under `scenes/scenarios/`.** A harness must not change when
+player-facing content does, and player-facing content must be free to change without a test
+noticing. So no test boots a mission, the skirmish template (`scenes/scenarios/skirmish.tscn`)
+or a help page a player reads: a test that needs a seated player boots `human_vs_bot.tscn`, and
+a dialog test reads the harness pages under `scenes/harnesses/dialogs/`. Decided 2026-10-17;
+the folder was `scenes/scenarios/test/` until then. The harnesses still field shipped PIECES —
+that is what a harness is for; it is scenario content they are kept apart from.
+
+`tools/generate_test_scenarios.gd` is the primary source of the kamikaze pair, the scout-coverage
+scene and `human_vs_bot.tscn`: change the generator and rerun it, never edit those scenes by
+hand. On the 2026-10-17 regeneration the committed three had drifted from it (expanded
+pre-composition unit trees, an empty `unit_type` on the kamikaze-cluster check), so they were
+regenerated rather than moved as they were.
 
 **The runtime was widened, not cloned.** A spec-driven arena and an editor-authored scene are
 two authoring routes to one thing — a scenario with checks and a window — so implementing the

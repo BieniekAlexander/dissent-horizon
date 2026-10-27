@@ -90,9 +90,7 @@ static func places_new_structure(commander: Commander, message: CommandMessage) 
 	return message != null and message.tool != null and not _is_conversion(commander, message)
 
 
-static func meets_precondition(
-	actor: Actor, message: CommandMessage
-) -> PreconditionFailureCause:
+static func meets_precondition(actor: Actor, message: CommandMessage) -> PreconditionFailureCause:
 	if message.tool == null:
 		# Build is entered but the player hasn't chosen which structure to place
 		# yet — a pending selection, not a failure.
@@ -778,7 +776,7 @@ func _fulfill_conversion(a_actor: Actor) -> Variant:
 	_conversion_elapsed += a_actor.get_physics_process_delta_time()
 	if _conversion_elapsed < conversion_seconds(target):
 		return self
-	_convert_building(target, a_actor.commander)
+	convert_building(target, a_actor.commander)
 	return null
 
 
@@ -790,7 +788,10 @@ func _fulfill_conversion(a_actor: Actor) -> Variant:
 ## so it is withdrawn before the id changes; the ownership transfer comes LAST, because it is what
 ## registers the node under its new id with the commander and credits the infrastructure the
 ## node now carries (Actor._on_commander_changed), tracked so a later loss withdraws it.
-func _convert_building(a_building: Actor, a_commander: Commander) -> void:
+##
+## Static, and the one way a building becomes an an_infrastructure in place: a builder's
+## conversion ends here, and so does a mission's starting Safehouse (EventConvertBuilding).
+static func convert_building(a_building: Actor, a_commander: Commander) -> void:
 	if not is_instance_valid(a_building) or a_commander == null:
 		return
 	var neutral: Commander = a_building.commander

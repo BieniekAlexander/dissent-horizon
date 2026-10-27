@@ -15,7 +15,7 @@
 [ext_resource type="PackedScene" uid="uid://d3slh613es4gd" path="res://scenes/components/debug_label.tscn" id="12_spec"]
 [ext_resource type="PackedScene" uid="uid://dm5myhkhemcld" path="res://scenes/components/target_indicator.tscn" id="13_spec"]
 [ext_resource type="Script" uid="uid://qlndmox00008" path="res://scripts/entities/components/volatile.gd" id="14_spec"]
-[ext_resource type="PackedScene" uid="uid://cb2js2f6mxjph" path="res://scenes/entities/projectiles/nt/nt_plasma_blast_small.tscn" id="15_spec"]
+[ext_resource type="PackedScene" uid="uid://sjmr6envpgow" path="res://scenes/entities/projectiles/nt/nt_plasma_blast_small.tscn" id="15_spec"]
 
 [ext_resource type="ArrayMesh" path="res://assets/meshes/entities/tokens/nt_powerCell.res" id="model_nt_powerCell"]
 

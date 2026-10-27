@@ -61,6 +61,7 @@ const _ACKNOWLEDGED_WALL_CLOCK_READS: Dictionary = {
 	"res://scripts/interface/commander/bot_scheduler.gd": "diagnostic job timing, never read back",
 	"res://scripts/replay/replay_recorder.gd": "names an autosave file",
 	"res://scripts/replay/replay_save_form.gd": "prefills a kept replay's name",
+	"res://scripts/save/save_game.gd": "stamps when a save was written, never read back",
 	"res://scripts/netplay/net_match.gd": "times a silent peer; its forfeit is agreed by vote",
 }
 

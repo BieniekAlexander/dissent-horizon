@@ -1,22 +1,16 @@
 class_name ScenarioDialogView
 extends CanvasLayer
 
-## The pop-up window, and the HUD help button that opens it on demand.
+## The pop-up window a scenario raises, and the corner button that opens the pause menu.
 ##
-## One panel, two modes, because they are the same window showing the same DialogPage scenes:
+## A ScenarioDialog raised by an EventShowDialog shows one page, dismissed with the acknowledge
+## button, which is what releases the scripted simulation hold. Requests QUEUE: two triggers can
+## fire on the same frame, and a tutorial that silently dropped the second instruction would be
+## worse than one that shows them in order.
 ##
-##  * EVENT mode — a ScenarioDialog raised by an EventShowDialog. One page, dismissed with
-##    the acknowledge button, which is what releases the scripted simulation hold. Requests
-##    QUEUE: two triggers can fire on the same frame, and a tutorial that silently dropped
-##    the second instruction would be worse than one that shows them in order.
-##
-##  * HELP mode — the player pressed the help button. Flips through the scenario's HelpBook
-##    with ◀ / ▶ and closes on a second press of the button. Takes its own simulation hold
-##    (REASON_HELP) so reading the controls never costs you the battle.
-##
-## Event mode takes precedence, and the help button is disabled while a scripted dialog is
-## up: a beat that stopped the world to ask something must be answered, and letting the help
-## book cover it would strand the player behind a window they can't see.
+## The corner button reads "Briefing" in a scenario with objectives and "How to Play" in one
+## without, and opens the pause menu on that tab (PauseMenu). It lives here rather than on the
+## pause menu because the menu's layer is hidden whenever the menu is closed.
 ##
 ## Built in code rather than authored as a scene, matching how the rest of this game's
 ## runtime HUD is assembled (RTSController's sanction bar, Scenario's spectator panel) — and
@@ -43,17 +37,16 @@ const PANEL_MIN_WIDTH: float = 320.0
 const MAX_PAGE_HEIGHT_RATIO: float = 0.7
 const PANEL_MARGIN: int = 20
 const BUTTON_MIN_SIZE: Vector2 = Vector2(180.0, 36.0)
-const NAV_BUTTON_MIN_SIZE: Vector2 = Vector2(48.0, 36.0)
 
-## The help toggle, anchored top-right where nothing else lives.
-const HELP_BUTTON_SIZE: Vector2 = Vector2(96.0, 32.0)
-const HELP_BUTTON_MARGIN: Vector2 = Vector2(12.0, 8.0)
-const HELP_BUTTON_TEXT: String = "Help"
+## The corner button, anchored top-right, far enough in from the edge to clear the elapsed-time
+## readout's digits in the corner (scenes/interface/scenario_timer.tscn).
+const BRIEFING_BUTTON_SIZE: Vector2 = Vector2(96.0, 32.0)
+const BRIEFING_BUTTON_MARGIN: Vector2 = Vector2(72.0, 8.0)
+const BRIEFING_BUTTON_TEXT: String = "Briefing"
+const HOW_TO_PLAY_BUTTON_TEXT: String = "How to Play"
 
 const PANEL_BG: Color = Color(0.08, 0.09, 0.11, 0.94)
 const PANEL_BORDER: Color = Color(1.0, 0.85, 0.15, 0.85)
-
-const CLOSE_TEXT: String = "Close"
 #endregion
 
 #region Signals
@@ -66,28 +59,16 @@ var _root: Control
 var _panel: PanelContainer
 ## Where the current DialogPage instance is parented.
 var _page_frame: ScrollContainer
-var _nav_row: HBoxContainer
-## The glyph controls (the two page arrows and the corner help toggle) are
-## VerboseTooltipButtons: their labels are symbols, so they need the hover copy. The
-## labelled choice buttons below stay plain — their own text is the explanation.
-var _prev_button: VerboseTooltipButton
-var _next_button: VerboseTooltipButton
-var _page_label: Label
 var _button: Button
 ## The optional second choice, shown only when the dialog on screen declares one.
 var _secondary_button: Button
-var _help_button: VerboseTooltipButton
+var _briefing_button: VerboseTooltipButton
 
 ## Event dialogs waiting to be shown, oldest first. The head is the one on screen.
 var _queue: Array[ScenarioDialog] = []
 
-## The scenario's help pages, and where the player is in them. Null book = no help button.
-var _book: HelpBook = null
-var _help_open: bool = false
-var _help_index: int = 0
-
-## Held so the help book can take and release its own simulation hold.
-var _clock: SimulationClock = null
+## The manager whose objectives decide the corner button's label; null until bound.
+var _manager: ScenarioTriggerManager = null
 #endregion
 
 
@@ -104,13 +85,8 @@ func _ready() -> void:
 func bind(a_manager: ScenarioTriggerManager) -> void:
 	if not a_manager.dialog_requested.is_connected(_on_dialog_requested):
 		a_manager.dialog_requested.connect(_on_dialog_requested)
-	_clock = a_manager.simulation_clock
-
-
-## Give the view the scenario's help pages. Without a book (or with an empty one) the help
-## button stays hidden.
-func bind_help_book(a_book: HelpBook) -> void:
-	_book = a_book
+		a_manager.objectives_changed.connect(_refresh)
+	_manager = a_manager
 	_refresh()
 
 
@@ -202,68 +178,26 @@ func _on_dialog_resolved(a_dialog: ScenarioDialog) -> void:
 #endregion
 
 
-#region Public API — help book
-## Whether the help book is open.
-func is_help_open() -> bool:
-	return _help_open
+#region Public API — the corner button
+## The corner button's label: Briefing while the scenario has shown an objective, How to Play
+## otherwise.
+func menu_button_text() -> String:
+	var has_objectives: bool = (
+		_manager != null and not _manager.visible_objective_triggers().is_empty()
+	)
+	return BRIEFING_BUTTON_TEXT if has_objectives else HOW_TO_PLAY_BUTTON_TEXT
 
 
-## Which page of the book is showing (0-based); -1 when it is closed.
-func help_index() -> int:
-	return _help_index if _help_open else -1
-
-
-## Whether the help button is currently offered to the player.
-func is_help_available() -> bool:
-	return _book != null and not _book.is_empty()
-
-
-## Open or close the help book — what the HUD button does. Refused while a scripted dialog is
-## up, so the book can never cover a beat the player has to answer.
-func toggle_help() -> void:
-	if _help_open:
-		close_help()
-	else:
-		open_help()
-
-
-func open_help() -> void:
-	if _help_open or not is_help_available() or is_showing():
+## What the corner button does: open the pause menu on Briefing or How to Play, or close it.
+func open_pause_menu() -> void:
+	var menu := get_tree().get_first_node_in_group(PauseMenu.GROUP) as PauseMenu
+	if menu == null:
 		return
-	_help_open = true
-	_help_index = 0
-	if _clock != null:
-		_clock.hold(SimulationClock.REASON_HELP)
-	_refresh()
-
-
-func close_help() -> void:
-	if not _help_open:
+	if menu.is_open():
+		menu.close()
 		return
-	_help_open = false
-	if _clock != null:
-		_clock.release(SimulationClock.REASON_HELP)
-	_refresh()
-
-
-## Step through the book. Clamped rather than wrapping, so the ends of the book are a place
-## you can arrive at instead of a loop you can't tell you're in.
-func show_next_help_page() -> void:
-	_go_to_help_page(_help_index + 1)
-
-
-func show_previous_help_page() -> void:
-	_go_to_help_page(_help_index - 1)
-
-
-func _go_to_help_page(a_index: int) -> void:
-	if not _help_open:
-		return
-	var clamped: int = clampi(a_index, 0, maxi(_book.page_count() - 1, 0))
-	if clamped == _help_index:
-		return
-	_help_index = clamped
-	_refresh()
+	var is_briefing: bool = menu_button_text() == BRIEFING_BUTTON_TEXT
+	menu.open_on(PauseMenu.Tab.BRIEFING if is_briefing else PauseMenu.Tab.HOW_TO_PLAY)
 
 
 #endregion
@@ -278,9 +212,6 @@ func _on_dialog_requested(a_dialog: ScenarioDialog) -> void:
 		# hold is still released.
 		a_dialog.acknowledge()
 		return
-	# A scripted dialog outranks the help book; step out of the way rather than stacking.
-	if _help_open:
-		close_help()
 	_queue.append(a_dialog)
 	a_dialog.acknowledged.connect(_on_dialog_resolved.bind(a_dialog))
 	_refresh()
@@ -341,27 +272,6 @@ func _build_ui() -> void:
 	_page_frame.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	column.add_child(_page_frame)
 
-	_nav_row = HBoxContainer.new()
-	_nav_row.name = "Nav"
-	_nav_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_nav_row.add_theme_constant_override("separation", 12)
-	column.add_child(_nav_row)
-
-	# The two nav arrows and the help toggle are glyphs, so they carry tooltips (the two-tier
-	# HUD ones — see VerboseTooltipButton) where the labelled choice buttons below don't: a
-	# button reading "Continue" already says what it does, and "<" does not.
-	_prev_button = _nav_button("Previous", "<", "Back a page", show_previous_help_page)
-	_nav_row.add_child(_prev_button)
-
-	_page_label = Label.new()
-	_page_label.name = "PageIndicator"
-	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_page_label.custom_minimum_size = Vector2(80.0, 0.0)
-	_nav_row.add_child(_page_label)
-
-	_next_button = _nav_button("Next", ">", "On a page", show_next_help_page)
-	_nav_row.add_child(_next_button)
-
 	# Both choices share one centred row. The secondary sits to the LEFT of the primary, so the
 	# button that keeps you where you are stays under the cursor in the same place whether or
 	# not a dialog offers a way out.
@@ -384,49 +294,35 @@ func _build_ui() -> void:
 	_button.pressed.connect(_on_primary_pressed)
 	choice_row.add_child(_button)
 
-	_build_help_button()
-
-
-## One page-navigation arrow: a glyph button whose meaning lives entirely in its tooltip.
-## No verbose tier — there is nothing longer to say about "back a page".
-func _nav_button(
-	a_name: String, a_glyph: String, a_tooltip: String, a_handler: Callable
-) -> VerboseTooltipButton:
-	var button := VerboseTooltipButton.new()
-	button.name = a_name
-	button.text = a_glyph
-	button.simple_tooltip = a_tooltip
-	button.custom_minimum_size = NAV_BUTTON_MIN_SIZE
-	button.pressed.connect(a_handler)
-	return button
+	_build_briefing_button()
 
 
 ## The always-on-screen toggle, in its own full-rect Control so it anchors to the corner
 ## independently of the centred panel.
-func _build_help_button() -> void:
+func _build_briefing_button() -> void:
 	var anchor := Control.new()
-	anchor.name = "HelpAnchor"
+	anchor.name = "BriefingAnchor"
 	anchor.set_anchors_preset(Control.PRESET_FULL_RECT)
 	anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(anchor)
 
-	_help_button = VerboseTooltipButton.new()
-	_help_button.name = "HelpButton"
-	_help_button.text = HELP_BUTTON_TEXT
-	_help_button.simple_tooltip = "Open the mission's help pages"
-	_help_button.verbose_tooltip = (
-		"Open the help book: the mission's reference pages, readable at any time.\nThe "
-		+ "simulation keeps running behind it — press the button again, or the close "
-		+ "button, to put it away."
+	_briefing_button = VerboseTooltipButton.new()
+	_briefing_button.name = "BriefingButton"
+	_briefing_button.text = BRIEFING_BUTTON_TEXT
+	_briefing_button.simple_tooltip = "Open the pause menu: the briefing and How to Play"
+	_briefing_button.verbose_tooltip = (
+		"Open the pause menu on the Briefing (the objectives so far, in detail) or on How to "
+		+ "Play (the game's help notes, the ones shown here highlighted).\nThe game waits "
+		+ "while it is open, except in a networked match; press the button again to close it."
 	)
-	_help_button.custom_minimum_size = HELP_BUTTON_SIZE
-	_help_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_help_button.offset_left = -(HELP_BUTTON_SIZE.x + HELP_BUTTON_MARGIN.x)
-	_help_button.offset_top = HELP_BUTTON_MARGIN.y
-	_help_button.offset_right = -HELP_BUTTON_MARGIN.x
-	_help_button.offset_bottom = HELP_BUTTON_MARGIN.y + HELP_BUTTON_SIZE.y
-	_help_button.pressed.connect(toggle_help)
-	anchor.add_child(_help_button)
+	_briefing_button.custom_minimum_size = BRIEFING_BUTTON_SIZE
+	_briefing_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_briefing_button.offset_left = -(BRIEFING_BUTTON_SIZE.x + BRIEFING_BUTTON_MARGIN.x)
+	_briefing_button.offset_top = BRIEFING_BUTTON_MARGIN.y
+	_briefing_button.offset_right = -BRIEFING_BUTTON_MARGIN.x
+	_briefing_button.offset_bottom = BRIEFING_BUTTON_MARGIN.y + BRIEFING_BUTTON_SIZE.y
+	_briefing_button.pressed.connect(open_pause_menu)
+	anchor.add_child(_briefing_button)
 
 
 func _panel_style() -> StyleBoxFlat:
@@ -438,32 +334,25 @@ func _panel_style() -> StyleBoxFlat:
 	return style
 
 
-## The primary button means "acknowledge" for an event dialog and "close" for the help book.
+## The primary button acknowledges the dialog on screen.
 func _on_primary_pressed() -> void:
-	if is_showing():
-		acknowledge_current()
-	else:
-		close_help()
+	acknowledge_current()
 
 
 #endregion
 
 
 #region Rendering
-## Put the right page on screen for whatever mode we're in, or hide the panel entirely.
+## Put the dialog on screen, or hide the panel when none is queued.
 func _refresh() -> void:
 	if _root == null:
 		return
 
-	_help_button.visible = is_help_available()
-	# A scripted dialog must be answered before the book can be opened over it.
-	_help_button.disabled = is_showing()
-	_help_button.button_pressed = _help_open
+	_briefing_button.text = menu_button_text()
 
 	var dialog: ScenarioDialog = current_dialog()
 	if dialog != null:
 		_show_page(dialog.page)
-		_nav_row.visible = false
 		_secondary_button.visible = dialog.has_secondary()
 		_secondary_button.text = dialog.secondary_text
 		_button.text = _acknowledge_text_of_current_page()
@@ -476,20 +365,8 @@ func _refresh() -> void:
 			_button.grab_focus()
 		return
 
-	# The help book is never a choice between two things; only event dialogs offer a secondary.
 	_secondary_button.visible = false
 	_button.disabled = false
-
-	if _help_open:
-		_show_page(_book.page_at(_help_index))
-		_nav_row.visible = _book.page_count() > 1
-		_page_label.text = "%d / %d" % [_help_index + 1, _book.page_count()]
-		_prev_button.disabled = _help_index <= 0
-		_next_button.disabled = _help_index >= _book.page_count() - 1
-		_button.text = CLOSE_TEXT
-		_root.visible = true
-		return
-
 	_clear_page()
 	_root.visible = false
 
@@ -500,8 +377,7 @@ func _show_page(a_scene: PackedScene) -> void:
 	_clear_page()
 	if a_scene == null:
 		return
-	var page: Node = a_scene.instantiate()
-	_page_frame.add_child(page)
+	_page_frame.add_child(a_scene.instantiate())
 	_fit_page_height.call_deferred()
 
 

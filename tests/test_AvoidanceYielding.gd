@@ -1,22 +1,16 @@
 extends GutTest
 
 ## Who yields to whom in same-team RVO: a unit ENGAGED (standing its ground to fire) yields
-## to nobody, and one TRAVELLING outranks one standing still, so the traveller holds its
-## heading and the stander gives way.
+## to nobody, and a unit travelling and one standing idle share the avoiding equally, so the
+## idle one mostly stands its ground and the mover goes round (Alex, 2026-10-18).
 ##
 ## Run with:
 ##   godot --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/test_AvoidanceYielding.gd -gexit
 ##
-## RVO is reciprocal — two equal-priority agents each take half the responsibility for not
-## colliding — so a stationary neighbour that never pays its half leaves the mover
-## re-steering around it, and the mover arcs. That was the whole of the "why do my units
-## walk in L shapes" report: ordered five tiles diagonally out of s3's opening group (one
-## squadmate standing exactly on its line), a unit bowed 0.39 cells sideways and travelled
-## in legs at 63°, 34° and 41° instead of a clean 45° — over a path that was already
-## exactly straight. Ranking travellers above standers measured 0.000 lateral deviation,
-## with the closest approach between bodies unchanged at 0.41 (2x the 0.2 agent radius), and
-## the bystander stepping ~0.4 cells aside instead. The work is conserved, not removed; this
-## chooses who does it.
+## Standers once ranked BELOW travellers, to stop a mover bowing 0.39 off its line round an
+## idle squadmate. That handed the stander the whole of the avoiding, and a group walking past
+## carried an idle teammate 8.3 units ahead of it; equal ranks measured a push of about 1
+## unit, no overlaps, and movers bowing up to 0.28 round it.
 ##
 ## A live NavigationServer can't be driven headlessly (see test_Movement), so the behaviour
 ## above is not re-measured here — what is pinned is the ranking that produces it, which is
@@ -44,14 +38,11 @@ func _make_movement(a_finished: bool) -> Movement:
 	return _movement
 
 
-func test_the_tiers_are_strictly_ordered() -> void:
-	# Everything else here rests on this ordering: Godot's avoidance_priority makes an agent
-	# skip adjusting for LOWER-priority neighbours, pushing the adjustment onto them.
-	assert_lt(
-		Movement.AVOIDANCE_PRIORITY_STANDING,
-		Movement.AVOIDANCE_PRIORITY_TRAVELLING,
-		"a standing unit must rank below a travelling one"
-	)
+func test_standers_and_travellers_share_the_avoiding() -> void:
+	# Godot's avoidance_priority makes an agent skip adjusting for LOWER-priority neighbours.
+	# Equal ranks keep RVO reciprocal between a mover and an idle teammate, so the idle one
+	# mostly stands its ground and the mover goes round (Alex, 2026-10-18).
+	assert_eq(Movement.AVOIDANCE_PRIORITY_STANDING, Movement.AVOIDANCE_PRIORITY_TRAVELLING)
 	assert_lt(
 		Movement.AVOIDANCE_PRIORITY_TRAVELLING,
 		Movement.AVOIDANCE_PRIORITY_ENGAGED,
@@ -71,7 +62,7 @@ func test_a_stationary_unit_yields() -> void:
 	assert_eq(
 		_agent.avoidance_priority,
 		Movement.AVOIDANCE_PRIORITY_STANDING,
-		"a unit that is not going anywhere gives way"
+		"a unit that is not going anywhere shares the avoiding"
 	)
 
 
@@ -81,7 +72,7 @@ func test_a_travelling_unit_holds_its_rank() -> void:
 	assert_eq(
 		_agent.avoidance_priority,
 		Movement.AVOIDANCE_PRIORITY_TRAVELLING,
-		"a unit with somewhere to be outranks the ones standing around"
+		"a unit with somewhere to be"
 	)
 
 

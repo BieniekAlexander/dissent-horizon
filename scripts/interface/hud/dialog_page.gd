@@ -6,8 +6,8 @@ extends VBoxContainer
 ##
 ## The point is REUSE. A tutorial explains the same controls the help menu explains, and a
 ## mission may want to repeat a briefing; keeping the copy in a scene means one file to write
-## and one file to fix a typo in, referenced by an EventShowDialog, by the help book, or by
-## both. Copy authored inline on each event node could not be shared and drifted the moment
+## and one file to fix a typo in, referenced by an EventShowDialog, listed in the How to Play library,
+## or both. Copy authored inline on each event node could not be shared and drifted the moment
 ## anyone edited one copy.
 ##
 ## A page is a Control, not a Resource, so it can grow past three strings: drop extra child
@@ -42,7 +42,7 @@ extends VBoxContainer
 		_refresh()
 
 ## Label for the button that dismisses this page when an event raises it. Ignored in the
-## help book, which is closed with the help button rather than acknowledged. Also supports
+## How to Play reader, which has nothing to acknowledge. Also supports
 ## {{ action }} placeholders; read through resolved_acknowledge_text().
 @export var acknowledge_text: String = "Continue"
 

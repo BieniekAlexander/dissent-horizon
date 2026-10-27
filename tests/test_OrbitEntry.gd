@@ -22,7 +22,7 @@ extends GutTest
 ## (gdd/systems/ai/bot-engagement-fixes.md §What this broke). So the enemies are dropped and
 ## the brains are switched off, and the only thing left in the scene is the unit under test.
 
-const SCENE: String = "res://scenes/scenarios/test/test_kamikaze_cluster.tscn"
+const SCENE: String = "res://scenes/harnesses/test_kamikaze_cluster.tscn"
 const BOOT_TICKS: int = 30
 ## Long enough to cover the whole entry transient (~2s) plus a stretch of settled orbit.
 const OBSERVE_TICKS: int = 150

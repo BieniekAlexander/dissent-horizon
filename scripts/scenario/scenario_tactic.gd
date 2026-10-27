@@ -49,6 +49,9 @@ var _job: BotJob = null
 var _scheduler: BotScheduler = null
 ## The scenario tick the trigger manager's cadence next runs `_think` at, when not scheduled.
 var _next_tick: int = 0
+## Whether the last winning rule held fire, so the hold is released once when a rule that does
+## not takes over (_hold_fire).
+var _was_holding_fire: bool = false
 
 
 ## Wire this tactic's rule conditions into the manager exactly as GlobalTrigger.arm() does:
@@ -112,12 +115,24 @@ func _think() -> int:
 	_squad.set_members(members)
 	_claim(members)
 	var winner: TacticRule = _winning_rule()
+	_hold_fire(members, winner)
 	var policy: SquadPolicy = _policy_for(winner) if winner != null else null
 	if policy != null:
 		_squad.policy = policy
 		_squad.reason = String(winner.name)
 		_squad.tick()
 	return members.size() * BotMilitary.UNIT_WORK_UNITS
+
+
+## Keep the members to the winning rule's hold-fire: held while it holds fire, released once
+## when a rule that does not takes over — so a piece's own hold (stealth, a kamikaze's wait) is
+## left alone under rules that never asked for one.
+func _hold_fire(a_members: Array[Actor], a_winner: TacticRule) -> void:
+	var holds: bool = a_winner != null and a_winner.holds_fire
+	if holds or _was_holding_fire:
+		for member: Actor in a_members:
+			member.is_holding_fire = holds
+	_was_holding_fire = holds
 
 
 ## The trigger manager's cadence in ticks, converted here at the boundary.

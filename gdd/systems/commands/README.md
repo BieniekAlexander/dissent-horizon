@@ -15,6 +15,7 @@ the individual command families.
 | [cooldowns-and-preconditions.md](cooldowns-and-preconditions.md) | charge and cooldown refusals, the additive modifier gate, what greys a button |
 | [move-line-drag.md](move-line-drag.md) | hold RMB and draw a line: the selection spreads along it, in rows when it is short |
 | [recording-and-replay.md](recording-and-replay.md) | PLANNED: the order stream a replay records and plays back, its file, and drift detection |
+| [saved-games.md](saved-games.md) | saving (the order log plus a tick), loading by re-simulation, the one autosave, the menus; PLANNED: the snapshot |
 | [netplay.md](netplay.md) | PLANNED: matches between machines by exchanging the order stream — lockstep now, built to carry forward to rollback |
 | [deploying.md](deploying.md) | Deploy and Undeploy: the planted stance, its transitions, and which orders a planting unit takes |
 | [saying-it-plainly.md](saying-it-plainly.md) | Go and Fire — the plain move and the shot at a place the click ladder could not express |

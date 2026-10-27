@@ -33,8 +33,8 @@ const ABILITY_ID: StringName = &"retinue"
 const REGION_NODE: String = "DominionRegion"
 
 ## Dominion awarded per follower per tick cycle. Stays an EXPORT rather than becoming a
-## constant: the prologue scenarios deliberately tune it down to 1, and a constant would
-## silently restore full-game income there.
+## constant: a mission may tune it down for itself, and a constant would silently restore
+## full-game income there.
 ##
 ## FRACTIONAL, so a follower's share is tracked in `_carry` and paid out as it adds up to whole
 ## dominion, as the Libertarian route does. 3.33 per 5 s is 0.67/s a follower: retuned from 5

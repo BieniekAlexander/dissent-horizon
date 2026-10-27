@@ -21,10 +21,11 @@ namespace dissent {
 
 namespace {
 
-// The script-side members update_sight reads off each vision source (Entity). Whose side a source
-// is on stays the script's rule (Entity.is_on_side_of), asked rather than re-derived here.
-const StringName &is_on_side_of_name() {
-	static const StringName name("is_on_side_of");
+// The script-side members update_sight reads off each vision source (Entity). Whose vision a source
+// lends to the viewer stays the script's rule (Entity.lends_vision_to: own, and an ally's unless it
+// withholds it), asked rather than re-derived here.
+const StringName &lends_vision_to_name() {
+	static const StringName name("lends_vision_to");
 	return name;
 }
 const StringName &grants_vision_name() {
@@ -40,6 +41,16 @@ const StringName &vision_shape_name() {
 // bounding box of any other shape).
 constexpr int ELLIPSE = 0;
 constexpr int RECTANGLE = 1;
+// How far below a whole pixel a footprint half-extent may fall and still count as that pixel:
+// absorbs the float error a rotated transform puts into its scale (see footprint_for).
+constexpr double FOOTPRINT_TOLERANCE_PX = 1e-3;
+// A rectangle opens turned only when its axes are this far (as a unit vector's component) off
+// the world axes; nearer than that it opens grid-aligned, as every footprint did before turned
+// ones existed, so a structure at a right angle keeps its old footprint to the pixel.
+constexpr double TURN_TOLERANCE = 1e-3;
+// A turned rectangle's axis is quantised to 1/TURN_STEPS per component, so one authored turn is
+// one footprint and its offsets depend only on its key.
+constexpr double TURN_STEPS = 4096.0;
 
 } // namespace
 
@@ -147,7 +158,7 @@ void FogRaster::update_sight(const Array &p_sources, int p_viewer_id) {
 		if (entity == nullptr) {
 			continue;
 		}
-		if (!static_cast<bool>(entity->call(is_on_side_of_name(), p_viewer_id)) ||
+		if (!static_cast<bool>(entity->call(lends_vision_to_name(), p_viewer_id)) ||
 				!static_cast<bool>(entity->call(grants_vision_name()))) {
 			continue;
 		}
@@ -184,8 +195,33 @@ void FogRaster::update_sight(const Array &p_sources, int p_viewer_id) {
 // The footprint id for a vision shape's XZ cross-section. The fog is a flat plane, so only that
 // cross-section matters. Handles the shapes in use — cylinder, sphere and capsule (a circle, or
 // an ellipse under non-uniform scale) and box (a rectangle) — and falls back to any other shape's
-// bounding box, so a new shape type over-reveals at worst rather than failing. Shapes are assumed
-// axis-aligned. Products are taken in double and stored single, as the script did.
+// bounding box, so a new shape type over-reveals at worst rather than failing. A box turned off
+// the world axes opens as a turned rectangle — one reveal piece over "the lane" — and every other
+// shape opens axis-aligned. Products are taken in double and stored single, as the script did.
+// The pixels of a rectangle `p_hx` × `p_hz` px in half-extent whose local X axis points along
+// (p_axis_x, p_axis_z) in XZ: every pixel whose offset projects within both half-extents.
+std::vector<Vector2i> FogRaster::turned_rectangle(int p_hx, int p_hz, double p_axis_x, double p_axis_z) {
+	const double length = std::sqrt(p_axis_x * p_axis_x + p_axis_z * p_axis_z);
+	const double ax = p_axis_x / length;
+	const double az = p_axis_z / length;
+	// The local Z axis, a quarter turn from X: a yaw takes X to (cos, -sin) and Z to (sin, cos).
+	const double bx = -az;
+	const double bz = ax;
+	const int reach_x = static_cast<int>(std::ceil(p_hx * std::abs(ax) + p_hz * std::abs(bx)));
+	const int reach_z = static_cast<int>(std::ceil(p_hx * std::abs(az) + p_hz * std::abs(bz)));
+	std::vector<Vector2i> offsets;
+	for (int dz = -reach_z; dz <= reach_z; dz++) {
+		for (int dx = -reach_x; dx <= reach_x; dx++) {
+			const double along = dx * ax + dz * az;
+			const double across = dx * bx + dz * bz;
+			if (std::abs(along) <= p_hx && std::abs(across) <= p_hz) {
+				offsets.push_back(Vector2i(dx, dz));
+			}
+		}
+	}
+	return offsets;
+}
+
 int FogRaster::footprint_for(CollisionShape3D *p_vision_shape) {
 	const Ref<Shape3D> shape = p_vision_shape->get_shape();
 	const Basis basis = p_vision_shape->get_global_transform().basis;
@@ -196,6 +232,8 @@ int FogRaster::footprint_for(CollisionShape3D *p_vision_shape) {
 	int kind = RECTANGLE;
 	float half_x = 0.0f;
 	float half_z = 0.0f;
+	int turn_x = 0;
+	int turn_z = 0;
 	if (const CylinderShape3D *cylinder = Object::cast_to<CylinderShape3D>(shape.ptr())) {
 		kind = ELLIPSE;
 		half_x = static_cast<float>(cylinder->get_radius() * scale_x);
@@ -212,31 +250,49 @@ int FogRaster::footprint_for(CollisionShape3D *p_vision_shape) {
 		const Vector3 size = box->get_size();
 		half_x = static_cast<float>(size.x * 0.5 * scale_x);
 		half_z = static_cast<float>(size.z * 0.5 * scale_z);
+		// The local X axis in XZ as a unit vector: read off the basis, with no trigonometry, so it
+		// rounds the same on every platform.
+		const double axis_x = scale_x > 0.0 ? basis.rows[0][0] / scale_x : 1.0;
+		const double axis_z = scale_x > 0.0 ? basis.rows[2][0] / scale_x : 0.0;
+		if (std::abs(axis_x) > TURN_TOLERANCE && std::abs(axis_z) > TURN_TOLERANCE) {
+			turn_x = static_cast<int>(std::lround(axis_x * TURN_STEPS));
+			turn_z = static_cast<int>(std::lround(axis_z * TURN_STEPS));
+		}
 	} else if (shape.is_valid()) {
 		const AABB aabb = shape->get_debug_mesh()->get_aabb();
 		half_x = static_cast<float>(aabb.size.x * 0.5 * scale_x);
 		half_z = static_cast<float>(aabb.size.z * 0.5 * scale_z);
 	}
-	const int hx = static_cast<int>(half_x * points_per_unit);
-	const int hz = static_cast<int>(half_z * points_per_unit);
+	// Truncated with a tolerance. The scale comes off the shape's GLOBAL basis, which carries the
+	// piece's yaw, and a rotated unit column's length is 1 only to within a float ulp: a 16-unit
+	// sight radius read as 15.999999 one tick and 16.0 the next, so plain truncation flipped the
+	// footprint between 15 and 16 px every few ticks while a unit walked a straight line, and the
+	// fog's edge pulsed toward and away from it (found 2026-10-18). A thousandth of a pixel is far
+	// above that noise and far below any authored radius's distance from a whole pixel.
+	const int hx = static_cast<int>(half_x * points_per_unit + FOOTPRINT_TOLERANCE_PX);
+	const int hz = static_cast<int>(half_z * points_per_unit + FOOTPRINT_TOLERANCE_PX);
 
-	const auto key = std::make_tuple(kind, hx, hz);
+	const auto key = std::make_tuple(kind, hx, hz, turn_x, turn_z);
 	const auto found = footprint_ids.find(key);
 	if (found != footprint_ids.end()) {
 		return found->second;
 	}
 	std::vector<Vector2i> offsets;
-	for (int dz = -hz; dz <= hz; dz++) {
-		for (int dx = -hx; dx <= hx; dx++) {
-			bool inside = true;
-			if (kind == ELLIPSE) {
-				// Normalised ellipse test (a circle when hx == hz).
-				const double nx = hx > 0 ? static_cast<double>(dx) / hx : 0.0;
-				const double nz = hz > 0 ? static_cast<double>(dz) / hz : 0.0;
-				inside = nx * nx + nz * nz <= 1.0;
-			}
-			if (inside) {
-				offsets.push_back(Vector2i(dx, dz));
+	if (turn_x != 0 || turn_z != 0) {
+		offsets = turned_rectangle(hx, hz, turn_x / TURN_STEPS, turn_z / TURN_STEPS);
+	} else {
+		for (int dz = -hz; dz <= hz; dz++) {
+			for (int dx = -hx; dx <= hx; dx++) {
+				bool inside = true;
+				if (kind == ELLIPSE) {
+					// Normalised ellipse test (a circle when hx == hz).
+					const double nx = hx > 0 ? static_cast<double>(dx) / hx : 0.0;
+					const double nz = hz > 0 ? static_cast<double>(dz) / hz : 0.0;
+					inside = nx * nx + nz * nz <= 1.0;
+				}
+				if (inside) {
+					offsets.push_back(Vector2i(dx, dz));
+				}
 			}
 		}
 	}

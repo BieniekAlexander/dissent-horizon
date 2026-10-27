@@ -45,11 +45,11 @@ signal local_player_changed(a_commander: Commander)
 enum WinCondition { NONE, MISSION, HEGEMONY }
 @export var win_condition: WinCondition = WinCondition.MISSION
 
-## THE MISSION'S DIFFICULTY — what the player picked on the Campaign page, read by the mission's
-## triggers as the `difficulty` of a scenario expression. It is ONLY that: a mission is made harder
-## by triggers authored against it, never by changing how its bots play, so every bot slot keeps
-## its authored tier whatever is picked. MEDIUM for a scenario nobody picked for (a skirmish, a
-## mission run from the editor).
+## THE MISSION'S DIFFICULTY — what the player picked above a campaign's mission list, read by
+## the mission's triggers as the `difficulty` of a scenario expression. It is ONLY that: a
+## mission is made harder by triggers authored against it, never by changing how its bots play,
+## so every bot slot keeps its authored tier whatever is picked. MEDIUM for a scenario nobody
+## picked for (a skirmish, a mission run from the editor).
 ## gdd/systems/scenario-scripting/tactics.md §Trigger-decided mission commanders.
 ##
 ## The values are what an expression compares against ("difficulty >= 2"), so they are fixed.
@@ -137,6 +137,15 @@ var recorder: ReplayRecorder = null
 ## A recording to PLAY BACK instead of a match to play: set before the scenario enters the tree,
 ## and it takes the seed and the orders from the recording. Null for a live match.
 var replay_to_play: ReplayFile = null
+## A SAVED GAME to resume instead of a match to start (SaveGame): set before the scenario enters
+## the tree. It takes the seed from the save and re-simulates the save's orders up to the tick it
+## was saved on, then the player plays on (SaveResume). Null otherwise.
+var save_to_resume: ReplayFile = null
+## The re-simulation of `save_to_resume` while it runs.
+var _resume: SaveResume = null
+## A save asked for mid-tick (an autosave trigger), written by the recorder at the start of the
+## next tick, between ticks, as every save is taken. "" when none is pending.
+var _pending_save_path: String = ""
 ## In a networked match, the commander THIS machine's player plays — its seat — set before the
 ## scenario enters the tree. Every other human slot is a remote player's: a Bot with its brain
 ## off, whose orders arrive over the network. -1, as in every single-machine session: the first
@@ -182,12 +191,12 @@ var commanders: Array = []
 func _ready() -> void:
 	# FIRST, before anything that could draw: the simulation's pseudo-randomness is only
 	# reproducible if it is seeded ahead of every consumer. A playback plays its recording's seed.
-	if replay_to_play != null:
-		rng_seed = int(replay_to_play.header.get("seed", rng_seed))
-		local_commander_id = int(replay_to_play.header.get("local_commander_id", -1))
+	var recording: ReplayFile = replay_to_play if replay_to_play != null else save_to_resume
+	if recording != null:
+		rng_seed = int(recording.header.get("seed", rng_seed))
+		local_commander_id = int(recording.header.get("local_commander_id", -1))
 		mission_difficulty = (
-			int(replay_to_play.header.get("mission_difficulty", mission_difficulty))
-			as MissionDifficulty
+			int(recording.header.get("mission_difficulty", mission_difficulty)) as MissionDifficulty
 		)
 	seed_simulation()
 	PurchaseTransaction.reset_ids()
@@ -217,6 +226,11 @@ func _ready() -> void:
 		order_stream.play_back(ReplayRecorder.orders_of(replay_to_play))
 	else:
 		recorder.begin()
+	# A resumed save is recorded afresh as it re-simulates, so the recording ends up the save's.
+	if save_to_resume != null and replay_to_play == null:
+		order_stream.play_back(ReplayRecorder.orders_of(save_to_resume))
+		_resume = SaveResume.new(self, save_to_resume)
+		add_child(_resume)
 
 	var players_node = Node3D.new()
 	players_node.name = "Players"
@@ -282,6 +296,7 @@ func _ready() -> void:
 	_center_player_camera_on_starting_entities()
 
 	var event_manager := _ensure_trigger_manager()
+	_hold_until_navmesh_built(event_manager)
 	event_manager.message_requested.connect(_on_scenario_message)
 	event_manager.game_over.connect(_on_game_over)
 	event_manager.scenario_completed.connect(_on_scenario_completed)
@@ -490,7 +505,7 @@ func _present_local_verdict() -> void:
 	)
 	# Out while the others play on: the summary now, the match's end recorded when it comes.
 	if not _is_match_over and not is_playback():
-		_show_match_summary("Defeat")
+		_show_match_summary(DEFEAT_TITLE)
 
 
 ## Non-neutral commanders not yet eliminated.
@@ -597,6 +612,8 @@ func seed_simulation() -> void:
 ## not part of it: that is the project's default Environment, which applies wherever a scene
 ## has no WorldEnvironment. See gdd/systems/ux/aesthetics/lighting.md.
 ## The scenario HUD's pause menu; authored layout, instanced in _create_scenario_hud.
+## The end-of-match summary's heading when the local player has lost.
+const DEFEAT_TITLE: String = "Defeat"
 const PAUSE_MENU_SCENE: PackedScene = preload("res://scenes/menu/pause_menu.tscn")
 const MATCH_SUMMARY_SCENE: PackedScene = preload("res://scenes/interface/match_summary.tscn")
 ## The end-of-match summary's canvas layer: above ScenarioDialogView's 10, below the pause
@@ -612,13 +629,26 @@ const PLAYER_HUD_SCENE: String = "res://scenes/interface/player_hud.tscn"
 const SPECTATOR_HUD_NAME: String = "SpectatorHUD"
 
 
-## Add the default lighting rig unless the scenario (or its map) already carries a sun. A
+## Add the default lighting rig unless the scenario (or its map) already carries a sun, tinted
+## by the map's Biome, and the biome's ambient unless the scenario carries a WorldEnvironment. A
 ## scenario that lights itself keeps exactly what it authored.
 func _ensure_lighting() -> void:
 	if not find_children("*", "DirectionalLight3D", true, false).is_empty():
 		return
+	var biome: Biome = map.active_biome() if map != null else Biome.default_biome()
 	var rig: Node = (load(DEFAULT_LIGHTING_SCENE) as PackedScene).instantiate()
+	biome.dress_lighting(rig)
 	add_child(rig)
+	if not find_children("*", "WorldEnvironment", true, false).is_empty():
+		return
+	var base: Environment = (
+		load(ProjectSettings.get_setting("rendering/environment/defaults/default_environment"))
+		as Environment
+	)
+	var world_environment := WorldEnvironment.new()
+	world_environment.name = "BiomeEnvironment"
+	world_environment.environment = biome.environment_from(base)
+	add_child(world_environment)
 
 
 ## Hook for subclasses to spawn each player slot's opening force at runtime. Base
@@ -642,6 +672,28 @@ func uses_deferred_deployment() -> bool:
 ## the scene, as the match did.
 func slot_start_point(_a_index: int) -> Dictionary:
 	return {}
+
+
+## Whether a saved game is still being re-simulated up to its tick (SaveResume).
+func is_resuming() -> bool:
+	return _resume != null and is_instance_valid(_resume) and not _resume.is_done()
+
+
+## Save the match to `a_path` at the start of the next tick, between ticks — what an autosave
+## trigger asks for, mid-tick. Ignored when the match cannot be saved then (SaveGame).
+func request_save(a_path: String) -> void:
+	_pending_save_path = a_path
+
+
+## The save asked for by request_save, written and cleared. The recorder calls this at the start
+## of a tick, before the tick's orders, which is the moment a save holds.
+func write_pending_save() -> void:
+	if _pending_save_path.is_empty():
+		return
+	var path: String = _pending_save_path
+	_pending_save_path = ""
+	if SaveGame.refusal_to_save(self).is_empty():
+		SaveGame.write(self, path)
 
 
 ## Whether this session plays a recording back rather than a match (replay_to_play).
@@ -848,7 +900,11 @@ func _assign_alliances() -> void:
 	for i: int in player_slots.size():
 		members[indices[i]] = int(members.get(indices[i], 0)) | (1 << (i + 1))
 	for i: int in player_slots.size():
-		(commanders[i + 1] as Commander).set_alliance(indices[i], members[indices[i]])
+		var commander: Commander = commanders[i + 1] as Commander
+		commander.set_alliance(indices[i], members[indices[i]])
+		commander.shares_vision_with_allies = (
+			(player_slots[i] as PlayerSlot).shares_vision_with_allies
+		)
 
 
 ## Each slot's alliance, 0 … Commander.NUM_MAX_COMMANDERS - 1, in slot order. Slots naming the
@@ -1027,6 +1083,20 @@ func _is_omniscient(a_commander: Commander) -> bool:
 ## otherwise the bots' (and player's) sanctions would have nowhere to run and
 ## silently no-op. Idempotent: returns the existing node when the scene has one.
 ## This scenario's trigger host, or null before _ready made it.
+## Count no tick until the navmesh's first build. That build is deferred, so how many physics
+## frames run before it depends on how the scene entered the tree (a menu launch, a save load, a
+## replay), and everything armed on NavManager.navmesh_ready, every scripted trigger among it,
+## would land on a different tick each way: a save's recorded dialog answers would then never
+## meet their dialogs. gdd/systems/commands/saved-games.md §Loading.
+func _hold_until_navmesh_built(a_manager: ScenarioTriggerManager) -> void:
+	var nav: NavManager = map.nav_manager
+	var clock: SimulationClock = a_manager.simulation_clock
+	if nav == null or clock == null or nav.has_built():
+		return
+	clock.hold(SimulationClock.REASON_BOOT)
+	nav.first_built.connect(clock.release.bind(SimulationClock.REASON_BOOT), CONNECT_ONE_SHOT)
+
+
 func trigger_manager() -> ScenarioTriggerManager:
 	return get_node_or_null("ScenarioTriggerManager") as ScenarioTriggerManager
 
@@ -1061,9 +1131,6 @@ func _create_scenario_hud(a_event_manager: ScenarioTriggerManager) -> void:
 	add_child(dialog_view)
 	dialog_view.set_owner(self)
 	dialog_view.bind(a_event_manager)
-	# The help book is authored per scenario (a HelpBook child listing DialogPage scenes).
-	# A scenario without one simply has no help button.
-	dialog_view.bind_help_book(get_node_or_null("HelpBook") as HelpBook)
 
 	# The elapsed-time readout: here and not in the player rig, so a spectator sees it too.
 	var timer_layer := CanvasLayer.new()
@@ -1280,7 +1347,7 @@ func _match_summary_title(a_winner_id: int) -> String:
 	var player: Commander = local_player()
 	# A playback is watched, so it names the winner as a spectator session does.
 	if player != null and not is_playback():
-		return "Victory" if a_winner_id > 0 and player.is_allied_with(a_winner_id) else "Defeat"
+		return "Victory" if a_winner_id > 0 and player.is_allied_with(a_winner_id) else DEFEAT_TITLE
 	var winners: Array = alliance_of(a_winner_id)
 	if winners.size() > 1:
 		var names: PackedStringArray = PackedStringArray(
@@ -1315,6 +1382,12 @@ func _show_match_summary(a_title: String) -> void:
 		form.name = "ReplaySaveForm"
 		view.add_footer(form)
 		form.bind(recorder)
+	# The player lost: restart, load the last autosave, or leave (DefeatOptions).
+	if a_title == DEFEAT_TITLE and not is_playback():
+		var options := DefeatOptions.new()
+		options.name = "DefeatOptions"
+		options.scenario = self
+		view.add_footer(options)
 
 
 ## Called when every PRIMARY trigger has fired — the scenario's declared work is finished, so

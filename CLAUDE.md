@@ -16,13 +16,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Shelter (noun)** — a specific game structure with resource significance (distinct from the generic garrison mechanic). Do not use "shelter" as a synonym for a garrison host.
 
-**Scenario / mission / skirmish** — a **scenario** is any session: the `Scenario` root, its map, commanders and trigger host, shared by every kind of play, which is why the scripting classes keep the `Scenario*` prefix. A **mission** is a scenario authored as a tailored experience — scripted waves, patrols, preordained groups, objectives (`gdd/modes/campaign/`); it has no class of its own until it needs behaviour, so the word is the prose term. A **skirmish** is the competitive match the bots play to win. `Skirmish` the CLASS today means "deploys its opening forces from faction rosters", which is why `tutorial.tscn` extends it — TODO: if the class is to mean the mode, roster deployment becomes a `Scenario` option rather than a subclass. Decided 2026-10-03.
+**Scenario / mission / skirmish** — a **scenario** is any session: the `Scenario` root, its map, commanders and trigger host, shared by every kind of play, which is why the scripting classes keep the `Scenario*` prefix. A **mission** is a scenario authored as a tailored experience — scripted waves, patrols, preordained groups, objectives (`gdd/modes/campaign/`); it has no class of its own until it needs behaviour, so the word is the prose term. A **skirmish** is the competitive match the bots play to win. `Skirmish` the CLASS today means "deploys its opening forces from faction rosters", which is why the `human_vs_bot` test harness is one — TODO: if the class is to mean the mode, roster deployment becomes a `Scenario` option rather than a subclass. Decided 2026-10-03.
 
 ---
 
 ## Project overview
 
-Dissent Horizon is a Godot 4.7 RTS game written in GDScript. Isometric perspective, 3D world with 2D sprites on `CharacterBody3D` nodes. The game has fog of war, a build/train economy, multiple unit types, and an AI opponent. The main scene is `scenes/scenarios/s1.tscn`. Physics runs at 30 ticks/second.
+Dissent Horizon is a Godot 4.7 RTS game written in GDScript. Isometric perspective, 3D world with 2D sprites on `CharacterBody3D` nodes. The game has fog of war, a build/train economy, multiple unit types, and an AI opponent. The main scene is the title screen, `scenes/menu/main_menu.tscn`. Physics runs at 30 ticks/second.
 
 Current state: playable prototype. Terrain is a single `TerrainData` resource holding per-corner heights + a per-cell ground-material layer (see `gdd/systems/terrain-and-navigation/map-composition.md`), authored in-editor with the `terrain_brush` plugin (paint materials; raise/lower/smooth/set height). Unit/Structure class hierarchy was recently collapsed into a single `Actor` class using component children (see §Entity hierarchy below).
 
@@ -410,9 +410,9 @@ scripts/
 	  cost_spec.gd
 	hud/
 	  button_spec.gd, command_grid.gd, static_grid_button.gd, static_grid_container.gd
-	  scenario_dialog_view.gd     — pop-up panel + help button (built in code; PROCESS_MODE_ALWAYS)
+	  scenario_dialog_view.gd     — scripted pop-ups + the corner button to the pause menu (built in code)
+    how_to_play_view.gd         — How to Play: the tutorial library (scripts/tutorial/) browsed by category
 	  dialog_page.gd              — one page of pop-up copy; authored as scenes/dialogs/*.tscn
-    help_book.gd                — the scenario's help-button page list
     objective_view.gd           — objective checklist; layout authored in scenes/interface/
   rts_camera_3d.gd
   waypoint_indicator.gd
@@ -457,7 +457,9 @@ scripts/
 scenes/
   dialogs/                        — DialogPage scenes: reusable pop-up copy
   interface/                      — authored HUD pieces instanced into player.tscn
-  scenarios/s1.tscn               — main scene
+  menu/main_menu.tscn             — main scene: the title screen
+  scenarios/                      — player-facing scenarios: the skirmish template; missions go here
+  harnesses/                      — test- and sim-owned scenes, apart from player content
   player.tscn                     — Commander id=1 with RTSController + Camera
   map/terrain.tscn
   components/                     — the component library: one scene per component with children or defaults
@@ -575,6 +577,10 @@ work is `simulation_step`, never `_physics_process`. PLANNED: a decide phase thr
 serial act phase, and references between pieces held as serials for rollback.
 → [`gdd/systems/commands/the-simulation-step.md`](gdd/systems/commands/the-simulation-step.md)
 
+Saved games — a save is the replay's order log plus the tick it was saved on; loading re-simulates
+to that tick, then the player plays on. One autosave, overwritten by `EventAutosave`.
+→ [`gdd/systems/commands/saved-games.md`](gdd/systems/commands/saved-games.md)
+
 Netplay — the same order stream exchanged between machines: lockstep now, built to carry forward to rollback.
 → [`gdd/systems/commands/netplay.md`](gdd/systems/commands/netplay.md)
 
@@ -649,6 +655,7 @@ Map, terrain grid, navmesh, pathing, terrain authoring, mesh baking and water.
 - [`gdd/systems/terrain-and-navigation/water-bodies.md`](gdd/systems/terrain-and-navigation/water-bodies.md)
 - [`gdd/systems/terrain-and-navigation/map-composition.md`](gdd/systems/terrain-and-navigation/map-composition.md)
 - [`gdd/systems/terrain-and-navigation/map-generation.md`](gdd/systems/terrain-and-navigation/map-generation.md) — passes 1–7 built
+- [`gdd/systems/terrain-and-navigation/map-from-image.md`](gdd/systems/terrain-and-navigation/map-from-image.md) — PLANNED: a palette-coded drawing seeds a map
 - [`gdd/systems/terrain-and-navigation/visual-facets.md`](gdd/systems/terrain-and-navigation/visual-facets.md) — pass 7: decoration derived at load, never saved; cosmetic only
 
 Lighting and terrain shading → [`gdd/systems/ux/aesthetics/lighting.md`](gdd/systems/ux/aesthetics/lighting.md), [`terrain-readability.md`](gdd/systems/ux/aesthetics/terrain-readability.md). Preview renders without a display: `tools/terrain_visuals/render.sh`.

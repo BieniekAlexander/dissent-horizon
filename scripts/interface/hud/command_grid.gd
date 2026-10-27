@@ -103,9 +103,11 @@ static var _VERB_BINDINGS: Array = [
 			+ "builder waits there until its turn for funds comes round."
 		)
 	),
+	# "Attack Move" is too long for its cell, so it draws clipped like every long label
+	# (ButtonSpec, gdd/tasks.md T-091); the name is Alex's, 2026-10-26.
 	ControlBinding.new(
 		"command_attack_move",
-		"Attack",
+		"Attack Move",
 		Vector2i(0, 1),
 		ControlBinding.ControlContext.ACT,
 		"Advance and engage ({{ command_attack_move }})",
