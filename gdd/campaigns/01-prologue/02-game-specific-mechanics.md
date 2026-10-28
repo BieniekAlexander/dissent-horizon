@@ -11,8 +11,9 @@ allied base, takes it over, and then races the Colonials for dominion.
 - **Unit abilities**, through the [Sapper](../../factions/anarchical/units/an_bioLight_antiStructure.md):
   [Plant](../../factions/anarchical/abilities/plant.md) and [Detonate](../../factions/anarchical/abilities/detonate.md),
   with the charge and cooldown they show.
-- **Capture and crushing:** Stock Trucks run the Sappers over and capture them. The crushing
-  note comes once all three are taken.
+- **Capture and crushing:** Stock Trucks run the Sappers over and capture them. A Stock Truck
+  is the one crusher that captures what it crushes instead of killing it (Alex, 2026-10-27),
+  so this is the crushing lesson. The crushing note comes once all three are taken.
 - **Stealth and detection:** stealth hides a unit until it attacks, and stealth from Informant
   comes back once it stops. BIO units, and dedicated detectors, see a stealthed unit inside a
   smaller vision radius. So the player hits and runs.
@@ -46,8 +47,9 @@ Numbers are illustration; the scene will hold the real values.
   - **Player** — Anarchical.
   - **Ally** — Anarchical, holding one base, which passes to the player after the repair
     (phase 4). Scripted only.
-  - **Enemy** — Colonial, with a base. Details to come (Alex). Scripted, except that it gathers
-    dominion and buys the Drop sanction during phase 5 (§Rules).
+  - **Enemy** — Colonial, with a base. Details to come (Alex). Scripted, except in phase 5: its
+    Stock Trucks are bot-driven, gathering dominion by capture (Alex, 2026-10-27, pending
+    playtesting), and it buys the Drop sanction through a mission script (§Engine work).
 - **The allied base:** a [Stronghold](../../factions/anarchical/structures/an_commandCenter.md),
   two [Distress Signals](../../factions/anarchical/structures/an_support2.md) and 5
   [Safehouses](../../factions/anarchical/structures/an_infrastructure.md) (5 for now).
@@ -90,7 +92,7 @@ Numbers are illustration; the scene will hold the real values.
   spread apart, by setting off the explosives beside each one.
 - Then 2 [Ravens](../../factions/anarchical/units/an_aircraftLight_transport.md) fly in, each
   dropping 4 Irregulars and 1 [Warlord](../../factions/anarchical/units/an_bioMedium_dominionGen.md),
-  near the player.
+  near the player. The Ravens are the player's from then on (Alex, 2026-10-27).
 
 ### Phase 3: Rescue
 
@@ -186,20 +188,16 @@ TODO — link once it exists under `scenes/scenarios/prologue/`.
 
 ## Open questions
 
-**Q1. "Crushed" or "captured" Sappers.** The crushing note comes "after the Sappers are all
-crushed", but phase 1 has the Stock Trucks capture them. Is a Stock Truck's capture the
-crushing the note teaches (it drives over infantry and takes them rather than killing them),
-or should another vehicle crush something first?
+Resolved 2026-10-27 (Alex):
 
-**Q2. The Ravens after phase 2.** The player flies the army to the allied base in phase 4. Do
-the 2 Ravens become the player's once they drop their load? With 3 + 8 Irregulars, 2 Warlords
-and 3 Sappers the army is exactly 16, the seats of two Ravens, so any loss leaves room.
+- **Crushing:** a Stock Truck's capture is its crush, so the Sappers' capture teaches it.
+- **The Ravens** are the player's after they drop their load. The army is exactly 16, the seats
+  of two Ravens.
+- **Enemy dominion:** the Stock Trucks are bot-driven for now, pending playtesting.
+- **Ambush's prerequisite:** irrelevant here, since the mission hands the player its casters.
 
-**Q3. How the enemy gathers dominion.** Is its gathering scripted (authored Stock Truck runs
-to the contested shelters), or are its bot jobs for capture switched on for phase 5?
-
-**Q4. Shared pools.** Mission 2 now gives the player two shared pools (the Stronghold's and the
+**Q1. Shared pools.** Mission 2 now gives the player two shared pools (the Stronghold's and the
 Distress Signal's). Move the shared-pool note here from mission 3?
 
-**Q5. Ambush is now a Tier-1 sanction in practice.** Its caster, the Distress Signal, needs the
-Stockpile, while the Hideout needed only a Barracks. Fine for skirmish?
+**Q2. Ambush in skirmish.** Its caster, the Distress Signal, needs the Stockpile, while the
+Hideout needed only a Barracks, so Ambush arrives later in a skirmish match. Fine?

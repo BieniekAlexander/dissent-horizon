@@ -72,7 +72,7 @@ are from the [design framework](../../design-framework/README.md).
 | Air transport | Generic | 1 | 3 | built |
 | Defection, cutting the enemy's infrastructure | Generic | 1 | 3 | taught by the defective badge, now shown to everyone |
 | Volatile pieces (chain explosions) | Shared | 1 | 2 (Q2 prisons) | the hazards are marked as objective 2 targets (TODO: scene) |
-| Capture (Stock Truck) and crushing | Generic | 2 | 3 | the note follows the Sappers' capture (mission 2 Q1) |
+| Capture (Stock Truck) and crushing | Generic | 2 | 3 | a Stock Truck's capture is its crush; the note follows the Sappers' capture |
 | Unit abilities: arm, target, charge, cooldown (Sapper) | Generic | 2, phase 1 | 3 | |
 | Dominion: needs your faction's command centre; Retinue, and the Colonial route | Slot | 2, phase 5 | 3 (required) | the command-centre rule is a game-wide change (Alex, 2026-10-27) |
 | The sanction system | Generic | 2, phase 5 | 3 | |
@@ -85,7 +85,7 @@ are from the [design framework](../../design-framework/README.md).
 | Tech tree and prerequisites | Generic | 3 | — | |
 | Ground transports | Generic | 3 | — | |
 | Stagger: a hit stops a repair, a build, a Plant or a heal | Generic | 2, with repair | 3 | |
-| Shared ability pools | Generic | 3, the Stronghold (Dignify, Informant) | — | mission 2 now has two shared pools; move the note there? (mission 2 Q4) |
+| Shared ability pools | Generic | 3, the Stronghold (Dignify, Informant) | — | mission 2 now has two shared pools; move the note there? (mission 2 Q1) |
 | Repair (Sapper; Irregulars never repair) | Generic | 2, phase 4 | 3 | |
 | Healing | Generic | none | — | Anarchist healing deferred |
 | Veterancy | Generic | none | — | deferred |
