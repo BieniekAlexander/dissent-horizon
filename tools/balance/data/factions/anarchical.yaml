@@ -144,7 +144,6 @@ buildables:
   - an_infrastructure
   - an_barracks
   - an_warFactory
-  - an_support1
   - an_support2
   - an_support3
   - an_tech1
@@ -165,6 +164,7 @@ buildables:
   trains: []
   weapons:
   - an_bioLight_builder_ballisticweapon
+  - an_bioLight_builder_scavengedballisticweapon
 - armour: MEDIUM
   attributes: []
   builds: []
@@ -184,6 +184,7 @@ buildables:
   trains: []
   weapons:
   - an_bioMedium_antiMech_arcweapon
+  - an_bioMedium_antiMech_scavengedarcweapon
 - armour: MEDIUM
   attributes: []
   builds: []
@@ -203,6 +204,7 @@ buildables:
   trains: []
   weapons:
   - an_bioMedium_dominionGen_weapon
+  - an_bioMedium_dominionGen_scavengedweapon
 - armour: MEDIUM
   attributes: []
   builds: []
@@ -242,6 +244,7 @@ buildables:
   trains: []
   weapons:
   - an_bioStrong_antiLight_ballisticweapon
+  - an_bioStrong_antiLight_scavengedballisticweapon
 - armour: STRONG
   attributes: []
   builds: []
@@ -258,6 +261,20 @@ buildables:
   trains:
   - an_bioMedium_dominionGen
   - an_bioLight_builder
+  weapons: []
+- armour: MEDIUM
+  attributes: []
+  builds: []
+  cost:
+    dominion: 0
+    ore: 0
+    population: 0
+  frame: MECH
+  id: an_infrastructure
+  kind: structure
+  name: Safehouse
+  requires: []
+  trains: []
   weapons: []
 - armour: LIGHT
   attributes: []
@@ -333,22 +350,6 @@ buildables:
   name: War Wagon
   requires:
   - an_tech1
-  trains: []
-  weapons: []
-- armour: MEDIUM
-  attributes: []
-  builds: []
-  cost:
-    dominion: 0
-    ore: 600
-    population: 0
-  frame: MECH
-  hp: 1500
-  id: an_support1
-  kind: structure
-  name: Hideout
-  requires:
-  - an_barracks
   trains: []
   weapons: []
 - armour: MEDIUM

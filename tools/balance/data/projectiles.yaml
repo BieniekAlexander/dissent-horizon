@@ -57,6 +57,11 @@ projectiles:
     damage_type: LEAD
     speed: 20.0
     status_effects: []
+  gunship2_bullet:
+    base_damage: 65
+    damage_type: PLASMA
+    speed: 0.0
+    status_effects: []
   gunship_bullet:
     base_damage: 67.5
     damage_type: LEAD
@@ -77,12 +82,11 @@ projectiles:
     damage_type: LEAD
     speed: 28.0
     status_effects: []
-  kamikaze_bomb:
+  kamikaze_blast:
     base_damage: 150
     damage_type: EXPLOSIVE
     speed: 0.0
-    status_effects:
-    - suicide
+    status_effects: []
   lazer:
     base_damage: 20
     damage_type: LEAD
@@ -92,6 +96,35 @@ projectiles:
   mlrs_rocket:
     base_damage: 20
     damage_type: EXPLOSIVE
+    speed: 0.0
+    status_effects: []
+  nt_cryo_burst:
+    base_damage: 20
+    damage_type: PLASMA
+    speed: 0.0
+    status_effects:
+    - cryo_burst
+  nt_plasma_blast_large:
+    base_damage: 600
+    damage_type: PLASMA
+    speed: 0.0
+    status_effects:
+    - burning
+  nt_plasma_blast_medium:
+    base_damage: 300
+    damage_type: PLASMA
+    speed: 0.0
+    status_effects:
+    - burning
+  nt_plasma_blast_small:
+    base_damage: 150
+    damage_type: PLASMA
+    speed: 0.0
+    status_effects:
+    - burning
+  nt_radiation_field:
+    base_damage: 4
+    damage_type: INCENDIARY
     speed: 0.0
     status_effects: []
   projectile:
@@ -125,6 +158,11 @@ projectiles:
     speed: 28.0
     status_effects:
     - emp
+  sleeper_shell:
+    base_damage: 45
+    damage_type: LEAD
+    speed: 28.0
+    status_effects: []
   sloop_bullet:
     base_damage: 22.5
     damage_type: LEAD

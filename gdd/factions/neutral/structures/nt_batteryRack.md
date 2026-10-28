@@ -6,7 +6,7 @@ editor_description: Neutral hazard — destroy it and it blows.
 commandable: false
 flavor:
   description: A rack of storage cells. Its burst reaches further than one cell's.
-  verbose: A rack of superconducting storage cells wired as one: the stored field of a dozen cells. A quench cascades down the rack in an instant and throws a plasma burst a block wide.
+  verbose: "A rack of superconducting storage cells wired as one: the stored field of a dozen cells. A quench cascades down the rack in an instant and throws a plasma burst a block wide."
 defense:
   hp: 80
   armour: MEDIUM

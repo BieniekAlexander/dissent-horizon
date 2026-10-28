@@ -7,7 +7,7 @@ weapons:
     - ground
     - air
     name: BombWeapon
-    projectile: kamikaze_bomb
+    projectile: kamikaze_blast
     reach: 0.5
     reload_time: 10
     split_time: 10
@@ -29,6 +29,15 @@ weapons:
     reach: 8.0
     reload_time: 24
     split_time: 3
+  an_bioLight_builder_scavengedballisticweapon:
+    clip_size: 3
+    hits:
+    - ground
+    name: ScavengedBallisticWeapon
+    projectile: irregular_bullet
+    reach: 8.0
+    reload_time: 12
+    split_time: 3
   an_bioMedium_antiMech_arcweapon:
     clip_size: 1
     hits:
@@ -38,6 +47,25 @@ weapons:
     reach: 8.0
     reload_time: 30
     split_time: 30
+  an_bioMedium_antiMech_scavengedarcweapon:
+    clip_size: 1
+    hits:
+    - ground
+    name: ScavengedArcWeapon
+    projectile: shock_trooper_arc
+    reach: 8.0
+    reload_time: 15
+    split_time: 15
+  an_bioMedium_dominionGen_scavengedweapon:
+    clip_size: 1
+    hits:
+    - ground
+    - air
+    name: ScavengedWeapon
+    projectile: warlord_rocket
+    reach: 12.0
+    reload_time: 22
+    split_time: 22
   an_bioMedium_dominionGen_weapon:
     clip_size: 1
     hits:
@@ -58,6 +86,16 @@ weapons:
     reach: 8.0
     reload_time: 12
     split_time: 12
+  an_bioStrong_antiLight_scavengedballisticweapon:
+    clip_size: 1
+    hits:
+    - ground
+    - air
+    name: ScavengedBallisticWeapon
+    projectile: juggernaut_bullet
+    reach: 8.0
+    reload_time: 6
+    split_time: 6
   an_mechMedium_antiBio_toxinsprayer:
     clip_size: 1
     hits:
@@ -96,6 +134,16 @@ weapons:
     reach: 12.0
     reload_time: 600
     split_time: 3
+  cl_aircraftMedium_gunship2_ballisticweapon:
+    clip_size: 2
+    hits:
+    - ground
+    - air
+    name: BallisticWeapon
+    projectile: gunship2_bullet
+    reach: 12.0
+    reload_time: 30
+    split_time: 3
   cl_aircraftMedium_gunship_ballisticweapon:
     clip_size: 10
     hits:
@@ -124,6 +172,15 @@ weapons:
     reach: 12.0
     reload_time: 45
     split_time: 45
+  cl_bioLight_stealth_shotgun:
+    clip_size: 2
+    hits:
+    - ground
+    name: Shotgun
+    projectile: sleeper_shell
+    reach: 8.0
+    reload_time: 90
+    split_time: 9
   cl_bioMedium_antiStrong_ballisticweapon:
     clip_size: 2
     hits:

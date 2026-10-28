@@ -83,6 +83,25 @@ buildables:
   builds: []
   cost:
     dominion: 0
+    ore: 0
+    population: 0
+  frame: MECH
+  hp: 600
+  id: cl_aircraftMedium_gunship2
+  kind: unit
+  movement:
+    layer: air
+    speed: 20.0
+  name: Gunship 2
+  requires: []
+  trains: []
+  weapons:
+  - cl_aircraftMedium_gunship2_ballisticweapon
+- armour: MEDIUM
+  attributes: []
+  builds: []
+  cost:
+    dominion: 0
     ore: 2000
     population: 0
   frame: MECH
@@ -191,6 +210,7 @@ buildables:
   - cl_support1
   - cl_support2
   - cl_support3
+  - cl_support4
   cost:
     dominion: 0
     ore: 200
@@ -211,7 +231,7 @@ buildables:
   builds: []
   cost:
     dominion: 0
-    ore: 600
+    ore: 450
     population: 0
   frame: BIO
   hp: 120
@@ -224,7 +244,8 @@ buildables:
   requires:
   - cl_tech1
   trains: []
-  weapons: []
+  weapons:
+  - cl_bioLight_stealth_shotgun
 - armour: MEDIUM
   attributes: []
   builds: []
@@ -448,6 +469,22 @@ buildables:
   id: cl_support3
   kind: structure
   name: Storm Cell
+  requires:
+  - cl_tech2
+  trains: []
+  weapons: []
+- armour: STRONG
+  attributes: []
+  builds: []
+  cost:
+    dominion: 0
+    ore: 2500
+    population: 0
+  frame: MECH
+  hp: 1500
+  id: cl_support4
+  kind: structure
+  name: Cryogenic Imploder
   requires:
   - cl_tech2
   trains: []

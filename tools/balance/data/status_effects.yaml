@@ -3,6 +3,14 @@
 status_effects:
   bio_stun:
     kind: status_effect
+  burning:
+    damage_per_tick: 10.0
+    damage_type: INCENDIARY
+    duration_ticks: 300
+    kind: damage_over_time
+    tick_rate: 10
+  cryo_burst:
+    kind: status_effect
   emp:
     kind: status_effect
   lazer_burn:
@@ -10,5 +18,3 @@ status_effects:
     damage_type: LEAD
     duration_ticks: 100
     kind: damage_over_time
-  suicide:
-    kind: suicide

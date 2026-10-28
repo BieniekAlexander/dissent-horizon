@@ -37,6 +37,36 @@ buildables:
   requires: []
   trains: []
   weapons: []
+- armour: STRONG
+  attributes: []
+  builds: []
+  cost:
+    dominion: 0
+    ore: 0
+    population: 0
+  frame: MECH
+  hp: 250
+  id: nt_batteryBank
+  kind: structure
+  name: Battery Bank
+  requires: []
+  trains: []
+  weapons: []
+- armour: MEDIUM
+  attributes: []
+  builds: []
+  cost:
+    dominion: 0
+    ore: 0
+    population: 0
+  frame: MECH
+  hp: 80
+  id: nt_batteryRack
+  kind: structure
+  name: Battery Rack
+  requires: []
+  trains: []
+  weapons: []
 - armour: LIGHT
   attributes: []
   builds: []

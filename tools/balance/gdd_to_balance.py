@@ -105,11 +105,13 @@ def role_of(data: dict) -> str | None:
     """The role a `kind: Entity` doc plays, from its keys rather than its kind — every piece
     doc says `kind: Entity`, and the importer derives the same facets (SpecSchema.is_emission,
     is_fixture, Composition.is_mobile). A fixture that also moves is a structure here: the
-    footprint is what puts it on the build menu. None for a piece with neither (a bodiless
-    or decorative doc), which has no place in the tech graph."""
+    footprint is what puts it on the build menu. A piece with `variants:` is a structure too: it
+    takes over a neutral building (the Anarchist Safehouse) and so authors no footprint of its
+    own. None for a piece with neither (a bodiless or decorative doc), which has no place in the
+    tech graph."""
     if any(key in data for key in EMISSION_KEYS):
         return "projectile"
-    if "footprint" in data:
+    if "footprint" in data or "variants" in data:
         return "structure"
     if "movement" in data:
         return "unit"
