@@ -85,7 +85,7 @@ are from the [design framework](../../design-framework/README.md).
 | Tech tree and prerequisites | Generic | 3 | — | |
 | Ground transports | Generic | 3 | — | |
 | Stagger: a hit stops a repair, a build, a Plant or a heal | Generic | 2, with repair | 3 | |
-| Shared ability pools | Generic | 3, the Stronghold (Dignify, Informant) | — | mission 2 now has two shared pools; move the note there? (mission 2 Q1) |
+| Shared ability pools | Generic | 2, with the sanction note (Stronghold; Distress Signal) | 3 | |
 | Repair (Sapper; Irregulars never repair) | Generic | 2, phase 4 | 3 | |
 | Healing | Generic | none | — | Anarchist healing deferred |
 | Veterancy | Generic | none | — | deferred |
@@ -115,7 +115,8 @@ are from the [design framework](../../design-framework/README.md).
 - Garrison clearing moves from mission 2 to mission 3.
 - Stagger is taught in mission 2 (with repair, since the 2026-10-27 redesign). The note also
   covers building, Plant and healing.
-- Shared ability pools are taught in mission 3, through the player's Stronghold. Repair moved
+- Shared ability pools are taught in mission 2, with the sanction note (moved from 3 later the
+  same day). Repair moved
   to mission 2 with its redesign. Veterancy is deferred.
 - Mission 3's extra Colonial technology is not scoped yet.
 

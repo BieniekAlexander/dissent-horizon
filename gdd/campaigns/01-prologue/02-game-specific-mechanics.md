@@ -24,6 +24,9 @@ allied base, takes it over, and then races the Colonials for dominion.
   route (capture into Compounds), side by side.
 - **The sanction system:** buying a sanction with dominion and casting it, once the player can
   afford one. Individual ordnances are left to their tooltips.
+- **Shared ability pools:** the Stronghold's Dignify and Informant share one pool, and the
+  Distress Signal's Mortar Strike and Ambush another, so casting one spends the other's charge.
+  Taught with the sanction system (Alex, 2026-10-27).
 
 ## Reinforces
 
@@ -149,7 +152,7 @@ wipe-out loss, except during phase 1.
 | Phase 2 start | Stealth and detection (new) |
 | The attackers at the allied base dead | Repair (new); Stagger (new) |
 | The base passes to the player | Dominion and the command centre (new); Anarchist dominion (new); Colonial dominion (new) |
-| The player can afford a sanction | Sanctions (new) |
+| The player can afford a sanction | Sanctions (new); Shared ability pools (new) |
 
 ## Rules this mission depends on
 
@@ -196,8 +199,8 @@ Resolved 2026-10-27 (Alex):
 - **Enemy dominion:** the Stock Trucks are bot-driven for now, pending playtesting.
 - **Ambush's prerequisite:** irrelevant here, since the mission hands the player its casters.
 
-**Q1. Shared pools.** Mission 2 now gives the player two shared pools (the Stronghold's and the
-Distress Signal's). Move the shared-pool note here from mission 3?
+- **Shared pools** are taught here, with the sanction note (moved from mission 3).
+- **Ambush in skirmish** arrives later than it did (the Distress Signal needs the Stockpile, the
+  Hideout needed a Barracks), which is fine.
 
-**Q2. Ambush in skirmish.** Its caster, the Distress Signal, needs the Stockpile, while the
-Hideout needed only a Barracks, so Ambush arrives later in a skirmish match. Fine?
+None open.

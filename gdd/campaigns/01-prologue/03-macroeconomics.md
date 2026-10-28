@@ -19,8 +19,6 @@ climbing the tech tree and using ground transports.
 - **Garrison clearing:** flushing Colonial infantry out of buildings, with the
   [Toxin Tractor](../../factions/anarchical/units/an_mechMedium_antiBio.md), in the barracks
   quarter. Moved from mission 2 (Alex, 2026-10-27).
-- **Shared ability pools:** the Stronghold's abilities, Dignify and Informant, share one pool
-  of charges, so casting one spends the other's (Alex, 2026-10-27).
 - Repair is taught in mission 2 and reinforced here. Anarchist healing is deferred (Alex,
   2026-10-27).
 
@@ -29,7 +27,8 @@ climbing the tech tree and using ground transports.
 - From mission 1: counters, garrisoning, defection (cutting the enemy's Compounds), shooting
   aircraft, air transport through a gap in SAM coverage, the Watch Tower warning
 - From mission 2: Sapper abilities, capture and crushing, stealth, repair, stagger (now while
-  building under fire), dominion generation (Retinue) and the sanction system. Dominion generation is
+  building under fire), dominion generation (Retinue), the sanction system and shared ability
+  pools. Dominion generation is
   required here (Alex, 2026-10-27).
 
 ## Player fantasy
@@ -129,7 +128,6 @@ Help notes (proposed). "New" notes are to be written for the How to Play library
 | Your infrastructure falls short | Defection, from your side (new; mission 1 told it only through objective text) |
 | Kill zone first sighted | Ground transports (new) |
 | Barracks quarter first sighted | Clearing garrisons (new) |
-| Stronghold's pool first charged | Shared ability pools (new) |
 | Objective 3 done | Air transport (reused, shown again as a reminder) |
 | Watch Tower first sighted | the Watch Tower warning (see mission 2's Q4) |
 
