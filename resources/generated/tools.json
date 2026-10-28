@@ -180,7 +180,7 @@
 		],
 		"scene": "res://scenes/entities/units/an/an_bioLight_builder.tscn",
 		"tooltip": "Train Irregular — 100 energy, 5s",
-		"verbose": "Train Irregular — 100 energy, 5s\n80 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBuilds: Extractor, Stronghold, Hangar, Safehouse, Redoubt, Chop Shop, Hideout, Distress Signal, EMP Device, Stockpile, Clandestine Lab\nBallisticWeapon: 5 lead, reach 8\nScavengedBallisticWeapon (once scavenged): 5 lead, reach 8"
+		"verbose": "Train Irregular — 100 energy, 5s\n80 HP · light armour · bio frame\ngrounded, speed 1.65 · vision 16\nBuilds: Extractor, Stronghold, Hangar, Safehouse, Redoubt, Chop Shop, Distress Signal, EMP Device, Stockpile, Clandestine Lab\nBallisticWeapon: 5 lead, reach 8\nScavengedBallisticWeapon (once scavenged): 5 lead, reach 8"
 	},
 	"command_tool_an_bioMedium_antiMech": {
 		"context": "TRAIN",
@@ -384,24 +384,6 @@
 		"scene": "res://scenes/entities/units/an/an_mechStrong_transport.tscn",
 		"tooltip": "Train War Wagon — 750 energy, 20s",
 		"verbose": "Train War Wagon — 750 energy, 20s\nRequires: Stockpile\n220 HP · strong armour · mech frame\ngrounded, speed 2.2 · vision 20"
-	},
-	"command_tool_an_support1": {
-		"context": "BUILD",
-		"context_grid": [],
-		"factions": [
-			"anarchists"
-		],
-		"grid": [
-			1,
-			2
-		],
-		"id": "an_support1",
-		"label": "Hideout",
-		"needs_docking": false,
-		"producers": [],
-		"scene": "res://scenes/entities/structures/an/an_support1.tscn",
-		"tooltip": "Build Hideout — 600 energy, 30s",
-		"verbose": "Build Hideout — 600 energy, 30s\nRequires: Redoubt\n1500 HP · medium armour · mech frame\n3×3 cells · vision 24\nCosts 75 infrastructure upkeep"
 	},
 	"command_tool_an_support2": {
 		"context": "BUILD",

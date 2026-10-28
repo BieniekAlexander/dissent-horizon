@@ -195,17 +195,6 @@
 		},
 		"requires": []
 	},
-	"an_support1": {
-		"build_time_ticks": 900,
-		"cost": {
-			"dominion": 0,
-			"energy": 600,
-			"infrastructure": 0
-		},
-		"requires": [
-			"an_barracks"
-		]
-	},
 	"an_support2": {
 		"build_time_ticks": 900,
 		"cost": {

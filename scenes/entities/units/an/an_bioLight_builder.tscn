@@ -147,7 +147,7 @@ billboard = 2
 
 [node name="Builds" type="Node" parent="." unique_id=865789273]
 script = ExtResource("1_spec")
-buildable_types = Array[StringName]([&"nt_extractor", &"an_commandCenter", &"an_airField", &"an_infrastructure", &"an_barracks", &"an_warFactory", &"an_support1", &"an_support2", &"an_support3", &"an_tech1", &"an_tech2"])
+buildable_types = Array[StringName]([&"nt_extractor", &"an_commandCenter", &"an_airField", &"an_infrastructure", &"an_barracks", &"an_warFactory", &"an_support2", &"an_support3", &"an_tech1", &"an_tech2"])
 
 [node name="Loadout" type="Node3D" parent="." unique_id=1605037165]
 script = ExtResource("2_spec")

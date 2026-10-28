@@ -191,15 +191,6 @@
 	},
 	{
 		"faction": "anarchists",
-		"id": "an_support1",
-		"is_fixture": true,
-		"label": "Hideout",
-		"producers": [],
-		"scene": "res://scenes/entities/structures/an/an_support1.tscn",
-		"tool": "command_tool_an_support1"
-	},
-	{
-		"faction": "anarchists",
 		"id": "an_support2",
 		"is_fixture": true,
 		"label": "Distress Signal",

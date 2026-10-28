@@ -74,7 +74,7 @@ These have a real collider and a persistent effect, which is exactly what the ca
 
 | Mechanic | Lives in | Carried by | Valence | What converting would buy |
 |---|---|---|---|---|
-| **Heal aura** — continuously heals friendly BIO units overlapping an Area3D | `HealAOE` (`scripts/entities/effects/heal_aoe.gd`) | `an_support1` | BOON | The strongest candidate on the list. It already has the shape and the tick; it has no card, no tooltip and no visible radius, so a player has to infer the whole mechanic from hit points going up. |
+| **Heal aura** — continuously heals friendly BIO units overlapping an Area3D | `HealAOE` (`scripts/entities/effects/heal_aoe.gd`) | nothing — its carrier was removed; the `TODO` in `an_mechLight_transport.md` gives it to that unit as Bio Heal | BOON | The strongest candidate on the list. It already has the shape and the tick; it has no card, no tooltip and no visible radius, so a player has to infer the whole mechanic from hit points going up. |
 | **Liberation** — converts neutral Terrestrials that come close | `Liberator` / `Liberatable` | Warlord | BOON | `debug_shape_liberation_range` already exists and `EntityRanges.Kind.LIBERATION` already maps to it, so the reveal is free. Pairs naturally with `retinue` on the same piece. |
 
 ## Worth a card, with no reach to draw

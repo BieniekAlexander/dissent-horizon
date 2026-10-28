@@ -320,6 +320,54 @@ func test_an_enemy_transport_never_shows_its_seats() -> void:
 	assert_eq(_visible_pips(_status_visuals(truck)).size(), 0)
 
 
+## An ENEMY structure, drawn, owned by a commander short of infrastructure; armed or not.
+func _enemy_structure_in_defection(a_is_armed: bool) -> Actor:
+	var enemy := Commander.new()
+	enemy.id = RTSController.PLAYER_COMMANDER_ID + 1
+	enemy.set_physics_process(false)
+	add_child_autofree(enemy)
+	var options: Dictionary = FakePieces.BUILDING.merged({"mesh": true, "status_visuals": true})
+	if a_is_armed:
+		options["weapon"] = {"ground": 6.0}
+	var structure: Actor = FakePieces.make(options)
+	add_child_autofree(structure)
+	structure.set_physics_process(false)
+	structure.ownership.commander = enemy
+	enemy.add_infrastructure(-(Commander.BASE_INFRASTRUCTURE + 1))
+	assert_true(structure.is_defective(), "the fixture is actually defective")
+	return structure
+
+
+func _shows_icon(a_sv: StatusVisuals, a_icon: Texture2D) -> bool:
+	return a_sv._status_sprites.any(
+		func(sprite: Sprite3D) -> bool: return sprite.visible and sprite.texture == a_icon
+	)
+
+
+## Seeing an enemy's defences go dark is how a player learns that cutting its infrastructure
+## worked, so the badge is not kept to its owner's side.
+func test_an_enemys_dark_defences_show_the_defective_badge() -> void:
+	var turret: Actor = _enemy_structure_in_defection(true)
+	var sv: StatusVisuals = _status_visuals(turret)
+	sv._process(0.0)
+	assert_true(_shows_icon(sv, StatusVisuals.DEFECTIVE_ICON))
+
+
+func test_a_defective_building_with_nothing_to_lose_shows_no_badge() -> void:
+	var depot: Actor = _enemy_structure_in_defection(false)
+	var sv: StatusVisuals = _status_visuals(depot)
+	sv._process(0.0)
+	assert_false(_shows_icon(sv, StatusVisuals.DEFECTIVE_ICON))
+
+
+func test_the_defective_badge_goes_once_the_network_covers_it() -> void:
+	var turret: Actor = _enemy_structure_in_defection(true)
+	var sv: StatusVisuals = _status_visuals(turret)
+	turret.commander.add_infrastructure(Commander.BASE_INFRASTRUCTURE + 1)
+	sv._process(0.0)
+	assert_false(_shows_icon(sv, StatusVisuals.DEFECTIVE_ICON))
+
+
 ## Almost every unit in the game has neither a garrison nor a charged clip, and must pay
 ## nothing for this.
 func test_an_ordinary_unit_draws_no_pips_at_all() -> void:
