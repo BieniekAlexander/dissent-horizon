@@ -304,8 +304,11 @@ delivers units should pay back no faster than an extractor at its *top* level. D
 then needs a Supply Beacon of at least about 1700 energy. At 2000–2500, Drop 1 is a slow
 investment (a 400–500 s payback) that only the deeper levels justify.
 
-Ambush, for comparison, is safe today: the Hideout (600 energy, 180 s) yields 1.7/s at 3
-Irregulars and 4.4/s at 8.
+Ambush, for comparison, was safe when the Hideout cast it (600 energy, 180 s): 1.7/s at 3
+Irregulars and 4.4/s at 8. The Hideout is removed (Alex, 2026-10-27), and Ambush now shares the
+Distress Signal's one pool with Mortar Strike, at 120 s: about 2.5/s at 3 Irregulars and 6.6/s
+at 8 when every charge goes to Ambush, from a 1200-energy caster. TODO: recheck against the
+extractor rule above.
 
 ### Command centres: three minor abilities each
 

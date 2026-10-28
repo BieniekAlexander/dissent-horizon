@@ -15,7 +15,7 @@ confers has its own curve for the Nth copy:
 | **Unlock** (tech gate) | everything | ~0: insurance against a snipe, nothing more | tech 1 and 2 |
 | **Production** | full | full: throughput and a second rally position | barracks, factories |
 | **Weapon** | full | full, but local: covers a different spot | statics, the Bombard |
-| **Ability charges** | full | full, unless uses outrun opportunities to use them (see below) | Citadel, Storm Cell, Hideout |
+| **Ability charges** | full | full, unless uses outrun opportunities to use them (see below) | Citadel, Storm Cell, Distress Signal |
 | **Purchased upgrade** | the upgrade | tempo only: two upgrades researched at once | the Operations Center ([upgrades](../upgrades.md)) |
 | **Infrastructure / economy** | full | full, until the cap it feeds | the infrastructure structure, extractors |
 | **Staying in the game** (win condition, if adopted) | everything | insurance, worth more as the opponent's finishing tools arrive | command centre |

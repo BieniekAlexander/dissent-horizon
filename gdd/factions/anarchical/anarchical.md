@@ -85,12 +85,10 @@ flowchart TB
         an_mechMedium_artillery(["MLRS"])
     end
     an_tech2["Clandestine Lab"]
-    an_support1["Hideout"]
     an_tech1["Stockpile"]
     an_support3["EMP Device"]
     an_support2["Distress Signal"]
     an_airField --> an_tech2
-    an_barracks --> an_support1
     an_infrastructure --> an_airField
     an_infrastructure --> an_barracks
     an_infrastructure --> an_warFactory

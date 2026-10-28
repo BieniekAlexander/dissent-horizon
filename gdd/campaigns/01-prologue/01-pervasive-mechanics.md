@@ -287,6 +287,9 @@ Colonial structures go dark. Open question in the [README](README.md) §Mechanic
 
 ## Constraints
 
+- Irregulars can't build (Alex, 2026-10-27). TODO: needs the scenario restriction feature.
+- TODO (deferred, Alex 2026-10-27): refactor for the rule that dominion generation needs the
+  generating faction's command centre; the player's Warlords have none here.
 - No base, production, sanctions, ordnances or unit abilities. The Sapper is left out for this reason: its only way to damage anything is its Plant ability, which mission 2 teaches.
 - No enemy ground vehicles. That rules out crushing and wrecks (scavenging) before the missions that explain them.
 - Losing every unit fails the mission.

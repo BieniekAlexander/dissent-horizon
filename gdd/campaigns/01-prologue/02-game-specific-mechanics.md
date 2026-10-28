@@ -1,33 +1,42 @@
 # Mission 2 — Game-specific mechanics
 
-Status: draft, not built. Reworked 2026-10-27 to apply [mission-design](../mission-design.md), the
-lessons of building mission 1. The design intent is unchanged. The player holds a defunct
-Anarchist base against Colonial raids while banking dominion. The dominion unlocks two
-sanctions: Informant, to slip units through for critical strikes, and Mortar Strike, for the
-firepower to finish the mission.
+Status: draft, not built. Redesigned by Alex on 2026-10-27, superseding the defunct-base draft.
+The player starts with three Sappers deep in a Colonial base, loses them to Stock Trucks, sneaks
+a stealthed squad past patrols to bring in reinforcements, frees the Sappers, flies to save an
+allied base, takes it over, and then races the Colonials for dominion.
+[mission-design](../mission-design.md) applies throughout.
 
 ## Teaches
 
-- **Stagger:** a hit interrupts a channelled action. Taught with Plant, whose channel a hit
-  stops; the note also covers the other cases, building and healing (Alex, 2026-10-27).
-- **Unit abilities:** the [Sapper](../../factions/anarchical/units/an_bioLight_antiStructure.md)'s [Plant](../../factions/anarchical/abilities/plant.md) and [Detonate](../../factions/anarchical/abilities/detonate.md). These cover arming an ability, choosing its target, and reading its charge and cooldown. A planted charge holds the Sapper's recharge until it goes off. Detonate fires from anywhere, with or without vision of the charge.
-- **Crushing:** vehicles run over clumped infantry, and spread-out infantry survives and kills the vehicle. The player's infantry is the main target, and the player crushes too.
-- **Stealth:** stealthed units move unseen until they attack, and detectors reveal them.
-- **Dominion generation:** the Anarchist route, [Retinue](../../factions/anarchical/abilities/retinue.md). Friendly infantry standing with a Warlord bank dominion.
-- **Ordnances:** buying a sanction with dominion, then casting it from the structure that holds its charge, with a cooldown before the next charge. This reuses the charge-and-cooldown vocabulary the Sapper introduced, moved from a unit to a structure.
+- **Unit abilities**, through the [Sapper](../../factions/anarchical/units/an_bioLight_antiStructure.md):
+  [Plant](../../factions/anarchical/abilities/plant.md) and [Detonate](../../factions/anarchical/abilities/detonate.md),
+  with the charge and cooldown they show.
+- **Capture and crushing:** Stock Trucks run the Sappers over and capture them. The crushing
+  note comes once all three are taken.
+- **Stealth and detection:** stealth hides a unit until it attacks, and stealth from Informant
+  comes back once it stops. BIO units, and dedicated detectors, see a stealthed unit inside a
+  smaller vision radius. So the player hits and runs.
+- **Repair:** Sappers repair the allied Stronghold. **Stagger** is taught with it: a hit stops a
+  repair, as it stops a build, a Plant or a heal.
+- **Dominion generation:** a faction's dominion generation needs its command centre (the rule
+  under §Rules this mission depends on), then the Anarchist route (Retinue) and the Colonial
+  route (capture into Compounds), side by side.
+- **The sanction system:** buying a sanction with dominion and casting it, once the player can
+  afford one. Individual ordnances are left to their tooltips.
 
 ## Reinforces
 
-From mission 1: unit control, garrisoning, counters, the Watch Tower warning, and freeing
-captives from a Compound by setting off the hazards against it.
+From mission 1: unit control, counters, garrisoning, volatile hazards (the SAM sites' explosives),
+air transport (the Ravens), freeing captives from a Compound.
 
 ## Player fantasy
 
-A ragged cell outnumbered by an industrial army wins through its following, not its factories.
+A cell that loses its saboteurs, gets them back, saves an allied base and turns it against the
+Colonials.
 
 ## Narrative justification
 
-The base is defunct, so there is no production. What the Anarchists still have is people: Warlords and the infantry who follow them, which is what dominion is for this faction. The base's Distress Signals still work if dominion authorises a call, so the base can't win alone but can call in the strikes that do.
+TODO — Alex to reframe the narrative once the mechanics are settled.
 
 ## Setup
 
@@ -35,144 +44,162 @@ Numbers are illustration; the scene will hold the real values.
 
 - **Commanders:**
   - **Player** — Anarchical.
-  - **Enemy** — a Colonial bot, **scripted only** (every bot job that acts switched off): its
-    raids, patrols and garrisons are all authored.
-  - No ally. The player's own base is the anchor, so no guide is needed to make the route
-    legible until the strikes (open question Q3).
-- **Starting base**, placed in the scene:
-  - A [Stronghold](../../factions/anarchical/structures/an_commandCenter.md), which casts Informant. The base needs one for this reason.
-  - One or more [Distress Signals](../../factions/anarchical/structures/an_support2.md), which cast Mortar Strike
-  - Neutral buildings to garrison
-  - No production. TODO: there is no scenario-level way to switch off training at the
-    Stronghold yet (README §Impact of mission 1's build).
-- **Starting force**, placed in the scene:
-  - [Warlords](../../factions/anarchical/units/an_bioMedium_dominionGen.md) and infantry
-  - A [Toxin Tractor](../../factions/anarchical/units/an_mechMedium_antiBio.md), the player's vehicle to crush with. Its garrison clearing is taught in mission 3 (Alex, 2026-10-27).
-- **Received during the mission:** [Sappers](../../factions/anarchical/units/an_bioLight_antiStructure.md),
-  arriving as reinforcements before the critical strikes. They spawn relative to the base, from
-  off the map (`spawn_in_flight` or a ground arrival), out of the raiders' reach.
-- **Sanction grid:** only Informant and Mortar Strike are offered. Other cells are hidden or
-  locked. TODO: needs a scenario-level sanction restriction, which doesn't exist yet.
-- **Enemies:**
-  - **Raids on the base**, one lesson each, in a fixed order: a lone
-    [Stock Truck](../../factions/colonial/units/cl_mechLight_dominionGen.md) that captures a
-    light infantryman, then a [Sloop](../../factions/colonial/units/cl_mechMedium_antiLight.md)
-    driving at a clump, then mixed raids with [Matildas](../../factions/colonial/units/cl_mechMedium_antiMech.md).
-    A raid is set off by a beat or by the previous raid being spent, never by a repeating timer,
-    and never while the previous raid lives. Raids stop once the strikes begin, or thin out,
-    so the player can leave the base.
-  - **A Colonial prison for the captured:** the Stock Truck delivers its captive to a Compound
-    with hazards against it, as in mission 1, so the player can win the captive back
-    (open question Q2).
-  - [Watch Towers](../../factions/colonial/structures/cl_defense_antiLight.md) as the detectors guarding the strike targets, each defending group sharing one defended area
+  - **Ally** — Anarchical, holding one base, which passes to the player after the repair
+    (phase 4). Scripted only.
+  - **Enemy** — Colonial, with a base. Details to come (Alex). Scripted, except that it gathers
+    dominion and buys the Drop sanction during phase 5 (§Rules).
+- **The allied base:** a [Stronghold](../../factions/anarchical/structures/an_commandCenter.md),
+  two [Distress Signals](../../factions/anarchical/structures/an_support2.md) and 5
+  [Safehouses](../../factions/anarchical/structures/an_infrastructure.md) (5 for now).
+- **Shelters:** 3. One is easy for the player to defend, and two are contested, which is where
+  the dominion race is fought. The player can also destroy Compounds to cut the enemy's
+  dominion generation.
+- **Mission restrictions** (the scenario-level restriction feature, scoped separately):
+  - the player's Stronghold can't train units;
+  - Irregulars can't build (in mission 1 too);
+  - the player's sanctions are only Informant, Mortar Strike, Ambush and Dignify. The
+    Stronghold's third ordnance is still to be designed; whether it is offered here depends on
+    that design (Alex, 2026-10-27).
 
-## The tension the mission is built on
+## Phases and beats
 
-Retinue rewards infantry standing together around a Warlord, and crushing punishes infantry standing together. The player has to bank dominion without presenting a clump to the Colonial vehicles. That's done by spreading followers across several Warlords, which is also how Retinue rewards play. Defending the base and earning dominion become the same activity.
+### Phase 1: Sappers (Plant)
+
+- The player starts with 3 Sappers in a section of the enemy base where no enemy unit
+  threatens them. [Watch Towers](../../factions/colonial/structures/cl_defense_antiLight.md) and
+  posted [Recruits](../../factions/colonial/units/cl_bioLight_antiLight.md) keep them from
+  roaming beyond it.
+- Objective: destroy two [Barracks](../../factions/colonial/structures/cl_barracks.md) and a
+  [Sky Port](../../factions/colonial/structures/cl_airField.md) with planted charges.
+- When they're down, [Stock Trucks](../../factions/colonial/units/cl_mechLight_dominionGen.md)
+  drive in, capture the Sappers and deliver them to a Compound, where they are freed in
+  phase 3.
+- **Loss exception.** Losing every unit to capture is an elimination (`MISSION`'s implicit
+  wipe-out loss doesn't count captives:
+  [objectives-and-completion](../../systems/scenario-scripting/objectives-and-completion.md)
+  §The MISSION loss is implicit). Phase 1 needs an exception (§Engine work).
+- Once the Sappers are delivered, the 3 stealthed Irregulars spawn for phase 2.
+
+### Phase 2: Stealth
+
+- At the start of the phase, a note explains stealth (§Teaches).
+- The player has 3 [Irregulars](../../factions/anarchical/units/an_bioLight_builder.md) under
+  [Informant](../../factions/anarchical/sanctions/informant.md)'s stealth.
+- 2 patrols of 3 Recruits each move through the area.
+- Objective: destroy 3 [SAM sites](../../factions/colonial/structures/cl_defense_antiAircraft.md),
+  spread apart, by setting off the explosives beside each one.
+- Then 2 [Ravens](../../factions/anarchical/units/an_aircraftLight_transport.md) fly in, each
+  dropping 4 Irregulars and 1 [Warlord](../../factions/anarchical/units/an_bioMedium_dominionGen.md),
+  near the player.
+
+### Phase 3: Rescue
+
+- Objective: destroy the Compound holding the Sappers, directly (no hazards). Destroying it
+  frees them.
+- No objective for the patrols. They defend the Compound because they're near it, so the
+  player fights them on the way.
+
+### Phase 4: Relief and repair
+
+- Objective: bring the army, with the Sappers, to the allied base, which Recruits and
+  [Matildas](../../factions/colonial/units/cl_mechMedium_antiMech.md) are attacking. They target
+  the Stronghold, slowly enough that the player has ample time to fly there.
+- Failure: the Stronghold is destroyed.
+- Once the attackers are dead, the repair note (with stagger) is raised, and an objective:
+  repair the Stronghold. When it's repaired, the base passes to the player.
+
+### Phase 5: The dominion race
+
+- Notes: the command-centre rule, then Anarchist and Colonial dominion generation.
+- Objectives:
+  - **Destroy the enemy's Supply Beacons** (n/3). The
+    [Supply Beacon](../../factions/colonial/structures/cl_support2.md) casts the Drop sanction.
+  - **Don't let the enemy gather 1,000 dominion** (the number is to be revisited). It counts
+    everything the enemy has gathered, not what it holds, and the label shows the running
+    total (§Engine work).
+- The enemy gathers dominion and attacks the player. Some of its waves come from the
+  [Drop](../../factions/colonial/sanctions/drop.md) sanction, which it buys as its dominion
+  allows.
+- When the player has enough dominion for the cheapest of its four sanctions, the sanction
+  note is raised.
 
 ## Objectives
 
-One strict `ObjectiveChain` that reads the beats below. A beat finished early ticks its
-objective off when it is shown.
+Phases 1–4 run as one strict `ObjectiveChain`. The two phase-5 objectives are shown together.
 
-1. **Hold the base through the first raids** while banking dominion.
-2. **Buy [Informant](../../factions/anarchical/sanctions/informant.md).**
-3. **Destroy the strike targets without being detected.** Sub-steps, one per target. The
-   targets are marked and revealed. The route past the Watch Towers' detection is unmarked:
-   finding it is the objective.
-4. **Buy [Mortar Strike](../../factions/anarchical/sanctions/mortar.md) and destroy the final
-   objective with it.**
+1. Destroy the Barracks and the Sky Port (2 + 1).
+2. Destroy the SAM sites (n/3).
+3. Free the Sappers.
+4. Relieve the allied base.
+5. Repair the Stronghold.
+6. Destroy the Supply Beacons (n/3).
+7. FAILURE: the enemy gathers 1,000 dominion.
 
-Failure conditions (proposed, Q1): **the Stronghold must survive** (it casts Informant), **at
-least one Distress Signal must survive** (it casts Mortar Strike), and **at least one Warlord
-must survive** (without one no dominion is banked). A sheltering Warlord counts.
+Failures: the Stronghold destroyed in phase 4; the dominion total in phase 5; and the implicit
+wipe-out loss, except during phase 1.
 
-**What the player is shown.** Marked: the raiders while a raid is on; the Sappers' arrival
-point; the strike targets; the final objective. Reveals: each strike target while objective 3 is
-current, and the final objective once Mortar Strike is bought. None for the stealth route.
+## Help notes
 
-**Autosaves** (proposed): when the first raids are held, when Informant is bought, and before
-the final strike.
-
-## Teaching beats
-
-- **Introduce:**
-  - Dominion ticks up while infantry stand near a Warlord. Hovering the Retinue card shows its reach.
-  - The first raid is a single Stock Truck that captures a lone Irregular. Then a Sloop drives at a clump.
-  - Spreading out saves the infantry. The Toxin Tractor runs down an exposed Colonial squad, which shows the player crushing too.
-- **Develop:**
-  - Sappers arrive.
-    - The player plants a charge on a Colonial vehicle or structure and detonates it, which introduces abilities, charges and cooldowns on a single unit.
-    - The Sapper can't plant again until its charge goes off, which teaches that a charge can be held.
-  - Buy Informant. The ordnance's charge and cooldown show on the Stronghold.
-  - Stealthed Irregulars slip past patrols to make the critical strikes.
-  - A Watch Tower reveals any unit that strays into its detection range, so routes matter.
-- **Twist:** the route to the strike targets runs past the Watch Towers' detection, and only
-  one way through keeps the stealthed units hidden. Garrison clearing, the earlier twist, moved
-  to mission 3 (Alex, 2026-10-27).
-- **Conclude:**
-  - Buy Mortar Strike and call it in on the final objective.
-  - The shells arrive from the map edge nearest the Distress Signal that called them, so the caster's position matters.
-
-Help notes: one topic each, raised by the trigger named, teaching what the next objective
-needs. "New" notes are to be written for the How to Play library, since the main campaigns
-will need them too.
-
-| Introduced by | Notes, in order |
+| Raised by | Notes |
 |---|---|
-| Mission start | Dominion (new, Retinue); Selecting a group (reused) |
-| First Stock Truck sighted | Captured units (new: the Stock Truck, the prison, freeing captives) |
-| Sloop sighted | Crushing (new) |
-| Toxin Tractor's first crush, or a beat after the Sloop raid | Crushing with your own vehicles (new, or folded into Crushing) |
-| Objective 1 done | Sanctions and ordnances (new) |
-| Sappers arrive | Abilities (new: arm, target, charge, cooldown); Holding a charge (new); Stagger (new: a hit stops a channel, a build or a heal) |
-| Objective 2 done (Informant bought) | Stealth and detection (new) |
-| First Watch Tower sighted | the Watch Tower warning, already shown in mission 1 (Q4) |
-| Objective 3 done | Ordnance delivery: where the shells come from (new) |
+| Mission start | Abilities (new: Plant, Detonate, charge, cooldown) |
+| The Sappers all captured | Crushing (new) |
+| Phase 2 start | Stealth and detection (new) |
+| The attackers at the allied base dead | Repair (new); Stagger (new) |
+| The base passes to the player | Dominion and the command centre (new); Anarchist dominion (new); Colonial dominion (new) |
+| The player can afford a sanction | Sanctions (new) |
+
+## Rules this mission depends on
+
+- **Dominion needs a command centre of the generating piece's faction** (Alex, 2026-10-27). A
+  Warlord generates dominion only while its commander owns an Anarchical command centre. A
+  commander that owns pieces of another faction needs that faction's command centre for them.
+  Game-wide, not mission-specific. TODO: scope it as a system change; refactoring mission 1
+  for it is deferred.
+- **The Distress Signal casts Mortar Strike and Ambush from one pool** (120 s), and the
+  Hideout is removed (Alex, 2026-10-27). So the player meets two shared pools here: the
+  Stronghold's (Dignify, Informant) and the Distress Signal's.
+- **Irregulars can't repair, game-wide** (Alex, 2026-10-27; `repairs: false` in their spec).
+
+## Engine work
+
+- **Scenario restrictions:** training at a structure, building by a unit type, and the
+  sanction grid offered. Scoped separately; mission 1 needs it too (Irregulars can't build).
+- **A rule-based sanction unlock script** for a scripted enemy: the Colonials buy only Drop 1,
+  2 and 3, which the grid's rule (2 unlocks in a tier to open the next) forbids. Authored per
+  mission, and likely reusable.
+- **A phase-1 exception to the wipe-out loss**, while the Sappers are captives.
+- **An objective label that shows a live count** (the enemy's dominion gathered). TODO: check
+  whether objective labels support this today.
+- **The dominion command-centre rule** (§Rules).
 
 ## Constraints
 
-- No production or construction. The base is defunct.
-- Only two sanctions in the grid.
-- No upgrades: the player hasn't the resources to build the structures that research them
-  (Alex, 2026-10-27).
-- No aircraft on either side, and no spotting-dependent pieces.
-- No mechanic before it is explained. Check every placed and spawned piece against this,
-  including the reinforcements: the Toxin Tractor's crush comes after the Crushing note.
+- No production: the Stronghold can't train, and Irregulars can't build.
+- No upgrades: the player can't afford the structures that research them.
+- No mechanic before it is explained, checked against every placed and spawned piece. The
+  Matildas at the allied base come after the crushing note.
 
 ## Scenario file
 
-TODO — link once it exists under `scenes/scenarios/prologue/`. Draw the topology first and
-import it through the map generator's image mode ([mission-design](../mission-design.md)
-§Building the map).
+TODO — link once it exists under `scenes/scenarios/prologue/`.
 
 ## Open questions
 
-**Q1. Failure conditions.** Mission 1 fails when the player loses every unit, or every Warlord
-once captives are free. Should mission 2 fail when the Stronghold, the last Distress Signal or
-the last Warlord is lost, since each makes it unwinnable?
-*Leaning:* all three, each as a `FAILURE` row.
+**Q1. "Crushed" or "captured" Sappers.** The crushing note comes "after the Sappers are all
+crushed", but phase 1 has the Stock Trucks capture them. Is a Stock Truck's capture the
+crushing the note teaches (it drives over infantry and takes them rather than killing them),
+or should another vehicle crush something first?
 
-**Q2. Winning captives back.** Should a captured infantryman go to a Compound the player can
-blow open, as in mission 1, or just be lost?
-*Why it matters:* reusing the prison gives the Stock Truck a stake the player already
-understands, and a reason to counterattack. It also gives the player a way to undo the raid.
-*Leaning:* a prison, but only for the first capture, as a callback.
+**Q2. The Ravens after phase 2.** The player flies the army to the allied base in phase 4. Do
+the 2 Ravens become the player's once they drop their load? With 3 + 8 Irregulars, 2 Warlords
+and 3 Sappers the army is exactly 16, the seats of two Ravens, so any loss leaves room.
 
-**Q3. A guide for the strikes.** Mission 1's guide squad made each next goal legible. The
-strikes leave the base for unknown ground. Should a stealthed ally (an informant) lead the
-first strike, or are the marks and reveals enough?
-*Leaning:* marks and reveals. Route-finding is part of the stealth lesson.
+**Q3. How the enemy gathers dominion.** Is its gathering scripted (authored Stock Truck runs
+to the contested shelters), or are its bot jobs for capture switched on for phase 5?
 
-**Q4. The Watch Tower warning is a mission-1-only note** (`scenes/dialogs/prologue_m1/`). It is
-needed here too, and in mission 3.
-1. Move it into the How to Play library.
-2. Keep a copy per mission.
+**Q4. Shared pools.** Mission 2 now gives the player two shared pools (the Stronghold's and the
+Distress Signal's). Move the shared-pool note here from mission 3?
 
-*Leaning:* 1. A note two missions use isn't mission-specific.
-
-**Engine work (decided).** Two scenario features are needed before this mission can be built:
-a sanction-grid restriction per commander, and switching off production (or training at the
-Stronghold). Mission 3 needs the same family (a tech cap and excluded pieces). Both are to be
-built, scoped on their own, apart from the challenges' input conditions, which belong to a
-different system (Alex, 2026-10-27).
+**Q5. Ambush is now a Tier-1 sanction in practice.** Its caster, the Distress Signal, needs the
+Stockpile, while the Hideout needed only a Barracks. Fine for skirmish?

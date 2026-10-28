@@ -43,10 +43,13 @@ weapons:
   scavenged: true
   reach: ground_range_medium
   hits: [ground]
-builds: [nt_extractor, an_commandCenter, an_airField, an_infrastructure, an_barracks, an_warFactory, an_support1, an_support2, an_support3, an_tech1, an_tech2]
+builds: [nt_extractor, an_commandCenter, an_airField, an_infrastructure, an_barracks, an_warFactory, an_support2, an_support3, an_tech1, an_tech2]
+repairs: false
 ui: {grid: [1, 1], factions: [anarchists]}
 ---
 # Notes
+- **Irregulars never repair** (Alex, 2026-10-27): `repairs: false` makes that hold whatever the
+  scene carries.
 - **A 3-round rifle burst**, 0.1s apart, then 0.8s to reload: the same 15 DPS as a single shot
   every third of a second, delivered in bursts with a short window between them — the canonical
   early-game rifle. See [weapon-cadence](../../../systems/combat/weapon-cadence.md) §Framing:

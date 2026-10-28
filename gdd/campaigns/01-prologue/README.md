@@ -13,7 +13,7 @@ The prologue is kept small on purpose so new players aren't overwhelmed. Skills 
 | # | Doc | Teaches | Story hook (draft) |
 | --- | --- | --- | --- |
 | 1 | [Pervasive mechanics](01-pervasive-mechanics.md) | Unit control, garrisoning, the counter system, defection, shooting aircraft, air transport | In the middle of a Colonial siege on allied Anarchists, a lone Warlord frees captives, takes Colonial Ravens, flies past the SAM screen, cripples the besiegers' base and destroys its Citadel |
-| 2 | [Game-specific mechanics](02-game-specific-mechanics.md) | Unit abilities (via the Sapper), crushing, stealth, dominion generation, ordnances, garrison clearing | A defunct base with Distress Signals holds out while it banks dominion for Informant and Mortar Strike |
+| 2 | [Game-specific mechanics](02-game-specific-mechanics.md) | Unit abilities (via the Sapper), capture and crushing, stealth, repair and stagger, dominion generation, the sanction system | Sappers lost and freed, an allied base relieved and taken over, then a race against the Colonials for dominion (narrative to be reframed) |
 | 3 | [Macroeconomics](03-macroeconomics.md) | Structure and unit production, resource collection, the tech tree, ground transports | Destroy a Colonial base; each part of it calls for a different tool (story hook open, see its doc) |
 
 ## Narrative arc
@@ -72,11 +72,11 @@ are from the [design framework](../../design-framework/README.md).
 | Air transport | Generic | 1 | 3 | built |
 | Defection, cutting the enemy's infrastructure | Generic | 1 | 3 | taught by the defective badge, now shown to everyone |
 | Volatile pieces (chain explosions) | Shared | 1 | 2 (Q2 prisons) | the hazards are marked as objective 2 targets (TODO: scene) |
-| Crushing | Generic | 2 | 3 | |
-| Unit abilities: arm, target, charge, cooldown (Sapper) | Generic | 2 | 3 | |
-| Dominion: Retinue | Slot | 2 | 3 (required) | |
-| Sanctions and ordnances (Informant, Mortar Strike) | Generic | 2 | 3 | |
-| Stealth and detection | Slot | 2 | 3? | the Watch Tower's detection |
+| Capture (Stock Truck) and crushing | Generic | 2 | 3 | the note follows the Sappers' capture (mission 2 Q1) |
+| Unit abilities: arm, target, charge, cooldown (Sapper) | Generic | 2, phase 1 | 3 | |
+| Dominion: needs your faction's command centre; Retinue, and the Colonial route | Slot | 2, phase 5 | 3 (required) | the command-centre rule is a game-wide change (Alex, 2026-10-27) |
+| The sanction system | Generic | 2, phase 5 | 3 | |
+| Stealth and detection; BIO units see stealth close up | Slot | 2, phase 2 | 3? | |
 | Garrison clearing (Toxin Tractor) | Slot | 3 | — | moved from 2 |
 | Structure production, the Safehouse | Generic | 3 | — | |
 | Infrastructure, from the player's side | Generic | 3 | — | proposed 2026-10-27 |
@@ -84,9 +84,9 @@ are from the [design framework](../../design-framework/README.md).
 | Extractors and lithium ponds | Generic | 3 | — | |
 | Tech tree and prerequisites | Generic | 3 | — | |
 | Ground transports | Generic | 3 | — | |
-| Stagger: a hit blocks a channel, building and healing | Generic | 2, with Plant | 3 | |
-| Shared ability pools | Generic | 3, the Stronghold (Dignify, Informant) | — | |
-| Repair (Sapper) | Generic | 3 | — | |
+| Stagger: a hit stops a repair, a build, a Plant or a heal | Generic | 2, with repair | 3 | |
+| Shared ability pools | Generic | 3, the Stronghold (Dignify, Informant) | — | mission 2 now has two shared pools; move the note there? (mission 2 Q4) |
+| Repair (Sapper; Irregulars never repair) | Generic | 2, phase 4 | 3 | |
 | Healing | Generic | none | — | Anarchist healing deferred |
 | Veterancy | Generic | none | — | deferred |
 | MLRS and spotting | Shared | none (shown in 1, the ally's) | — | challenge C2 |
@@ -99,12 +99,13 @@ are from the [design framework](../../design-framework/README.md).
 
 | Colonial mechanic | Met in | Notes |
 |---|---|---|
-| Watch Towers (hit ground only, detect) | 1 (the warning), 2 (detection) | |
-| SAM sites (hit air only) | 1, 3 | |
-| Compounds as infrastructure, and as prisons | 1 | prisons shown, capture not explained until 2 |
-| Stock Truck capture | 2 | |
-| Vehicles that crush (Sloop, Matilda) | 2, 3 | |
+| Watch Towers (hit ground only, detect) | 1 (the warning), 2 (phase 1's boundary) | |
+| SAM sites (hit air only) | 1, 2, 3 | |
+| Compounds as infrastructure, and as prisons | 1, 2 | |
+| Stock Truck capture | 2, phase 1 | |
+| Vehicles that crush (Matilda; the Sloop in 3) | 2, phase 4; 3 | |
 | "More Colonial technology" in mission 3 | 3 | not scoped yet (Alex, 2026-10-27) |
+| Colonial dominion and the Drop sanction | 2, phase 5 | the enemy buys Drop 1–3 by a mission script |
 | Bombard spotting, Freeze | none | the Colonial signatures; Bombards deferred to their own session |
 
 ### Decided (Alex, 2026-10-27)
@@ -112,9 +113,10 @@ are from the [design framework](../../design-framework/README.md).
 - Mission 1 marks the prison hazards as objective 2 targets, beside the Compounds. Defection is
   taught by its visual indicator, with no note.
 - Garrison clearing moves from mission 2 to mission 3.
-- Stagger is taught in mission 2 with Plant. The note also covers building and healing.
-- Shared ability pools, healing and repair are taught in mission 3, the pools through the
-  player's Stronghold. Veterancy is deferred.
+- Stagger is taught in mission 2 (with repair, since the 2026-10-27 redesign). The note also
+  covers building, Plant and healing.
+- Shared ability pools are taught in mission 3, through the player's Stronghold. Repair moved
+  to mission 2 with its redesign. Veterancy is deferred.
 - Mission 3's extra Colonial technology is not scoped yet.
 
 ### Resolved (Alex, 2026-10-27)
