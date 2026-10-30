@@ -75,6 +75,12 @@ var _wall_start_usec: int = 0
 var _errors: Logger = MatchErrorLog.new()
 ## The generated map's seed when the config asked for one, -1 for the scenario's own map.
 var _played_map_seed: int = -1
+## `replay_path` in the config: where the match's recording is written when it ends, as a KEPT
+## replay (ReplayRecorder.write_kept) the start screen lists. A generated map is carried as a
+## skirmish recipe in the header (SkirmishLauncher), which is what rebuilds it on playback, so a
+## config the recipe cannot express — swapped starts, a symmetric map, a per-slot override —
+## is refused up front rather than recorded as a replay that drifts. Empty: no recording.
+var _replay_path: String = ""
 #endregion
 
 ## The project setting that puts RVO avoidance on worker threads. Forced OFF for a harness
@@ -109,40 +115,27 @@ func _run() -> void:
 		_fail("could not read config: %s" % _config_path)
 		return
 
-	var scenario_path: String = _config.get("scenario", DEFAULT_SCENARIO)
-	var packed := load(scenario_path) as PackedScene
-	if packed == null:
-		_fail("could not load scenario: %s" % scenario_path)
-		return
-	_scenario = packed.instantiate() as Scenario
-	if _scenario == null:
-		_fail("scene root is not a Scenario: %s" % scenario_path)
-		return
-
-	# BEFORE the node enters the tree: Scenario._ready seeds the simulation from rng_seed and
-	# builds one commander per slot, so both have to be settled first.
-	_scenario.rng_seed = int(_config.get("seed", 0))
-	var slot_error: String = _configure_slots()
-	if slot_error != "":
-		_fail(slot_error)
-		return
-	var map_error: String = _apply_generated_map()
-	if map_error != "":
-		_fail(map_error)
-		return
-	var swap_error: String = _apply_start_point_swap()
-	if swap_error != "":
-		_fail(swap_error)
-		return
+	var playback_path: String = str(_config.get("replay_to_play", ""))
+	if playback_path != "":
+		var playback_error: String = _prepare_playback(playback_path)
+		if playback_error != "":
+			_fail(playback_error)
+			return
+	else:
+		var match_error: String = _prepare_match()
+		if match_error != "":
+			_fail(match_error)
+			return
 
 	add_child(_scenario)
-	# The brains exist now (Scenario._ready attaches one per Bot) and have not thought yet —
-	# BotBrain builds its managers on the first think — so this is the moment to hand each one
-	# its parameters.
-	var inject_error: String = _inject_configs()
-	if inject_error != "":
-		_fail(inject_error)
-		return
+	if playback_path == "":
+		# The brains exist now (Scenario._ready attaches one per Bot) and have not thought yet —
+		# BotBrain builds its managers on the first think — so this is the moment to hand each
+		# one its parameters. A playback's bots re-derive theirs from the recording's seed.
+		var inject_error: String = _inject_configs()
+		if inject_error != "":
+			_fail(inject_error)
+			return
 	_strip_spectator_hud()
 
 	_deployed.resize(_scenario.player_slots.size())
@@ -151,6 +144,82 @@ func _run() -> void:
 	_deployed_tick.fill(-1)
 
 	await _run_match()
+
+
+## The scenario the config describes, built and not yet in the tree, or the reason it could not
+## be. BEFORE the node enters the tree: Scenario._ready seeds the simulation from rng_seed and
+## builds one commander per slot, so both have to be settled first.
+func _prepare_match() -> String:
+	var scenario_path: String = _config.get("scenario", DEFAULT_SCENARIO)
+	var packed := load(scenario_path) as PackedScene
+	if packed == null:
+		return "could not load scenario: %s" % scenario_path
+	_scenario = packed.instantiate() as Scenario
+	if _scenario == null:
+		return "scene root is not a Scenario: %s" % scenario_path
+	_scenario.rng_seed = int(_config.get("seed", 0))
+	var slot_error: String = _configure_slots()
+	if slot_error != "":
+		return slot_error
+	var map_error: String = _apply_generated_map()
+	if map_error != "":
+		return map_error
+	var swap_error: String = _apply_start_point_swap()
+	if swap_error != "":
+		return swap_error
+	return _prepare_recording()
+
+
+## `replay_to_play` in the config: play the recording at `a_path` back instead of a match, as
+## the start screen would (ReplayLibrary.prepare_playback), so the result reports the first tick
+## whose digest differed from the recording's — the harness's check that a recording still
+## reproduces its match. A playback takes no slot configuration: its bots are the recording's.
+func _prepare_playback(a_path: String) -> String:
+	var built: Dictionary = ReplayLibrary.prepare_playback(a_path)
+	if built.has("refusal"):
+		return "replay_to_play: %s" % built["refusal"]
+	_scenario = built["scenario"] as Scenario
+	_played_map_seed = int(_scenario.skirmish_recipe.get("map_seed", -1))
+	return ""
+
+
+## Arm the recording the config asks for (`replay_path`): a generated map goes into the header
+## as the skirmish recipe that regenerates it. Nothing to arm without the key; an authored map is
+## rebuilt from the header's scene path and needs no recipe.
+func _prepare_recording() -> String:
+	_replay_path = str(_config.get("replay_path", ""))
+	if _replay_path == "":
+		return ""
+	if bool(_config.get("swap_start_points", false)) or bool(_config.get("map_symmetric", false)):
+		return "replay_path: a skirmish recipe carries neither swapped starts nor a symmetric map"
+	for wanted: Variant in _config.get("slots", []):
+		for key: String in [
+			"config", "combat_model", "starting_energy", "starting_dominion", "disabled_jobs"
+		]:
+			if (wanted as Dictionary).has(key):
+				return "replay_path: a skirmish recipe cannot carry a slot's %s" % key
+	if _played_map_seed < 0:
+		return ""
+	var players: Array = []
+	for slot: PlayerSlot in _scenario.player_slots:
+		(
+			players
+			. append(
+				{
+					"faction": slot.faction.resource_path,
+					"team": slot.alliance,
+					"is_bot": true,
+					"difficulty": int(slot.difficulty),
+				}
+			)
+		)
+	_scenario.skirmish_recipe = {
+		"version": SkirmishLauncher.RECIPE_VERSION,
+		"players": players,
+		"map_seed": _played_map_seed,
+		"rng_seed": _scenario.rng_seed,
+	}
+	return ""
 
 
 #region Configuration
@@ -384,6 +453,8 @@ func _run_match() -> void:
 	)
 	var sample_every_ticks: int = maxi(1, TimeUtils.ticks_from_seconds(sample_interval))
 	var max_ticks: int = TimeUtils.ticks_from_seconds(max_sim_seconds)
+	if _scenario.replay_to_play != null:
+		max_ticks = mini(max_ticks, _scenario.replay_to_play.length_ticks())
 
 	var outcome: String = "stalemate"
 	var winner: int = -1
@@ -489,7 +560,7 @@ func _sample(a_tick: int) -> Dictionary:
 		slot["jobs"] = _job_totals(_brain_for_slot(i))
 		_note_instances(i, _scenario.player_slots[i].commander)
 		slots.append(slot)
-	return {
+	var sample: Dictionary = {
 		"tick": a_tick,
 		"simulated_seconds": TimeUtils.seconds_from_ticks(a_tick),
 		# Wall time so far, so two samples give the wall cost per tick of the window between.
@@ -497,6 +568,178 @@ func _sample(a_tick: int) -> Dictionary:
 		"digest": SimulationDigest.of(_scenario),
 		"slots": slots,
 	}
+	if bool(_config.get("nav_probe", false)) and slots.size() >= 2:
+		sample["nav"] = _nav_probe()
+	return sample
+
+
+## THE NAVIGATION PROBE (`nav_probe: true`): can the first two slots' homes reach each other
+## at all — the SMALL-class path on every navmesh layer, and a flood fill over the terrain
+## grid's passable cells, which says whether a failed path is the map's (no passable route)
+## or the mesh's (a route the cells allow that the mesh does not carry).
+func _nav_probe() -> Dictionary:
+	var brains: Array = [_brain_for_slot(0), _brain_for_slot(1)]
+	for brain: BotBrain in brains:
+		if brain == null or brain.bot == null or brain.bot.map == null:
+			return {}
+	var map: Map = (brains[0] as BotBrain).bot.map
+	var from: Vector3 = (brains[0] as BotBrain).bot.home_centroid()
+	var to: Vector3 = (brains[1] as BotBrain).bot.home_centroid()
+	if from == Vector3.ZERO or to == Vector3.ZERO or map.nav_region == null:
+		return {}
+	var nav_map: RID = map.nav_region.get_navigation_map()
+	var layers: Dictionary = {}
+	for layer: int in [1, 2, 4, 1 << 30]:
+		var path: PackedVector3Array = NavigationServer3D.map_get_path(
+			nav_map, from, to, true, layer
+		)
+		var gap: float = -1.0
+		if not path.is_empty():
+			gap = VU.in_xz(path[path.size() - 1]).distance_to(VU.in_xz(to))
+		layers[str(layer)] = {"points": path.size(), "end_gap": snappedf(gap, 0.1)}
+	# The same query with the polygon budget lifted: Godot's A* stops after
+	# path_search_max_polygons (4096 by default) and returns the path to the nearest polygon it
+	# reached, which on a one-quad-per-cell mesh is a partial path for a long walk.
+	var params := NavigationPathQueryParameters3D.new()
+	params.map = nav_map
+	params.start_position = from
+	params.target_position = to
+	params.path_search_max_polygons = 0
+	var result := NavigationPathQueryResult3D.new()
+	NavigationServer3D.query_path(params, result)
+	var unlimited: PackedVector3Array = result.path
+	layers["unlimited"] = {
+		"points": unlimited.size(),
+		"end_gap":
+		(
+			snappedf(VU.in_xz(unlimited[unlimited.size() - 1]).distance_to(VU.in_xz(to)), 0.1)
+			if not unlimited.is_empty()
+			else -1.0
+		),
+	}
+	return {
+		"from": _xz(from),
+		"to": _xz(to),
+		"layers": layers,
+		"cells_connect": _cells_connect(map, from, to),
+		"broken_links": _broken_links(map, nav_map, from, to),
+	}
+
+
+## Walk the cell route the flood fill found and test the navmesh between each consecutive pair
+## of cell centres: a pair the cells join and the mesh does not is where the mesh is cut.
+static func _broken_links(a_map: Map, a_nav_map: RID, a_from: Vector3, a_to: Vector3) -> Array:
+	var route: Array = _cell_route(a_map, a_from, a_to)
+	var broken: Array = []
+	for i: int in range(route.size() - 1):
+		var a: Vector2i = route[i]
+		var b: Vector2i = route[i + 1]
+		var wa: Vector3 = a_map.grid_to_world(a)
+		var wb: Vector3 = a_map.grid_to_world(b)
+		var path: PackedVector3Array = NavigationServer3D.map_get_path(a_nav_map, wa, wb, true)
+		var gap: float = INF
+		if not path.is_empty():
+			gap = VU.in_xz(path[path.size() - 1]).distance_to(VU.in_xz(wb))
+		if gap > 0.6:
+			(
+				broken
+				. append(
+					{
+						"a": [a.x, a.y],
+						"b": [b.x, b.y],
+						"a_xz": _xz(wa),
+						"b_xz": _xz(wb),
+						"gap": snappedf(gap, 0.1) if gap != INF else -1.0,
+						"h_a": snappedf(a_map.terrain_height_at(VU.in_xz(wa)), 0.01),
+						"h_b": snappedf(a_map.terrain_height_at(VU.in_xz(wb)), 0.01),
+						"a_passable": a_map.terrain_grid.is_passable(a),
+						"b_passable": a_map.terrain_grid.is_passable(b),
+						"chunk_a":
+						[a.x / NavManager.CHUNK_SIZE_CELLS, a.y / NavManager.CHUNK_SIZE_CELLS],
+						"chunk_b":
+						[b.x / NavManager.CHUNK_SIZE_CELLS, b.y / NavManager.CHUNK_SIZE_CELLS],
+					}
+				)
+			)
+			if broken.size() >= 6:
+				break
+	return broken
+
+
+## The 4-connected passable cell route from `a_from` to `a_to` the flood fill finds, or [].
+static func _cell_route(a_map: Map, a_from: Vector3, a_to: Vector3) -> Array:
+	var grid: TerrainGrid = a_map.terrain_grid
+	var start: Variant = _nearest_passable(grid, a_map.world_to_grid(VU.in_xz(a_from)))
+	var goal: Variant = _nearest_passable(grid, a_map.world_to_grid(VU.in_xz(a_to)))
+	if start == null or goal == null:
+		return []
+	var parent: Dictionary = {start: null}
+	var queue: Array = [start]
+	var head: int = 0
+	while head < queue.size():
+		var cell: Vector2i = queue[head]
+		head += 1
+		if cell == goal:
+			break
+		for step: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var next: Vector2i = cell + step
+			if parent.has(next) or not grid.is_passable(next):
+				continue
+			parent[next] = cell
+			queue.append(next)
+	if not parent.has(goal):
+		return []
+	var route: Array = []
+	var walk: Variant = goal
+	while walk != null:
+		route.push_front(walk)
+		walk = parent[walk]
+	return route
+
+
+## Breadth-first over 4-connected passable cells from the cell nearest `a_from` to the one
+## nearest `a_to` (each snapped to its nearest passable cell within a few rings).
+static func _cells_connect(a_map: Map, a_from: Vector3, a_to: Vector3) -> Dictionary:
+	var grid: TerrainGrid = a_map.terrain_grid
+	var start: Variant = _nearest_passable(grid, a_map.world_to_grid(VU.in_xz(a_from)))
+	var goal: Variant = _nearest_passable(grid, a_map.world_to_grid(VU.in_xz(a_to)))
+	if start == null or goal == null:
+		return {"connected": false, "reason": "no passable cell near an end"}
+	var seen: Dictionary = {start: true}
+	var queue: Array = [start]
+	var head: int = 0
+	while head < queue.size():
+		var cell: Vector2i = queue[head]
+		head += 1
+		if cell == goal:
+			return {
+				"connected": true,
+				"visited": seen.size(),
+				"start": [start.x, start.y],
+				"goal": [goal.x, goal.y]
+			}
+		for step: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var next: Vector2i = cell + step
+			if seen.has(next) or not grid.is_passable(next):
+				continue
+			seen[next] = true
+			queue.append(next)
+	return {
+		"connected": false,
+		"visited": seen.size(),
+		"start": [start.x, start.y],
+		"goal": [goal.x, goal.y]
+	}
+
+
+static func _nearest_passable(a_grid: TerrainGrid, a_cell: Vector2i) -> Variant:
+	for ring: int in 8:
+		for dx: int in range(-ring, ring + 1):
+			for dz: int in range(-ring, ring + 1):
+				var cell: Vector2i = a_cell + Vector2i(dx, dz)
+				if a_grid.is_passable(cell):
+					return cell
+	return null
 
 
 func _note_instances(a_slot: int, a_commander: Commander) -> void:
@@ -626,7 +869,7 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		bot.nearest_believed_enemy_structure_position() != null
 		or bot.nearest_believed_enemy_unit_position(bot.base_centroid()) != null
 	)
-	return {
+	var sample: Dictionary = {
 		"posture":
 		BotMilitary.Posture.keys()[military.current_posture()] if military != null else "",
 		"has_attack_objective": has_target,
@@ -660,7 +903,167 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		),
 		"wave_units": military.wave_size() if military != null else 0,
 		"reserve_units": military.reserve_size() if military != null else 0,
+		# The attention throttle: orders in hand (negative in debt, null unlimited) and the
+		# actions issued so far — their slope is the bot's realised orders per second.
+		"attention_balance":
+		null if a_brain.attention.is_unlimited() else a_brain.attention.balance(),
+		"actions_issued":
+		a_brain.get_actuator().actions_issued if a_brain.get_actuator() != null else 0,
+		# Where the attention went: orders issued so far, by job.
+		"attention_spent_by_job": a_brain.attention_spent_by_job.duplicate(),
+		# Why a producer stands idle with energy banked: how many producers are idle, what the
+		# savings goal is holding, and what each producible type's unmet need is.
+		"producers": bot.get_production_structures().size(),
+		"idle_producers": bot.get_idle_production_structures().size(),
+		"savings_goal": str(bot.savings.goal()),
+		"savings_claim": bot.savings.claim_against(&""),
+		"producible_needs": _producible_needs(bot),
 	}
+	if bool(_config.get("sample_detail", false)):
+		sample["detail"] = _detail_sample(a_brain)
+	return sample
+
+
+## THE DIAGNOSTIC DETAIL (`sample_detail: true`), off by default because it is large: every
+## believed enemy structure with the verdict of each filter the attack objective applies to it,
+## the military's wave and abandonment state, the economy's construction jobs, spots and
+## savings proposals, and the scouts out. It is what a stalemate is read from when the summary
+## fields say only that the army stood at home (bot-engagement-fixes.md §An unanswerable threat).
+func _detail_sample(a_brain: BotBrain) -> Dictionary:
+	var bot: Bot = a_brain.bot
+	var military: BotMilitary = a_brain._military
+	var economy: BotEconomy = a_brain.get_economy()
+	var scout: BotScout = a_brain.get_scout()
+	var beliefs: Array = []
+	if bot.blackboard != null and military != null:
+		var army: Array = military._combat_units(bot.get_units())
+		var origin: Vector3 = military._home_anchor_position()
+		for entry: CommanderBlackboard.Entry in bot.blackboard.believed_structures():
+			var remembered: Variant = entry.entity
+			(
+				beliefs
+				. append(
+					{
+						"type": str(entry.type),
+						"serial": entry.serial,
+						"at": _xz(entry.last_known_location),
+						"last_seen": entry.last_seen_time,
+						"in_view": bot.blackboard.is_in_view(entry.serial),
+						"alive":
+						is_instance_valid(remembered) and (remembered as Node).is_inside_tree(),
+						"can_damage": Bot.any_unit_can_damage(army, entry.entity),
+						"abandoned": military._is_abandoned(entry.last_known_location),
+						"reachable":
+						bot.is_reachable(
+							origin, entry.last_known_location, BotMilitary.REACH_TOLERANCE
+						),
+						"path": _path_detail(bot, origin, entry.last_known_location),
+					}
+				)
+			)
+	var units: Array = []
+	if bot.blackboard != null:
+		for entry: CommanderBlackboard.Entry in bot.blackboard.believed_units():
+			units.append({"type": str(entry.type), "at": _xz(entry.last_known_location)})
+	var detail: Dictionary = {"believed_structures": beliefs, "believed_units": units}
+	if military != null:
+		var state: Dictionary = military.debug_state()
+		var objective: Variant = state["objective_entity"]
+		var abandoned: Array = []
+		for entry: Dictionary in state["abandoned_objectives"]:
+			abandoned.append({"at": _xz(entry["position"]), "until": entry["until"]})
+		detail["military"] = {
+			"wave_active": state["wave_active"],
+			"wave_value": state["wave_value"],
+			"regroup_left": state["regroup_left"],
+			"on_objective": state["on_objective"],
+			"enemy_estimate": state["enemy_estimate"],
+			"objective_type": str((objective as Entity).id) if is_instance_valid(objective) else "",
+			"abandoned": abandoned,
+			"home": _xz(military._home_anchor_position()),
+		}
+	if economy != null:
+		var jobs: Array = []
+		for unit: Actor in bot.get_units():
+			if not BotEconomy._is_constructing(unit):
+				continue
+			var command: MoveCommand = unit.current_command()
+			var kind: String = ""
+			if command.message != null and command.message.tool != null:
+				kind = str(command.message.tool.type)
+			(
+				jobs
+				. append(
+					{
+						"builder": str(unit.id),
+						"type": kind,
+						"at": _xz(command.message.position) if command.message != null else [],
+						"since": economy._job_started.get(unit.identity_key(), -1.0),
+					}
+				)
+			)
+		var spots: Dictionary = economy.debug_spots()
+		detail["economy"] = {
+			"jobs": jobs,
+			"abandoned_spots": (spots["abandoned"] as Array).map(_xz),
+			"contested_spots": (spots["contested"] as Array).size(),
+			"proposals": bot.savings.proposals(),
+			"spot_search": str(economy._spot_search.get("type", "")),
+		}
+	if scout != null:
+		detail["scouts"] = (scout._scouts as Array).filter(is_instance_valid).map(
+			func(u: Actor) -> String: return str(u.id)
+		)
+	return detail
+
+
+static func _xz(a_position: Vector3) -> Array:
+	return [snappedf(a_position.x, 0.1), snappedf(a_position.z, 0.1)]
+
+
+## Why a belief is or is not reachable: the SMALL-class path from `a_from`, where it ends and how
+## far from the target that is, the closest navmesh point to the target, and the target's cell.
+static func _path_detail(a_bot: Bot, a_from: Vector3, a_to: Vector3) -> Dictionary:
+	if a_bot.map == null or a_bot.map.nav_region == null:
+		return {}
+	var nav_map: RID = a_bot.map.nav_region.get_navigation_map()
+	var path: PackedVector3Array = NavigationServer3D.map_get_path(nav_map, a_from, a_to, true)
+	var closest: Vector3 = NavigationServer3D.map_get_closest_point(nav_map, a_to)
+	var cell: Vector2i = a_bot.map.world_to_grid(VU.in_xz(a_to))
+	var grid: TerrainGrid = a_bot.map.terrain_grid
+	var out: Dictionary = {
+		"points": path.size(),
+		"closest_xz": _xz(closest),
+		"closest_gap": snappedf(VU.in_xz(closest).distance_to(VU.in_xz(a_to)), 0.1),
+		"cell_passable": grid.is_passable(cell),
+		"cell_blocked": grid.is_blocked(cell),
+		"from_height": snappedf(a_bot.map.terrain_height_at(VU.in_xz(a_from)), 0.1),
+		"to_height": snappedf(a_bot.map.terrain_height_at(VU.in_xz(a_to)), 0.1),
+	}
+	if not path.is_empty():
+		var last: Vector3 = path[path.size() - 1]
+		out["end_xz"] = _xz(last)
+		out["end_gap"] = snappedf(VU.in_xz(last).distance_to(VU.in_xz(a_to)), 0.1)
+		out["start_xz"] = _xz(path[0])
+		out["start_gap"] = snappedf(VU.in_xz(path[0]).distance_to(VU.in_xz(a_from)), 0.1)
+	return out
+
+
+## For every unit type any owned producer can train: the commander's unmet need for it, and
+## whether the bot considers it at all (Bot.may_consider_unit).
+func _producible_needs(a_bot: Bot) -> Dictionary:
+	var needs: Dictionary = {}
+	for s: Actor in a_bot.get_production_structures():
+		for t: StringName in s.production.producible_types:
+			if needs.has(t):
+				continue
+			var need: int = a_bot.get_unmet_need(t)
+			needs[str(t)] = (
+				TechnologySpec.UnmetNeed.keys()[need]
+				+ ("" if a_bot.may_consider_unit(t) else "/skipped")
+				+ ("" if a_bot.unit_can_attack(t) else "/unarmed")
+			)
+	return needs
 
 
 ## How many units `a_structures` hold between them (occupants of any garrison).
@@ -724,6 +1127,7 @@ func _emit(a_outcome: String, a_winner: int) -> void:
 	# The harness's verdict is the match's end (a no-op when the scenario already ended it).
 	_scenario.end_match(_scenario.player_slots[a_winner].commander.id if a_winner >= 0 else -1)
 	var event_log: String = _write_event_log()
+	var replay_written: String = _write_replay()
 	var result: Dictionary = {
 		"ok": true,
 		"config_path": _config_path,
@@ -749,8 +1153,25 @@ func _emit(a_outcome: String, a_winner: int) -> void:
 		"slots": _result_slots(),
 		"samples": _samples,
 		"event_log": event_log,
+		"replay_path": replay_written,
+		"replay_to_play": str(_config.get("replay_to_play", "")),
+		# In a playback: the first tick whose digest differed from the recording's, -1 for none.
+		"replay_drift_tick":
+		_scenario.recorder.first_drift_tick if _scenario.recorder != null else -1,
 	}
 	_write(result)
+
+
+## The recording, written as a kept replay at `replay_path` and returned as an absolute path;
+## "" when none was asked for or it could not be written. After end_match, so the file holds
+## the match's last tick.
+func _write_replay() -> String:
+	if _replay_path == "" or _scenario.recorder == null:
+		return ""
+	if _scenario.recorder.write_kept(_replay_path) != OK:
+		push_error("run_match: could not write the replay to %s" % _replay_path)
+		return ""
+	return ProjectSettings.globalize_path(_replay_path)
 
 
 ## Write the match's event log beside the result, as gzipped JSON lines (`<out>.events.jsonl.gz`),

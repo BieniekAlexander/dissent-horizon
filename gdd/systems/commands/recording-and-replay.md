@@ -100,6 +100,10 @@ T-037). One seed makes one match, tick for tick ([ai/selfplay-harness](../ai/sel
 - **The header's start point** per slot: `Scenario.slot_start_point` — the start point's name and
   XZ for a Skirmish, empty for a scenario that places its slots by authoring. Informational: a
   playback re-derives where each slot starts from the scene, as the match did.
+- **A self-play match records too**: `run_match`'s `replay_path` writes the recording as a kept
+  replay, with the generated map carried as a skirmish recipe in the header; `replay_to_play`
+  plays one back headlessly and reports its first drift tick
+  ([ai/selfplay-harness](../ai/selfplay-harness.md) §Input schema).
 - **The header's seat**, for a networked match only: `local_commander_id`, the commander the
   recording machine played. The simulation reads the local player, so a playback plays from the
   same seat ([netplay](netplay.md) §Rules).

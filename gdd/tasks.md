@@ -22,7 +22,7 @@ type: index
 >
 > **Detail lives at the right level.** A small or unscoped item carries its spec here. An item with real complexity is a few lines and a `→` link; its design, and the reasoning behind its questions, live in that note. While an item is `#wip` its notes may be as long as they need; when it is shelved or done, the history collapses to a few lines (or goes), because what was built is in the code and the notes.
 >
-> Next id: **T-130**
+> Next id: **T-132**
 
 # Tasks
 
@@ -115,6 +115,84 @@ The macro valuation (demand map → strength per energy → savings) is one addi
 > **Leaning:** 1 — it fixes the known blind spot at its cause, and the gate makes the regression visible.
 >
 > **Answer:** My only feedback here is that I will frequently be making changes to the roster, and I'm aware that changes to the pieces will impact the quality of the bot's evaluations. I think the simulations can represent safe expectations of the evaluations, and failing simulations implies that retraining is warranted.
+
+### T-131 · The difficulty ladder: each tier beats the one below in 80%+ of matches #effort/medium #needs-input #shelved
+Alex's goals per tier and the acceptance test are written at the link. Measure it: for each adjacent pair of tiers, pairs of Colonial-mirror matches on randomly generated maps with the start points exchanged, then move the tier table where a pair falls short — and record what moved and what it did.
+→ [ai/bot-roadmap](systems/ai/bot-roadmap.md) §Difficulty first
+
+> [!check] Status — 2026-10-30
+> **Built** (rule and every measurement in [ai/bot-roadmap](systems/ai/bot-roadmap.md) §Difficulty first): the execution ramp — `BotAttention` (`scripts/interface/commander/bot_attention.gd`, an orders-per-second budget every deciding job draws on, gated by `BotBrain._attentive`) and `CommanderBlackboard.perception_delay_seconds`; `BotDifficulty.for_tier` ramps only throttles (attention 0.25 / 0.5 / 0.6 / ∞, delay 6 / 3 / 2.5 / 0 s, temperature, periods, build and squad caps), disposition at defaults, spread 0.15; the disposition table is REJECTED. Two bugs the ladder found, both fixed: the start-point production stall ([ai/bot-economy-diagnosis](systems/ai/bot-economy-diagnosis.md) §What this does NOT settle) and attention STARVATION — the combat-cadence jobs took every refill and a throttled bot stopped training mid-match; the turn is now fair (`BotAttention.claim` queues a refused job, `BotBrain._attention_pending` keeps it due). `run_match` samples producers, savings, unmet needs and the per-job spend; `difficulty_ladder.py` passes a wall-clock cap under its kill and reports capped matches apart from stalemates.
+> **Measured** on the fixed bot, 30 a pair (`tools/selfplay/results/ladder/exec_h.md`, after the threat fix below): EASY<MEDIUM **97%** (28–1, 1 stalemate); MEDIUM<HARD **54%** of 26 (14–12, 4 stalemates, level by start 8–5 / 6–7); HARD<IMPOSSIBLE **70%** (21–9, none). Before the threat fix (`exec_g`) it was 97 / 57 / 72 with nine undecided in the middle: the fix resolved five of them, mostly for MEDIUM, and changed no other result but one map's pair. Before the starvation fix (`exec_e`) it was 92 / 68 / 80: that fix helped every throttled tier, so the ladder compressed, and the 0.5 / 0.6 / ∞ rungs do not separate on their own. Where a throttled bot's attention goes is the same in decided and undecided matches (opportunist 27–30%, military 26–31%, production 20–23%).
+> Tests: 4972 in 441 files, all green (sharded run); changed files gdlint/gdformat clean. Nothing committed.
+> **Also built 2026-10-30:** the unanswerable-threat fix (second question, resolved below) — a Clipper over a ground army no longer freezes construction, releases the bank or marches the army; the SAM is asked for. Suite 4988 in 441 files green; lint clean; the believes sim check fixed. Replays of the 7100 and 7108 stalemates are in the game's replay folder (`run_match` `replay_path`).
+> **Not done:** the two upper pairs are under the bar. The re-spacing question below is now premature: a live probe of 7100 (2026-10-30, after `exec_h`) found `Bot.is_reachable` ran Godot's path query on its default 4096-polygon budget, so every structure in the enemy's MAIN base read as unreachable for both bots all match — the army massed at home with nothing actionable. Fixed (`Bot.walk_path`, `tests/test_BotReachability.gd`; [ai/bot-engagement-fixes](systems/ai/bot-engagement-fixes.md) §The objective nobody could reach); 7100 then ends in a HARD win at 350 s. Built the same day on your four rulings (chat, 2026-10-30; same note §Built on Alex's four rulings): a scout FLOOR per tier (1/2/3/4/5 PASSIVE→IMPOSSIBLE, spare units only, never a needed builder), an inert purchase cut to the share of the believed army it can damage, and a marching wave that SWEEPS unseen ground when its objective evaporates instead of massing at home. Suite 5009 in 442 files green; lint clean on every changed file. The ladder is re-run on all of it as `exec_i`. The SAM the fix asks for is still almost never built in a match (6 across 180 seats): why the defence rung has no candidate, and why a chosen SAM is not placed, are a TODO in [ai/bot-engagement-fixes](systems/ai/bot-engagement-fixes.md) §An unanswerable threat, with the scouting prior, the wave relaunch, `safety()` and the valuation's layer. The opportunist's attention share is logged as a TODO, not touched.
+
+> [!question] Q — 2026-10-30
+> With the stall, the starvation and the unanswerable threat fixed, the middle and top pairs fail at thirty matches each (54% and 70% in `exec_h`; 57% and 72% before the threat fix), and the throttled tiers run flat against budgets 0.1 orders/s apart while IMPOSSIBLE realises 1.0–1.8. How should the rungs be re-spaced?
+> **Why it matters:** each candidate table is a ~70 min ladder run; the throttles are the only knobs a tier may move (your 2026-10-29 ruling), and `exec_f`'s "a slower MEDIUM stalemates more" was starvation, so it no longer constrains the low end.
+> **Options:**
+> 1. Attention alone: MEDIUM 0.4, HARD 0.8 orders/s, periods and delays as they are; re-run the three pairs at 30.
+> 2. Every throttle widened together: periods 1.5 / 1.0 / 0.5 s, delay 6 / 4 / 1.5 s, attention 0.25 / 0.4 / 0.8; re-run at 30.
+> 3. Leave the table until the four remaining middle-pair stalemates (7100, 7101, 7105, 7108, HARD at start A in each) are understood — the threat fix cut nine to four and the rest are still a HARD army massed at home with one belief, so no rate decides them.
+>
+> **Leaning:** 1 — one knob moved in one direction per tier is the measurement that says whether the attention rung separates at all; 2 moves three things and attributes nothing.
+>
+> **Answer:**
+
+> [!done] Q — resolved — 2026-10-30
+> The replay of map 7100 (`~/Library/Application Support/Godot/app_userdata/dissent-horizon/replays/`) diagnosed the undecided third of the middle pair: the bot never found the enemy base (two foot scouts, 30% coverage in ten minutes; each wave went at its one belief and walked home when it evaporated), and every threat sense treated five Clippers the ground army could not touch as a threat it was answering — construction frozen for nine minutes by `_site_is_contested`, savings released, the army marched under them, and no SAM because eighty Recruits counted as holding the base. Write-up and TODO: [ai/bot-engagement-fixes](systems/ai/bot-engagement-fixes.md) §An unanswerable threat. Where does the fix go?
+> **Why it matters:** it is one predicate (`Bot.unit_can_damage`) consulted at five more sites plus a scouting prior, and two simulation tests; but it changes how every tier fights, so the ladder has to be re-measured after it, and T-131's rung question is moot until then.
+> **Options:**
+> 1. Under T-131 now: apply the predicate at the five sites and the scout prior, add the two sims, re-run the ladder, then re-space the rungs from that.
+> 2. Its own task, `#scoped` from the note's TODO, done first; T-131 waits for it.
+> 3. Two tasks: the threat predicate (small, mechanical) and the scouting prior (a design change), T-131 waits for the first only.
+>
+> **Leaning:** 3 — the predicate is the bug you named and is a one-rule change; the scout prior changes what a bot knows and deserves its own measurement.
+>
+> **Answer:**
+> **Resolved:** answered in chat 2026-10-30 — fix it here. Built: `Bot.can_answer` and the answerable threat senses (`scripts/interface/commander/bot.gd` §Answerable threats) now drive the DEFEND posture and post, the savings hold, contested sites and the defence demand's own side; pinned by `tests/test_BotAnswerableThreat.gd`, the four sense tests, and `sims/bot/economy/ground_army_under_a_clipper` (SAM ordered at 4 s, no DEFEND, Clipper dead). Write-up and the remaining questions (scout prior, wave relaunch, `safety()`, the valuation's layer): [ai/bot-engagement-fixes](systems/ai/bot-engagement-fixes.md) §An unanswerable threat. Re-measured as `exec_h` (97 / 54 / 70): the fix resolved five of nine undecided middle matches and moved no pair; the re-spacing question above decides the next run.
+
+## Campaign
+
+### T-130 · Mission 1 per difficulty #effort/medium #needs-input
+Mission 1 plays the same at every difficulty today. Proposed: the scene stays MEDIUM, EASY adds reactive catch-up help (a replaced Warlord, drops on attrition or a stalled objective, crewed Ravens), HARD adds flat opposition (more Recruits and Clippers per beat, a base response to the landing). The beat table, the two authoring rules and the one engine gap (where a drop lands) are at the link.
+→ [prologue mission 1](campaigns/01-prologue/01-pervasive-mechanics.md) §Difficulty; the campaign-wide rules in [mission-design](campaigns/mission-design.md) §Difficulty
+
+> [!question] Q — 2026-10-28
+> Is the shape right: EASY only adds help and HARD only adds opposition, nothing placed is removed, EASY's help is reactive and HARD's is flat — with the per-beat table as the first cut?
+> **Why it matters:** it fixes what gets authored. Under it every variant is a spawn node with a `count_expression` or a gated trigger beside the built one, and the built scene is never edited for a tier; the alternative (per-tier placement, or removing pieces on EASY) needs an event that takes placed pieces away and a probe per tier of every beat.
+> **Options:**
+> 1. Yes, as written; author the table and probe each beat on EASY and HARD.
+> 2. Yes to the rules, but HARD gets no base response — it is the one new behaviour, and HARD should only scale what MEDIUM already does.
+> 3. EASY should also be flat (a bigger starting force, crewed Ravens from the start) rather than reactive, so it is simpler to author and to test.
+>
+> **Leaning:** 1 — reactive help is what "bonuses if they are not keeping up" asks for, and a player who keeps up should meet the built mission.
+>
+> **Answer:**
+
+> [!question] Q — 2026-10-28
+> Where does EASY's help land?
+> **Why it matters:** the player's units carry no group, so `EventSpawnEntities.follow_group` cannot follow them; a fixed marker lands help where the player may no longer be.
+> **Options:**
+> 1. Add `EventSpawnEntities.follow_commander`: the centre of that commander's units, with `follow_away_from` / `follow_offset` as for a group. Small; one event class and its test.
+> 2. Land each drop beside its objective's TARGET (`follow_group` of the outpost, the SAM sites, the base Compounds), offset away from it — no engine change, help arrives where the player is headed.
+> 3. Fixed markers, one per catch-up trigger.
+>
+> **Leaning:** 1 — it is the anchor every reactive trigger wants, and it keeps the help beside the player wherever they wandered.
+>
+> **Answer:**
+
+> [!question] Q — 2026-10-28
+> Is a drop announced?
+> **Why it matters:** the mission has no story dialogs yet; a silent Raven landing beside the player reads as a bug, a dialog line is the first non-tutorial dialog in the prologue and sets its tone.
+> **Options:**
+> 1. One short `EventShowMessage` per drop ("Reinforcements are landing"), no dialog page.
+> 2. A dialog page per drop, written when the mission's story dialogs are.
+> 3. Nothing: the Raven's arrival and the new units' selection rings are the announcement.
+>
+> **Leaning:** 1 — legible without pausing the game, and it does not pre-empt the story pass.
+>
+> **Answer:**
 
 ## Combat
 

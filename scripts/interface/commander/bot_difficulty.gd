@@ -41,6 +41,22 @@ var scout_period_seconds: float = 0.5
 ## refresh is several lattice sweeps — and not set by set_all_periods, which paces decisions.
 var field_refresh_seconds: float = 3.0
 
+## HOW MUCH THE BOT MAY DO PER SECOND: the orders its deciding jobs may issue between them,
+## per simulated second (BotAttention). A job runs only while the bot has orders in hand and
+## pays for what it issued, so a fight starves the economy of attention, a purchase waits for
+## a free moment, and a second front waits for the first to be given its orders — the spend
+## latency and the limited concurrency of a human, in one number. -1 is unlimited: the bot
+## acts the instant a job is due. Lower = slower hands; not jittered (the tier's identity).
+var attention_orders_per_second: float = -1.0
+
+## HOW OLD THE BOT'S PICTURE OF THE ENEMY IS, in seconds: a new enemy piece is believed this
+## long after it is first sighted, and a believed piece's position is re-read at most this
+## often (CommanderBlackboard.perception_delay_seconds). The bot still SEES at once — its units
+## shoot what is in range — but what it decides on, the counter it builds and where it sends
+## the army, answers a picture this old. 0 is the player's: believed as seen. Higher = a
+## slower reader of the game; not jittered.
+var perception_delay_seconds: float = 0.0
+
 ## Combat units wanted before the army commits to an attack. The aggression dial.
 var army_commit_threshold: int = 3
 
@@ -56,17 +72,24 @@ var retarget_switch_margin: float = 1.3
 ## How many units the bot is willing to have away from the fight, scouting. 0 means it never
 ## scouts and plays blind.
 ##
-## A REAL RAMP, not a flag. It shipped as 1 for every tier below IMPOSSIBLE, which made it a
-## constant wearing a parameter's clothes — and one scout is badly under-provisioned now that
-## the ATTACK objective is fog-limited (Bot.nearest_believed_enemy_structure_position): a bot
-## that has not found the opponent's base has no offensive at all, so how many units it will
-## spend looking is now one of the strongest handicaps in this table rather than a detail.
+## A DISPOSITION, the same in every attacking tier (PASSIVE alone plays blind): how many units
+## a player spends looking is a style, not a skill. It matters all the same — the ATTACK
+## objective is fog-limited (Bot.nearest_believed_enemy_structure_position), so a bot that has
+## not found the opponent's base has no offensive at all — which is why the default is two
+## rather than the one it shipped with. The personality draw moves it like any other field.
 ##
 ## It remains a CEILING. `BotScout._scouting_is_worth_it` prices each additional scout
 ## against the information it buys, and the value of the n-th scout is divided by n, so a
 ## larger allowance is permission rather than an instruction — a bot that already knows where
 ## everything is will not use it.
 var scout_unit_budget: int = 2
+
+## FLOOR under the scout count — scouts kept out whatever the information is worth, drawn
+## from spare units only (BotScout.minimum_scouts). Alex, 2026-10-30: map knowledge is what
+## every other decision needs, so every bot keeps some, and the tiers ramp it 1 to 5 from
+## PASSIVE to IMPOSSIBLE. Part of the tier's identity rather than a disposition, so it is
+## not in SEARCH_RANGES.
+var scout_minimum: int = 1
 
 ## Energy banked before the bot will spend on expanding capacity. A high reserve plays
 ## greedily-safe; a low one commits early.
@@ -112,8 +135,7 @@ var production_structure_cap: int = -1
 ## **ONE OF TWO DEFAULTS IN THIS CLASS THAT DO NOT REPRODUCE THE OLD PLAY** (the other is
 ## reinforce_fraction), deliberately: 1
 ## means "one extractor before the first barracks", which is the ordering the opening
-## question was about. Every other field added for the search ships at the value that
-## changes nothing (see §The tiers ship flat in bot-parameter-space.md).
+## question was about. A disposition, so the same in every tier (for_tier).
 var income_structure_target: int = 1
 
 ## HOW READILY THE BOT ANSWERS STATIC-DEFENCE DEMAND — a propensity on the value × vulnerability
@@ -404,33 +426,43 @@ var retarget_weight_proximity: float = 0.5
 
 
 #region Tiers
-## The tier table, as a monotone ramp from EASY to IMPOSSIBLE.
+## The tier table, as a monotone ramp from EASY to IMPOSSIBLE — OF EXECUTION, never of
+## disposition.
 ##
-## THESE VALUES ARE PLACEHOLDERS chosen by hand, and nothing should be balanced against them
-## until a search has run — see the TODO in bot-roadmap.md §Difficulty first. What is settled
-## is WHICH knobs exist and which direction each one means; what is not is any number here.
+## A tier says how WELL the bot plays, not how it wants to win (Alex, 2026-10-29; the rule and
+## its reasons are bot-roadmap.md §Difficulty first). So every disposition field — how big an
+## army it wants, what it banks, how many extractors come first, how long it holds a wave,
+## how many units it spends looking — is the same number in every tier, the class default,
+## and a personality draw at the same spread moves it the same way for every tier: an EASY
+## bot is a rusher or a turtle as often as a HARD one. What the tiers ramp is the throttle on
+## execution, along the three axes the brief names:
+##   - LATENCY and CONCURRENCY — `attention_orders_per_second` (BotAttention: how much it may
+##     do per second), the decision periods (how often it looks), `build_concurrency` and
+##     `squad_cap` (how many things it runs at once);
+##   - WISDOM — `perception_delay_seconds` (how old the picture it answers is) and
+##     `decision_temperature` (how often it takes a worse option than the best).
+## IMPOSSIBLE lifts every throttle: unlimited attention, no delay, the argmax, uncapped
+## build and squads. That is "unbounded" in the brief's sense — the best THIS model plays,
+## not perfect play, which no frame budget could compute.
 ##
-## THE KNOBS ADDED FOR THE SEARCH SHIP FLAT, at the value that reproduces the play the bot
-## had before they were fields, and that is a deliberate position rather than an omission.
-## The seven knobs above are already an unmeasured hand-ramp the note warns against
-## balancing on; hand-ramping twelve more would multiply exactly the guesswork the search
-## exists to remove, and would make opening a knob indistinguishable from changing the
-## game. A constant is monotone, so the ramp property below still holds, and each field's
-## doc comment records which direction is "harder" so a search — or a later hand ramp —
-## knows which way to move it. See gdd/systems/ai/bot-parameter-space.md.
+## MEASURED on the difficulty ladder (`tools/selfplay/difficulty_ladder.py`, gdd/tasks.md
+## T-131). The first table along this axis is dated 2026-10-29; what each measurement moved
+## and what it did is bot-roadmap.md §Difficulty first. A knob not named in a tier stays at
+## its default (§The tiers ship flat in bot-parameter-space.md).
 static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 	var config := BotDifficulty.new()
 	match a_tier:
 		PlayerSlot.Difficulty.PASSIVE:
 			# Minimally active, and never an attacker. It thinks slowly, keeps its economy going,
-			# defends what it owns, and scouts not at all — a sparring partner rather than scenery,
-			# which is what an INERT brain made it.
+			# defends what it owns, and scouts only its floor of one — a sparring partner rather
+			# than scenery, which is what an INERT brain made it.
 			config.set_all_periods(2.0)
 			config.field_refresh_seconds = 6.0
 			config.army_commit_threshold = 9999
 			config.preserve_min_cost = -1
 			config.retarget_switch_margin = 3.0
 			config.scout_unit_budget = 0
+			config.scout_minimum = 1
 			config.economy_reserve = 900
 			config.build_concurrency = 1
 			config.squad_cap = 1
@@ -441,47 +473,44 @@ static func for_tier(a_tier: PlayerSlot.Difficulty) -> BotDifficulty:
 		PlayerSlot.Difficulty.EASY:
 			config.set_all_periods(1.5)
 			config.field_refresh_seconds = 4.0
-			config.army_commit_threshold = 8
-			config.preserve_min_cost = -1
-			config.retarget_switch_margin = 2.5
-			config.scout_unit_budget = 1
-			config.economy_reserve = 900
 			config.build_concurrency = 1
 			config.squad_cap = 1
+			config.scout_minimum = 2
+			config.attention_orders_per_second = 0.25
+			config.perception_delay_seconds = 6.0
+			config.decision_temperature = 0.3
 		PlayerSlot.Difficulty.MEDIUM:
 			config.set_all_periods(0.667)
 			config.field_refresh_seconds = 3.0
-			config.army_commit_threshold = 5
-			config.preserve_min_cost = 250
-			config.retarget_switch_margin = 1.6
-			config.scout_unit_budget = 2
-			config.economy_reserve = 600
 			config.build_concurrency = 2
 			config.squad_cap = 2
+			config.scout_minimum = 3
+			config.attention_orders_per_second = 0.5
+			config.perception_delay_seconds = 3.0
+			config.decision_temperature = 0.1
 		PlayerSlot.Difficulty.HARD:
 			config.set_all_periods(0.4)
 			config.field_refresh_seconds = 2.0
-			config.army_commit_threshold = 3
-			config.preserve_min_cost = 0
-			config.retarget_switch_margin = 1.3
-			config.scout_unit_budget = 3
-			config.economy_reserve = 450
 			config.build_concurrency = 3
 			config.squad_cap = 3
+			config.scout_minimum = 4
+			# 1.0 orders a second barely binds (the unthrottled bot issues 0.6–1.9), and the top
+			# pair sat at 44% of ten; 0.6 measured 76% of thirty (exec_c).
+			config.attention_orders_per_second = 0.6
+			config.perception_delay_seconds = 2.5
+			config.decision_temperature = 0.05
 		PlayerSlot.Difficulty.IMPOSSIBLE:
-			# TODO: the brief is "a human will never realistically beat it", which wants
-			# frame-perfect micro and an execution layer these parameters cannot express. This is
-			# the fast end of the same ramp, not that. See bot-roadmap.md §Difficulty first.
+			# Every throttle lifted. Note the periods below about a second are not realised under
+			# the shared scheduler budget (think-scheduling.md §Open), so 0.1 means "as fast as
+			# the budget allows" rather than ten decisions a second.
 			config.set_all_periods(0.1)
 			config.field_refresh_seconds = 1.0
-			config.army_commit_threshold = 2
-			config.preserve_min_cost = 0
-			config.retarget_switch_margin = 1.1
-			config.scout_unit_budget = 4
-			config.economy_reserve = 300
-			# Uncapped: it builds with everything it can spare.
 			config.build_concurrency = -1
 			config.squad_cap = -1
+			config.scout_minimum = 5
+			config.attention_orders_per_second = -1.0
+			config.perception_delay_seconds = 0.0
+			config.decision_temperature = 0.0
 	return config
 
 

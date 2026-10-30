@@ -204,6 +204,13 @@ var _objective_id: int = 0
 var _objective_since: float = 0.0
 ## Abandoned objectives: [{"position": Vector3, "until": float}]. See OBJECTIVE_STALL_SECONDS.
 var _abandoned_objectives: Array = []
+## The scout module, for the SWEEP objective: a wave whose objective has evaporated asks it
+## where the map is still unseen rather than walking home (set by BotBrain; null in a bare
+## manager, which then holds as it always did).
+var scout: BotScout = null
+## The sweep point the wave is on, or null. Kept until the wave stands on it or abandons it,
+## so the army is not re-pointed every think; dropped the moment a real belief is actionable.
+var _sweep: Variant = null
 ## Where the production structures were last told to rally, so the order is re-issued only
 ## when the point moves (or to a structure that has none yet).
 var _rally_point: Vector3 = Vector3.ZERO
@@ -234,6 +241,17 @@ func tick() -> int:
 	var considered: int = _bot.get_units().size()
 	var posture: Posture = _decide_posture()
 	var objective: Variant = _objective_for(posture)
+	# A WAVE IN THE FIELD WITH NOTHING ACTIONABLE SWEEPS ON (Alex, 2026-10-30): its objective
+	# evaporated — the sighting walked off, the forward building fell — and walking home to
+	# mass again against no threat is the yo-yo that cost stalemate 7100 its waves. The wave
+	# goes where the map is still unseen instead, and becomes its own scout; a real belief
+	# takes the objective back the think it appears. Only a wave already marching: an army at
+	# home with nothing believed still masses, and a base under an answerable threat still
+	# brings it home.
+	if posture == Posture.ATTACK and objective == null:
+		objective = _sweep_objective()
+	else:
+		_sweep = null
 	# No valid objective for the chosen posture (e.g. ATTACK with no enemies) —
 	# fall back to massing at home.
 	if objective == null:
@@ -274,6 +292,32 @@ func tick() -> int:
 		_staging_point(objective_pos) if posture == Posture.ATTACK else objective_pos, changed
 	)
 	return considered * UNIT_WORK_UNITS
+
+
+## The sweep point for a wave whose objective has gone, or null: nothing to ask, no wave
+## marching (the main squad is not on an assault), or the base under an answerable threat.
+## The point held is kept while the wave is still walking to it and it is not abandoned.
+func _sweep_objective() -> Variant:
+	if scout == null or not (_main.policy is AssaultPolicy):
+		_sweep = null
+		return null
+	if _bot.is_base_under_answerable_threat(defend_threat_radius):
+		_sweep = null
+		return null
+	if _sweep != null:
+		var held: Vector3 = _sweep
+		if not _is_abandoned(held) and _main.centroid().distance_to(held) > STALL_RADIUS:
+			return held
+	var members: Array = _main.members()
+	var from: Vector3 = _main.centroid() if not members.is_empty() else _home_anchor_position()
+	var eyes: Actor = members[0] if not members.is_empty() else null
+	var vision: float = _bot.vision_radius(eyes) if eyes != null else 0.0
+	var speed: float = eyes.movement.speed if eyes != null and eyes.movement != null else 1.0
+	_sweep = scout.claim_sweep_point(VU.in_xz(from), speed, vision)
+	if _sweep != null:
+		_objective_entity = null
+		_objective_id = 0
+	return _sweep
 
 
 ## Every squad's dispatch: a changed policy to all its members, the same one to the idle.
@@ -500,7 +544,9 @@ func _is_abandoned(a_position: Vector3) -> bool:
 func _threatened_command_centre() -> Actor:
 	if _bot.win_condition() != Scenario.WinCondition.HEGEMONY:
 		return null
-	return _bot.threatened_command_centre(defend_threat_radius * COMMAND_CENTRE_THREAT_MULTIPLIER)
+	return _bot.answerably_threatened_command_centre(
+		defend_threat_radius * COMMAND_CENTRE_THREAT_MULTIPLIER
+	)
 
 
 ## What `a_units` are worth, in the energy the wave's launch value is measured in.
@@ -621,6 +667,7 @@ func debug_state() -> Dictionary:
 		"enemy_estimate": _enemy_value_estimate,
 		"abandoned_objectives": _abandoned_objectives.duplicate(),
 		"rally": _rally_point if _has_rally else null,
+		"sweep": _sweep,
 	}
 
 
@@ -634,13 +681,23 @@ func _decide_posture() -> Posture:
 	# otherwise gathers; nothing it does ever leaves home. Checked before everything, because
 	# "never attacks the player" is not a threshold it could cross.
 	if not may_attack:
-		return Posture.DEFEND if _bot.is_base_under_threat(defend_threat_radius) else Posture.MASS
+		return (
+			Posture.DEFEND
+			if _bot.is_base_under_answerable_threat(defend_threat_radius)
+			else Posture.MASS
+		)
 	# A committed attack wave OVERRIDES defence — once the bot has massed an army
 	# worth a (randomised) cap, it pushes regardless of a scout poking the base.
 	# This is the anti-turtle fix: DEFEND no longer wins unconditionally.
 	if _committing_to_attack():
 		return Posture.ATTACK
-	if _bot.is_base_under_threat(defend_threat_radius) or _threatened_command_centre() != null:
+	# ANSWERABLE threats only (Bot.can_answer): the army is not marched at a raider nothing in it
+	# can hit — eighty Recruits stood under five Clippers for a match (bot-engagement-fixes.md
+	# §An unanswerable threat). The guard asks the same question when it sizes itself.
+	if (
+		_bot.is_base_under_answerable_threat(defend_threat_radius)
+		or _threatened_command_centre() != null
+	):
 		return Posture.DEFEND
 	# ATTACK is only ever a live wave. The body count used to return ATTACK here on its own,
 	# WITHOUT launching a wave — so the retreat rule, the spent fraction and the regroup
@@ -769,7 +826,7 @@ func _objective_for(a_posture: Posture) -> Variant:
 			var centre: Actor = _threatened_command_centre()
 			if centre != null:
 				return centre.global_position
-			var threatened: Actor = _bot.most_threatened_structure()
+			var threatened: Actor = _bot.most_answerably_threatened_structure()
 			if threatened != null:
 				return threatened.global_position
 			return _home_anchor()

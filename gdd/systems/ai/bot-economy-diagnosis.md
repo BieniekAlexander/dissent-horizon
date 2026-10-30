@@ -122,6 +122,38 @@ question on the task.
 > `BotEconomy._release_stalled_construction`; see [bot-architecture](bot-architecture.md)
 > §A build that never finishes.
 
+**A start point can hold the first production structure back by minutes, and it was two
+rungs of the ladder (2026-10-29–30, found on the difficulty ladder, `tools/selfplay/results/
+ladder/exec_a.jsonl`, fixed the same day).** On maps 7101 and 7102 whoever started at the second
+start point — any tier, any drawn personality — laid its first barracks at 190–590 s instead of
+40–70 s while floating 3–12k energy and adding extractors. Probed at one-second sampling on
+7101, the two causes were:
+
+1. **A producer was anchored on a base where it could not stand.** `_anchors_for` puts a
+   producer on the base nearest the action, and that base was an extractor outpost toward the
+   map's middle on ground no barracks footprint fits. The site search walked all 22 lattice
+   regions around it, found nothing, returned null, and was started afresh at the same anchor
+   on the next tick — every tick, for minutes. The search now tries every base in preference
+   order and gives up only when the last one (home) has nothing, so an outpost preferred for
+   its position never holds a building that only fits at home.
+2. **A dip in the balance bought an extractor.** `surplus` reads "above the reserve AND not
+   falling", and a bot banking thousands dips on every tick a unit is paid for. Each such tick
+   skipped the production rung and reached the bottom income rung — meant for a bot too poor
+   for throughput, or one whose surplus had nowhere to go — which bought an extractor past the
+   income target. That cost a builder and a construction slot for the walk, and the structure
+   it placed invalidated the safety channel the production search was waiting on, restarting
+   it. The bottom rung now runs only when the bot is below its reserve or the production rung
+   found nothing to add.
+
+Measured after the fix on the same seed: the second start's first barracks at 93 s (its first
+order issued eight seconds after the barracks became the pick), against 40 s from the first
+start. The remaining gap is the walk to a home-base site and the eight seconds the search still
+spends exhausting the dead anchor before it moves on — a `DEBT`: the search forgets a dead
+anchor between searches and walks it again for every building, which costs about eight
+seconds per structure at such a start. The right thing is to remember that an anchor yielded
+nothing for a footprint until the bot's structures change; it would be paid off if the per-
+structure delay shows in a ladder.
+
 **No claim is made about strength.** Every match measured is a mirror, so both sides got the
 fix and the win rate cannot move. What is measured is that the economy runs; whether a richer
 bot is a better opponent is a round-robin question, and the 2026-09-05 archetype

@@ -47,6 +47,13 @@ class FakeBot:
 	func unit_can_attack(a_type) -> bool:
 		return a_type != HOUSE
 
+	## Whether one type's weapons reach another (Bot.type_can_damage): everything hits
+	## everything, unless a test fields units that cannot answer what stands there.
+	var can_hit: bool = true
+
+	func type_can_damage(_a_type, _a_target_type) -> bool:
+		return can_hit
+
 	func unit_cost(a_unit_type) -> int:
 		match a_unit_type:
 			HOUSE:
@@ -123,6 +130,32 @@ func test_a_lopsided_fight_is_less_vulnerable_than_an_even_one() -> void:
 	_enemy(Vector3(7.0, 0.0, 0.0))
 	# own 100, enemy 300: (400 − 200) / 400 = 0.5
 	assert_almost_eq(float(_economy._defence_demand()["demand"]), 500.0, 0.001)
+
+
+func test_units_that_cannot_hit_what_stands_there_leave_the_region_defenceless() -> void:
+	# Eighty Recruits under five Clippers (2026-10-30, the 7100 replay): counted as our side,
+	# they made the base read as held and no SAM was ever asked for. Our side is what can
+	# ANSWER what is there; standing there with nothing that can is defenceless, not safe —
+	# and not lost either, which is a region we do not stand in at all.
+	_structure(HOUSE, Vector3.ZERO)
+	for i: int in 8:
+		_soldier(Vector3(2.0 + i, 0.0, 0.0))
+	_enemy(Vector3(5.0, 0.0, 0.0))
+	_bot.can_hit = false
+	var read: Dictionary = _economy._defence_demand()
+	assert_almost_eq(float(read["demand"]), float(STRUCTURE_COST), 0.001, "the whole value")
+	var region: Dictionary = _economy.defence_demand_by_region()[0]
+	assert_almost_eq(float(region["own"]), 0.0, 0.001, "nothing of ours answers the enemy")
+	_bot.can_hit = true
+	# 800 against 100: (900 − 700) / 900 × 1000 ≈ 222 — the same units, able to shoot up, hold it.
+	assert_almost_eq(float(_economy._defence_demand()["demand"]), 1000.0 * 200.0 / 900.0, 0.01)
+
+
+func test_a_region_we_hold_with_units_that_hit_nothing_present_is_still_safe_when_empty() -> void:
+	_structure(HOUSE, Vector3.ZERO)
+	_soldier(Vector3(2.0, 0.0, 0.0))
+	_bot.can_hit = false
+	assert_eq(_economy._defence_demand(), {}, "no enemy: nothing to answer, nothing to fear")
 
 
 func test_value_is_what_stands_in_the_region_not_the_whole_base() -> void:

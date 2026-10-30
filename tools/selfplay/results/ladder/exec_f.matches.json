@@ -1,0 +1,1142 @@
+[
+ {
+  "id": "easy_v_medium_map7100_base",
+  "seed": 7100,
+  "map_seed": 7100,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7100_swap",
+  "seed": 7100,
+  "map_seed": 7100,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7101_base",
+  "seed": 7101,
+  "map_seed": 7101,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7101_swap",
+  "seed": 7101,
+  "map_seed": 7101,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7102_base",
+  "seed": 7102,
+  "map_seed": 7102,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7102_swap",
+  "seed": 7102,
+  "map_seed": 7102,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7103_base",
+  "seed": 7103,
+  "map_seed": 7103,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7103_swap",
+  "seed": 7103,
+  "map_seed": 7103,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7104_base",
+  "seed": 7104,
+  "map_seed": 7104,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7104_swap",
+  "seed": 7104,
+  "map_seed": 7104,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7105_base",
+  "seed": 7105,
+  "map_seed": 7105,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7105_swap",
+  "seed": 7105,
+  "map_seed": 7105,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7106_base",
+  "seed": 7106,
+  "map_seed": 7106,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7106_swap",
+  "seed": 7106,
+  "map_seed": 7106,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7107_base",
+  "seed": 7107,
+  "map_seed": 7107,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7107_swap",
+  "seed": 7107,
+  "map_seed": 7107,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7108_base",
+  "seed": 7108,
+  "map_seed": 7108,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7108_swap",
+  "seed": 7108,
+  "map_seed": 7108,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7109_base",
+  "seed": 7109,
+  "map_seed": 7109,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7109_swap",
+  "seed": 7109,
+  "map_seed": 7109,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7110_base",
+  "seed": 7110,
+  "map_seed": 7110,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7110_swap",
+  "seed": 7110,
+  "map_seed": 7110,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7111_base",
+  "seed": 7111,
+  "map_seed": 7111,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7111_swap",
+  "seed": 7111,
+  "map_seed": 7111,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7112_base",
+  "seed": 7112,
+  "map_seed": 7112,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7112_swap",
+  "seed": 7112,
+  "map_seed": 7112,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7113_base",
+  "seed": 7113,
+  "map_seed": 7113,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7113_swap",
+  "seed": 7113,
+  "map_seed": 7113,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "EASY"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7114_base",
+  "seed": 7114,
+  "map_seed": 7114,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "easy_v_medium_map7114_swap",
+  "seed": 7114,
+  "map_seed": 7114,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "EASY"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7100_base",
+  "seed": 7100,
+  "map_seed": 7100,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7100_swap",
+  "seed": 7100,
+  "map_seed": 7100,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7101_base",
+  "seed": 7101,
+  "map_seed": 7101,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7101_swap",
+  "seed": 7101,
+  "map_seed": 7101,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7102_base",
+  "seed": 7102,
+  "map_seed": 7102,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7102_swap",
+  "seed": 7102,
+  "map_seed": 7102,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7103_base",
+  "seed": 7103,
+  "map_seed": 7103,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7103_swap",
+  "seed": 7103,
+  "map_seed": 7103,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7104_base",
+  "seed": 7104,
+  "map_seed": 7104,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7104_swap",
+  "seed": 7104,
+  "map_seed": 7104,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7105_base",
+  "seed": 7105,
+  "map_seed": 7105,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7105_swap",
+  "seed": 7105,
+  "map_seed": 7105,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7106_base",
+  "seed": 7106,
+  "map_seed": 7106,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7106_swap",
+  "seed": 7106,
+  "map_seed": 7106,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7107_base",
+  "seed": 7107,
+  "map_seed": 7107,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7107_swap",
+  "seed": 7107,
+  "map_seed": 7107,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7108_base",
+  "seed": 7108,
+  "map_seed": 7108,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7108_swap",
+  "seed": 7108,
+  "map_seed": 7108,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7109_base",
+  "seed": 7109,
+  "map_seed": 7109,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7109_swap",
+  "seed": 7109,
+  "map_seed": 7109,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7110_base",
+  "seed": 7110,
+  "map_seed": 7110,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7110_swap",
+  "seed": 7110,
+  "map_seed": 7110,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7111_base",
+  "seed": 7111,
+  "map_seed": 7111,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7111_swap",
+  "seed": 7111,
+  "map_seed": 7111,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7112_base",
+  "seed": 7112,
+  "map_seed": 7112,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7112_swap",
+  "seed": 7112,
+  "map_seed": 7112,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7113_base",
+  "seed": 7113,
+  "map_seed": 7113,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7113_swap",
+  "seed": 7113,
+  "map_seed": 7113,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   },
+   {
+    "difficulty": "HARD"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7114_base",
+  "seed": 7114,
+  "map_seed": 7114,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7114_swap",
+  "seed": 7114,
+  "map_seed": 7114,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD"
+   },
+   {
+    "difficulty": "MEDIUM",
+    "config": {
+     "attention_orders_per_second": 0.4,
+     "perception_delay_seconds": 4.0
+    }
+   }
+  ]
+ }
+]

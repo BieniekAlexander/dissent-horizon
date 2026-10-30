@@ -236,3 +236,55 @@ func test_vision_elsewhere_drops_nothing() -> void:
 
 func test_an_unknown_id_is_not_believed() -> void:
 	assert_false(_board.believes(12345))
+
+
+# ─── A DELAYED COMMANDER ──────────────────────────────────────────────────────
+# perception_delay_seconds: what a slow reader of the game believes is a few seconds behind
+# what it sees (BotDifficulty.perception_delay_seconds).
+
+
+func test_a_delayed_commander_notices_a_new_piece_only_after_the_delay() -> void:
+	_board.perception_delay_seconds = 5.0
+	var unit: Actor = _piece(false, FAR)
+	_see([unit], 10.0)
+	assert_eq(_board.believed().size(), 0, "sighted, not yet believed")
+	assert_false(_board.believes(unit.identity_key()))
+	assert_null(_board.last_known_location(unit.identity_key()))
+	_see([unit], 14.0)
+	assert_eq(_board.believed().size(), 0, "four seconds is not five")
+	_see([unit], 15.0)
+	assert_eq(_board.believed().size(), 1, "and at five it is believed")
+	assert_true(_board.believes(unit.identity_key()))
+	assert_eq(_board.believed_units().size(), 1)
+
+
+func test_a_delayed_commander_re_reads_a_position_once_per_delay() -> void:
+	_board.perception_delay_seconds = 5.0
+	var unit: Actor = _piece(false, FAR)
+	_see([unit], 0.0)
+	unit.global_position = FAR + Vector3(5.0, 0.0, 0.0)
+	_see([unit], 5.0)
+	var entry: CommanderBlackboard.Entry = _board.believed()[0]
+	assert_eq(entry.last_known_location, FAR + Vector3(5.0, 0.0, 0.0), "read again at five")
+	unit.global_position = FAR + Vector3(10.0, 0.0, 0.0)
+	_see([unit], 7.0)
+	assert_eq(entry.last_known_location, FAR + Vector3(5.0, 0.0, 0.0), "held at seven")
+	assert_eq(entry.last_seen_time, 7.0, "though the sighting itself is current")
+	_see([unit], 10.0)
+	assert_eq(entry.last_known_location, FAR + Vector3(10.0, 0.0, 0.0), "read again at ten")
+
+
+func test_a_delayed_commander_still_ages_a_unit_from_its_last_sighting() -> void:
+	_board.perception_delay_seconds = 5.0
+	var unit: Actor = _piece(false, FAR)
+	_see([unit], 0.0)
+	_look([], CommanderBlackboard.BLACKBOARD_EXPIRATION + 1.0)
+	assert_eq(_board.believed().size(), 0, "the expiry clock runs on the sighting, not the belief")
+
+
+func test_no_delay_believes_what_it_sees_at_once() -> void:
+	var unit: Actor = _piece(false, FAR)
+	_see([unit], 10.0)
+	unit.global_position = -FAR
+	_see([unit], 10.0)
+	assert_eq((_board.believed()[0] as CommanderBlackboard.Entry).last_known_location, -FAR)

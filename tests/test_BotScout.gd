@@ -244,6 +244,87 @@ func test_no_allowance_releases_every_scout() -> void:
 	assert_eq(_scout._scouts.size(), 0, "released, so the military can pick them up")
 
 
+# ─── THE FLOOR ───────────────────────────────────────────────────────────────
+#
+# A minimum number of scouts kept out whatever the information is worth (Alex, 2026-10-30):
+# the attack objective is a belief, so a bot that has found nothing has no offensive, and both
+# bots in stalemate 7100 saw a third of the map in twenty minutes. The floor is filled from
+# SPARE units — never a builder the economy still needs — and shrinks to what is spare.
+
+
+func test_the_floor_claims_a_scout_the_price_test_would_refuse() -> void:
+	_set_staleness(0.05)
+	var dear := _owned_unit(6.0, 9.0)
+	dear.id = &"dear_scout"
+	_bot.technology_mapping[dear.id] = TechnologySpec.new(900, 0, 0, 30)
+	assert_false(_scout._scouting_is_worth_it(dear), "precondition: not worth it on price")
+	_scout.minimum_scouts = 1
+	_scout._update_scouts()
+	assert_eq(_scout._scouts, [dear], "the floor sends it anyway")
+
+
+func test_the_floor_overrides_a_zero_allowance() -> void:
+	_set_staleness(0.0)
+	var u := _owned_unit(4.0, 5.0)
+	_scout.unit_budget = 0
+	_scout.minimum_scouts = 1
+	_scout._update_scouts()
+	assert_eq(_scout._scouts, [u], "a PASSIVE bot still keeps its one scout out")
+
+
+func test_the_floor_never_takes_a_builder_the_economy_needs() -> void:
+	_set_staleness(1.0)
+	_scout.minimum_scouts = 2
+	_scout.build_concurrency = 1  # one job at a time, plus production's one spare: two needed
+	_make_builder(_owned_unit(4.0, 5.0))
+	_make_builder(_owned_unit(4.0, 5.0))
+	_scout._update_scouts()
+	assert_eq(_scout._scouts.size(), 0, "two builders are what the economy runs with")
+
+	var third := _make_builder(_owned_unit(4.0, 5.0))
+	_scout._update_scouts()
+	assert_eq(_scout._scouts.size(), 1, "a third builder is spare, and the floor takes one")
+	assert_true(_scout._is_spare(third))
+
+
+func test_an_uncapped_builder_count_keeps_every_builder() -> void:
+	_scout.build_concurrency = -1
+	for _i: int in 4:
+		_make_builder(_owned_unit(4.0, 5.0))
+	assert_false(_scout._is_spare(_bot.get_units()[0]), "uncapped concurrency uses them all")
+
+
+func test_a_floor_scout_is_kept_when_scouting_stops_paying() -> void:
+	var truck := _scouting(400, 0.0)
+	assert_false(_scout._scouting_is_worth_it(truck, 1), "precondition: nothing left to learn")
+	_scout.minimum_scouts = 1
+	assert_true(_scout._still_scouting(truck, 1), "within the floor it stays out")
+	assert_false(_scout._still_scouting(truck, 2), "a second scout is still priced")
+
+
+func test_a_floor_scout_still_yields_to_a_real_errand() -> void:
+	var truck := _scouting(400, 1.0)
+	_scout.minimum_scouts = 1
+	_order(truck, Build)
+	assert_false(_scout._still_scouting(truck, 1), "a build job takes it; the floor refills")
+
+
+func test_above_the_floor_the_price_test_applies() -> void:
+	_set_staleness(0.05)
+	var cheap := _owned_unit(3.0, 5.0)
+	cheap.id = &"cheap_scout"
+	_bot.technology_mapping[cheap.id] = TechnologySpec.new(50, 0, 0, 30)
+	var dear := _owned_unit(6.0, 9.0)
+	dear.id = &"dear_scout"
+	_bot.technology_mapping[dear.id] = TechnologySpec.new(900, 0, 0, 30)
+	_scout.minimum_scouts = 1
+	_scout.unit_budget = 2
+	_scout._update_scouts()
+	assert_eq(_scout._scouts.size(), 1, "the floor's one, claimed without a price")
+	_scout._update_scouts()
+	assert_eq(_scout._scouts.size(), 1, "the second would have to pay, and nothing can")
+
+
 # ─── HOLDING A CLAIM ─────────────────────────────────────────────────────────
 #
 # A scout used to be dropped the moment anything else re-tasked it, which made this the

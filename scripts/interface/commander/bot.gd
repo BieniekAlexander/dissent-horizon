@@ -359,23 +359,101 @@ func is_base_under_threat(a_threat_radius: float = 30.0) -> bool:
 
 ## Whether a visible enemy within `a_threat_radius` of `a_structure` can damage it.
 func is_threatened(a_structure: Actor, a_threat_radius: float) -> bool:
-	return visible_enemies_near(a_structure.global_position, a_threat_radius).any(
-		func(enemy: Actor) -> bool: return matchup(enemy, a_structure) > 0.0
-	)
+	return _threatened_by(a_structure, a_threat_radius, false)
 
 
 ## The owned structure most in danger: lowest HP fraction among those
 ## that currently have enemies nearby.  Returns null if nothing is under
 ## active attack.  A natural rally target for defensive units.
 func most_threatened_structure(a_threat_radius: float = 30.0) -> Actor:
+	return _worst_threatened(a_threat_radius, false, false)
+
+
+# ─── ANSWERABLE THREATS ──────────────────────────────────────────────────────
+# AN ANSWERABLE THREAT is a visible enemy that SOME piece of ours — a unit with combat utility
+# or an armed structure, wherever it stands — can damage (unit_can_damage). The senses above
+# ask only whether the enemy can hurt what it is near; these ask the other half, and they are
+# what moves the ARMY or spends its BANK: the DEFEND posture, the savings hold, a contested
+# construction site, a region's own side in the defence demand. A raider nothing can hit is a
+# reason to buy the counter — the defence rung, the production valuation — never to march units
+# at it, call builders home, or empty the bank into more units that cannot hit it either (Alex,
+# 2026-10-30: a unit is never sent at a target it cannot impact; inert is not ineffective).
+# Measured first on the 7100 replay (bot-engagement-fixes.md §An unanswerable threat): five
+# Clippers over a base of eighty Recruits froze its construction for nine minutes, released its
+# savings and marched the army under them. The guard already sizes itself by this question
+# (BotMilitary._size_guard); the raw senses stay for the readers a threat is a threat to —
+# the posture dial, the economy's safety, a unit deciding to hide.
+
+
+## Whether anything the bot fields can damage `a_enemy`.
+func can_answer(a_enemy: Actor) -> bool:
+	return _answering_pieces().any(
+		func(piece: Actor) -> bool: return unit_can_damage(piece, a_enemy)
+	)
+
+
+## Every piece of ours a threat is answered with: units with combat utility, and armed
+## structures that are FINISHED — a SAM still going up answers nothing yet, and counting it
+## turned the army to DEFEND the moment the build was ordered (sims/bot/economy/
+## ground_army_under_a_clipper).
+func _answering_pieces() -> Array:
+	var pieces: Array = _owned_units().filter(unit_has_combat_utility)
+	pieces.append_array(
+		_owned_structures().filter(func(s: Actor) -> bool: return s.is_built and unit_is_armed(s))
+	)
+	return pieces
+
+
+## base_threats, keeping only the enemies something of ours can damage.
+func answerable_base_threats(a_threat_radius: float = 30.0, a_centre_radius: float = -1.0) -> Array:
+	return base_threats(a_threat_radius, a_centre_radius).filter(
+		func(t: Dictionary) -> bool: return can_answer(t["enemy"])
+	)
+
+
+## True when the base has a threat something of ours can damage.
+func is_base_under_answerable_threat(a_threat_radius: float = 30.0) -> bool:
+	return not answerable_base_threats(a_threat_radius).is_empty()
+
+
+## is_threatened, by an enemy something of ours can damage.
+func is_answerably_threatened(a_structure: Actor, a_threat_radius: float) -> bool:
+	return _threatened_by(a_structure, a_threat_radius, true)
+
+
+## most_threatened_structure, counting only the threats something of ours can damage.
+func most_answerably_threatened_structure(a_threat_radius: float = 30.0) -> Actor:
+	return _worst_threatened(a_threat_radius, false, true)
+
+
+## threatened_command_centre, counting only the threats something of ours can damage.
+func answerably_threatened_command_centre(a_threat_radius: float) -> Actor:
+	return _worst_threatened(a_threat_radius, true, true)
+
+
+func _threatened_by(a_structure: Actor, a_threat_radius: float, a_answerable: bool) -> bool:
+	return visible_enemies_near(a_structure.global_position, a_threat_radius).any(
+		func(enemy: Actor) -> bool:
+			return matchup(enemy, a_structure) > 0.0 and (not a_answerable or can_answer(enemy))
+	)
+
+
+## The threatened owned structure lowest in hp — command centres only when asked — or null.
+## A plain structure counts only once HURT (the search starts at 1.0 and keeps strictly lower);
+## a command centre counts as soon as it is threatened. One question with two answers today —
+## see tests/test_BotThreatSenses.gd's note on the sanctions' DEFEND zone.
+func _worst_threatened(a_threat_radius: float, a_centres_only: bool, a_answerable: bool) -> Actor:
 	var worst: Actor = null
-	var worst_frac := 1.0
+	var worst_frac: float = INF if a_centres_only else 1.0
 	for s: Actor in _owned_structures():
-		if is_threatened(s, a_threat_radius):
-			var frac := s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
-			if frac < worst_frac:
-				worst_frac = frac
-				worst = s
+		if a_centres_only and not Deployment.is_command_centre(s):
+			continue
+		if not _threatened_by(s, a_threat_radius, a_answerable):
+			continue
+		var frac: float = s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
+		if frac < worst_frac:
+			worst_frac = frac
+			worst = s
 	return worst
 
 
@@ -620,18 +698,7 @@ func is_command_centre_type(a_type: StringName) -> bool:
 ## null. Asked at a wider radius than most_threatened_structure's: under HEGEMONY a centre
 ## is the whole game, so an enemy still some way off it is already a threat to it.
 func threatened_command_centre(a_threat_radius: float) -> Actor:
-	var worst: Actor = null
-	var worst_frac: float = INF
-	for s: Actor in _owned_structures():
-		if not Deployment.is_command_centre(s):
-			continue
-		if not is_threatened(s, a_threat_radius):
-			continue
-		var frac: float = s.defense.hp / s.defense.hp_max if s.defense != null else 0.0
-		if frac < worst_frac:
-			worst_frac = frac
-			worst = s
-	return worst
+	return _worst_threatened(a_threat_radius, true, false)
 
 
 ## A direction squared below this is "no direction" — the anchor sits on the target.
@@ -945,16 +1012,38 @@ var lift_wanted: bool = false
 ## navigation mesh. False for ground across a cliff or walled in: an objective nobody can
 ## reach is a place the army would stand beside for ever. True when no navigation map is
 ## ready yet — unknown is not unreachable.
+##
+## Asked with the same polygon budget a unit's own path query has
+## (Movement.PATH_SEARCH_MAX_POLYGONS). Godot's A* gives up after 4096 polygons by default and
+## answers with the PARTIAL path to the nearest polygon it reached, which on this game's
+## one-quad-per-cell mesh is every walk across a skirmish map: from the bot's base, every
+## structure in the enemy's main base read as unreachable, the forward buildings as reachable,
+## and the army massed at home against the only "actionable" belief it had, for a match
+## (maps 7100/7101/7105/7108 in every ladder batch, 2026-10-30; bot-engagement-fixes.md §The
+## objective nobody could reach).
 func is_reachable(a_from: Vector3, a_to: Vector3, a_tolerance: float) -> bool:
 	if map == null or map.nav_region == null:
 		return true
 	var nav_map: RID = map.nav_region.get_navigation_map()
 	if not nav_map.is_valid() or NavigationServer3D.map_get_iteration_id(nav_map) == 0:
 		return true
-	var path: PackedVector3Array = NavigationServer3D.map_get_path(nav_map, a_from, a_to, true)
+	var path: PackedVector3Array = walk_path(nav_map, a_from, a_to)
 	if path.is_empty():
 		return false
 	return VU.in_xz(path[path.size() - 1]).distance_to(VU.in_xz(a_to)) <= a_tolerance
+
+
+## The ground path from `a_from` to `a_to` on `a_nav_map`, with a unit's polygon budget: empty
+## when there is none, PARTIAL (ending short) when the destination cannot be reached.
+static func walk_path(a_nav_map: RID, a_from: Vector3, a_to: Vector3) -> PackedVector3Array:
+	var params := NavigationPathQueryParameters3D.new()
+	params.map = a_nav_map
+	params.start_position = a_from
+	params.target_position = a_to
+	params.path_search_max_polygons = Movement.PATH_SEARCH_MAX_POLYGONS
+	var result := NavigationPathQueryResult3D.new()
+	NavigationServer3D.query_path(params, result)
+	return result.path
 
 
 ## The nearest owned garrison structure that would accept [unit], or null when the bot
@@ -1353,6 +1442,40 @@ func unit_can_attack(a_type) -> bool:
 	return loadout != null and loadout.has_weapons()
 
 
+## Whether a piece of `a_type` could damage one of `a_target_type`, read off the two build
+## previews: weapon masks, hurtbox layers and crush classes survive being out of tree (the
+## range shapes do not), which is what type_targets_ground relies on too. A preview's @onready
+## fields never resolve, so the nodes are read by name. Memoised per pair: the defence demand
+## asks it for every own piece against every believed type in a region, every think, and each
+## preview lookup walks the Tool registry.
+var _type_damage_cache: Dictionary = {}
+
+
+func type_can_damage(a_type, a_target_type) -> bool:
+	var key: String = "%s>%s" % [a_type, a_target_type]
+	if _type_damage_cache.has(key):
+		return _type_damage_cache[key]
+	var answer: bool = false
+	var attacker: Node = _preview_for_type(a_type)
+	var target: Node = _preview_for_type(a_target_type)
+	if attacker != null and target != null:
+		var hurtbox := target.get_node_or_null("Hurtbox") as CollisionObject3D
+		var layers: int = (
+			hurtbox.collision_layer & CollisionLayers.TARGETABLE_ANY if hurtbox != null else 0
+		)
+		var loadout := attacker.get_node_or_null("Loadout") as Loadout
+		if loadout != null:
+			answer = loadout.get_weapons().any(
+				func(weapon: Weapon) -> bool: return (weapon.target_mask & layers) != 0
+			)
+		var mover := attacker.get_node_or_null("Locomotion") as Movement
+		var moved := target.get_node_or_null("Locomotion") as Movement
+		if not answer and mover != null and moved != null and mover.can_crush(moved):
+			answer = true
+	_type_damage_cache[key] = answer
+	return answer
+
+
 ## True when [type] carries a weapon that can shoot something on the GROUND — read off the
 ## preview's weapon masks, which a scene sets and so survive being out of tree (the range
 ## shapes do not). The economy's prior for a static when nothing has been seen and no army
@@ -1528,15 +1651,54 @@ var combat_model: CombatModel = null
 ## per energy. Otherwise the DEMAND MAP: unit_composition_value against `a_demand`
 ## (enemy_demand_map when omitted). The two scales are never mixed within one answer.
 ## Returns { "values": { type: float }, "learned": bool }.
+##
+## EITHER SCALE IS THEN CUT BY WHAT THE TYPE CAN HIT (answerable_share): a unit inert against
+## every believed enemy unit is worth nothing however the model or the demand map rates it,
+## and one inert against part of the enemy is worth the part it can fight (Alex, 2026-10-30:
+## a Recruit against one Clipper and ten Badgers is still a buy; against five Clippers and
+## Sloops it is not, and HARD bought 160 of them in stalemate 7100). The model has no notion
+## of a layer — it is fitted on counts — so the gate is here, where every rung reads.
 func purchase_values_per_energy(a_types: Array, a_demand: Dictionary = {}) -> Dictionary:
 	var learned: Dictionary = _learned_values_per_energy(a_types)
 	if not learned.is_empty():
-		return {"values": learned, "learned": true}
+		return {"values": _cut_to_answerable(learned), "learned": true}
 	var demand: Dictionary = a_demand if not a_demand.is_empty() else enemy_demand_map()
 	var values: Dictionary = {}
 	for t: StringName in a_types:
 		values[t] = unit_composition_value(t, demand)
-	return {"values": values, "learned": false}
+	return {"values": _cut_to_answerable(values), "learned": false}
+
+
+## `a_values` with each type's value scaled by its answerable_share.
+func _cut_to_answerable(a_values: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for t: StringName in a_values:
+		out[t] = float(a_values[t]) * answerable_share(t)
+	return out
+
+
+## THE SHARE OF THE BELIEVED ENEMY ARMY A TYPE CAN DAMAGE AT ALL, by the clocked composition's
+## weights (believed_enemy_composition_clocked, phantom opening force included): 1.0 when
+## nothing is believed, and for a type or an enemy type with no preview to read (a test's
+## stand-in), which is "cannot judge", not "inert". A positive value under 1.0 is a unit
+## that fights part of what is coming; 0.0 is a unit that fights none of it — the Recruit
+## under Clippers — and that is what `type_can_damage` decides: a weapon that can lock onto
+## the enemy's layer, or a crush, never the matchup multiplier, which is what makes this the
+## inert/ineffective line rather than a second counter-effectiveness weighting.
+func answerable_share(a_type: StringName) -> float:
+	if _preview_for_type(a_type) == null:
+		return 1.0
+	var enemy: Dictionary = believed_enemy_composition_clocked()
+	var total: float = 0.0
+	var answerable: float = 0.0
+	for etype: StringName in enemy:
+		var weight: float = float(enemy[etype])
+		if weight <= 0.0:
+			continue
+		total += weight
+		if _preview_for_type(etype) == null or type_can_damage(a_type, etype):
+			answerable += weight
+	return 1.0 if total <= 0.0 else answerable / total
 
 
 ## The learned half of purchase_values_per_energy; empty when it does not apply.

@@ -37,6 +37,13 @@ class StubBot:
 	func unit_can_attack(a_type) -> bool:
 		return armed_types.has(a_type)
 
+	## Which enemies something of ours can damage — the answerable senses' filter, answered by
+	## list here because the real one reads weapons the stub pieces have not got.
+	var answerable: Array = []
+
+	func can_answer(a_enemy: Actor) -> bool:
+		return answerable.has(a_enemy)
+
 	func get_enemies_near(a_position: Vector3, a_radius: float) -> Array:
 		return pieces.filter(
 			func(p: Actor) -> bool:
@@ -197,6 +204,52 @@ func test_a_visible_enemy_beside_a_structure_is_a_threat() -> void:
 	assert_true(_bot.is_base_under_threat(RADIUS))
 	assert_eq(_bot.get_enemies_threatening_base(RADIUS), [raider])
 	assert_eq(_bot.most_threatened_structure(RADIUS), home)
+
+
+# ─── ANSWERABLE ─────────────────────────────────────────────────────────────────
+# A threat is ANSWERABLE when something of ours can damage it (Bot.can_answer). The raw senses
+# still see a raider nobody can hit — the posture dial and the economy's safety read danger —
+# but the senses that move the army or release the bank do not (2026-10-30, the 7100 replay:
+# eighty Recruits marched under five Clippers).
+
+
+func test_a_raider_nothing_can_hit_is_a_threat_but_not_an_answerable_one() -> void:
+	var home: Actor = _own_structure(Vector3.ZERO, 80.0)
+	var raider: Actor = _enemy_unit(Vector3(5.0, 0.0, 0.0))
+	_reveal(Vector3.ZERO, 10.0)
+	assert_true(_bot.is_base_under_threat(RADIUS), "it can hurt the structure")
+	assert_false(_bot.is_base_under_answerable_threat(RADIUS), "and nothing of ours can hurt it")
+	assert_eq(_bot.answerable_base_threats(RADIUS), [])
+	assert_eq(_bot.base_threats(RADIUS).size(), 1, "the raw sense still lists it")
+	assert_null(_bot.most_answerably_threatened_structure(RADIUS))
+	assert_eq(_bot.most_threatened_structure(RADIUS), home)
+	assert_false(_bot.is_answerably_threatened(home, RADIUS))
+	assert_true(_bot.is_threatened(home, RADIUS))
+	assert_false(_bot.answerable.has(raider), "guards the fixture")
+
+
+func test_a_raider_something_can_hit_is_answerable() -> void:
+	var home: Actor = _own_structure(Vector3.ZERO, 80.0)
+	var raider: Actor = _enemy_unit(Vector3(5.0, 0.0, 0.0))
+	_bot.answerable.append(raider)
+	_reveal(Vector3.ZERO, 10.0)
+	assert_true(_bot.is_base_under_answerable_threat(RADIUS))
+	assert_eq(_bot.answerable_base_threats(RADIUS).size(), 1)
+	assert_eq(_bot.most_answerably_threatened_structure(RADIUS), home)
+	assert_true(_bot.is_answerably_threatened(home, RADIUS))
+
+
+func test_only_the_answerable_raider_counts_when_both_kinds_stand_there() -> void:
+	var home: Actor = _own_structure(Vector3.ZERO, 80.0)
+	_enemy_unit(Vector3(5.0, 0.0, 0.0))
+	var gunman: Actor = _enemy_unit(Vector3(-5.0, 0.0, 0.0))
+	_bot.answerable.append(gunman)
+	_reveal(Vector3.ZERO, 10.0)
+	assert_eq(_bot.base_threats(RADIUS).size(), 2)
+	var answerable: Array = _bot.answerable_base_threats(RADIUS)
+	assert_eq(answerable.size(), 1)
+	assert_eq(answerable[0]["enemy"], gunman)
+	assert_eq(_bot.most_answerably_threatened_structure(RADIUS), home)
 
 
 func test_a_stealthed_enemy_in_clear_fog_is_still_no_threat() -> void:

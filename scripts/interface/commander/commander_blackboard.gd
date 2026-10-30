@@ -44,6 +44,12 @@ class Entry:
 	var is_structure: bool
 	var last_known_location: Vector3
 	var last_seen_time: float  # seconds (Commander.seconds_elapsed) of last sighting
+	## When the piece was first sighted: a delayed commander (perception_delay_seconds) does
+	## not believe it until the delay has passed since this.
+	var first_seen_time: float
+	## When `last_known_location` was last written: a delayed commander re-reads a piece's
+	## position only once the delay has passed since this, so what it acts on is that old.
+	var location_held_since: float
 	var entity: Actor  # live ref; may become invalid (use is_instance_valid)
 	## A structure's grid cells when last seen; empty for a unit.
 	var cells: Array[Vector2i] = []
@@ -71,6 +77,15 @@ class Snapshot:
 
 
 var _commander: Commander
+
+## How far behind what the commander can SEE its beliefs run, in seconds: a new sighting is
+## believed this long after it was first made, and a believed piece's position is refreshed
+## at most this often. 0 — the player, and the top bot tier — believes what it sees at once.
+## The bot tiers ramp it (BotDifficulty.perception_delay_seconds): a slow player's picture of
+## the enemy is a few seconds old, and the counter it builds answers that picture. Sightings
+## themselves are not delayed — `is_in_view`, the expiry clock and the snapshot visuals run on
+## what is seen now — only what a DECISION reads.
+var perception_delay_seconds: float = 0.0
 var _entries: Dictionary = {}  # identity key -> Entry
 var _snapshots: Dictionary = {}  # "id:cell" -> Snapshot
 ## The ids in view at the last update: what the commander was watching, so a death among them
@@ -122,22 +137,34 @@ func update() -> void:
 	_in_view = visible_ids
 
 
-## All believed enemy entities (persistent structures + unexpired units).
+## All believed enemy entities (persistent structures + unexpired units) the commander has
+## noticed — every entry, less those sighted less than the perception delay ago.
 func believed() -> Array:
-	return _entries.values()
+	if perception_delay_seconds <= 0.0:
+		return _entries.values()
+	var now: float = _commander.seconds_elapsed()
+	return _entries.values().filter(func(e: Entry) -> bool: return _is_noticed(e, now))
+
+
+## Whether a delayed commander has had `a_entry` in its picture long enough to act on it.
+func _is_noticed(a_entry: Entry, a_now: float) -> bool:
+	return a_now - a_entry.first_seen_time >= perception_delay_seconds
 
 
 ## Whether the piece with `a_serial` is still believed — the fog-honest form of "is it
 ## still standing": a structure stays believed until the commander SEES its cell empty, a
 ## unit until its sighting goes stale. What a decision asks instead of is_instance_valid.
 func believes(a_serial: int) -> bool:
-	return _entries.has(a_serial)
+	var entry: Entry = _entries.get(a_serial) as Entry
+	return entry != null and _is_noticed(entry, _commander.seconds_elapsed())
 
 
 ## Where the piece with `a_serial` was last seen, or null when it is not believed.
 func last_known_location(a_serial: int) -> Variant:
 	var entry: Entry = _entries.get(a_serial) as Entry
-	return entry.last_known_location if entry != null else null
+	if entry == null or not _is_noticed(entry, _commander.seconds_elapsed()):
+		return null
+	return entry.last_known_location
 
 
 ## Whether the piece with `a_serial` was in view at the last update: a CONFIRMED belief
@@ -148,14 +175,14 @@ func is_in_view(a_serial: int) -> bool:
 
 ## Believed enemy structures (last-known locations; persist until verified gone).
 func believed_structures() -> Array:
-	return _entries.values().filter(func(e: Entry): return e.is_structure)
+	return believed().filter(func(e: Entry) -> bool: return e.is_structure)
 
 
 ## Every cell a believed enemy structure stood on when last seen — what placement judges fogged
 ## ground by (PlacementKnowledge).
 func remembered_structure_cells() -> Dictionary:
 	var cells: Dictionary = {}
-	for entry: Entry in _entries.values():
+	for entry: Entry in believed():
 		for cell: Vector2i in entry.cells:
 			cells[cell] = true
 	return cells
@@ -163,7 +190,7 @@ func remembered_structure_cells() -> Dictionary:
 
 ## Believed enemy units (last-known locations; expire after BLACKBOARD_EXPIRATION).
 func believed_units() -> Array:
-	return _entries.values().filter(func(e: Entry): return not e.is_structure)
+	return believed().filter(func(e: Entry) -> bool: return not e.is_structure)
 
 
 func _upsert(a_e: Actor, a_now: float) -> void:
@@ -174,14 +201,22 @@ func _upsert(a_e: Actor, a_now: float) -> void:
 		entry.serial = id
 		entry.type = a_e.id
 		entry.is_structure = a_e.structure_is_active()
+		entry.first_seen_time = a_now
+		# Older than any delay, so the first sighting's position is written below.
+		entry.location_held_since = -INF
 		_entries[id] = entry
 		if not entry.is_structure:
 			has_believed_unit = true
 	entry.entity = a_e
+	entry.last_seen_time = a_now
+	# A delayed commander re-reads where a piece is only once per delay; what it believes in
+	# between is where the piece WAS, which is what a slow player's picture is.
+	if a_now - entry.location_held_since < perception_delay_seconds:
+		return
+	entry.location_held_since = a_now
 	entry.last_known_location = a_e.global_position
 	if entry.is_structure and _commander.map != null:
 		entry.cells.assign(_commander.map.structure_cell_map.get(a_e, []))
-	entry.last_seen_time = a_now
 
 
 #region Structure snapshots (visual fog-of-war memory)

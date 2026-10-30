@@ -494,6 +494,7 @@ func _decide() -> void:
 
 	# When income is outpacing spending, sink the surplus into more production
 	# capacity. Built near the base, so the build completes reliably.
+	var throughput_exhausted: bool = false
 	if surplus or _bot.buildable_production_structure_types().has(goal):
 		var ptype: Variant = _production_structure_to_build()
 		if ptype != null:
@@ -511,10 +512,19 @@ func _decide() -> void:
 		# income once it was already too poor to buy an extractor. Measured over the 85-match
 		# corpus, 145 of 170 slot-trajectories finished with ZERO extractors and therefore zero
 		# income — see gdd/systems/ai/bot-economy-diagnosis.md.
+		throughput_exhausted = true
 
-	# Grow income by claiming a free site with an extractor. Reached either because we are not
-	# in surplus, or because the surplus had nowhere better to go.
-	var mtype: Variant = _income_structure_to_build()
+	# Grow income by claiming a free site with an extractor. Reached because the bot is POOR —
+	# below its reserve — or because the surplus had nowhere better to go. NOT because the
+	# balance merely dipped this tick: `surplus` reads "not falling", and a bot banking
+	# thousands sees a dip on every tick a unit is paid for. Each such tick used to reach this
+	# rung and buy an extractor the target did not ask for, which cost a builder and a
+	# construction slot for the walk, and — a structure placed — invalidated the safety channel
+	# the production rung's site search was waiting on, so the barracks search restarted.
+	# Measured 2026-10-29 (bot-economy-diagnosis.md §What this does NOT settle): seven
+	# extractors and a barracks at 190–590 s, from one start point in five.
+	var poor: bool = _bot.energy < reserve
+	var mtype: Variant = _income_structure_to_build() if poor or throughput_exhausted else null
 	if mtype != null:
 		var spot: Variant = _income_build_spot(builder)
 		if spot != null:
@@ -621,9 +631,12 @@ func _unlocking_structure_for(a_type: StringName, a_under_way: Array[StringName]
 ## structure it owns none of, each valued at the best unit it would unlock — whether or not it
 ## is affordable, since saving is for what is not. A second barracks is never proposed: more of
 ## what the bot can already train is throughput, not something worth holding the bank for.
-## Also decides whether the claim holds: never while the base is under threat.
+## Also decides whether the claim holds: never while the base is under an ANSWERABLE threat
+## (Bot.can_answer). The release exists so a threatened base trains defenders; a raider nothing
+## trainable here can hit is not answered by emptying the bank into more of the same — on the
+## 7100 replay it bought 153 Recruits under five Clippers while the tech building waited.
 func _propose_savings() -> void:
-	_bot.savings.held = not _bot.is_base_under_threat(defend_threat_radius)
+	_bot.savings.held = not _bot.is_base_under_answerable_threat(defend_threat_radius)
 	var best: Dictionary = _best_tech(false)
 	var demand: Dictionary = _bot.enemy_demand_map()
 	var buildable: Array = _bot.buildable_production_structure_types()
@@ -887,14 +900,34 @@ func defence_demand_by_region() -> Array:
 	for structure: Actor in standing:
 		var centre: Vector3 = structure.global_position
 		var value: float = _cost_within(standing, centre)
-		var own: float = _cost_within(own_armed, centre)
+		var present: Array = own_armed.filter(
+			func(piece: Actor) -> bool: return _within_region(piece.global_position, centre)
+		)
 		var enemy: float = 0.0
+		var enemy_types: Array = []
 		for belief: Dictionary in enemies:
 			if _within_region(belief["position"], centre):
 				enemy += float(_bot.unit_cost(belief["type"]))
-		var tension: float = own + enemy
-		if tension <= 0.0:
+				enemy_types.append(belief["type"])
+		# OUR SIDE IS WHAT CAN ANSWER WHAT IS THERE: a piece that can hit none of the believed
+		# enemies in the region holds nothing against them (Bot.type_can_damage). A region we
+		# stand in with nothing that can answer is DEFENCELESS, not lost — its whole value is the
+		# demand, which is what asks for the SAM over a base of Recruits — where a region we do
+		# not stand in at all stays lost: a turret there goes up under enemy guns.
+		var own: float = 0.0
+		for piece: Actor in present:
+			if enemy_types.any(
+				func(t: StringName) -> bool: return _bot.type_can_damage(piece.id, t)
+			):
+				own += float(_bot.unit_cost(piece.id))
+		if _cost_within(present, centre) + enemy <= 0.0:
 			continue
+		var tension: float = own + enemy
+		var demand: float = 0.0
+		if enemy > 0.0 and own <= 0.0 and not present.is_empty():
+			demand = value
+		elif tension > 0.0:
+			demand = value * (tension - absf(own - enemy)) / tension
 		(
 			regions
 			. append(
@@ -903,7 +936,7 @@ func defence_demand_by_region() -> Array:
 					"value": value,
 					"own": own,
 					"enemy": enemy,
-					"demand": value * (tension - absf(own - enemy)) / tension,
+					"demand": demand,
 				}
 			)
 		)
@@ -1363,11 +1396,16 @@ func _abort_contested_jobs() -> void:
 		_job_started.erase(u.identity_key())
 
 
-## Whether an ARMED enemy this bot can see stands within defend_threat_radius of `a_site`.
-## Fog-limited like every threat sense: a defender the bot has not seen is one it walks into.
+## Whether an ARMED enemy this bot can see — and can ANSWER (Bot.can_answer) — stands within
+## defend_threat_radius of `a_site`. Fog-limited like every threat sense: a defender the bot has
+## not seen is one it walks into. Answerable, because "contested" means wait for the army to
+## clear it: a raider nothing of ours can hit is never cleared by waiting, and its one remedy —
+## the static defence the demand read asks for — has to be BUILT beneath it. Before this, five
+## Clippers held every site in a base for nine minutes (bot-engagement-fixes.md §An
+## unanswerable threat). The builder's own risk is accepted: the alternative was no base.
 func _site_is_contested(a_site: Vector3) -> bool:
 	return _bot.visible_enemies_near(a_site, defend_threat_radius).any(
-		func(enemy: Actor) -> bool: return _bot.unit_can_attack(enemy.id)
+		func(enemy: Actor) -> bool: return _bot.unit_can_attack(enemy.id) and _bot.can_answer(enemy)
 	)
 
 
@@ -1877,18 +1915,46 @@ func _find_build_spot(a_type: StringName) -> Variant:
 	if _advance_region(search["ranking"]):
 		search["cursor"] = 0
 		return SEARCH_PENDING
+	# Nothing around this ANCHOR at all: the next base, next call. A producer is anchored on the
+	# base nearest the action (_anchors_for), and that base can be an extractor outpost on ground
+	# no barracks fits — measured 2026-10-29 at one start point in five, where the search walked
+	# every region, found nothing, and was started afresh at the same anchor every tick for
+	# three to nine minutes while the bot floated thousands (bot-economy-diagnosis.md §What
+	# this does NOT settle). Home is the last anchor, so a bot with a base can always build at it.
+	var next_anchor: int = int(search["anchor_index"]) + 1
+	var anchors: Array = search["anchors"]
+	if next_anchor < anchors.size():
+		search["anchor_index"] = next_anchor
+		search["ranking"] = _ranking_around(a_type, anchors[next_anchor], dims)
+		search["cursor"] = 0
+		return SEARCH_PENDING
 	_spot_search = {}
 	return null
 
 
-## A fresh build-spot search for `a_type`: its candidate ranking (not yet run) and what it
-## needs to check the candidates. One orientation — the doc's — see DEFAULT_QUARTER_TURNS.
+## A fresh build-spot search for `a_type`: its candidate ranking (not yet run) around the first
+## of its anchors, and what it needs to check the candidates and to move to the next anchor when
+## one yields nothing. One orientation — the doc's — see DEFAULT_QUARTER_TURNS.
 func _new_spot_search(a_type: StringName) -> Dictionary:
 	var dims: Vector2i = _dims_for_type(a_type)
-	var anchor: Vector2 = _anchor_for(a_type)
-	var forward: Vector2 = _forward_direction(anchor)
+	var anchors: Array[Vector2] = _anchors_for(a_type)
+	return {
+		"type": a_type,
+		"dims": dims,
+		"anchors": anchors,
+		"anchor_index": 0,
+		"region": _home_region(),
+		"cursor": 0,
+		"ranking": _ranking_around(a_type, anchors[0], dims),
+	}
+
+
+## The candidate ranking (not yet run) for a structure of `a_type` and `a_dims` placed around
+## `a_anchor`, with every channel the scoring reads.
+func _ranking_around(a_type: StringName, a_anchor: Vector2, a_dims: Vector2i) -> Dictionary:
+	var forward: Vector2 = _forward_direction(a_anchor)
 	var bearing: float = _bearing_for(a_type)
-	var rankings: Array[Dictionary] = [_start_ranking(anchor, forward, bearing, dims)]
+	var rankings: Array[Dictionary] = [_start_ranking(a_anchor, forward, bearing, a_dims)]
 	var fields: BotFields = _bot.fields()
 	# Every building is scored on the SAFETY of the ground (lattice-and-topology.md §Safety,
 	# sites and placement: its expected lifetime there, under the believed enemy and the bot's
@@ -1912,14 +1978,7 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 			var coverage: PackedFloat32Array = fields.reach_coverage(reach)
 			for part: Dictionary in rankings:
 				part["coverage"] = coverage
-	return {
-		"type": a_type,
-		"dims": dims,
-		"forward": forward,
-		"region": _home_region(),
-		"cursor": 0,
-		"ranking": {"parts": rankings, "out": PackedInt64Array(), "done": false},
-	}
+	return {"parts": rankings, "out": PackedInt64Array(), "done": false}
 
 
 ## WHERE A BUILD IS ANCHORED (lattice-and-topology.md §Safety, sites and placement, item 3): a
@@ -1930,13 +1989,17 @@ func _new_spot_search(a_type: StringName) -> Dictionary:
 ## the fields at unit speed (a distance in the walker's terms, the same order for every speed),
 ## else as the crow flies. Ties go to the safer cluster, then to the one further along the axis
 ## in the bot's frame, so two mirrored bots choose corresponding bases. Home with one base.
-func _anchor_for(a_type: StringName) -> Vector2:
+##
+## EVERY base, best first: the search tries them in this order, moving on when nothing around
+## one can be placed (_find_build_spot), so an extractor outpost preferred for its position
+## never holds a building that only fits at home.
+func _anchors_for(a_type: StringName) -> Array[Vector2]:
 	if a_type in _bot.buildable_defence_structure_types():
-		return _defence_anchor()
+		return [_defence_anchor()]
 	var home: Vector2 = VU.in_xz(_bot.home_centroid())
 	var clusters: Array = _bot.bases()
 	if clusters.size() <= 1:
-		return home
+		return [home]
 	var forward: Vector2 = _forward_direction(home)
 	var action: Variant = _bot.threat_point()
 	var action_xz: Vector2 = (
@@ -1947,8 +2010,7 @@ func _anchor_for(a_type: StringName) -> Vector2:
 	var toward_action: bool = _wants_frontage(a_type)
 	var safety: PackedFloat32Array = _bot.safety_channel_for(a_type)
 	var fields: BotFields = _bot.fields()
-	var best: Variant = null
-	var best_key: Array = []
+	var keyed: Array = []  # [key, centroid] per cluster
 	for cluster: Dictionary in clusters:
 		var centroid: Vector2 = cluster["centroid"]
 		var walk: float = (
@@ -1964,13 +2026,22 @@ func _anchor_for(a_type: StringName) -> Vector2:
 		var along: float = (centroid - home).dot(forward)
 		# Lower is better on every key: the walk (negated for a sheltered structure), then the
 		# danger, then the axis position.
-		var key: Array = [
-			walk if toward_action else -walk, -safe, -along if toward_action else along
-		]
-		if best == null or key < best_key:
-			best = centroid
-			best_key = key
-	return best
+		keyed.append(
+			[
+				[walk if toward_action else -walk, -safe, -along if toward_action else along],
+				centroid
+			]
+		)
+	keyed.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	var anchors: Array[Vector2] = []
+	for entry: Array in keyed:
+		anchors.append(entry[1])
+	return anchors
+
+
+## The anchor a build of `a_type` is tried at first — see _anchors_for.
+func _anchor_for(a_type: StringName) -> Vector2:
+	return _anchors_for(a_type)[0]
 
 
 ## A walker's mobility at unit speed on the most permissive ground: what the cluster choice

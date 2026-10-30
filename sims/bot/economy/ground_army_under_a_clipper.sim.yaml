@@ -1,0 +1,48 @@
+description: |
+  A COLONIAL BASE OF RECRUITS WITH AN ENEMY CLIPPER HOVERING OVER IT. Nothing on the ground
+  can shoot upward, so the Clipper is a threat the army cannot answer; until 2026-10-30 every
+  threat sense read it as one it was answering (watched on the T-131 replay of map 7100,
+  bot-engagement-fixes.md §An unanswerable threat): the sites under it counted as contested,
+  so construction froze for nine minutes; the savings hold lifted, so the bank went into more
+  Recruits; the DEFEND post marched the Recruits beneath the guns; and the defence demand
+  counted the Recruits as holding the base, so no SAM was ever asked for.
+  Decision checks: the bot sees the Clipper; it keeps building; it does not turn to DEFEND
+  against what it cannot hit; and the one answer it has — the SAM — is ordered. B is PASSIVE:
+  its Clipper shoots on its own aggro and never leaves, which is the harassment the match
+  showed. Three Servants, so a builder is free once the opening's own builds are placed.
+  Axis: THREAT ANSWERABILITY (Bot.can_answer). Control: economy/no_opening_tower, the same
+  opening with nothing overhead, which orders no defence at all.
+setting: { kind: flat, size: 60 }
+given:
+  A:
+    settings:
+      difficulty: HARD
+      vision: full
+      energy: 4000
+      config: { scout_unit_budget: 0 }
+    with:
+      barracks:
+        of: [ { piece: cl_barracks, count: 1 } ]
+        at: center
+      compound:
+        of: [ { piece: cl_infrastructure, count: 1 } ]
+        at: { from: A.barracks, distance: 7, bearing: south }
+      servants:
+        of: [ { piece: cl_bioLight_builder, count: 3 } ]
+        at: { from: A.barracks, distance: 4, bearing: east }
+      recruits:
+        of: [ { piece: cl_bioLight_antiLight, count: 8 } ]
+        at: { from: A.barracks, distance: 5, bearing: west }
+        formation: cluster
+  B:
+    with:
+      clipper:
+        of: [ { piece: cl_aircraftLight_antiLight, count: 1 } ]
+        at: { from: A.barracks, distance: 6, bearing: north }
+run: { for: 90s, seed: 1 }
+expect:
+  - { slot: A, check: believes, of: B.clipper, by: 10s }
+  - { slot: A, check: ordered, kind: build, piece: cl_defense_antiAircraft, by: 10s }
+  - { slot: A, check: ordered, kind: build, at_least: 2, by: 90s }
+  - not: [ { slot: A, check: posture, is: DEFEND, by: 90s } ]
+  - { of: B.clipper, check: dead }

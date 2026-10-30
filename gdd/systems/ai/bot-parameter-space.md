@@ -22,7 +22,7 @@ discipline that makes a search mean anything. What RUNS the search is
 
 Twelve fields were added to `BotDifficulty` (2026-09-04), each one a number that was
 previously hardcoded in a manager. **Every default reproduces the play the bot had before the
-field existed**, and the ramp ships FLAT — see §The tiers ship flat below.
+field existed**, and a field is ramped only from a measurement — see §The tiers ship flat below.
 
 | New field | Was | Now read by |
 |---|---|---|
@@ -130,16 +130,33 @@ correlated tilt the direct draws cannot express), and it has one visible consequ
 a curiosity bias drawn low prices information under what a scout costs, and that bot never
 scouts. A test or an experiment that wants the tier plays at spread 0, as before.
 
-## The tiers ship flat
+## The tiers ship flat, until a measurement moves a knob
 
-Every new field has the same value in every tier — the value that reproduces today's play.
-That is a position, not an omission. The seven original knobs are already a hand-made ramp
-that [bot-roadmap](bot-roadmap.md) §Difficulty first explicitly says nothing should be
-balanced against until a search has run; hand-ramping twelve more would multiply exactly the
-guesswork the search exists to remove, and would make "opening a knob" indistinguishable from
-"changing the game". A constant is monotone, so the ramp property `test_ScenarioPlayerSlots`
-pins still holds, and **each field's doc comment records which direction is harder**, so a
-ramp can be written the moment there is a measurement to write it from.
+A new field ships with the same value in every tier — the value that reproduces today's play
+— and is ramped only from a measurement. That is a position, not an omission: the seven
+original knobs were a hand-made ramp that [bot-roadmap](bot-roadmap.md) §Difficulty first
+said nothing should be balanced against until a search had run, and hand-ramping twelve more
+would have multiplied exactly the guesswork the search exists to remove, and made "opening a
+knob" indistinguishable from "changing the game". A constant is monotone, so the ramp property
+`test_ScenarioPlayerSlots` pins still holds, and **each field's doc comment records which
+direction is harder**, so a ramp can be written the moment there is a measurement to write it
+from.
+
+The exception is the ramp of EXECUTION ([bot-roadmap](bot-roadmap.md) §Difficulty first,
+Alex 2026-10-29): a tier throttles how well the bot plays, never how it wants to win, so the
+throttles — the decision periods, `attention_orders_per_second`, `perception_delay_seconds`,
+`decision_temperature`, `build_concurrency`, `squad_cap` — are ramped as the tier's identity
+and measured on the difficulty ladder, while every disposition field above stays the class
+default in every tier and moves only with the personality draw. `personality_spread` is one
+spread for every attacking tier, because the variety of styles is not a difficulty either.
+
+The two throttles added for that ramp (2026-10-29), neither searched nor jittered — the tier's
+identity, like the periods:
+
+| Field | Was | Now read by |
+|---|---|---|
+| `attention_orders_per_second` | every deciding job ran the instant it was due | `BotBrain._attentive` → `BotAttention`: the orders budget every deciding job draws on |
+| `perception_delay_seconds` | a sighting was believed at once | `CommanderBlackboard.perception_delay_seconds`: how long a sighting takes to become a belief, and how often a position is re-read |
 
 ## The audit
 

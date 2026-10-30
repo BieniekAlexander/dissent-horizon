@@ -22,6 +22,11 @@ var _map: Map
 ## harness for the piece-usage audit; never read by a decision. See BotUsageLog.
 var usage: BotUsageLog = BotUsageLog.new()
 
+## How many ACTIONS this actuator has issued: one per verb call that issued anything, however
+## many units it carried — a group's attack-move is one click for a player too. What
+## BotAttention charges a job for (BotBrain._attentive); the per-unit count is `usage`'s.
+var actions_issued: int = 0
+
 
 func _init(a_map: Map) -> void:
 	_map = a_map
@@ -52,6 +57,12 @@ func _admits(
 		return false
 	usage.record_action(a_kind, a_piece, BotUsageLog.OUTCOME_ISSUED)
 	return true
+
+
+## One action issued (`a_issued` true): what a player would have done with one click.
+func _count_action(a_issued: bool) -> void:
+	if a_issued:
+		actions_issued += 1
 
 
 ## Order each unit to attack-move toward a world position. The destination is
@@ -89,6 +100,7 @@ func attack_move(
 		# so without this a destination at the map centre is silently dropped.
 		u.load_destination(cmd)
 		issued.append(u)
+	_count_action(not issued.is_empty())
 	_match_group_speed(issued)
 
 
@@ -108,6 +120,7 @@ func move(a_units: Array, a_world_pos: Vector3) -> void:
 		u.update_commands(cmd)
 		u.load_destination(cmd)
 		issued.append(u)
+	_count_action(not issued.is_empty())
 	_match_group_speed(issued)
 
 
@@ -131,6 +144,7 @@ func move_at(a_units: Array, a_target: Entity) -> void:
 		u.update_commands(cmd)
 		u.load_destination(cmd)
 		issued.append(u)
+	_count_action(not issued.is_empty())
 	_match_group_speed(issued)
 
 
@@ -144,6 +158,7 @@ func rally(a_structures: Array, a_world_pos: Vector3) -> void:
 	for s: Actor in a_structures:
 		usage.record_action("rally", s.id, BotUsageLog.OUTCOME_ISSUED)
 		s.set_rally(MoveCommand.new(CommandMessage.new(_map, null, null, dest)))
+	_count_action(not a_structures.is_empty())
 
 
 ## Turn every host in `a_hosts` out: the Evacuate order the player gives a garrison. Issued
@@ -153,10 +168,13 @@ func rally(a_structures: Array, a_world_pos: Vector3) -> void:
 func evacuate(a_hosts: Array) -> void:
 	if _map == null:
 		return
+	var issued: bool = false
 	for host: Actor in a_hosts:
 		var msg := CommandMessage.new(_map, null, null, host.global_position)
 		if _admits(Evacuate, host, msg, "evacuate", host.id):
 			host.update_commands(Evacuate.new(msg))
+			issued = true
+	_count_action(issued)
 
 
 ## Order each unit to attack a specific enemy entity directly. persist=false makes
@@ -190,6 +208,7 @@ func attack(a_units: Array, a_target: Entity, a_persist: bool = true) -> void:
 		u.update_commands(cmd)
 		u.load_destination(cmd)
 		issued.append(u)
+	_count_action(not issued.is_empty())
 	_match_group_speed(issued)
 
 
@@ -224,6 +243,7 @@ func issue_chain(a_unit: Actor, a_chain: Array[MoveCommand]) -> bool:
 	# Prime the nav target: a fresh agent defaults target_position to (0,0,0), so without this a
 	# destination at the map centre is silently dropped.
 	a_unit.load_destination(first)
+	_count_action(true)
 	return true
 
 
@@ -275,6 +295,7 @@ func build(
 	var cmd := Build.new(msg)
 	a_builder.update_commands(cmd)
 	a_builder.load_destination(cmd)
+	_count_action(true)
 	return true
 
 
@@ -293,6 +314,7 @@ func interact(a_unit: Actor, a_target: Entity) -> bool:
 	var cmd := Interact.new(msg)
 	a_unit.update_commands(cmd)
 	a_unit.load_destination(cmd)
+	_count_action(true)
 	return true
 
 
@@ -310,6 +332,7 @@ func garrison_into(a_unit: Actor, a_host: Actor) -> bool:
 	var cmd := Occupy.new(msg)
 	a_unit.update_commands(cmd)
 	a_unit.load_destination(cmd)
+	_count_action(true)
 	return true
 
 
@@ -341,6 +364,7 @@ func use_sanction(
 	if a_sanction.needs_target:
 		usage.record_cast_position(a_sanction.ability_id, a_world_pos)
 	a_caster.update_commands(UseSanction.new(msg))
+	_count_action(true)
 	return true
 
 
@@ -359,6 +383,7 @@ func use_ability(a_caster: Actor, a_ability_id: StringName, a_world_pos: Vector3
 	var cmd := Ability.new(msg)
 	a_caster.update_commands(cmd)
 	a_caster.load_destination(cmd)
+	_count_action(true)
 	return true
 
 
@@ -376,6 +401,7 @@ func spot(a_spotter: Actor, a_world_pos: Vector3) -> bool:
 	var cmd := Spot.new(msg)
 	a_spotter.update_commands(cmd)
 	a_spotter.load_destination(cmd)
+	_count_action(true)
 	return true
 
 
@@ -393,6 +419,7 @@ func bombard(a_gun: Actor, a_world_pos: Vector3) -> bool:
 		return false
 	usage.record_cast_position(Bombard.ABILITY_ID, a_world_pos)
 	a_gun.update_commands(Bombard.new(msg))
+	_count_action(true)
 	return true
 
 
@@ -410,4 +437,5 @@ func train(a_structure: Actor, a_type: StringName) -> bool:
 		return false
 	usage.record_action("train", a_type, BotUsageLog.OUTCOME_ISSUED)
 	a_structure.commander.production_queue.submit_train(tool, [a_structure])
+	_count_action(true)
 	return true

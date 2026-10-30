@@ -70,6 +70,9 @@ var build_concurrency: int = 1
 ## ATTACK objective is fog-limited — a bot with nothing spare to look with has no offensive
 ## at all. See _utility_demand_for for how it enters the demand.
 var scout_unit_budget: int = 1
+## The floor under that count (BotDifficulty.scout_minimum): a scout the bot must keep out is
+## a unit it has to have MADE, whether or not the information would have been worth buying.
+var scout_minimum: int = 0
 
 ## One body over the live errands. Not slack for its own sake: an errand appears between one
 ## think and the next (prey wanders into view, a building finishes and frees a site), and a
@@ -257,7 +260,7 @@ func _utility_demand_for(a_type: StringName) -> int:
 		demand += 1
 	if _bot.unit_type_is_mobile_spotter(a_type) and _spotter_wanted():
 		demand += 1
-	if _owned_utility_unit_count() < scout_unit_budget:
+	if _owned_utility_unit_count() < maxi(scout_unit_budget, scout_minimum):
 		demand += 1
 	return mini(demand, maxi(0, utility_unit_cap))
 

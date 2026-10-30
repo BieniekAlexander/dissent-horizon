@@ -1,0 +1,192 @@
+[
+ {
+  "id": "medium_v_hard_map7100_base",
+  "seed": 7100,
+  "map_seed": 7100,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD",
+    "config": {
+     "attention_orders_per_second": 0.6,
+     "perception_delay_seconds": 2.5
+    }
+   },
+   {
+    "difficulty": "MEDIUM"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7100_swap",
+  "seed": 7100,
+  "map_seed": 7100,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD",
+    "config": {
+     "attention_orders_per_second": 0.6,
+     "perception_delay_seconds": 2.5
+    }
+   },
+   {
+    "difficulty": "MEDIUM"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7101_base",
+  "seed": 7101,
+  "map_seed": 7101,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM"
+   },
+   {
+    "difficulty": "HARD",
+    "config": {
+     "attention_orders_per_second": 0.6,
+     "perception_delay_seconds": 2.5
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7101_swap",
+  "seed": 7101,
+  "map_seed": 7101,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM"
+   },
+   {
+    "difficulty": "HARD",
+    "config": {
+     "attention_orders_per_second": 0.6,
+     "perception_delay_seconds": 2.5
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7102_base",
+  "seed": 7102,
+  "map_seed": 7102,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD",
+    "config": {
+     "attention_orders_per_second": 0.6,
+     "perception_delay_seconds": 2.5
+    }
+   },
+   {
+    "difficulty": "MEDIUM"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7102_swap",
+  "seed": 7102,
+  "map_seed": 7102,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD",
+    "config": {
+     "attention_orders_per_second": 0.6,
+     "perception_delay_seconds": 2.5
+    }
+   },
+   {
+    "difficulty": "MEDIUM"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7103_base",
+  "seed": 7103,
+  "map_seed": 7103,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM"
+   },
+   {
+    "difficulty": "HARD",
+    "config": {
+     "attention_orders_per_second": 0.6,
+     "perception_delay_seconds": 2.5
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7103_swap",
+  "seed": 7103,
+  "map_seed": 7103,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "MEDIUM"
+   },
+   {
+    "difficulty": "HARD",
+    "config": {
+     "attention_orders_per_second": 0.6,
+     "perception_delay_seconds": 2.5
+    }
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7104_base",
+  "seed": 7104,
+  "map_seed": 7104,
+  "swap_start_points": false,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD",
+    "config": {
+     "attention_orders_per_second": 0.6,
+     "perception_delay_seconds": 2.5
+    }
+   },
+   {
+    "difficulty": "MEDIUM"
+   }
+  ]
+ },
+ {
+  "id": "medium_v_hard_map7104_swap",
+  "seed": 7104,
+  "map_seed": 7104,
+  "swap_start_points": true,
+  "max_simulated_seconds": 1200.0,
+  "slots": [
+   {
+    "difficulty": "HARD",
+    "config": {
+     "attention_orders_per_second": 0.6,
+     "perception_delay_seconds": 2.5
+    }
+   },
+   {
+    "difficulty": "MEDIUM"
+   }
+  ]
+ }
+]

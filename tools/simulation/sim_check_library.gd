@@ -387,10 +387,16 @@ static func _build_believes(a_check: SimSpec.Check, a_roster: SimGroupRoster) ->
 		var bot: Bot = a_roster.bot_of(a_check.slot)
 		if bot == null or bot.blackboard == null:
 			return false
+		# The roster names a member by INSTANCE id; the blackboard keys a belief by the piece's
+		# identity (Entity.identity_key, its spawn serial), so the one is translated to the other
+		# here. Before 2026-10-30 the instance id was looked up directly and no spec could ever
+		# pass this check. A member already freed is one the roster can no longer name a belief
+		# for, and counts as not believed.
 		var ids: Array = a_roster.member_ids(a_check.group_ref)
 		var believed: int = 0
 		for id: int in ids:
-			if bot.blackboard.believes(id):
+			var member: Object = instance_from_id(id)
+			if member is Entity and bot.blackboard.believes((member as Entity).identity_key()):
 				believed += 1
 		return SimCheckLibrary._count_holds(a_check, believed, ids.size())
 

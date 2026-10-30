@@ -168,6 +168,9 @@ func test_non_passive_difficulty_keeps_the_brain_active() -> void:
 ## THE TIER SELECTS PARAMETERS, and the parameters are what the managers read. Pinned as a
 ## RAMP rather than by value: the numbers are placeholders awaiting a tuning run, but the
 ## DIRECTION each knob means is the settled part and a tier that inverted one would be a bug.
+## A tier is a ramp of EXECUTION, never of disposition (bot-roadmap.md §Difficulty first): a
+## harder bot looks more often, may do more per second, answers a fresher picture, takes the
+## best option more surely and runs more at once — and wants exactly the same things.
 func test_the_tiers_are_a_monotone_ramp() -> void:
 	var tiers: Array = [
 		PlayerSlot.Difficulty.EASY,
@@ -188,25 +191,20 @@ func test_the_tiers_are_a_monotone_ramp() -> void:
 					previous.get(period),
 					"a harder bot reacts no slower (%s)" % period
 				)
-			assert_lte(
-				config.army_commit_threshold,
-				previous.army_commit_threshold,
-				"a harder bot commits no later"
-			)
-			assert_lte(
-				config.retarget_switch_margin,
-				previous.retarget_switch_margin,
-				"a harder bot micros no less"
-			)
-			assert_lte(
-				config.economy_reserve,
-				previous.economy_reserve,
-				"a harder bot banks no more before expanding"
-			)
 			assert_gte(
-				config.scout_unit_budget,
-				previous.scout_unit_budget,
-				"a harder bot is willing to spend no fewer units looking"
+				_attention_rank(config),
+				_attention_rank(previous),
+				"a harder bot may do no less per second"
+			)
+			assert_lte(
+				config.perception_delay_seconds,
+				previous.perception_delay_seconds,
+				"a harder bot answers no older a picture"
+			)
+			assert_lte(
+				config.decision_temperature,
+				previous.decision_temperature,
+				"a harder bot takes a worse option no more often"
 			)
 			assert_gte(
 				_concurrency_rank(config),
@@ -214,6 +212,43 @@ func test_the_tiers_are_a_monotone_ramp() -> void:
 				"a harder bot runs no fewer construction jobs at once"
 			)
 		previous = config
+
+
+## The disposition fields are the SAME in every tier: how the bot wants to win is a
+## personality, drawn at one spread for every tier, and never what difficulty encodes.
+func test_disposition_is_not_a_tier() -> void:
+	var easy: BotDifficulty = BotDifficulty.for_tier(PlayerSlot.Difficulty.EASY)
+	for tier: PlayerSlot.Difficulty in [
+		PlayerSlot.Difficulty.MEDIUM, PlayerSlot.Difficulty.HARD, PlayerSlot.Difficulty.IMPOSSIBLE
+	]:
+		var config: BotDifficulty = BotDifficulty.for_tier(tier)
+		for field: String in [
+			"army_commit_threshold",
+			"preserve_min_cost",
+			"retarget_switch_margin",
+			"scout_unit_budget",
+			"economy_reserve",
+			"income_structure_target",
+			"utility_unit_cap",
+			"tech_value_margin",
+			"attack_value_ratio",
+			"assumed_enemy_parity",
+			"wave_abort_fraction",
+			"reinforce_fraction",
+			"personality_spread",
+		]:
+			assert_eq(
+				config.get(field),
+				easy.get(field),
+				"%s is a disposition, the same at every tier" % field
+			)
+
+
+## `attention_orders_per_second` carries a sentinel (-1 = UNLIMITED), the top of its ramp.
+func _attention_rank(a_config: BotDifficulty) -> float:
+	return (
+		INF if a_config.attention_orders_per_second < 0.0 else a_config.attention_orders_per_second
+	)
 
 
 ## `build_concurrency` carries a sentinel (-1 = UNCAPPED), so it cannot be compared raw on a
@@ -267,41 +302,34 @@ func test_the_concurrency_sentinel_is_never_read_as_a_count() -> void:
 	assert_eq(BotDifficulty.build_slots(3), 3)
 
 
-## The budget was 1 for every tier below IMPOSSIBLE — a constant wearing a parameter's
-## clothes. It has to actually MOVE across the ramp, or the knob means nothing, and with a
-## fog-limited attack objective a bot that cannot look cannot attack.
-func test_the_scout_budget_is_a_real_ramp_and_not_a_flat_one() -> void:
-	var tiers: Array = [
-		PlayerSlot.Difficulty.EASY,
-		PlayerSlot.Difficulty.MEDIUM,
-		PlayerSlot.Difficulty.HARD,
-		PlayerSlot.Difficulty.IMPOSSIBLE,
-	]
-	var budgets: Array = tiers.map(
-		func(t: PlayerSlot.Difficulty) -> int: return BotDifficulty.for_tier(t).scout_unit_budget
-	)
-	assert_gt(budgets.max(), budgets.min(), "the tiers do not all scout the same amount")
-	assert_gt(budgets.max(), 1, "and the ceiling is above the one-scout maximum it shipped with")
-	assert_eq(
-		BotDifficulty.for_tier(PlayerSlot.Difficulty.PASSIVE).scout_unit_budget,
-		0,
-		"PASSIVE still plays blind"
+## PASSIVE plays blind by definition; the attacking tiers all look the same amount, since how
+## many units a bot spends looking is a disposition (test_disposition_is_not_a_tier).
+func test_passive_still_plays_blind() -> void:
+	assert_eq(BotDifficulty.for_tier(PlayerSlot.Difficulty.PASSIVE).scout_unit_budget, 0)
+	assert_gt(
+		BotDifficulty.for_tier(PlayerSlot.Difficulty.MEDIUM).scout_unit_budget,
+		1,
+		"and an attacking tier has more than the one scout it shipped with"
 	)
 
 
 func test_preservation_is_a_threshold_rather_than_a_tier_check() -> void:
-	# -1 means "never", which is how the easy tiers express it — not a branch on the tier.
-	assert_false(
-		BotDifficulty.for_tier(PlayerSlot.Difficulty.EASY).preserves_unit_costing(10_000),
-		"EASY abandons anything"
-	)
-	assert_true(
-		BotDifficulty.for_tier(PlayerSlot.Difficulty.HARD).preserves_unit_costing(0),
-		"HARD saves everything"
-	)
+	# -1 means "never" and 0 "everything": sentinel values of one field, not a branch on the
+	# tier — which is what lets PASSIVE abandon everything while every attacking tier plays by
+	# the same (drawn) threshold.
+	var config := BotDifficulty.new()
+	config.preserve_min_cost = -1
+	assert_false(config.preserves_unit_costing(10_000), "-1 abandons anything")
+	config.preserve_min_cost = 0
+	assert_true(config.preserves_unit_costing(0), "0 saves everything")
 	var medium: BotDifficulty = BotDifficulty.for_tier(PlayerSlot.Difficulty.MEDIUM)
 	assert_false(medium.preserves_unit_costing(medium.preserve_min_cost - 1))
 	assert_true(medium.preserves_unit_costing(medium.preserve_min_cost))
+	assert_eq(
+		BotDifficulty.for_tier(PlayerSlot.Difficulty.PASSIVE).preserve_min_cost,
+		-1,
+		"the sparring partner never pulls a unit out"
+	)
 
 
 ## Every slot's commander carries a brain; a human slot's is attached switched off, so debug

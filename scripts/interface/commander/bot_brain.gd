@@ -119,6 +119,13 @@ var _opportunist: BotOpportunist
 ## Which manager owns which unit — shared by every manager of this bot.
 var claims: BotClaims = BotClaims.new()
 
+## How much this bot may DO per second: the orders budget every deciding job draws on
+## (_attentive). Unlimited until the config says otherwise. See BotAttention.
+var attention: BotAttention = BotAttention.new()
+## Orders each attentive job has issued so far, by job name — where a throttled bot's attention
+## went. For the samples (tools/selfplay/run_match.gd) and the debug overlay.
+var attention_spent_by_job: Dictionary = {}
+
 ## THE BOT'S OWN GENERATOR, seeded from the match seed and the slot (seed_randomness), so a
 ## match is reproducible from its seed and two bots never share a stream — a shared stream
 ## drawn in interleaved order would make each bot's draws depend on the other's think order.
@@ -311,50 +318,106 @@ func _build_jobs() -> void:
 		# The spatial fields: a rebuild begun each period and carried on in pieces until it is
 		# complete (BotFields.advance), so no tick pays for every sweep at once.
 		BotJob.new(&"fields", self, fields, JOB_PRIORITY_FIELDS, _tick_fields, _fields_pending),
+		# Every job below that DECIDES draws on the attention budget (_attentive); the perception
+		# jobs — fields, momentum, posture, scout_sight — look for free.
 		BotJob.new(
 			&"deployment",
 			self,
 			strategy,
 			JOB_PRIORITY_DEPLOYMENT,
-			_deployment.tick,
-			_deployment.is_pending
+			_attentive(&"deployment", _deployment.tick),
+			_attention_pending(&"deployment", _deployment.is_pending)
 		),
 		BotJob.new(&"momentum", self, combat, JOB_PRIORITY_MOMENTUM, _unit_work(_momentum.tick)),
 		BotJob.new(&"posture", self, strategy, JOB_PRIORITY_POSTURE, _unit_work(_tick_posture)),
-		BotJob.new(&"targeting", self, combat, JOB_PRIORITY_TARGETING, _unit_work(_targeting.tick)),
-		BotJob.new(&"military", self, combat, JOB_PRIORITY_MILITARY, _unit_work(_military.tick)),
-		BotJob.new(&"escort", self, combat, JOB_PRIORITY_ESCORT, _unit_work(_escort.tick)),
-		BotJob.new(&"sanction", self, combat, JOB_PRIORITY_SANCTION, _unit_work(_sanction.tick)),
-		BotJob.new(&"abilities", self, combat, JOB_PRIORITY_ABILITIES, _unit_work(_abilities.tick)),
+		BotJob.new(
+			&"targeting",
+			self,
+			combat,
+			JOB_PRIORITY_TARGETING,
+			_attentive(&"targeting", _unit_work(_targeting.tick)),
+			_attention_pending(&"targeting")
+		),
+		BotJob.new(
+			&"military",
+			self,
+			combat,
+			JOB_PRIORITY_MILITARY,
+			_attentive(&"military", _unit_work(_military.tick)),
+			_attention_pending(&"military")
+		),
+		BotJob.new(
+			&"escort",
+			self,
+			combat,
+			JOB_PRIORITY_ESCORT,
+			_attentive(&"escort", _unit_work(_escort.tick)),
+			_attention_pending(&"escort")
+		),
+		BotJob.new(
+			&"sanction",
+			self,
+			combat,
+			JOB_PRIORITY_SANCTION,
+			_attentive(&"sanction", _unit_work(_sanction.tick)),
+			_attention_pending(&"sanction")
+		),
+		BotJob.new(
+			&"abilities",
+			self,
+			combat,
+			JOB_PRIORITY_ABILITIES,
+			_attentive(&"abilities", _unit_work(_abilities.tick)),
+			_attention_pending(&"abilities")
+		),
 		BotJob.new(
 			&"kamikaze",
 			self,
 			func() -> float: return BotKamikaze.EVAL_PERIOD_SECONDS,
 			JOB_PRIORITY_KAMIKAZE,
-			_unit_work(_kamikaze.tick)
+			_attentive(&"kamikaze", _unit_work(_kamikaze.tick)),
+			_attention_pending(&"kamikaze")
 		),
 		BotJob.new(
 			&"preservation",
 			self,
 			func() -> float: return PRESERVATION_PERIOD_SECONDS,
 			JOB_PRIORITY_PRESERVATION,
-			_unit_work(_tick_preservation)
+			_attentive(&"preservation", _unit_work(_tick_preservation)),
+			_attention_pending(&"preservation")
 		),
 		BotJob.new(
-			&"opportunist", self, strategy, JOB_PRIORITY_OPPORTUNIST, _unit_work(_opportunist.tick)
+			&"opportunist",
+			self,
+			strategy,
+			JOB_PRIORITY_OPPORTUNIST,
+			_attentive(&"opportunist", _unit_work(_opportunist.tick)),
+			_attention_pending(&"opportunist")
 		),
 		BotJob.new(
 			&"economy",
 			self,
 			strategy,
 			JOB_PRIORITY_ECONOMY,
-			_economy.tick,
-			_economy.has_pending_search
+			_attentive(&"economy", _economy.tick),
+			_attention_pending(&"economy", _economy.has_pending_search)
 		),
 		BotJob.new(
-			&"production", self, strategy, JOB_PRIORITY_PRODUCTION, _unit_work(_production.tick)
+			&"production",
+			self,
+			strategy,
+			JOB_PRIORITY_PRODUCTION,
+			_attentive(&"production", _unit_work(_production.tick)),
+			_attention_pending(&"production")
 		),
-		BotJob.new(&"research", self, strategy, JOB_PRIORITY_RESEARCH, _unit_work(_research.tick)),
+		BotJob.new(
+			&"research",
+			self,
+			strategy,
+			JOB_PRIORITY_RESEARCH,
+			_attentive(&"research", _unit_work(_research.tick)),
+			_attention_pending(&"research")
+		),
 		# Seeing comes before dispatching, so a scout is sent on from what was just seen.
 		BotJob.new(
 			&"scout_sight",
@@ -365,7 +428,12 @@ func _build_jobs() -> void:
 			_scout.is_sight_pending
 		),
 		BotJob.new(
-			&"scout", self, scouting, JOB_PRIORITY_SCOUT, _scout.tick, _scout.is_dispatch_pending
+			&"scout",
+			self,
+			scouting,
+			JOB_PRIORITY_SCOUT,
+			_attentive(&"scout", _scout.tick),
+			_attention_pending(&"scout", _scout.is_dispatch_pending)
 		),
 	]
 
@@ -386,6 +454,32 @@ func _fields_pending() -> bool:
 	return fields != null and fields.is_pending()
 
 
+## Wrap a job's work so it runs only when the bot has attention to spend AND it is this job's
+## turn (BotAttention.claim), and pays for what it issued: the balance is brought up to the
+## simulation clock first, a refused job idles and is marked pending (_attention_pending), so
+## the scheduler tries it again next tick rather than a period later, and the actions the
+## actuator counted during the run are charged after it. An unlimited budget (the default, and
+## the top tier) makes this a plain pass-through.
+func _attentive(a_name: StringName, a_work: Callable) -> Callable:
+	return func(a_allowance: int) -> int:
+		attention.refill(bot.seconds_elapsed())
+		if not attention.claim(a_name):
+			return IDLE_JOB_WORK_UNITS
+		var before: int = _actuator.actions_issued
+		var spent: int = int(a_work.call(a_allowance))
+		var issued: int = _actuator.actions_issued - before
+		attention.spend(issued)
+		attention_spent_by_job[a_name] = int(attention_spent_by_job.get(a_name, 0)) + issued
+		return maxi(IDLE_JOB_WORK_UNITS, spent)
+
+
+## The is_pending half of an attentive job: owed a turn, or part-way through its own sweep
+## (`a_inner`, the job's own pending test, when it has one).
+func _attention_pending(a_name: StringName, a_inner: Callable = Callable()) -> Callable:
+	return func() -> bool:
+		return attention.is_waiting(a_name) or (a_inner.is_valid() and bool(a_inner.call()))
+
+
 ## Wrap a manager's `tick() -> int` (work units spent) as a job's work callable. The allowance
 ## is not passed down: these ticks always finish, and report what they cost. (The economy's and
 ## the scout's ticks take the allowance themselves, and are registered unwrapped.)
@@ -403,6 +497,11 @@ func _apply_config() -> void:
 	# fields a dial reaches are pushed again by _apply_posture whenever a dial moves.
 	_posture.read_params(config)
 	_income.assumed_enemy_income_parity = config.assumed_enemy_income_parity
+	# The two execution throttles: what the bot may do per second, and how old its picture of
+	# the enemy is. Neither reaches a manager; one gates the jobs, the other the beliefs.
+	attention.orders_per_second = config.attention_orders_per_second
+	if bot != null and bot.blackboard != null:
+		bot.blackboard.perception_delay_seconds = config.perception_delay_seconds
 	var played: BotDifficulty = _apply_posture()
 	_military.army_commit_threshold = played.army_commit_threshold
 	_military.may_attack = config.may_attack
@@ -420,6 +519,9 @@ func _apply_config() -> void:
 		config.retarget_weight_proximity
 	)
 	_scout.unit_budget = config.scout_unit_budget
+	_scout.minimum_scouts = config.scout_minimum
+	# The floor takes a builder only while the economy has more than it runs jobs with.
+	_scout.build_concurrency = config.build_concurrency
 	_economy.reserve = played.economy_reserve
 	_economy.build_concurrency = config.build_concurrency
 	_economy.production_structure_cap = config.production_structure_cap
@@ -448,6 +550,7 @@ func _apply_config() -> void:
 	# to have MADE. See BotProduction._utility_demand_for.
 	_production.build_concurrency = config.build_concurrency
 	_production.scout_unit_budget = config.scout_unit_budget
+	_production.scout_minimum = config.scout_minimum
 	# The same reserve the economy plays by: it is a COMMANDER-WIDE spending floor, and a
 	# floor one of the two spenders ignores is not a floor (see BotProduction.reserve).
 	_production.reserve = played.economy_reserve
@@ -549,6 +652,8 @@ func _ensure_managers() -> bool:
 	_scout = BotScout.new(bot, _actuator)
 	# A REVEAL sanction is aimed by what the scout has not seen, and stamps what it shows.
 	_sanction.scout = _scout
+	# A wave with nothing left to attack asks the same module where the map is unseen.
+	_military.scout = _scout
 	_posture = BotPosture.new()
 	# The enemy income estimate reads the scout grid for how freshly each band has been seen.
 	_income = BotIncome.new(bot, _scout)

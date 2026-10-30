@@ -106,6 +106,21 @@ var _map_depth: float = 0.0
 ## per unit by _scouting_is_worth_it: a cap says what is permitted, not what is wise.
 var unit_budget: int = 1
 
+## FLOOR under the scout count (BotDifficulty.scout_minimum; Alex, 2026-10-30): scouts the bot
+## keeps out whatever the information is worth, because map knowledge is what every other
+## decision runs on — the attack objective is a belief, and a bot that has found nothing has
+## no offensive however large its army (stalemate 7100: both bots saw a third of the map in
+## twenty minutes with their builders as scouts). The floor is filled from SPARE units only
+## (_is_spare), so it never strips the economy of its builders, and it shrinks to what is
+## spare rather than being forced; production's utility demand asks for the shortfall. Above
+## the floor the value test (_scouting_is_worth_it) prices every further scout as before.
+## 0 means no floor, which is what a bare module in a test has.
+var minimum_scouts: int = 0
+
+## How many construction jobs the economy runs at once (BotDifficulty.build_concurrency): a
+## builder is spare for the floor only while the bot owns more than that plus one.
+var build_concurrency: int = 1
+
 ## The units currently out scouting. Several, because "how many should scout" is a
 ## trade-off rather than a constant (the user's own framing: n = infinity is obviously
 ## ideal, so the question is what each extra scout costs).
@@ -449,7 +464,7 @@ func _update_scouts(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 	# A bot with no allowance releases whatever it was scouting with, before asking anything
 	# about them. Released rather than left standing, so the military's idle-sweep picks the
 	# unit up next tick.
-	if unit_budget <= 0:
+	if _ceiling() <= 0:
 		for entry: Variant in _scouts:
 			claims.release(entry, CLAIM_OWNER)
 		_scouts = []
@@ -492,7 +507,7 @@ func _update_scouts(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 
 	# One claim per think: taking the whole allowance at once would commit the bot to a
 	# scouting posture on a single instant's reading of how blind it is.
-	if _scouts.size() < unit_budget:
+	if _scouts.size() < _ceiling():
 		var candidate: Variant = _pick_scout()
 		if candidate != null:
 			_scouts.append(candidate)
@@ -567,7 +582,27 @@ func _still_scouting(a_scout: Variant, a_rank: int) -> bool:
 		return false
 	if _yields_to_errand(scout):
 		return false
-	return _scouting_is_worth_it(scout, a_rank)
+	# A scout within the floor is kept whatever the map is worth: a stronger claim (a build
+	# job, a fight) still takes it, and the floor refills from the spare set next think.
+	return a_rank <= minimum_scouts or _scouting_is_worth_it(scout, a_rank)
+
+
+## How many scouts the bot may have out: the allowance, or the floor where that is higher.
+func _ceiling() -> int:
+	return maxi(unit_budget, minimum_scouts)
+
+
+## Whether `a_unit` may be taken for the FLOOR: not a builder the economy still needs, since a
+## floor is filled without the price test that otherwise keeps a needed unit at home. The
+## economy runs build_slots(build_concurrency) jobs at once and production keeps one builder
+## spare, so a builder beyond that count is nobody's loss. Uncapped concurrency (IMPOSSIBLE)
+## keeps every builder: it will use as many as it owns.
+func _is_spare(a_unit: Actor) -> bool:
+	if not a_unit.has_node("Builds"):
+		return true
+	if BotDifficulty.is_build_uncapped(build_concurrency):
+		return false
+	return _builder_count() > BotDifficulty.build_slots(build_concurrency) + 1
 
 
 ## Issue `a_scout`'s next waypoint. The target is optimistically stamped as visited so
@@ -695,6 +730,27 @@ func _yields_to_errand(a_scout: Actor) -> bool:
 	)
 
 
+## WHERE AN ARMY WITH NOTHING TO ATTACK GOES NEXT (BotMilitary's sweep objective, Alex,
+## 2026-10-30): the errand a scout standing at `a_from_xz` with `a_vision_radius` would take
+## — the frontier first, then anything stale — as a world position, or null when the whole
+## map is fresh. The point is stamped as visited so the next ask moves on, as a scout's own
+## dispatch does; the sight sweep re-stamps it honestly when the army arrives and looks.
+## `a_speed` only scales the walk's time and so ranks nothing against another point; it is
+## taken for the shape the errand scoring already has.
+func claim_sweep_point(a_from_xz: Vector2, a_speed: float, a_vision_radius: float) -> Variant:
+	if _scout_grid.is_empty():
+		return null
+	var window: Array = _vision_window(a_vision_radius)
+	var speed: float = maxf(0.1, a_speed)
+	var idx: Variant = _best_errand(a_from_xz, speed, window, true)
+	if idx == null:
+		idx = _best_errand(a_from_xz, speed, window, false)
+	if idx == null:
+		return null
+	_scout_grid[idx] = _bot.seconds_elapsed()
+	return _scout_grid_positions[idx]
+
+
 ## Among all owned units free to scout, the best-scoring one whose absence the bot can
 ## actually justify — see _scout_score and _scouting_is_worth_it. Null when none qualifies.
 ##
@@ -740,6 +796,13 @@ func _pick_scout() -> Variant:
 	for i: int in BotSampling.order(scores, decision_temperature, rng):
 		ranked.append(candidates[i])
 	var rank: int = _scouts.size() + 1
+	# Within the floor the best SPARE candidate goes without the price test; above it every
+	# candidate is priced as before.
+	if rank <= minimum_scouts:
+		for u: Actor in ranked:
+			if _is_spare(u):
+				return u
+		return null
 	for u: Actor in ranked:
 		if _scouting_is_worth_it(u, rank):
 			return u

@@ -488,6 +488,206 @@ answer the rest of that report is the same one; the cause is elsewhere.
 >
 > **Answer:**
 
+## The objective nobody could reach: the 7100 match probed live
+
+The same match re-run live with the harness's `sample_detail` (every believed structure with
+the verdict of each attack-objective filter) and `nav_probe` (the path between the two homes
+on every navmesh layer, and a flood fill over the passable cells), 2026-10-30.
+
+**Every structure in the enemy's MAIN base read as unreachable, for both bots, all match.**
+HARD held one belief from 300 s to 1200 s — an Extractor in MEDIUM's base — and
+`Bot.is_reachable` said no; MEDIUM believed eleven of HARD's buildings from 1070 s, its units
+standing in sight of them, and every one said no. The forward buildings each side put up in
+the middle of the map read as reachable and were razed. The cells connect: a 4-connected
+flood fill over passable cells joins the two homes through 17,000 cells, and every pair of
+consecutive cells on that route has a navmesh path between them. The whole route does not,
+on any layer, the un-eroded base mesh included — the path ends 36 to 46 units short, at the
+same frontier for every target. With the polygon budget lifted it reaches to the metre.
+
+The cause is Godot's A*: `path_search_max_polygons` is 4096 by default and the server answers
+an exhausted search with the PARTIAL path to the nearest polygon it reached, not with an
+error. One quad per cell is ~17,000 polygons a layer on this map, and a walk from one base
+to the other that has to go round anything sweeps more than 4096 of them. `Movement` raised
+its agents' budget for exactly this in its own time (`PATH_SEARCH_MAX_POLYGONS`, 1 << 16);
+`Bot.is_reachable` was the one path query left on the default. Fixed: it asks through
+`Bot.walk_path`, a `NavigationPathQueryParameters3D` with the unit's budget; pinned by
+`tests/test_BotReachability.gd` on a hundred-cell map with a wall the search has to sweep
+behind (the default stops short, the budgeted query reaches, and a closed wall still reads
+as cut off).
+
+What this explains in the idle-army picture: the attack posture was chosen every tick (80
+bodies, the value ratio cleared) and `_objective_for(ATTACK)` had nothing, so the tick demoted
+it to MASS and the army stood at the station — not caution, not attention, not a tier. Every
+wave that did launch went at a unit sighting or a forward structure, which is why they were
+over in a sample. MEDIUM's two minutes of MASS with eleven beliefs were the same filter, not
+the abandonment radius (no objective was abandoned in the probe). And the dropped structure
+beliefs Alex doubted were honest: the barracks and war factory HARD believed at 120–180 s were
+MEDIUM's forward construction sites, razed by HARD's waves and verified gone on revisit; the
+blackboard keeps a structure until the bot SEES its cell empty, and did.
+
+**What the probe also measured, not yet fixed:**
+
+- HARD's economy wanted a war factory from 150 s with the price banked five times over and
+  never built one in twenty minutes: the spot search for the production rung ran for 60 s,
+  the savings goal flipped to the tech building, and that search ran for 330 s, because the
+  economy's job received about 80 work units a think (`jobs` sample: 2.2 M units over 27,000
+  runs) against 700 per placement check and 64 cells per safety-channel step — the ladder is
+  budget-starved once eighty units make the fields and the military expensive, and a goal
+  flip restarts the search (`_find_build_spot` keys its state on the type). The two jobs it
+  did issue late died to the 90 s construction timeout with 240 energy banked. TODO below.
+- Both bots scouted with their BUILDERS (two of HARD's four, one of MEDIUM's) and saw 37% and
+  42% of the map in twenty minutes; the enemy prior rising with distance from home never sent
+  one across.
+
+**Built on Alex's four rulings, 2026-10-30** (the reachability fix above is the fifth):
+
+- **A floor under the scout count** (`BotDifficulty.scout_minimum`, 1 / 2 / 3 / 4 / 5 from
+  PASSIVE to IMPOSSIBLE; `BotScout.minimum_scouts`): scouts kept out whatever the information
+  is worth, because every other decision runs on map knowledge. Filled from SPARE units only —
+  never a builder while the bot owns no more than its concurrent jobs plus one, never a unit a
+  stronger claim holds — and it shrinks to what is spare rather than stripping the economy;
+  production's utility demand asks for the shortfall (`BotProduction.scout_minimum`). Above
+  the floor the price test is unchanged. There is no scout retreat to swap around: a scout
+  stands until a stronger claim takes it, and the floor refills next think. PASSIVE scouted
+  not at all before and now keeps one out, which is the value Alex is least likely to have
+  meant by "TRIVIAL". `tests/test_BotScout.gd` §The floor.
+- **An inert purchase is worth nothing** (`Bot.answerable_share`, applied in
+  `purchase_values_per_energy` to both scales): a type's value is cut to the share of the
+  believed enemy army, by the clocked composition, that it can damage AT ALL
+  (`type_can_damage`: a weapon that can lock onto the layer, or a crush) — zero when it can hit
+  none of it, the part it can fight otherwise, whole when nothing is believed. The learned
+  model has no notion of a layer, so the gate is where every rung reads, and producers and
+  tech buildings are priced through it. `tests/test_BotLearnedProduction.gd` §Inert purchases.
+- **A wave with nothing left to attack sweeps on** (`BotMilitary._sweep_objective`,
+  `BotScout.claim_sweep_point`): a wave already marching whose objective evaporates is
+  pointed at the best unseen point from where it stands — the scout's own errand scoring — and
+  becomes its own scout; the point is held until the wave stands on it or abandons it, a real
+  belief takes the objective back the think it appears, an answerable threat at home still
+  brings the wave back, and an army at home with nothing believed still masses. Only the
+  demotion to MASS changed; the spent and abort rules still end a wave. `tests/test_BotStaging.gd`
+  §The sweep.
+- **The dropped structure beliefs were honest** (above): no change to the blackboard.
+
+The ladder (`exec_i`) is re-run on all five; every earlier row was measured with the
+reachability bug.
+
+## An unanswerable threat: what the 7100 replay showed
+
+The first self-play stalemate watched end to end (2026-10-30; `medium_v_hard_map7100_base` from
+the T-131 ladder, recorded and verified with `run_match`'s `replay_path` / `replay_to_play`,
+[selfplay-harness](selfplay-harness.md) §Input schema). The viewer labels seats by number only:
+commander 1 is the HARD slot — 153 Recruits, 22 Badgers, one Sky Port that never trained — and
+commander 2 is MEDIUM — 14 Clippers, 3 Drakes, the Operations Center at 301 s. The bot that
+looked like it bought well was the lower tier.
+
+Everything below is one missing question. Every threat sense in the bot asks whether the enemy
+can hurt what it stands near; none asks whether anything the bot has can hurt the enemy back.
+Targeting and the attack objective ask it (`_can_engage`, `any_unit_can_damage`), and the guard
+does (`_size_guard`), so a Recruit was never ORDERED to attack a Clipper. Everything around them
+treated five Clippers over the base as a threat the eighty Recruits beneath them were answering.
+
+1. **The pull-backs were the objective evaporating, not caution.** HARD believed zero or one
+   enemy structure for twelve minutes against a base of six to seventeen: its opening Recon
+   Drones are the Scan's eye and lapse by 30 s, and the scouting that followed was two Recruits
+   on foot — coverage 0.17 at two minutes, 0.30 at ten. Every wave (20, 28, 35, 44, 51, 78, 94
+   units) went at the one belief it had, a structure or the last place a unit was seen. When
+   the wave verified the spot empty (a structure belief drops on regained vision; a unit belief
+   is disproved), `_objective_for(ATTACK)` had nothing actionable, `tick()` demoted the posture
+   to MASS and `_hold` walked everyone home; `_wave_active` stayed set, so the next sighting
+   relaunched without passing the commit gate again — ATTACK and MASS alternating every ten to
+   thirty seconds from 200 to 320 s. The value ratio had cleared long before; no retreat rule
+   fired (the wave's value never dropped). The deeper cause is the scout's errand scoring: the
+   enemy prior rises linearly with distance from home and the return is divided by travel
+   time, so a scout sweeps outward from home and the far start is found last.
+2. **The ground army marched under the Clippers.** `base_threats` and `is_threatened` read
+   `matchup(enemy, structure)` — whether the ENEMY can damage the building — so a Clipper over
+   the base is a threat, DEFEND picks the threatened structure as the post and MASS the
+   threat-side station, and `HoldPolicy` attack-moves the whole main body there. The guard is
+   drawn only from units that can hurt a threat; the main body is not filtered. 1,213
+   attack-moves were issued to Recruits in this match.
+3. **Construction froze for nine minutes.** `_site_is_contested` is "any visible ARMED enemy
+   within `defend_threat_radius` of the site", so one Clipper over the base contested every
+   site in it: `_abort_contested_jobs` called the Servant back, marked the spot contested, and
+   the 90 s job time-out recycled the rest. Four Production Yards and three Operations Centers
+   were funded and refunded; the structure count sat at 13 from 160 s to 720 s and the first
+   Production Yard stood at 1020 s. The savings goal cycled between the two the whole time with
+   four to five thousand banked — and `savings.held = not is_base_under_threat` released the
+   hold under the same Clipper, so everything affordable was spent on Recruits.
+4. **No SAM, by arithmetic.** `_defence_structure_to_build` would have chosen it — MEDIUM's did,
+   3 of 9 times — but the rung runs only when the region's demand clears the turret's cost,
+   and demand is value × vulnerability with OWN influence counting every armed unit present.
+   Eighty Recruits that cannot shoot upward made the base read as held; HARD's ledger holds no
+   `defence_structure` choice at all. The production valuation has the same blind spot one
+   level down: `unit_strength_per_energy_vs` takes a preview's best multiplier without asking
+   which layer its weapons reach (T-098), so the model happily prices a Recruit against a
+   Clipper it can never hit.
+
+**Built, 2026-10-30 — a threat the bot cannot answer is not a threat to its army, and the
+answer to it is a purchase.** Alex's rule: a unit is never sent at a target it cannot impact
+— inert is a bug, ineffective (low damage) is a fight that still resolves. One predicate,
+`Bot.can_answer` (anything the bot fields — a unit with combat utility, or a FINISHED armed
+structure — can damage the enemy, `unit_can_damage`), consulted by the answerable forms of
+the threat senses (`is_base_under_answerable_threat`, `most_answerably_threatened_structure`,
+`answerably_threatened_command_centre`), which now drive:
+
+- the posture: DEFEND, and the DEFEND post, only for an answerable raider (`BotMilitary
+  ._decide_posture`, `_objective_for`); the guard already sized itself by this question;
+- the savings hold: released only under an answerable threat (`BotEconomy._propose_savings`),
+  so an unanswerable raider does not empty the bank into more units that cannot hit it either
+  — decided here rather than asked, since the release exists to train defenders and a Recruit
+  under a Clipper is not one;
+- a contested site: contested only by an enemy something of ours can answer
+  (`_site_is_contested`), since contested means wait for the army to clear it and an inert
+  raider is never cleared by waiting; the builder's own risk under it is accepted;
+- the defence demand: a region's own side is what can answer what stands there
+  (`Bot.type_can_damage` over the believed types), and a region we stand in with nothing that
+  can is DEFENCELESS — its whole value is the demand, which is what asks for the SAM — where a
+  region we do not stand in at all stays lost.
+
+The raw senses stay for what a threat is a threat to: the posture dial, the economy's safety
+read, a unit deciding to hide. Pinned in `tests/test_BotAnswerableThreat.gd` (the predicate
+against real weapons and altitude), `test_BotThreatSenses`, `test_BotStaging`,
+`test_BotBuilderAbort` and `test_BotDefenceDemand` (each sense through a stub of it), and
+the simulation `sims/bot/economy/ground_army_under_a_clipper`: eight Recruits and three
+Servants under one enemy Clipper see it by 3 s, order the SAM at 4 s, keep building, never
+turn to DEFEND in 90 s, and the Clipper is dead by the end. (Its `believes` check compared
+roster instance ids with blackboard identity keys and could never pass; fixed with it.)
+
+> **TODO — what the fix did not touch.** Each a change in what a bot knows or wants rather
+> than a predicate (the wave's relaunch question is answered: an evaporated objective now
+> SWEEPS, above, so the wave neither regroups nor relaunches):
+> - [ ] Scouting: is the enemy prior the start-point geometry (the opposite start on a generated
+>   map, every start on an authored one) rather than distance from home? HARD found the enemy
+>   base at twelve minutes with two foot scouts. Less urgent with the floor and the sweep;
+>   measured again on `exec_i`.
+> - [ ] The economy's spot search is budget-starved in a built-up game (~80 work units a think
+>   against 700 a placement check, §The objective nobody could reach): a war factory wanted
+>   and affordable for ten minutes was never placed. A search that survives a savings-goal
+>   flip, or a budget share the economy is owed, or both?
+> - [ ] The economy's `safety()` still reads the raw sense: a Clipper over the base reads as
+>   "under attack" and stops expansion for as long as it hovers. The same rule, or a reason
+>   it is different?
+> - [ ] The production valuation prices a Recruit against a Clipper it can never hit
+>   (`unit_strength_per_energy_vs` takes a preview's best multiplier without the layer) —
+>   T-098's missing term, now with a measured cost.
+
+**Measured on the ladder** (`exec_h`, 2026-10-30, the same ninety matches as `exec_g`): the fix
+resolved matches and moved no pair — nine undecided in the middle pair became four, the one at
+the top became none, every decided match ended as before but two on one map, and the resolved
+ones went mostly to the LOWER tier (54% / 70% against 57% / 72%; [bot-roadmap](bot-roadmap.md)
+§Difficulty first). The SAM it asks for was still almost never built in play: six across 180
+seats, against some 300 enemy combat aircraft fielded. On `medium_v_hard_map7100_base` the
+Recruit side's ledger has no `defence_structure` choice at all under five Clippers, and on
+`map7101_base` MEDIUM chose a SAM twelve times and built none, its savings goal a Production
+Yard at the end.
+
+> **TODO — the SAM is asked for in the sim and not in a match.** Two holes, measured above:
+> - [ ] Why the defence rung had no candidate on 7100: does a Clipper's belief expire (units
+>   lapse at 180 s and aircraft do not stand in one region) before the economy's tick reads the
+>   region, or does a rung above it (income, infrastructure) hold the ladder every tick?
+> - [ ] Why a chosen SAM is not built on 7101: twelve choices, none placed — the savings goal
+>   taken by a production structure, a site that is never free, or the purchase refunded?
+
 ## Cost
 
 Unchanged from the harness note in shape, and no longer cheap: matches on the current tree

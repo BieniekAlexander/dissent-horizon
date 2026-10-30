@@ -206,6 +206,21 @@ never considered.
 `_pick_scout` now walks the candidates in score order and returns the first the bot can
 justify. Mean scouts out over four matches: **1.30 → 1.79**.
 
+### 4. A floor under the count (2026-10-30)
+
+Everything above prices a scout against the information it buys, and that pricing has a
+hole the 7100 stalemate showed: a bot that has seen a third of the map in twenty minutes
+still had an attack objective to spend its army on — a forward building, a unit sighting —
+so the value of the next scout never rose, and both bots scouted with their builders. Map
+knowledge is what every other decision runs on, so a tier now carries a FLOOR
+(`BotDifficulty.scout_minimum`, 1 to 5 from PASSIVE to IMPOSSIBLE; `BotScout.minimum_scouts`):
+scouts kept out whatever the map is worth. The floor is filled from SPARE units only — a
+builder is spare while the bot owns more than its concurrent jobs plus one, and a unit a
+stronger claim holds is not spare — and shrinks to what is spare rather than stripping the
+economy; production's utility demand asks for the shortfall. Above the floor the price test
+is unchanged, and the three retention rules still apply to a floor scout (a build job takes
+it; the floor refills). Alex's ruling, with the "five builders scouting" case designed out.
+
 ### 3. Nearest-first is a spiral
 
 The destination used to be the nearest expired frontier point. That is the right answer to

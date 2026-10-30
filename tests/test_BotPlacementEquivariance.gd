@@ -642,3 +642,44 @@ func test_a_producer_joins_the_base_nearest_the_action_and_a_support_building_th
 	# Nothing believed: the action is the map's middle, which here is east of both bases... the
 	# map runs 0..32, so its centre (16, 16) is nearer the east base.
 	assert_almost_eq(economy._anchor_for(PRODUCTION), east["centroid"], Vector2(EPS, EPS))
+
+
+## An outpost preferred for its position can stand on ground the building does not fit; the
+## search then moves to the next base rather than starting over at the same anchor every tick
+## (2026-10-29: a barracks three to nine minutes late at one start point in five).
+class OutpostEconomy:
+	extends StubEconomy
+	var blocked_around: Vector2 = Vector2.ZERO
+	var blocked_radius: float = 0.0
+
+	func _placement_ok(a_world: Vector3, a_dims: Vector2i, a_region: int = -1) -> bool:
+		if VU.in_xz(a_world).distance_to(blocked_around) <= blocked_radius:
+			return false
+		return super(a_world, a_dims, a_region)
+
+
+func test_a_base_with_nowhere_to_build_hands_the_search_to_the_next_base() -> void:
+	var bot: FakeBot = _bot_at(Vector2.ZERO, Vector2(40.0, 0.0))
+	var east := {"centroid": Vector2(8.0, 0.0), "members": [Vector2(8.0, 0.0)]}
+	var west := {"centroid": Vector2(-8.0, 0.0), "members": [Vector2(-8.0, 0.0)]}
+	bot.bot_bases = [west, east]
+	var economy := OutpostEconomy.new(bot, null)
+	economy.blocked_around = east["centroid"]
+	economy.blocked_radius = float(BotEconomy.SEARCH_MAX_RING) + 1.0
+	assert_eq(
+		economy._anchors_for(PRODUCTION),
+		[east["centroid"], west["centroid"]] as Array[Vector2],
+		"a producer tries the base nearest the action first, then the other"
+	)
+	var found: Variant = economy._find_build_spot(PRODUCTION)
+	var calls: int = 1
+	while found is StringName and calls < 1000:
+		found = economy._find_build_spot(PRODUCTION)
+		calls += 1
+	assert_true(found is Vector3, "somewhere was found (after %d calls)" % calls)
+	if found is Vector3:
+		assert_lt(
+			VU.in_xz(found).distance_to(west["centroid"]),
+			float(BotEconomy.SEARCH_MAX_RING) + 1.0,
+			"and it is at the western base, the eastern having nothing"
+		)

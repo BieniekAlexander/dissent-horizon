@@ -98,6 +98,19 @@ class FakeBot:
 	func most_threatened_structure(_a_threat_radius: float = 30.0) -> Actor:
 		return threatened
 
+	## The answerable half (Bot.can_answer): what the posture and the DEFEND post read. A raid
+	## is answerable unless a test says otherwise.
+	var under_answerable_threat: bool = false
+
+	func is_base_under_answerable_threat(_a_threat_radius: float = 30.0) -> bool:
+		return under_answerable_threat
+
+	func most_answerably_threatened_structure(_a_threat_radius: float = 30.0) -> Actor:
+		return threatened if under_answerable_threat else null
+
+	func answerably_threatened_command_centre(_a_threat_radius: float) -> Actor:
+		return null
+
 
 ## Records orders instead of issuing them, so no map is needed. One entry per call, so a
 ## test can tell "sent as a body" from "sent one at a time".
@@ -308,6 +321,7 @@ func _raid_at_home(a_value: float = float(FakeBot.UNIT_PRICE)) -> Actor:
 	add_child_autofree(raider)
 	raider.global_position = building.global_position + Vector3(-3.0, 0.0, 0.0)
 	_bot.under_threat = true
+	_bot.under_answerable_threat = true
 	_bot.threatened = building
 	_bot.threats = [{"enemy": raider, "structure": building, "value": a_value}]
 	return raider
@@ -315,8 +329,38 @@ func _raid_at_home(a_value: float = float(FakeBot.UNIT_PRICE)) -> Actor:
 
 func _end_raid() -> void:
 	_bot.under_threat = false
+	_bot.under_answerable_threat = false
 	_bot.threatened = null
 	_bot.threats = []
+
+
+# ─── A THREAT NOBODY CAN ANSWER ─────────────────────────────────────────────────
+
+
+func test_a_raid_nothing_can_hit_does_not_turn_the_army_to_defend() -> void:
+	# Five Clippers over a base of Recruits (2026-10-30, the 7100 replay): the base IS under
+	# threat, but a posture that marches the army at a raider it cannot hit stands it under the
+	# guns for nothing. Answered instead by the defence rung and what production buys.
+	_armed_unit()
+	_raid_at_home()
+	_bot.under_answerable_threat = false
+	assert_eq(_military._decide_posture(), BotMilitary.Posture.MASS)
+	assert_true(_bot.is_base_under_threat(), "guards the fixture: the raw sense still fires")
+	_bot.under_answerable_threat = true
+	assert_eq(_military._decide_posture(), BotMilitary.Posture.DEFEND)
+
+
+func test_the_defend_post_is_the_structure_an_answerable_raider_threatens() -> void:
+	_armed_unit()
+	var raider: Actor = _raid_at_home()
+	assert_eq(_military._objective_for(BotMilitary.Posture.DEFEND), _bot.threatened.global_position)
+	_bot.under_answerable_threat = false
+	assert_ne(
+		_military._objective_for(BotMilitary.Posture.DEFEND),
+		_bot.threatened.global_position,
+		"an unanswerable raider's building is not the post; the army holds home"
+	)
+	assert_true(is_instance_valid(raider))
 
 
 func test_under_a_cap_of_three_the_reserve_answers_a_raid_while_the_wave_is_out() -> void:
@@ -784,3 +828,124 @@ func test_a_new_structure_close_by_re_points_the_wave_at_it() -> void:
 	var held: AssaultPolicy = military._main.policy as AssaultPolicy
 	assert_eq(held.target_id, 1002, "aimed at the structure the bot now means")
 	assert_eq(held.point, military.objective)
+
+
+# ─── THE SWEEP ───────────────────────────────────────────────────────────────
+#
+# A wave whose objective has evaporated goes where the map is unseen instead of walking home
+# (Alex, 2026-10-30): the yo-yo between ATTACK and MASS in stalemate 7100 was every wave
+# coming home to mass again against no threat. Only a wave already marching sweeps; an
+# answerable threat at home still brings it back; a real belief takes the objective back.
+
+const SWEEP: Vector3 = Vector3(60.0, 0.0, -40.0)
+const SWEEP_NEXT: Vector3 = Vector3(-50.0, 0.0, 70.0)
+
+
+## ATTACK every think; the attack objective is whatever the test says (null: nothing
+## believed is actionable), and MASS is home.
+class SweepMilitary:
+	extends BotMilitary
+	var attack_objective: Variant = null
+
+	func _decide_posture() -> Posture:
+		return Posture.ATTACK
+
+	func _objective_for(a_posture: Posture) -> Variant:
+		if a_posture == Posture.ATTACK:
+			_objective_entity = null
+			_objective_id = 0
+			return attack_objective
+		return FakeBot.HOME
+
+
+## Hands out sweep points in order, and counts the asks.
+class FakeScout:
+	extends BotScout
+	var points: Array = []
+	var asked: int = 0
+
+	func claim_sweep_point(_a_from_xz: Vector2, _a_speed: float, _a_vision: float) -> Variant:
+		asked += 1
+		return points.pop_front() if not points.is_empty() else null
+
+
+func _sweeping_military(a_points: Array) -> SweepMilitary:
+	var military := SweepMilitary.new(_bot, _act)
+	var scout := FakeScout.new(_bot, _act)
+	scout.points = a_points
+	military.scout = scout
+	return military
+
+
+## A wave launched at OBJECTIVE whose objective then evaporates.
+func _march_then_lose_the_objective(a_military: SweepMilitary) -> void:
+	a_military.attack_objective = OBJECTIVE
+	a_military.tick()
+	a_military.attack_objective = null
+
+
+func test_a_wave_whose_objective_evaporates_sweeps_on_instead_of_coming_home() -> void:
+	var military := _sweeping_military([SWEEP])
+	var veteran := _armed_unit(OBJECTIVE)
+	_march_then_lose_the_objective(military)
+	military.tick()
+	assert_eq(military.current_posture(), BotMilitary.Posture.ATTACK, "still a wave")
+	assert_eq(_wave_point(military), SWEEP, "pointed at unseen ground")
+	assert_eq(_destinations_of(veteran)[-1], SWEEP, "and ordered there")
+	assert_eq((military.scout as FakeScout).asked, 1)
+
+
+func test_with_nothing_left_unseen_the_wave_comes_home() -> void:
+	var military := _sweeping_military([])
+	_armed_unit(OBJECTIVE)
+	_march_then_lose_the_objective(military)
+	military.tick()
+	assert_eq(military.current_posture(), BotMilitary.Posture.MASS, "the whole map is fresh")
+	assert_null(military._sweep)
+
+
+func test_an_army_at_home_does_not_sweep() -> void:
+	var military := _sweeping_military([SWEEP])
+	_armed_unit(FakeBot.HOME)
+	military.attack_objective = null
+	military.tick()
+	assert_eq(military.current_posture(), BotMilitary.Posture.MASS, "no wave was marching")
+	assert_eq((military.scout as FakeScout).asked, 0, "and the scout was never asked")
+
+
+func test_an_answerable_threat_at_home_brings_the_sweeping_wave_back() -> void:
+	var military := _sweeping_military([SWEEP, SWEEP_NEXT])
+	_armed_unit(OBJECTIVE)
+	_march_then_lose_the_objective(military)
+	military.tick()
+	assert_eq(_wave_point(military), SWEEP, "precondition: sweeping")
+	_bot.under_answerable_threat = true
+	military.tick()
+	assert_eq(military.current_posture(), BotMilitary.Posture.MASS)
+	assert_null(military._sweep, "the sweep is dropped, not resumed")
+
+
+func test_a_sweep_point_is_held_until_the_wave_stands_on_it() -> void:
+	var military := _sweeping_military([SWEEP, SWEEP_NEXT])
+	var veteran := _armed_unit(OBJECTIVE)
+	_march_then_lose_the_objective(military)
+	military.tick()
+	military.tick()
+	assert_eq((military.scout as FakeScout).asked, 1, "one point while the walk is on")
+	assert_eq(_wave_point(military), SWEEP)
+	veteran.global_position = SWEEP
+	military.tick()
+	assert_eq((military.scout as FakeScout).asked, 2, "arrived: the next unseen point")
+	assert_eq(_wave_point(military), SWEEP_NEXT)
+
+
+func test_a_fresh_belief_takes_the_objective_back_from_the_sweep() -> void:
+	var military := _sweeping_military([SWEEP])
+	_armed_unit(OBJECTIVE)
+	_march_then_lose_the_objective(military)
+	military.tick()
+	assert_eq(_wave_point(military), SWEEP, "precondition: sweeping")
+	military.attack_objective = OBJECTIVE + Vector3(0.0, 0.0, 30.0)
+	military.tick()
+	assert_eq(_wave_point(military), military.attack_objective, "the belief wins at once")
+	assert_null(military._sweep)

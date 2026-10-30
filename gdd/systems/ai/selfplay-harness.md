@@ -88,6 +88,8 @@ Defaults`.
   "max_wall_seconds": 900,           // the safety cap; a hung match must not eat a batch
   "sample_interval_seconds": 10,     // set to 0.5 to watch the think loop (see below)
   "state_dump_path": "",             // debugging only: pre-hash state per sample
+  "replay_path": "user://replays/x.jsonl.gz",  // optional: record the match as a kept replay (see below)
+  "replay_to_play": "",              // optional: play a recording back instead, and report its drift
   "slots": [
     {
       "difficulty": "HARD",          // PASSIVE | EASY | MEDIUM | HARD | IMPOSSIBLE
@@ -301,6 +303,18 @@ The digest is `SimulationDigest` (game code), shared with replay's drift check â
 
 **Debugging a divergence:** set `state_dump_path` and diff the two runs' dumps. Each line is a
 tick and the digest's full pre-hash input, so the first differing line names the entity.
+
+**A match as a replay.** `replay_path` writes the match's recording when it ends, as a kept
+replay the start screen lists (`ReplayRecorder.write_kept`; `user://` paths land in the game's
+replay folder). A generated map exists in no file, so the header carries it as the skirmish
+recipe the lobby would have built it from (`SkirmishLauncher`), and the recipe can say less
+than a config can: swapped starts, a symmetric map and any per-slot override (`config`,
+`combat_model`, starting resources, `disabled_jobs`) are refused up front, since a recording
+of them would drift on playback. `replay_to_play` runs the recording back through the same path
+the start screen uses (`ReplayLibrary.prepare_playback`), taking no slot configuration, and the
+result's `replay_drift_tick` is the first tick whose digest differed from the recording's (-1
+for none) â€” the check that a recorded match still reproduces, and how a self-play stalemate is
+handed over to be watched (2026-10-30, the T-131 stalemates).
 
 ## What the first matches found
 

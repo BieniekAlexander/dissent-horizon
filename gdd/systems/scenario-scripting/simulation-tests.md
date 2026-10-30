@@ -486,7 +486,7 @@ pass. The rule for them, and the situations they were written for, are
 | `chosen` | `slot`, `domain: <choice domain>`, `piece` | the piece won a scored decision in that domain (`BotUsageLog.choices`) |
 | `considered` | same | the piece was scored at all — the audit's "not aware" versus "not worth it" |
 | `claimed` | `of: <group>`, `holder: <claim owner>` | every living member is held by that manager (`BotClaims`) |
-| `believes` | `slot`, `of: <group>`, `exactly` / `at_least` / `at_most` | the slot's blackboard believes that many of the group (all, with no count) |
+| `believes` | `slot`, `of: <group>`, `exactly` / `at_least` / `at_most` | the slot's blackboard believes that many of the group (all, with no count) — by the pieces' identity keys, which is what the blackboard keys on (a member the roster named by instance id was never matched before 2026-10-30; `bot/economy/ground_army_under_a_clipper` is its first use) |
 
 **A check with no count argument quantifies over ALL of the selection.** One axis, not a
 separate `quantifier:` key. A new check is a new row in that table, never a new branch (§1.2).

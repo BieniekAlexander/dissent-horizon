@@ -243,3 +243,30 @@ func test_no_income_rung_leaves_the_bot_idle_rather_than_erroring() -> void:
 	economy.income_offer = null
 	economy.tick()
 	assert_eq(_act.builds, [])
+
+
+# ─── A DIP IS NOT POVERTY ───────────────────────────────────────────────────────
+# `surplus` reads "at or above the reserve AND not falling". A bot banking thousands sees a dip
+# on every tick a unit is paid for, and each such tick used to skip production and reach the
+# bottom income rung, buying an extractor the target did not ask for (2026-10-29, seven
+# extractors and a barracks at 190–590 s — bot-economy-diagnosis.md §What this does NOT settle).
+
+
+func test_a_dip_above_the_reserve_buys_nothing_rather_than_an_extractor() -> void:
+	_bot.energy = 4800
+	var economy := _economy()
+	economy._prev_energy = 5000  # a unit was paid for since the last look
+	economy.income_owned = 1  # target met
+	economy.production_offer = REDOUBT
+	economy.tick()
+	assert_eq(_act.builds, [], "a dip above the reserve is a wait, not a reason to expand")
+
+
+func test_a_dip_below_the_reserve_still_grows_income() -> void:
+	_bot.energy = 550
+	var economy := _economy()
+	economy._prev_energy = 700
+	economy.income_owned = 1
+	economy.production_offer = REDOUBT
+	economy.tick()
+	assert_eq(_act.builds, [EXTRACTOR], "below the reserve the bot is poor, and poor grows income")

@@ -59,6 +59,13 @@ class FakeBot:
 	func unit_can_attack(a_type) -> bool:
 		return a_type != &"unarmed"
 
+	## Whether something of ours can damage an enemy (Bot.can_answer): every enemy, unless a
+	## test says the bot has nothing that reaches it.
+	var answerable: bool = true
+
+	func can_answer(_a_enemy: Actor) -> bool:
+		return answerable
+
 
 const SITE: Vector3 = Vector3(40.0, 0.0, 0.0)
 
@@ -126,3 +133,21 @@ func test_a_contested_spot_is_skipped_for_the_cooldown_and_then_tried_again() ->
 func test_a_site_an_enemy_stands_over_is_contested_before_anyone_is_sent() -> void:
 	_enemy_at(SITE + Vector3(5.0, 0.0, 0.0))
 	assert_true(_economy._is_contested_spot(SITE), "read live, no memory needed")
+
+
+# ─── A RAIDER NOBODY CAN ANSWER DOES NOT CONTEST ────────────────────────────────
+# Contested means "wait for the army to clear it". An armed enemy nothing of ours can hit — a
+# Clipper over a base of Recruits — is never cleared by waiting, and the one remedy, the SAM the
+# demand read asks for, has to be built beneath it. Five Clippers held every site in a base for
+# nine minutes before this (2026-10-30, bot-engagement-fixes.md §An unanswerable threat).
+
+
+func test_a_raider_nothing_can_hit_does_not_call_the_builder_back() -> void:
+	var builder: Actor = _builder_walking_to(SITE)
+	_enemy_at(SITE + Vector3(5.0, 0.0, 0.0))
+	_bot.answerable = false
+	_economy._abort_contested_jobs()
+	assert_true(builder.has_command(), "the walk goes on")
+	assert_false(_economy._is_contested_spot(SITE), "and the spot is open to the next rung")
+	_bot.answerable = true
+	assert_true(_economy._is_contested_spot(SITE), "guards the fixture: answerable, it contests")

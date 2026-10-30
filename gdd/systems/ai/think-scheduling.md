@@ -101,6 +101,19 @@ The last two spikes were the economy's build-spot search (115 ms) and the scout'
   doubled budget; matches since play on the budget as written (build 0.1.0).
 - **TODO — the AI's share of a tick** (gdd/tasks.md T-005) is Alex's to set.
   `BotScheduler.WORK_UNITS_PER_TICK` is a provisional 2000 units, ~2 ms.
+- **TODO — the tier periods below about a second are not realised.** Measured on the first
+  difficulty ladder (30 Colonial-mirror matches, 2026-10-28, `tools/selfplay/results/ladder/`):
+  the military job ran 0.48 times a simulated second at EASY (period 1.5 s says 0.67),
+  0.93 at MEDIUM (says 1.5), 1.07 at HARD (says 2.5) and 2.1 at IMPOSSIBLE (says 10). Two
+  bots spent 34–60k of the 60k units a second between them, the fields rebuild 38–51% of
+  each bot's share, and a job that overspends leaves the next ticks paying debt — so above
+  MEDIUM the period ramp buys a fraction of the reaction time it names, and a fast bot's
+  overdue jobs crowd its opponent's off the tick (HARD ran its military 1.3 times a second
+  against MEDIUM and 0.84 against IMPOSSIBLE). The periods stay the tier's identity; what to
+  decide is whether the budget grows with the tier, or the fast tiers are written at the
+  cadence the budget actually delivers.
+  - [ ] Does the budget scale per tier (an IMPOSSIBLE bot buys more of the tick), or stay one
+    figure (T-005) with the periods rewritten to what it realises?
 - **TODO — a debug-build wall-clock tripwire** (Decision 1's option 3) was not built: nothing
   reports a job whose work units have drifted from its real cost. Re-run the calibration
   (`tools/_perf_probe_tmp.tscn`, whose output ends with µs per unit per job) after changing a

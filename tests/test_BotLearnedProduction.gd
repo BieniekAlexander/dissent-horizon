@@ -22,6 +22,18 @@ class StubBot:
 	func believed_enemy_composition() -> Dictionary:
 		return enemy
 
+	## What each own type can damage, by enemy type: {own: [enemy, …]}. A type absent here can
+	## damage everything, as the real test answers for a type with no preview.
+	var hits: Dictionary = {}
+
+	func _preview_for_type(a_type) -> Node:
+		return preview if hits.has(a_type) or enemy.has(a_type) else null
+
+	var preview: Node = null
+
+	func type_can_damage(a_type, a_target_type) -> bool:
+		return not hits.has(a_type) or (hits[a_type] as Array).has(a_target_type)
+
 
 var _bot: StubBot
 var _production: BotProduction
@@ -83,3 +95,56 @@ func test_no_believed_enemy_falls_back() -> void:
 ## A demand map the fallback can price against without reps: every value reads 0.
 func _demand() -> Dictionary:
 	return {&"raider": {"demand": 1.0, "rep": null}}
+
+
+# ─── INERT PURCHASES ─────────────────────────────────────────────────────────
+#
+# A unit that cannot damage any believed enemy unit is worth nothing to buy, whatever the
+# model says; one that can damage part of them keeps that part (Alex, 2026-10-30).
+
+
+func _with_previews() -> void:
+	_bot.preview = autofree(Node.new())
+
+
+func test_a_unit_inert_against_everything_believed_is_worth_nothing() -> void:
+	_with_previews()
+	_bot.hits = {&"tank": [&"flyer"]}  # a tank can only hit a type the enemy has none of
+	_bot.enemy = {&"raider": 3}
+	var valued: Dictionary = _bot.purchase_values_per_energy([&"tank", &"scout"])
+	assert_true(valued["learned"], "the model still priced the choice")
+	assert_eq(float(valued["values"][&"tank"]), 0.0, "and the inert tank is cut to nothing")
+	assert_almost_eq(
+		float(valued["values"][&"scout"]), 0.025 / 100.0, 1e-9, "the scout keeps its value"
+	)
+
+
+func test_a_unit_that_fights_part_of_the_enemy_keeps_that_part() -> void:
+	_with_previews()
+	_bot.hits = {&"tank": [&"raider"]}
+	_bot.enemy = {&"raider": 1, &"flyer": 3}
+	assert_almost_eq(_bot.answerable_share(&"tank"), 0.25, 1e-9)
+	var valued: Dictionary = _bot.purchase_values_per_energy([&"tank"])
+	assert_almost_eq(float(valued["values"][&"tank"]), 0.25 * (0.2 / 400.0), 1e-6)
+
+
+func test_nothing_believed_leaves_every_value_whole() -> void:
+	_with_previews()
+	_bot.hits = {&"tank": []}
+	_bot.enemy = {}
+	assert_eq(_bot.answerable_share(&"tank"), 1.0, "nothing to be inert against")
+
+
+func test_a_type_without_a_preview_cannot_be_judged_and_is_left_whole() -> void:
+	_bot.enemy = {&"raider": 3}
+	assert_eq(_bot.answerable_share(&"battleship"), 1.0)
+
+
+func test_the_cut_applies_on_the_demand_map_too() -> void:
+	_with_previews()
+	_bot.should_use_learned_production = false
+	_bot.hits = {&"tank": []}
+	_bot.enemy = {&"raider": 2}
+	var valued: Dictionary = _bot.purchase_values_per_energy([&"tank"], _demand())
+	assert_false(valued["learned"])
+	assert_eq(float(valued["values"][&"tank"]), 0.0)
