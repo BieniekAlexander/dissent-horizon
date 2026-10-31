@@ -128,6 +128,7 @@ the only differences between the seats are the throttles:
 | `exec_g` (30 per pair, fair turn) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **97%** (29–1, 0 undecided) | 57% (12–9, 5 stalemates + 4 cut by the wall clock) | 72% (21–8, 1 stalemate) |
 | `exec_h` (30 per pair, answerable threats) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **97%** (28–1, 1 stalemate) | 54% (14–12, 4 stalemates) | 70% (21–9, 0) |
 | `exec_i` (30 per pair, reachability fixed; scout floor, inert cut, wave sweep) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **89%** (25–3, 2 stalemates) | 67% (18–9, 3) | 61% (17–11, 2) |
+| `exec_k` (30 per pair, the `exec_i` fixes + chain-cost valuation + front momentum) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **87%** (26–4, 0 stalemates) | 66% (19–10, 1) | **50%** (15–15, 0; by IMPOSSIBLE's start 4–11 / 11–4 — the start point decides, not the tier) |
 | `exec_j` (30 per pair, the `exec_i` fixes; VOID past its 21st match — two sessions began editing the bot's scripts in the same checkout at 06:05, so the middle and top pairs measured code in flight) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **96%** (24–1, 1 stalemate, 4 matches with script errors from a half-edited `bot.gd`) | 57% (17–13, 0) — void | 48% (14–15, 1) — void |
 
 What the three say together. The unthrottled bot issues 0.6–1.9 orders a second (measured on
@@ -263,6 +264,21 @@ every tier (HARD 1.22 / 1.39): the bot that commits sooner wins more often.
 > up and the top pair down, with a deployment regression, a sweep hang and an unfilled floor
 > found and fixed from it (same note, §What `exec_i` found), plus the first three defects of
 > [decision-pathologies](decision-pathologies.md); re-run as `exec_j` before any rung moves.
+> `exec_k` (2026-10-31, on everything above plus the chain-cost valuation and the front
+> momentum read): **87 / 66 / 50**, one stalemate in ninety. The stalemates are gone, and so is
+> the top pair: HARD and IMPOSSIBLE split 15–15, and which wins is the START POINT (IMPOSSIBLE
+> 4–11 from A, 11–4 from B), so at the top the tiers no longer separate at all. Two things
+> changed between `exec_i` and `exec_k` besides the bugs: the valuation prices every candidate
+> through its prerequisite chain, and the wave reads strength fields at its front — and the
+> bot's own CPU per seat went 47 → 127 M µs at IMPOSSIBLE and 21 → 55 M µs at HARD, with the
+> ECONOMY job's share rising from 38% to 49% (`jobs` samples). The scheduler's work budget
+> is shared per tick and is not a tier knob, so a costlier economy delays every other job
+> most for the tiers that think most often. TODO: attribute the top pair's collapse — the
+> chain-cost valuation's cost (profile the economy job; memoise the chain per think), the
+> front read's retreats (does IMPOSSIBLE now abort waves it used to win?), or the fixes'
+> removal of the stalemates that `exec_i` counted as neither — before any rung moves.
+> - [ ] Which first: the economy's CPU (cheap, mechanical) or the retreat A/B (one ladder run
+>   with the front read switched off)?
 > `exec_j` also carries the chain-cost valuation built 2026-10-31 — a locked unit or turret
 > priced at its unowned prerequisites plus itself, the goal rung, and a tech margin that now
 > stacks on a priced chain ([bot-architecture](bot-architecture.md) §Valuing a unit, and
