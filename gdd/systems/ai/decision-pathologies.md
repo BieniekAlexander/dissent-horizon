@@ -8,7 +8,7 @@ type: system-note
 *Design note for [Dissent Horizon](../../../CLAUDE.md). Rules here are authoritative; CLAUDE.md
 carries only the pointer.*
 
-**Status: TODO, unapproved.** This is a proposal from a code read of
+**Status: TODO, unapproved; first rulings 2026-10-30 (§Rulings).** This is a proposal from a code read of
 `feature/bot-difficulty-calibration` at `fdaedd5b` (2026-10-30). No detector is built, and no
 threshold below has been fitted. The bugs in §Defects found while mapping are real and checked
 against the source.
@@ -72,9 +72,9 @@ distinguishable causes.
 
 | ID | Pathology | Heuristic (over T unless stated) | Proposed trigger | Attribution read | Class | Data |
 |---|---|---|---|---|---|---|
-| U1 | **Hoarding**: a large army stays home while ahead | `hoard_excess = max(0, V_home − k·V_enemy_combat)`, where V_home is own combat value within R_home of own structures, and V_enemy_combat is the enemy's true mobile combat value **plus** static defence value | true ratio `V_own/V_enemy ≥ 1.5`, no own combat unit in the enemy half, for ≥ 90 s; severity = ∫ excess dt | B: the bot's `attack_ratio` vs the true ratio; D: posture, `has_attack_objective`, `_wave_active` | SKILL (DEFECT past a cap, see Q1) | N: positions |
+| U1 | **Unused strength**: a strong army stays home. Size is not the fault (Alex, 2026-10-30): a big army is wanted, and the fault is a big army that is not used | `idle_strength = max(0, V_home − k·V_enemy_combat)`, where V_home is own combat value within R_home of own structures, and V_enemy_combat is the enemy's true mobile combat value **plus** static defence value | true ratio `V_own/V_enemy ≥ 1.5`, no own combat unit in the enemy half, for ≥ 90 s; severity = ∫ idle_strength dt | B: the bot's `attack_ratio` vs the true ratio; D: posture, objective, `_wave_active`, sweep | SKILL; a DEFECT while no base threat is believed and the army is neither attacking nor sweeping (see U3) | N: positions |
 | U2 | **Committed wave with nowhere to go** (the bug in §Defects) | `_wave_active ∧ posture ≠ ATTACK` | > 5 s | D only; it is a state the code should never hold | DEFECT | D: `wave_active` is in `sample_detail` only. Promote it. |
-| U3 | **Objective starvation**: ahead and ready, but no believed target passes the filter | `ratio ≥ required` with no filtered objective (note: the sampled `has_attack_objective` means "anything is believed", *before* the filter, so it cannot be used here; read `attack_objective`); split by which filter rejected each believed structure (`can_damage`, `abandoned`, `reachable`, disproved) | > 30 s | B: does the TRUE enemy have structures the army can damage and reach? If so and none is believed, the cause is scouting; if one is believed and filtered, the filter | DEFECT if a true reachable target is believed and rejected; else SKILL | D: per-structure verdicts exist under `sample_detail` |
+| U3 | **Objective starvation**: ahead and ready, but no believed target passes the filter, and the army neither attacks nor searches. Ruled (Alex, 2026-10-30): with no known target and no believed reason to defend, the army scouts until it finds one | `ratio ≥ required` with no filtered objective and no sweep point held (note: the sampled `has_attack_objective` means "anything is believed", *before* the filter, so it cannot be used here; read `attack_objective`); split by which filter rejected each believed structure (`can_damage`, `abandoned`, `reachable`, disproved) | > 30 s | B: does the TRUE enemy have structures the army can damage and reach? If none is believed, the army should be sweeping; if one is believed and filtered, the filter | DEFECT | D: per-structure verdicts exist under `sample_detail`; the sweep point is in `debug_state` |
 | U4 | **Strength misread**: belief keeps the ratio gate shut (or open) wrongly | `err = believed_enemy_value / true_enemy_value`; ghost share = value of beliefs whose unit is dead or out of play | `err ≥ 1.5` while the gate is shut, or `err ≤ 0.5` while a wave launches into a lost fight (see U5) | B vs T directly | SKILL; a ghost share that never decays is a DEFECT | N: true per-type values per commander |
 | U5 | **Attacking into a losing fight** | at each wave launch: `CombatModel.predict(own_wave, enemy_within_R(objective))` on TRUE compositions, statics included; at wave end: trade efficiency `η = enemy value destroyed / own value lost` | predicted loss at launch, or η < 0.5 for a wave | B: the same predict on the believed composition | SKILL | N: wave launch/end events; value destroyed per wave |
 | U6 | **Piecemeal losses**: units trickle in and die alone | share of own combat value lost where, at death, friendly combat value within r (≈ max weapon range) was < x·the unit's own value; scouts excluded | isolated-loss share > 0.3 over a 120 s window | D: was the unit rallied straight to the front (`_rally_production`) or ordered alone by `Squad.tick` re-orders? | SKILL | N: death events with position |
@@ -95,14 +95,14 @@ distinguishable causes.
 |---|---|---|---|---|---|---|
 | P1 | **Floating**: money banked with nothing waiting on it | `float = energy − reserve − savings_claim`, while `idle_producers > 0`; severity = ∫ float dt | > 1 minute of own income for > 30 s | D: is a train refused by the reserve, by the claim, or by attention? (not logged today) | SKILL | E: energy, idle_producers, claim |
 | P2 | **Phantom savings goal**: a goal that blocks spending and is never bought | goal age (s); goal flips/min; energy held for a goal while the goal is unplaceable or unaffordable for > T | goal age > 90 s with energy ≥ goal cost; > 2 flips/min | D: `BotSavings` has no expiry and no hysteresis | DEFECT past age; flips SKILL | E: `savings_goal` (age derivable) |
-| P3 | **Inert purchase**: buying what cannot damage anything the enemy has | share of unit spend on types with `answerable_share = 0` vs the TRUE enemy composition | any, after first contact | B: the same share vs believed; if B also says 0, it is §Defects 1 | DEFECT (when B also 0) | E: `purchase_funded` + N: true composition |
-| P4 | **Unanswered threat**: the enemy fields a class the bot cannot hit, and the bot doesn't buy the answer | seconds where the true enemy has value in a layer/class (air, stealth, …) and own answer capacity is 0, while an answer is reachable in the tree; time-to-first-answer | > 120 s | B: believed? D: [bot-standards](bot-standards.md) M3 (prerequisite chains) | SKILL | N |
-| P5 | **Composition regret**: buying well below the best available counter | per purchase: `regret = 1 − V(chosen)/V(best trainable now)` using `purchase_values_per_energy` evaluated on the TRUE enemy composition | spend-weighted regret > 0.3 over 120 s | B: regret on believed vs true separates scouting from scoring; temperature sets a floor per tier | SKILL | N: true composition at purchase time |
-| P6 | **Useless static defence** | turret spend that never fires; turrets whose weapons cannot target any enemy type present; defence share of spend vs enemy attack pressure | a turret with 0 shots over its lifetime; repeated turret builds at value 0 (§Defects 2) | D | DEFECT (repeats at 0); share is STYLE | N: shots fired per piece |
+| P3 | **Inert purchase**: buying what cannot damage anything the enemy has. Ruled (Alex, 2026-10-30): a candidate inert against every potential target has utility ≤ 0, and 0 means "better off not buying" | share of unit spend on types with `answerable_share = 0` vs the TRUE enemy composition | any, after first contact | B: the same share vs believed; if B also says 0, it is §Defects 2 | DEFECT (when B also 0) | E: `purchase_funded` + N: true composition |
+| P4 | **Unanswered threat**: the enemy fields a class the bot cannot hit, and the bot doesn't buy the answer | seconds where the true enemy has value in a layer/class (air, stealth, …) and own answer capacity is 0, while an answer is reachable in the tree; time-to-first-answer | > 120 s | B: believed? D: is the answer valued at its CHAIN cost (Alex, 2026-10-30: prerequisite buildings + the unit; [bot-standards](bot-standards.md) M3)? | SKILL | N |
+| P5 | **Composition regret**: buying well below the best available counter | per purchase: `regret = 1 − V(chosen)/V(best)` using `purchase_values_per_energy` on the TRUE enemy composition, where *best* ranges over every unit reachable through the tree at its chain cost (prerequisites unowned + the unit), not only what is trainable now | spend-weighted regret > 0.3 over 120 s | B: regret on believed vs true separates scouting from scoring; temperature sets a floor per tier | SKILL | N: true composition at purchase time |
+| P6 | **Useless static defence** | turret spend that never fires; turrets whose weapons cannot target any enemy type present; defence share of spend vs enemy attack pressure. Same rulings as P3 and P5: an inert turret has utility ≤ 0, and a turret behind a prerequisite is valued at its chain cost | a turret with 0 shots over its lifetime; repeated turret builds at value 0 (§Defects 3) | D | DEFECT (repeats at 0); share is STYLE | N: shots fired per piece |
 | P7 | **Producers that wait**: more production structures, no more throughput | producers bought while `idle_producers > 0` and float is 0 (money-bound) | any producer bought in that state | D: `_has_resource_surplus` reads `energy ≥ last energy` | SKILL | E |
 | P8 | **Economy imbalance** | own income ÷ true enemy income; extractors vs safe available sites; utility units vs `utility_unit_cap` demand | income ratio < 0.7 for > 180 s with sites free and safe; or extractors bought while the base is under answerable threat | B: `enemy_income_estimate` vs true | SKILL | E (+ true enemy income: N) |
 | P9 | **Tech stagnation / sunk tech** | first tech time; tech bought whose unlocked units are never trained in the next 180 s | no tech by T (per tier); any sunk tech | D: tech margin vs best unit only | SKILL | E: event log |
-| P10 | **Bank raids**: research or sanctions spending a held bank | research funded while `savings_claim > 0` and the goal is unbought (§Defects 3) | any | D | DEFECT | E: event log + claim |
+| P10 | **Bank raids**: research or sanctions spending a held bank | research funded while `savings_claim > 0` and the goal is unbought (§Defects 4) | any | D. Alex, 2026-10-30: noted, low priority — about a dozen research items per faction, so it stops blocking once they are bought; worth revisiting | SKILL (demoted from DEFECT) | E: event log + claim |
 | P11 | **Churn** | `purchase_refunded` per minute; structures cancelled or destroyed before completion | > 1/min; any foundation lost to an enemy in view at placement time | D/A | SKILL | E |
 | P12 | **Sanction waste** | dominion spent on cells never cast in the match; charged-but-unaimed seconds | a cell unlocked and never cast | D: `_unlock_affordable` has no valuation | SKILL | E: `usage.actions` |
 | P13 | **Defection time** | seconds in `Commander.is_in_defection()` | > 10 s | D: infrastructure rung | SKILL | N (cheap) |
@@ -154,7 +154,8 @@ Each one is checked against the source. None is fixed.
      every later think, and DEFEND is unreachable.
    - The stalemate clock is frozen. Only a momentum-confirmed loss to below
      `wave_abort_fraction` ends it.
-   - Signature: U2.
+   - Signature: U2. By the 2026-10-30 ruling the army in this state should be searching:
+     the sweep's "only a wave already marching" condition is what refuses it.
 2. **The inert cut re-ranks but never vetoes** (`BotProduction._best_unit_for`). When every
    candidate scores ≤ 0, `BotSampling._weights` returns empty and `_argmax` returns 0, so
    `types[0]` is trained. Signature: P3.
@@ -163,7 +164,7 @@ Each one is checked against the source. None is fixed.
    answerable cut, and a turret that cannot hit the threat does not reduce the region's
    demand. Signature: P6.
 4. **Research ignores the savings claim** (`BotResearch._worth_buying` checks only the
-   reserve). Signature: P10.
+   reserve). Signature: P10. Noted, low priority (§Rulings).
 
 A parameter note rather than a defect: `enemy_value_estimate` is floored at
 `own × assumed_enemy_parity`, so `attack_ratio ≤ 1/parity ≈ 1.18`. That means
@@ -171,18 +172,32 @@ A parameter note rather than a defect: `enemy_value_estimate` is floored at
 relaxation (about 6 s). Above about 1.18 the parameter has no effect
 ([bot-parameter-space](bot-parameter-space.md), T-099).
 
+## Rulings (Alex, 2026-10-30)
+
+- **A big army is not the fault.** Bots should buy more, not less; how much is the
+  difficulty parameterisation's job. The pathology is a big army that is not USED — U1 is
+  reframed accordingly.
+- **No army ceiling as a game mechanic.** Unlimited army size is fine: time to kill is low,
+  so large armies thin out quickly. No supply-style cap.
+- **A unit ceiling may be a difficulty throttle.** PLANNED as bot modelling, never a game
+  rule: a lower tier may cap how many units it eventually produces. Out of scope for this
+  note; it belongs with the tier parameters ([bot-parameter-space](bot-parameter-space.md)).
+- **No known target means search, not mass.** With nothing to attack and no believed reason
+  to defend, the army scouts until it finds something (U3, §Defects 1). Scouting was flagged
+  in another session as the lowest-priority job and Alex asked for it to be reprioritised; on
+  `fdaedd5b` the scout job is still served last.
+- **Inert means utility ≤ 0.** A purchase option inert against every potential target is
+  valued at or below 0, and 0 can mean "do not buy" (§Defects 2, 3).
+- **Value an option through the tree.** An unowned prerequisite is part of the price: the
+  effective cost of a unit from an unbuilt building is the building's cost plus the unit's
+  (the M3 TODO in [bot-standards](bot-standards.md)). Applies to units and to defence
+  structures alike.
+- **Research vs the savings claim** stays noted and unprioritised (P10).
+
 ## Open questions
 
 > **TODO: what "should have attacked" means.** U1's trigger (ratio 1.5, 90 s, nothing in
-> the enemy half) is a placeholder. Is there a design target, such as a first push by minute N
-> at HARD, or a value ratio past which holding is never acceptable at any tier?
-
-> **TODO: an army ceiling.** Nothing caps army size: every type has `infrastructure` 0,
-> `production_structure_cap` is −1, and demand never reaches zero. Is an unbounded army
-> intended? If a cap is planned, U1 should be measured against it.
-
-> **TODO: tier classes.** Confirm the DEFECT / SKILL / STYLE column. In particular: is
-> hoarding a legitimate EASY weakness, or a defect at every tier?
+> the enemy half) is still a placeholder to fit against the corpus.
 
 > **TODO: scope.** The ladder plays Colonial mirrors. Should the detectors be validated on
 > Anarchical too before they're trusted?
