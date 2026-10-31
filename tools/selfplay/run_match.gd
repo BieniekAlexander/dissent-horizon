@@ -1014,6 +1014,31 @@ func _detail_sample(a_brain: BotBrain) -> Dictionary:
 		detail["scouts"] = (scout._scouts as Array).filter(is_instance_valid).map(
 			func(u: Actor) -> String: return str(u.id)
 		)
+	var deployment: BotDeployment = a_brain._deployment
+	if deployment != null:
+		detail["deployment"] = {
+			"pending": deployment.is_pending(),
+			"best_xz":
+			[deployment._best_xz.x, deployment._best_xz.y] if deployment._best_xz != null else null,
+			"best_cost": deployment._best_cost,
+			"spent": bot.deployment == null or bot.deployment.is_spent(),
+		}
+	var owned: Array = []
+	for unit: Actor in bot.get_units():
+		var command: Variant = unit.current_command() if unit.has_command() else null
+		(
+			owned
+			. append(
+				{
+					"id": str(unit.id),
+					"at": _xz(unit.global_position),
+					"command": command.get_script().get_global_name() if command != null else "",
+					"claim":
+					str(a_brain.claims.owner_of(unit)) if a_brain.claims.is_claimed(unit) else "",
+				}
+			)
+		)
+	detail["units"] = owned
 	return detail
 
 

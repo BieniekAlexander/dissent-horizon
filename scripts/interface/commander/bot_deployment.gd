@@ -68,9 +68,18 @@ func tick(a_allowance: int = BotJob.UNLIMITED_WORK_UNITS) -> int:
 	var spent: int = _economy.continue_spot_ranking(ranking, a_allowance)
 	if not ranking["done"]:
 		return spent
-	_search = {}
 	var found: Array = _first_landable(deployment, drop, ranking["out"])
 	spent += int(found[1])
+	# The ranking scores ONE block of the annulus at a time (BotEconomy._rank_regions), chosen
+	# with no regard to vision, and the army standing still at its start point sees only its
+	# own vision circle: a best block out of sight yields nothing landable, and starting the
+	# same ranking afresh chose the same block every think for the whole match (exec_i, map
+	# 7103: a command centre never dropped). Nothing landable here moves the search on to the
+	# next block; only once every block is tried is the ranking started afresh, from wherever
+	# the army stands by then.
+	if found[0] == null and _economy.advance_spot_ranking(ranking):
+		return spent
+	_search = {}
 	if drop == Deployment.Drop.EXTRACTOR:
 		if found[0] != null:
 			deployment.drop(drop, found[0])

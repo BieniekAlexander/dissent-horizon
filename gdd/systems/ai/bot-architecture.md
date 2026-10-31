@@ -221,6 +221,16 @@ economy; production's utility demand asks for the shortfall. Above the floor the
 is unchanged, and the three retention rules still apply to a floor scout (a build job takes
 it; the floor refills). Alex's ruling, with the "five builders scouting" case designed out.
 
+Two things make the floor fill in a match rather than only in a test (`exec_i`, 2026-10-31,
+where 1.3–2.1 scouts were out at 600 s under floors of 2–5). Under the floor a unit standing
+on the squad's attack-move — a hold or a mass, never a fight, which is a COMBAT claim the
+scout's claim cannot take — is a candidate (`BotScout._is_takeable_for_floor`): every combat
+unit carries that order from the think it is trained, so "idle" units never existed for the
+floor to take. And the scout job's place on the scheduler's ladder moves with the floor: under
+it the job runs above the military and ahead of every spending job in the attention queue
+(`BotJob.priority_now`, `BotBrain._scout_priority`), so the floor claims its unit before the
+army re-tasks it; at the floor it drops back to the bottom.
+
 ### 3. Nearest-first is a spiral
 
 The destination used to be the nearest expired frontier point. That is the right answer to

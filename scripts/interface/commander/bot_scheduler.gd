@@ -120,8 +120,8 @@ func _due_jobs() -> Array[BotJob]:
 		func(a: BotJob, b: BotJob) -> bool:
 			if a.due_tick != b.due_tick:
 				return a.due_tick < b.due_tick
-			if a.priority != b.priority:
-				return a.priority > b.priority
+			if a.current_priority() != b.current_priority():
+				return a.current_priority() > b.current_priority()
 			return order[a] < order[b]
 	)
 	return due

@@ -127,6 +127,7 @@ the only differences between the seats are the throttles:
 | `exec_f` (30, lower pairs) | 0.25 / **0.4** / 0.6 / — | 6 / **4** / 2.5 / — | **84%** (16–3, 11 stalemates) | 59% (13–9, 8 stalemates) | |
 | `exec_g` (30 per pair, fair turn) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **97%** (29–1, 0 undecided) | 57% (12–9, 5 stalemates + 4 cut by the wall clock) | 72% (21–8, 1 stalemate) |
 | `exec_h` (30 per pair, answerable threats) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **97%** (28–1, 1 stalemate) | 54% (14–12, 4 stalemates) | 70% (21–9, 0) |
+| `exec_i` (30 per pair, reachability fixed; scout floor, inert cut, wave sweep) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **89%** (25–3, 2 stalemates) | 67% (18–9, 3) | 61% (17–11, 2) |
 
 What the three say together. The unthrottled bot issues 0.6–1.9 orders a second (measured on
 three probe matches), so an attention budget of 1.0 barely binds and HARD and IMPOSSIBLE were
@@ -257,7 +258,10 @@ every tier (HARD 1.22 / 1.39): the bot that commits sooner wins more often.
 > §The objective nobody could reach). Every `exec_*` row above was measured with that bug;
 > the ladder is re-run (`exec_i`) on the fix — and on the scout floor, the inert-purchase cut
 > and the wave sweep built the same day on Alex's rulings (same note, §Built on Alex's four
-> rulings) — before any rung moves.
+> rulings) — before any rung moves. `exec_i` (2026-10-31): **89 / 67 / 61**, the middle pair
+> up and the top pair down, with a deployment regression, a sweep hang and an unfilled floor
+> found and fixed from it (same note, §What `exec_i` found), plus the first three defects of
+> [decision-pathologies](decision-pathologies.md); re-run as `exec_j` before any rung moves.
 > - [ ] Which re-spacing: attention alone (MEDIUM 0.4, HARD 0.8), or every throttle widened
 >   together (periods, delay and attention)?
 > - [ ] Does the 1200 s cap stay, with an undecided match counted as neither tier's win, or

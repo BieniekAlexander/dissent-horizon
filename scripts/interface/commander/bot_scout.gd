@@ -776,7 +776,7 @@ func _pick_scout() -> Variant:
 				return false
 			return (
 				not _scouts.has(u)
-				and _unit_is_available(u)
+				and (_unit_is_available(u) or _is_takeable_for_floor(u))
 				and claims.can_claim(u, CLAIM_OWNER, BotClaims.Priority.SCOUT)
 			)
 	)
@@ -896,6 +896,26 @@ func _builder_count() -> int:
 
 
 ## True when a unit is unoccupied and safe to draft as a scout.
+## Whether the floor may take `a_u` off the army: under the floor, a unit standing on the
+## squad's attack-move — a hold or a mass, never a fight, which is a COMBAT claim and refused
+## by can_claim — is the army's spare, and the floor is what the army at home gives up first.
+## Without this the floor found nobody: every combat unit carried the squad's attack-move from
+## the think it was trained, so the floor filled only from the brief gap before it (exec_i,
+## 2026-10-31: 1.3–2.1 scouts at 600 s under floors of 2–5).
+func _is_takeable_for_floor(a_u: Actor) -> bool:
+	return is_under_floor() and a_u.has_command() and a_u.current_command() is AttackMove
+
+
+## How many scouts are out now.
+func scouts_out() -> int:
+	return _scouts.size()
+
+
+## Whether fewer scouts are out than the tier's floor (BotDifficulty.scout_minimum).
+func is_under_floor() -> bool:
+	return _scouts.size() < minimum_scouts
+
+
 func _unit_is_available(a_u: Actor) -> bool:
 	if not a_u.has_command():
 		return true

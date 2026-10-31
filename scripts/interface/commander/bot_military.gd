@@ -211,6 +211,15 @@ var scout: BotScout = null
 ## The sweep point the wave is on, or null. Kept until the wave stands on it or abandons it,
 ## so the army is not re-pointed every think; dropped the moment a real belief is actionable.
 var _sweep: Variant = null
+## Where the wave's centroid was when it last made ground toward the sweep, and when — the
+## scout's own stall test (BotScout.SCOUT_STALL_SECONDS / SCOUT_STALL_DISTANCE): a wave that
+## holds a point it cannot reach would otherwise keep it for the match, since the stall rule
+## on an objective counts only once the wave STANDS on it (exec_i 7103: an army of a hundred
+## walked at one unseen point for twelve minutes).
+var _sweep_progress: Dictionary = {}
+## How many unseen points the sweep may try in one think before giving up for this think: a
+## point the walk cannot reach is skipped for the next, not held.
+const SWEEP_TRIES_PER_THINK: int = 3
 ## Where the production structures were last told to rally, so the order is re-issued only
 ## when the point moves (or to a structure that has none yet).
 var _rally_point: Vector3 = Vector3.ZERO
@@ -241,15 +250,22 @@ func tick() -> int:
 	var considered: int = _bot.get_units().size()
 	var posture: Posture = _decide_posture()
 	var objective: Variant = _objective_for(posture)
-	# A WAVE IN THE FIELD WITH NOTHING ACTIONABLE SWEEPS ON (Alex, 2026-10-30): its objective
-	# evaporated — the sighting walked off, the forward building fell — and walking home to
-	# mass again against no threat is the yo-yo that cost stalemate 7100 its waves. The wave
-	# goes where the map is still unseen instead, and becomes its own scout; a real belief
-	# takes the objective back the think it appears. Only a wave already marching: an army at
-	# home with nothing believed still masses, and a base under an answerable threat still
-	# brings it home.
+	# A COMMITTED WAVE WITH NOTHING ACTIONABLE SWEEPS (Alex, 2026-10-30/31): its objective
+	# evaporated — the sighting walked off, the forward building fell — or it never had one,
+	# the army being big enough to commit with no enemy structure believed. Walking home to
+	# mass again against no threat is the yo-yo that cost stalemate 7100 its waves, and an
+	# unknown enemy is a reason to push, not to wait (decision-pathologies.md §Rulings): the
+	# wave goes where the map is still unseen, becomes its own scout, and a real belief takes
+	# the objective back the think it appears. A base under an answerable threat still brings
+	# it home.
 	if posture == Posture.ATTACK and objective == null:
 		objective = _sweep_objective()
+		# A wave with nowhere to go is not a wave. Left committed, _decide_posture would
+		# return ATTACK from its first branch every later think and DEFEND could never be
+		# chosen (decision-pathologies.md §Defects 1); ended, the next think answers a threat
+		# or masses, and the regroup window paces the next commitment.
+		if objective == null:
+			_end_wave()
 	else:
 		_sweep = null
 	# No valid objective for the chosen posture (e.g. ATTACK with no enemies) —
@@ -294,30 +310,61 @@ func tick() -> int:
 	return considered * UNIT_WORK_UNITS
 
 
-## The sweep point for a wave whose objective has gone, or null: nothing to ask, no wave
-## marching (the main squad is not on an assault), or the base under an answerable threat.
-## The point held is kept while the wave is still walking to it and it is not abandoned.
+## The sweep point for a committed wave with no objective, or null: nothing to ask (no scout
+## module), or the base under an answerable threat. The point held is kept while the wave is
+## still making ground toward it and it is not abandoned.
 func _sweep_objective() -> Variant:
-	if scout == null or not (_main.policy is AssaultPolicy):
+	if scout == null:
 		_sweep = null
 		return null
 	if _bot.is_base_under_answerable_threat(defend_threat_radius):
 		_sweep = null
 		return null
+	var centroid: Vector3 = _main.centroid()
 	if _sweep != null:
 		var held: Vector3 = _sweep
-		if not _is_abandoned(held) and _main.centroid().distance_to(held) > STALL_RADIUS:
+		if (
+			not _is_abandoned(held)
+			and centroid.distance_to(held) > STALL_RADIUS
+			and _sweep_is_progressing(centroid)
+		):
 			return held
 	var members: Array = _main.members()
-	var from: Vector3 = _main.centroid() if not members.is_empty() else _home_anchor_position()
+	var from: Vector3 = centroid if not members.is_empty() else _home_anchor_position()
 	var eyes: Actor = members[0] if not members.is_empty() else null
 	var vision: float = _bot.vision_radius(eyes) if eyes != null else 0.0
 	var speed: float = eyes.movement.speed if eyes != null and eyes.movement != null else 1.0
-	_sweep = scout.claim_sweep_point(VU.in_xz(from), speed, vision)
+	_sweep = null
+	for _try: int in SWEEP_TRIES_PER_THINK:
+		var point: Variant = scout.claim_sweep_point(VU.in_xz(from), speed, vision)
+		if point == null:
+			break
+		if _bot.is_reachable(from, point, REACH_TOLERANCE):
+			_sweep = point
+			break
 	if _sweep != null:
 		_objective_entity = null
 		_objective_id = 0
+		_sweep_progress = {"at": centroid, "since": _bot.seconds_elapsed()}
 	return _sweep
+
+
+## Whether the wave is still making ground toward its sweep point: it has moved
+## SCOUT_STALL_DISTANCE since the last mark, or the mark is younger than SCOUT_STALL_SECONDS.
+## A wave that has not is standing short of a point it cannot reach, and the point is
+## abandoned (the same cooldown an objective gets) so the next ask moves on.
+func _sweep_is_progressing(a_centroid: Vector3) -> bool:
+	var now: float = _bot.seconds_elapsed()
+	if _sweep_progress.is_empty():
+		_sweep_progress = {"at": a_centroid, "since": now}
+		return true
+	if a_centroid.distance_to(_sweep_progress["at"]) > BotScout.SCOUT_STALL_DISTANCE:
+		_sweep_progress = {"at": a_centroid, "since": now}
+		return true
+	if now - float(_sweep_progress["since"]) < BotScout.SCOUT_STALL_SECONDS:
+		return true
+	_abandon_objective(_sweep)
+	return false
 
 
 ## Every squad's dispatch: a changed policy to all its members, the same one to the idle.

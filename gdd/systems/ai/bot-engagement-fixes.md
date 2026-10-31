@@ -558,18 +558,57 @@ blackboard keeps a structure until the bot SEES its cell empty, and did.
   none of it, the part it can fight otherwise, whole when nothing is believed. The learned
   model has no notion of a layer, so the gate is where every rung reads, and producers and
   tech buildings are priced through it. `tests/test_BotLearnedProduction.gd` §Inert purchases.
-- **A wave with nothing left to attack sweeps on** (`BotMilitary._sweep_objective`,
-  `BotScout.claim_sweep_point`): a wave already marching whose objective evaporates is
-  pointed at the best unseen point from where it stands — the scout's own errand scoring — and
-  becomes its own scout; the point is held until the wave stands on it or abandons it, a real
-  belief takes the objective back the think it appears, an answerable threat at home still
-  brings the wave back, and an army at home with nothing believed still masses. Only the
-  demotion to MASS changed; the spent and abort rules still end a wave. `tests/test_BotStaging.gd`
-  §The sweep.
+- **A committed wave with nothing to attack sweeps** (`BotMilitary._sweep_objective`,
+  `BotScout.claim_sweep_point`): a wave whose objective evaporates, or that committed with no
+  enemy structure believed (an unknown enemy is a reason to push, not to wait —
+  [decision-pathologies](decision-pathologies.md) §Rulings), is pointed at the best unseen
+  point it can reach from where it stands — the scout's own errand scoring, up to three
+  points asked a think — and becomes its own scout. The point is held while the wave makes
+  ground toward it (the scout's own stall test; a point it stops short of is abandoned on the
+  objective cooldown), a real belief takes the objective back the think it appears, an
+  answerable threat at home still brings the wave back, and a wave with nothing to sweep is
+  ENDED so the next think may defend. The spent and abort rules still end a wave.
+  `tests/test_BotStaging.gd` §The sweep.
 - **The dropped structure beliefs were honest** (above): no change to the blackboard.
 
-The ladder (`exec_i`) is re-run on all five; every earlier row was measured with the
+The ladder (`exec_i`) was re-run on all five; every earlier row was measured with the
 reachability bug.
+
+### What `exec_i` found (2026-10-31)
+
+**89 / 67 / 61** at thirty a pair (`tools/selfplay/results/ladder/exec_i.md`): the middle
+pair up from 54%, the top pair down from 70%, seven stalemates (easy<medium 7102 A, easy<medium 7107 A, medium<hard 7103 A, medium<hard 7106 A, medium<hard 7108 B, hard<impossible 7101 B, hard<impossible 7103 B). The
+[roadmap](bot-roadmap.md) §Difficulty first carries the row. Three things in it were bugs,
+fixed the same day:
+
+- **A command centre never dropped** (map 7103, slot 0, both tiers; the match that was
+  decided both ways in `exec_h`). The deployment ranks ONE lattice block of the annulus at a
+  time (`BotEconomy._rank_regions`), chosen with no regard to vision; with the floor keeping
+  its builders home the army stood still at its start point, the best block lay outside its
+  vision circle, nothing in it was landable, and a fresh ranking chose the same block every
+  think for the match. Before the floor the builders went scouting on price and happened to
+  drag the anchor somewhere landable. Fixed: nothing landable moves the search on to the next
+  block, as the economy's own placement search does (`BotEconomy.advance_spot_ranking`,
+  `BotDeployment.tick`); a 150 s probe of 7103 now lands the centre before 20 s.
+  `tests/test_BotDeployment.gd`.
+- **A wave held a sweep point it could not reach** (hard<impossible 7103 B: the IMPOSSIBLE
+  side, against the opponent above that never deployed, walked an army of a hundred at one
+  unseen point for twelve minutes, coverage flat at 0.39). The sweep's stall rule counted
+  only once the wave STOOD on its point. Fixed: the progress test and the
+  reachable-point check above.
+- **The floor did not fill in play** (1.3–2.1 scouts out at 600 s under floors of 2–5): the
+  floor took only idle units, and every combat unit carries the squad's attack-move from the
+  think it is trained. Fixed: under the floor a unit on an attack-move is a candidate, and the
+  scout job climbs the ladder while the floor is unfilled
+  ([bot-architecture](bot-architecture.md) §A floor under the count).
+
+Also built on the [decision-pathologies](decision-pathologies.md) note's defects, same day:
+a wave with nowhere to go is ended rather than held committed; every candidate inert means
+nothing trained; a turret that can hit nothing believed is never built. The ladder is re-run
+on all of it as `exec_j`.
+
+Still open from `exec_i`: no Caravel was ever trained in 180 seats, SAMs stay rare (six),
+and the economy's spot search is budget-starved (below).
 
 ## An unanswerable threat: what the 7100 replay showed
 

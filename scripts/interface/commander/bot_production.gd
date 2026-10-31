@@ -322,8 +322,13 @@ func _best_unit_for(a_structure: Actor, a_demand: Dictionary) -> StringName:
 	var valued: Dictionary = _bot.purchase_values_per_energy(types, a_demand)
 	var scores: Array = types.map(func(t: StringName) -> float: return float(valued["values"][t]))
 	# A draw at the bot's temperature rather than the argmax, so two matches do not field the
-	# same mix; with no generator or at 0 it IS the argmax.
+	# same mix; with no generator or at 0 it IS the argmax. NOTHING WORTH BUYING IS NOTHING
+	# BOUGHT (Alex, 2026-10-30): a candidate inert against everything believed is cut to 0
+	# (Bot.answerable_share), and when every candidate is, the draw must not fall through to
+	# the first of them — the structure fields utility instead, or waits.
 	var chosen: int = BotSampling.pick(scores, decision_temperature, rng)
+	if chosen >= 0 and float(scores[chosen]) <= 0.0:
+		chosen = -1
 	var picked: StringName = types[chosen] if chosen >= 0 else &""
 	var scored: Dictionary = {}
 	for i: int in types.size():

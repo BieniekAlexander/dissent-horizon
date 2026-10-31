@@ -57,6 +57,19 @@ func test_jobs_due_together_run_by_priority_then_registration() -> void:
 	assert_eq(_ran, [&"high", &"low", &"also_low"])
 
 
+func test_a_live_priority_orders_a_job_by_what_it_says_now() -> void:
+	var climbing := _job(&"climbing", 5, 1)
+	_job(&"fixed", 5, 5)
+	var state: Dictionary = {"high": true}  # a lambda captures a value, so the flag is boxed
+	climbing.priority_now = func() -> int: return 9 if state["high"] else 1
+	_steps(1)
+	assert_eq(_ran, [&"climbing", &"fixed"], "it climbs while its callable says so")
+	state["high"] = false
+	_ran = []
+	_steps(5)
+	assert_eq(_ran, [&"fixed", &"climbing"], "and drops back when it stops")
+
+
 func test_an_earlier_due_job_runs_first_whatever_its_priority() -> void:
 	_job(&"urgent", 1, 9, BotScheduler.WORK_UNITS_PER_TICK)  # spends the whole tick, every tick
 	var patient := _job(&"patient", 1, 0)

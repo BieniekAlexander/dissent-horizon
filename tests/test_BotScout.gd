@@ -302,6 +302,23 @@ func test_a_floor_scout_is_kept_when_scouting_stops_paying() -> void:
 	assert_false(_scout._still_scouting(truck, 2), "a second scout is still priced")
 
 
+func test_the_floor_takes_a_unit_standing_on_the_armys_attack_move() -> void:
+	_set_staleness(1.0)
+	var held := _order(_owned_unit(4.0, 5.0), AttackMove)
+	_scout.minimum_scouts = 1
+	_scout._update_scouts()
+	assert_eq(_scout._scouts, [held], "a hold or a mass is the army's spare")
+
+
+func test_above_the_floor_a_unit_on_an_attack_move_is_left_alone() -> void:
+	_set_staleness(1.0)
+	_order(_owned_unit(4.0, 5.0), AttackMove)
+	_scout.minimum_scouts = 0
+	_scout.unit_budget = 2
+	_scout._update_scouts()
+	assert_eq(_scout._scouts, [], "priced scouting never pulls a unit off its order")
+
+
 func test_a_floor_scout_still_yields_to_a_real_errand() -> void:
 	var truck := _scouting(400, 1.0)
 	_scout.minimum_scouts = 1

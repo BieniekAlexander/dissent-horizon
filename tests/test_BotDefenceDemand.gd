@@ -54,6 +54,11 @@ class FakeBot:
 	func type_can_damage(_a_type, _a_target_type) -> bool:
 		return can_hit
 
+	## The share of the believed enemy a candidate turret can hit (Bot.answerable_share):
+	## everything, unless a test fields a turret that answers nothing present.
+	func answerable_share(_a_type) -> float:
+		return 1.0 if can_hit else 0.0
+
 	func unit_cost(a_unit_type) -> int:
 		match a_unit_type:
 			HOUSE:
@@ -203,6 +208,16 @@ func test_an_extinct_believed_type_does_not_stop_a_defence_being_chosen() -> voi
 	_bot.energy = TOWER_COST + _economy.reserve
 	_bot.demand_map = {ENEMY: {"demand": 1.0, "rep": null}}
 	assert_eq(_economy._defence_structure_to_build(), TOWER)
+
+
+## A turret that can hit nothing the enemy is believed to field is not built at value 0 —
+## it would not lower the demand, so the same one was built again and again
+## (decision-pathologies.md §Defects 3).
+func test_a_turret_that_cannot_hit_what_is_believed_is_not_built() -> void:
+	_bot.energy = TOWER_COST + _economy.reserve
+	_bot.demand_map = {ENEMY: {"demand": 1.0, "rep": null}}
+	_bot.can_hit = false
+	assert_null(_economy._defence_structure_to_build())
 
 
 func test_every_contested_region_is_reported_with_its_terms() -> void:

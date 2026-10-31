@@ -66,6 +66,11 @@ const JOB_PRIORITY_PRODUCTION: int = 20
 ## After production: an upgrade is a purchase priced on the army production has fielded.
 const JOB_PRIORITY_RESEARCH: int = 15
 const JOB_PRIORITY_SCOUT: int = 10
+## Where the scout job stands while its floor is unfilled (Alex, 2026-10-30: scouting's place
+## on the ladder depends on how many scouts are out): above the military, so the floor takes
+## its unit before the army re-tasks it, and ahead of every spending job in the attention
+## queue. Back to the bottom once the floor is met.
+const JOB_PRIORITY_SCOUT_UNDER_FLOOR: int = JOB_PRIORITY_MILITARY + 1
 
 ## Work units a job reports when it did nothing measurable, so a no-op still counts against
 ## the budget rather than looking free.
@@ -436,6 +441,13 @@ func _build_jobs() -> void:
 			_attention_pending(&"scout", _scout.is_dispatch_pending)
 		),
 	]
+	_jobs[-1].priority_now = _scout_priority
+
+
+## The scout job's place on the ladder now: it climbs while fewer scouts are out than the
+## tier's floor, and drops back once the floor is met.
+func _scout_priority() -> int:
+	return JOB_PRIORITY_SCOUT_UNDER_FLOOR if _scout.is_under_floor() else JOB_PRIORITY_SCOUT
 
 
 ## The fields job's work: begin a rebuild when none is pending, then carry it on within the

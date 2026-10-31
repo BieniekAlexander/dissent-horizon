@@ -99,6 +99,17 @@ class FakeEconomy:
 	func spot_cost_bounds(_a_is_production: bool) -> Vector2:
 		return Vector2(IDEAL, WORST)
 
+	## The next block's candidates, handed over when the deployment asks to move on; null
+	## means the annulus is exhausted.
+	var next_block: Variant = null
+
+	func advance_spot_ranking(a_ranking: Dictionary) -> bool:
+		if next_block == null:
+			return false
+		a_ranking["out"] = next_block
+		next_block = null
+		return true
+
 
 var _map: TestMap
 var _bot: FakeBot
@@ -238,3 +249,26 @@ func test_nothing_landable_yet_means_nothing_dropped() -> void:
 	_bot.now = BotDeployment.DEADLINE_SECONDS
 	_module.tick()
 	assert_eq(_deployment.dropped, [])
+
+
+## The ranking scores one block of the annulus at a time; a block out of the army's sight
+## holds nothing landable, and the search must move on to the next block rather than rank
+## the same one again (exec_i, map 7103: the army stood still and never dropped).
+func test_a_block_with_nothing_landable_is_passed_over_for_the_next() -> void:
+	_deployment.ok_origins = [GOOD]
+	_rank([[FOGGED, 0.0]])
+	_economy.next_block = PackedInt64Array([_candidate(GOOD, 1.0)])
+	_module.tick()
+	assert_eq(_deployment.dropped, [], "the first block had nothing landable")
+	assert_true(_module.is_pending(), "the search is carried on into the next block")
+	_bot.now = 10.0  # threshold 1.67: the next block's spot clears it
+	_module.tick()
+	assert_eq(_deployment.dropped.size(), 1, "dropped on the next block's spot")
+	assert_eq(_deployment.dropped[0], VU.in_xz(_map.footprint_centroid(GOOD, CENTRE_DIMS)))
+
+
+func test_an_exhausted_annulus_starts_the_search_afresh() -> void:
+	_deployment.ok_origins = []
+	_rank([[FOGGED, 0.0]])
+	_module.tick()
+	assert_false(_module.is_pending(), "every block tried: a fresh ranking next think")

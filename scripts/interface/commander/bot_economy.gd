@@ -842,6 +842,13 @@ func _defence_structure_to_build() -> Variant:
 	if unit_demand.is_empty():
 		var grounded: Array = candidates.filter(func(t): return _bot.type_targets_ground(t))
 		candidates = grounded if not grounded.is_empty() else candidates
+	# A turret that can hit nothing the enemy is believed to field is worth nothing, and it
+	# does not lower the region's demand either, so taking it at value 0 built the same
+	# useless turret again and again (decision-pathologies.md §Defects 3). The same cut every
+	# purchase takes (Bot.answerable_share); with nothing believed every candidate passes.
+	candidates = candidates.filter(func(t): return _bot.answerable_share(t) > 0.0)
+	if candidates.is_empty():
+		return null
 	var value: Dictionary = {}
 	for t in candidates:
 		value[t] = _bot.unit_composition_value(t, unit_demand)
@@ -2167,6 +2174,12 @@ func continue_spot_ranking(a_ranking: Dictionary, a_allowance: int) -> int:
 	var before: int = _work
 	_continue_ranking(a_ranking, a_allowance)
 	return _work - before
+
+
+## Move `a_ranking` on to the next-best block of its annulus, its origins unscored again, for a
+## search whose block held nothing placeable; false once every block has been tried.
+func advance_spot_ranking(a_ranking: Dictionary) -> bool:
+	return _advance_region(a_ranking)
 
 
 ## The lowest and the highest cost a ranked candidate can have, as (ideal, worst): the ideal sits

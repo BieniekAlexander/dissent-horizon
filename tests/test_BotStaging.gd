@@ -108,6 +108,12 @@ class FakeBot:
 	func most_answerably_threatened_structure(_a_threat_radius: float = 30.0) -> Actor:
 		return threatened if under_answerable_threat else null
 
+	## Points the ground cannot walk to; everything else is reachable.
+	var unreachable: Array = []
+
+	func is_reachable(_a_from: Vector3, a_to: Vector3, _a_tolerance: float) -> bool:
+		return not unreachable.has(a_to)
+
 	func answerably_threatened_command_centre(_a_threat_radius: float) -> Actor:
 		return null
 
@@ -904,13 +910,31 @@ func test_with_nothing_left_unseen_the_wave_comes_home() -> void:
 	assert_null(military._sweep)
 
 
-func test_an_army_at_home_does_not_sweep() -> void:
+## An unknown enemy is a reason to push, not to wait (Alex, 2026-10-31): a wave committed with
+## no enemy structure believed sweeps from home rather than massing against nothing.
+func test_a_committed_wave_with_nothing_believed_sweeps_from_home() -> void:
 	var military := _sweeping_military([SWEEP])
-	_armed_unit(FakeBot.HOME)
+	var veteran := _armed_unit(FakeBot.HOME)
 	military.attack_objective = null
 	military.tick()
-	assert_eq(military.current_posture(), BotMilitary.Posture.MASS, "no wave was marching")
-	assert_eq((military.scout as FakeScout).asked, 0, "and the scout was never asked")
+	assert_eq(military.current_posture(), BotMilitary.Posture.ATTACK, "the wave marches")
+	assert_eq(_wave_point(military), SWEEP, "at unseen ground")
+	assert_eq(_destinations_of(veteran)[-1], SWEEP)
+
+
+## A wave with nowhere to go is ended, not held: left committed it would be ATTACK every
+## later think and DEFEND could never be chosen (decision-pathologies.md §Defects 1).
+func test_a_wave_with_nothing_to_sweep_is_ended_so_the_next_think_may_defend() -> void:
+	var military := _sweeping_military([])
+	_armed_unit(FakeBot.HOME)
+	military._wave_active = true
+	military.attack_objective = null
+	military.tick()
+	assert_eq(military.current_posture(), BotMilitary.Posture.MASS)
+	assert_false(military._wave_active, "the wave is over")
+	assert_gt(
+		military._regroup_until, _bot.seconds_elapsed(), "and the regroup window paces the next"
+	)
 
 
 func test_an_answerable_threat_at_home_brings_the_sweeping_wave_back() -> void:
@@ -949,3 +973,39 @@ func test_a_fresh_belief_takes_the_objective_back_from_the_sweep() -> void:
 	military.tick()
 	assert_eq(_wave_point(military), military.attack_objective, "the belief wins at once")
 	assert_null(military._sweep)
+
+
+func test_an_unreachable_sweep_point_is_skipped_for_the_next() -> void:
+	var military := _sweeping_military([SWEEP, SWEEP_NEXT])
+	_armed_unit(OBJECTIVE)
+	_bot.unreachable = [SWEEP]
+	_march_then_lose_the_objective(military)
+	military.tick()
+	assert_eq(_wave_point(military), SWEEP_NEXT, "the walk cannot reach the first, so the second")
+	assert_eq((military.scout as FakeScout).asked, 2)
+
+
+func test_a_sweep_the_wave_makes_no_ground_toward_is_abandoned() -> void:
+	# The wave stands short of its point for longer than the scout's own stall window without
+	# moving: the point is written off and the next unseen one asked for.
+	var military := _sweeping_military([SWEEP, SWEEP_NEXT])
+	_armed_unit(OBJECTIVE)
+	_march_then_lose_the_objective(military)
+	military.tick()
+	assert_eq(_wave_point(military), SWEEP, "precondition: sweeping toward the first point")
+	_bot.now += BotScout.SCOUT_STALL_SECONDS + 1.0
+	military.tick()
+	assert_true(military._is_abandoned(SWEEP), "no ground made: the point is abandoned")
+	assert_eq(_wave_point(military), SWEEP_NEXT, "and the wave goes on to the next")
+
+
+func test_a_sweep_the_wave_is_walking_toward_is_kept() -> void:
+	var military := _sweeping_military([SWEEP, SWEEP_NEXT])
+	var veteran := _armed_unit(OBJECTIVE)
+	_march_then_lose_the_objective(military)
+	military.tick()
+	_bot.now += BotScout.SCOUT_STALL_SECONDS + 1.0
+	veteran.global_position = OBJECTIVE.move_toward(SWEEP, 10.0)
+	military.tick()
+	assert_eq(_wave_point(military), SWEEP, "ground made: the point is held")
+	assert_eq((military.scout as FakeScout).asked, 1)

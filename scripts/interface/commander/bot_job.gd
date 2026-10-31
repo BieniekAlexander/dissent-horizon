@@ -22,6 +22,10 @@ var brain: BotBrain
 var period_seconds: Callable
 ## Which of several jobs due on the same tick goes first. Higher runs first.
 var priority: int
+## Where the job stands on the ladder right now, when that moves: a callable returning an
+## int, read by the scheduler in place of `priority` while it is set (the scout job climbs
+## while its floor is unfilled, BotBrain._scout_priority).
+var priority_now: Callable = Callable()
 ## (allowance: int) -> int work units spent.
 var work: Callable
 ## () -> bool: true while a resumable sweep is part-way through. Empty for jobs that always
@@ -56,6 +60,12 @@ func _init(
 	priority = a_priority
 	work = a_work
 	is_pending = a_is_pending
+
+
+## The priority the scheduler orders this job by now: `priority_now` where it is set, else
+## the fixed `priority`.
+func current_priority() -> int:
+	return int(priority_now.call()) if priority_now.is_valid() else priority
 
 
 ## Whether the job stopped part-way through its last run and must resume before counting as

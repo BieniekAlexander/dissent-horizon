@@ -34,6 +34,10 @@ class StubBot:
 	func type_can_damage(a_type, a_target_type) -> bool:
 		return not hits.has(a_type) or (hits[a_type] as Array).has(a_target_type)
 
+	## Every candidate here is armed; what it can hit is `hits`.
+	func unit_can_attack(_a_type) -> bool:
+		return true
+
 
 var _bot: StubBot
 var _production: BotProduction
@@ -117,6 +121,19 @@ func test_a_unit_inert_against_everything_believed_is_worth_nothing() -> void:
 	assert_almost_eq(
 		float(valued["values"][&"scout"]), 0.025 / 100.0, 1e-9, "the scout keeps its value"
 	)
+
+
+## Nothing worth buying is nothing bought (Alex, 2026-10-30): when every candidate is cut to
+## 0 the choice must not fall through to the first of them (decision-pathologies.md §Defects 2).
+func test_every_candidate_inert_trains_nothing() -> void:
+	_with_previews()
+	_bot.hits = {&"tank": [&"flyer"], &"scout": [&"flyer"]}
+	_bot.enemy = {&"raider": 3}
+	var producer: Actor = FakePieces.unit({"produces": ["tank", "scout"]})
+	add_child_autofree(producer)
+	assert_eq(_production._best_unit_for(producer, {&"raider": 1.0}), &"", "nothing to buy")
+	_bot.hits = {&"tank": [&"raider"], &"scout": [&"flyer"]}
+	assert_eq(_production._best_unit_for(producer, {&"raider": 1.0}), &"tank", "the one that hits")
 
 
 func test_a_unit_that_fights_part_of_the_enemy_keeps_that_part() -> void:

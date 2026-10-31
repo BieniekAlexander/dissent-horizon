@@ -145,27 +145,35 @@ without a ladder run.
 
 ## Defects found while mapping (2026-10-30)
 
-Each one is checked against the source. None is fixed.
+Each one is checked against the source. The first three are fixed (2026-10-31), each pinned
+by a unit test; the fourth is noted.
 
-1. **A committed wave with no destination, which never defends** (`bot_military.gd`).
-   - `_committing_to_attack` sets `_wave_active = true` before an objective exists.
-   - When `_objective_for(ATTACK)` is null, `_sweep_objective` refuses, because the main squad
-     never took an `AssaultPolicy`. The posture falls back to MASS.
-   - `_wave_active` stays true, so `_decide_posture` returns ATTACK from its first branch on
-     every later think, and DEFEND is unreachable.
-   - The stalemate clock is frozen. Only a momentum-confirmed loss to below
-     `wave_abort_fraction` ends it.
-   - Signature: U2. By the 2026-10-30 ruling the army in this state should be searching:
-     the sweep's "only a wave already marching" condition is what refuses it.
-2. **The inert cut re-ranks but never vetoes** (`BotProduction._best_unit_for`). When every
-   candidate scores ≤ 0, `BotSampling._weights` returns empty and `_argmax` returns 0, so
-   `types[0]` is trained. Signature: P3.
-3. **The defence rung can build useless turrets repeatedly**
-   (`BotEconomy._defence_structure_to_build`). It returns `candidates[0]` at value 0 with no
+1. **A committed wave with no destination, which never defended** (`bot_military.gd`).
+   `_committing_to_attack` sets `_wave_active` before an objective exists; the sweep refused
+   a wave whose main squad had never marched, so the posture fell back to MASS with the wave
+   still committed, `_decide_posture` returned ATTACK from its first branch on every later
+   think, and DEFEND was unreachable. Signature: U2. Fixed: a committed wave with nothing
+   believed sweeps from home (`_sweep_objective` no longer asks whether the squad is on an
+   assault), and a wave with nothing to sweep is ENDED (`_end_wave`), so the next think
+   answers a threat or masses and the regroup window paces the next commitment
+   (`tests/test_BotStaging.gd` §sweep).
+2. **The inert cut re-ranked but never vetoed** (`BotProduction._best_unit_for`). When every
+   candidate scored ≤ 0, `BotSampling._weights` returned empty and `_argmax` returned 0, so
+   `types[0]` was trained. Signature: P3. Fixed: a pick whose score is ≤ 0 is no pick, and the
+   structure fields utility or waits (`tests/test_BotLearnedProduction.gd`).
+3. **The defence rung could build useless turrets repeatedly**
+   (`BotEconomy._defence_structure_to_build`). It returned `candidates[0]` at value 0 with no
    answerable cut, and a turret that cannot hit the threat does not reduce the region's
-   demand. Signature: P6.
+   demand. Signature: P6. Fixed: candidates with `Bot.answerable_share` of 0 are cut, and
+   none left means no turret (`tests/test_BotDefenceDemand.gd`).
 4. **Research ignores the savings claim** (`BotResearch._worth_buying` checks only the
    reserve). Signature: P10. Noted, low priority (§Rulings).
+
+Two more the first run on the floor and the sweep (`exec_i`, 2026-10-31) surfaced and that
+are fixed the same day, recorded in [bot-engagement-fixes](bot-engagement-fixes.md) §What
+`exec_i` found: a command centre never dropped when the army stood still at its start point
+(U12's shape, in the deployment), and a wave that held a sweep point it could not reach for
+the match (U12 again, in the sweep).
 
 A parameter note rather than a defect: `enemy_value_estimate` is floored at
 `own × assumed_enemy_parity`, so `attack_ratio ≤ 1/parity ≈ 1.18`. That means
@@ -206,7 +214,10 @@ relaxation (about 6 s). Above about 1.18 the parameter has no effect
   the second is what makes the first safe.
 - **Scouting is what supplies the targets** (2026-10-31). Frequent enough scouting should keep
   a target believed, so the push needs no target-less mode of its own; U3 is the measure that
-  says whether scouting is frequent enough.
+  says whether scouting is frequent enough. The scout job's place on the ladder now moves:
+  while fewer scouts are out than the tier's floor it runs above the military and ahead of
+  every spending job in the attention queue (`BotBrain._scout_priority`), and drops back to
+  the bottom once the floor is met.
 - **Momentum is local to the front** (2026-10-31). The retreat should read the strength of
   the front the wave is on — own and enemy strength fields convolved around the engagement —
   not a global army-power trend. On `fdaedd5b` it is global: `BotMomentum` samples
