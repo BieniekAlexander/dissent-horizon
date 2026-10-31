@@ -541,8 +541,10 @@ func _apply_config() -> void:
 	_economy.defence_propensity = config.defence_propensity
 	_economy.tech_value_margin = config.tech_value_margin
 	# The research rung buys on the same margin the tech rung buys a building on, and banks
-	# the same reserve every other spender does.
+	# the same reserve every other spender does; production keeps a unit behind a structure in
+	# its ranking on that margin too, so the two readers of a locked unit agree.
 	_research.tech_value_margin = config.tech_value_margin
+	_production.tech_value_margin = config.tech_value_margin
 	_research.reserve = played.economy_reserve
 	# The economy is the THIRD consumer of the threat radius (BotMilitary and BotSanction are
 	# the others). "Is something of mine under attack" has to mean one thing across the bot,

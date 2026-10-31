@@ -82,6 +82,18 @@ func test_each_candidate_is_scored_per_energy_by_the_model() -> void:
 	assert_almost_eq(float(valued["values"][&"scout"]), 0.025 / 100.0, 1e-9)
 
 
+## An unowned prerequisite is part of the price (Alex, 2026-10-30): the model's marginal is
+## read per energy of the CHAIN, so a tank behind an 800 factory the bot does not own is a
+## third as good per energy as one it can train today (Bot.chain_price_factor).
+func test_a_unit_behind_a_structure_is_priced_per_energy_of_its_chain() -> void:
+	_bot.technology_mapping[&"factory"] = TechnologySpec.new(800, 0, 0, 30)
+	_bot.technology_mapping[&"tank"] = TechnologySpec.new(400, 0, 0, 30, [&"factory"])
+	var valued: Dictionary = _bot.purchase_values_per_energy([&"tank", &"scout"])
+	assert_true(valued["learned"], "still the model's price")
+	assert_almost_eq(float(valued["values"][&"tank"]), 0.2 / 1200.0, 1e-12, "factory and tank")
+	assert_almost_eq(float(valued["values"][&"scout"]), 0.025 / 100.0, 1e-9, "no chain, as before")
+
+
 func test_the_switch_off_leaves_the_demand_map_in_charge() -> void:
 	_bot.should_use_learned_production = false
 	assert_false(_bot.purchase_values_per_energy([&"tank"], _demand())["learned"])

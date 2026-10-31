@@ -1585,14 +1585,17 @@ func _builder_buildable_types() -> Dictionary:
 ## caller's concern). Derived from the registry + builder capabilities, so a newly
 ## added buildable structure is picked up automatically — no hardcoded type list.
 func buildable_structure_types() -> Array:
-	var caps := _builder_buildable_types()
-	var allowed: Callable = func(type) -> bool:
-		return caps.has(type) and has_tech_for(type) and may_consider_structure(type)
+	return placeable_structure_types().filter(has_tech_for)
+
+
+## Every structure type some owned builder may place, TECH ASIDE: what a prerequisite chain
+## can reach (prerequisite_chain), as opposed to what can be ordered today.
+func placeable_structure_types() -> Array:
 	return (
 		Tool
 		. tools_in_context(ControlBinding.ControlContext.BUILD)
 		. map(func(t: Tool): return t.type)
-		. filter(allowed)
+		. filter(builder_may_place)
 	)
 
 
@@ -1658,6 +1661,13 @@ var combat_model: CombatModel = null
 ## a Recruit against one Clipper and ten Badgers is still a buy; against five Clippers and
 ## Sloops it is not, and HARD bought 160 of them in stalemate 7100). The model has no notion
 ## of a layer — it is fitted on counts — so the gate is here, where every rung reads.
+##
+## AND THE ENERGY IS THE CHAIN'S, NOT THE TYPE'S ALONE (Alex, 2026-10-30; chain_price_factor):
+## a type behind a structure the bot does not own is priced at its own cost plus every unowned
+## prerequisite's, so a SAM with no factory standing competes with the units trainable today
+## at what it would really cost to field, and wins only when it is worth that — which is what
+## sends the economy to build the factory (BotProduction._best_unit_for, _defence_structure_
+## to_build). A type the bot can produce today is priced exactly as before.
 func purchase_values_per_energy(a_types: Array, a_demand: Dictionary = {}) -> Dictionary:
 	var learned: Dictionary = _learned_values_per_energy(a_types)
 	if not learned.is_empty():
@@ -1665,7 +1675,7 @@ func purchase_values_per_energy(a_types: Array, a_demand: Dictionary = {}) -> Di
 	var demand: Dictionary = a_demand if not a_demand.is_empty() else enemy_demand_map()
 	var values: Dictionary = {}
 	for t: StringName in a_types:
-		values[t] = unit_composition_value(t, demand)
+		values[t] = unit_composition_value(t, demand) * chain_price_factor(t)
 	return {"values": _cut_to_answerable(values), "learned": false}
 
 
@@ -1714,23 +1724,22 @@ func _learned_values_per_energy(a_types: Array) -> Dictionary:
 	var own: Dictionary = own_armed_composition()
 	var values: Dictionary = {}
 	for t: StringName in a_types:
-		values[t] = model.marginal(own, enemy, t) / float(maxi(1, unit_cost(t)))
+		values[t] = model.marginal(own, enemy, t) / float(maxi(1, chain_cost(t)))
 	return values
 
 
 ## What each of `a_structure_types` is worth as a PRODUCER: the best of the armed units it
-## trains that the bot has the tech for, on purchase_values_per_energy — one answer for every
-## producer asked at once, so they are all on the same scale. 0 for a building that trains
-## nothing armed the bot could field. A locked unit no longer counts (it did until 2026-10-09,
-## so a barracks was priced by the Constable behind a tech building the bot did not own): what a
-## producer is worth is what it can make today; unlocking is the tech rung's measure.
+## trains, on purchase_values_per_energy — one answer for every producer asked at once, so
+## they are all on the same scale. 0 for a building that trains nothing armed the bot could
+## field. A unit still behind a tech structure counts AT ITS CHAIN COST (Alex, 2026-10-30):
+## from 2026-10-09 until then it did not count at all, because at its own cost it priced a
+## barracks by the Constable behind a tech building the bot did not own; priced at the tech
+## building too, it is the honest worth of the producer that would one day train it.
 func producer_values(a_structure_types: Array, a_demand: Dictionary = {}) -> Dictionary:
-	var producibles: Dictionary = {}  # structure type -> its armed, trainable types
+	var producibles: Dictionary = {}  # structure type -> its armed types
 	var all_types: Array = []
 	for structure_type: StringName in a_structure_types:
-		var types: Array = producible_types_of(structure_type).filter(
-			func(t: StringName) -> bool: return unit_can_attack(t) and has_tech_for(t)
-		)
+		var types: Array = producible_types_of(structure_type).filter(unit_can_attack)
 		producibles[structure_type] = types
 		for t: StringName in types:
 			if not all_types.has(t):
@@ -1759,12 +1768,19 @@ func producible_types_of(a_structure_type: StringName) -> Array:
 ## nothing. A defence wants to stand where the enemy will come, which is a placement bearing
 ## (BotEconomy._wants_frontage); derived from components so a new turret classifies itself.
 func buildable_defence_structure_types() -> Array:
-	return buildable_structure_types().filter(
-		func(t):
-			return (
-				_type_has_component(t, "Loadout")
-				and not Production.node_trains_units(_preview_for_type(t))
-			)
+	return buildable_structure_types().filter(_type_is_static_defence)
+
+
+## Static defences some owned builder may place, tech aside: the ones a chain can reach, so
+## a SAM behind a building the bot has yet to raise is still a candidate at its chain cost.
+func reachable_defence_structure_types() -> Array:
+	return placeable_structure_types().filter(_type_is_static_defence)
+
+
+func _type_is_static_defence(a_type) -> bool:
+	return (
+		_type_has_component(a_type, "Loadout")
+		and not Production.node_trains_units(_preview_for_type(a_type))
 	)
 
 
@@ -2591,12 +2607,69 @@ func has_tech_for(a_type: StringName) -> bool:
 	return spec != null and spec.unmet_need == TechnologySpec.UnmetNeed.NONE
 
 
-## Whether training `a_unit_type` needs a `a_structure_type` standing — read off the tech
-## tree (TechnologySpec.required_structures), so a tech structure is whatever some unit
-## requires rather than a list anyone maintains.
-func unit_requires_structure(a_unit_type: StringName, a_structure_type: StringName) -> bool:
-	var spec: TechnologySpec = technology_mapping.get(a_unit_type)
-	return spec != null and spec.required_structures.has(a_structure_type)
+## THE CHAIN A PURCHASE STILL NEEDS (Alex, 2026-10-30: an unowned prerequisite is part of
+## the price): every structure `a_type` requires (TechnologySpec.required_structures,
+## recursively) that the bot neither owns nor has on its way, in BUILD ORDER — a prerequisite
+## before the structure that needs it — with their summed energy cost, and whether every one
+## of them is a structure some owned builder may place. A structure standing, going up, queued
+## or ordered (has_incoming_structure, plus `a_under_way` for what a manager knows it has
+## ordered this think) costs nothing more and is left out, so a chain shrinks as it is built.
+## Empty, 0 and placeable for a type the bot can produce today, and for one with no spec.
+## Returns {"structures": Array[StringName], "cost": int, "placeable": bool}.
+func prerequisite_chain(a_type: StringName, a_under_way: Array = []) -> Dictionary:
+	var structures: Array[StringName] = []
+	_collect_chain(a_type, a_under_way, structures, {a_type: true})
+	var cost: int = 0
+	var placeable: bool = true
+	for structure: StringName in structures:
+		cost += unit_cost(structure)
+		placeable = placeable and builder_may_place(structure)
+	return {"structures": structures, "cost": cost, "placeable": placeable}
+
+
+func _collect_chain(
+	a_type: StringName, a_under_way: Array, a_out: Array[StringName], a_seen: Dictionary
+) -> void:
+	var spec: TechnologySpec = technology_mapping.get(a_type)
+	if spec == null:
+		return
+	for required: StringName in spec.required_structures:
+		# `a_seen` is what stops a tree with a cycle (a content fault) from looping here.
+		if a_seen.has(required):
+			continue
+		a_seen[required] = true
+		if owns_or_expects_structure(required) or a_under_way.has(required):
+			continue
+		_collect_chain(required, a_under_way, a_out, a_seen)
+		a_out.append(required)
+
+
+## Whether a structure of `a_type` stands, is going up, or is on its way (ordered, funded or
+## queued — Commander.has_incoming_structure): what a chain need not buy again.
+func owns_or_expects_structure(a_type: StringName) -> bool:
+	return not get_structures_of_type(a_type).is_empty() or has_incoming_structure(a_type)
+
+
+## Whether some owned builder may place a structure of `a_type` at all, tech aside: what makes
+## a chain reachable rather than a price on paper.
+func builder_may_place(a_type: StringName) -> bool:
+	return _builder_buildable_types().has(a_type) and may_consider_structure(a_type)
+
+
+## What one of `a_type` costs TO REACH: its own price plus its unowned chain's.
+func chain_cost(a_type: StringName, a_under_way: Array = []) -> int:
+	return unit_cost(a_type) + int(prerequisite_chain(a_type, a_under_way)["cost"])
+
+
+## What a value priced per energy of `a_type` alone is multiplied by to be priced per energy
+## of its chain: own cost over chain cost, 1.0 while nothing is missing. A type priced at 0
+## (a test's stand-in) behind a chain is priced as if it cost 1.
+func chain_price_factor(a_type: StringName, a_under_way: Array = []) -> float:
+	var own: int = unit_cost(a_type)
+	var chain: int = chain_cost(a_type, a_under_way)
+	if chain <= own:
+		return 1.0
+	return float(maxi(1, own)) / float(chain)
 
 
 ## All Entity.Types whose prerequisite structures are satisfied — the full

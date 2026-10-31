@@ -27,6 +27,11 @@ var _act: BotActuator
 var rng: RandomNumberGenerator = null
 ## How willing the unit choice is to take a near-best counter (BotDifficulty).
 var decision_temperature: float = 0.0
+## How many times the best TRAINABLE unit's value a unit still behind a structure must be
+## worth, at its chain cost, before its chain is started for it — the one bar the tech rung
+## buys a building on (BotDifficulty.tech_value_margin, pushed by BotBrain._apply_config), so
+## the two readers of the locked unit agree.
+var tech_value_margin: float = 1.3
 
 ## Energy that must still be banked AFTER a unit is paid for, mirroring BotEconomy.reserve
 ## (BotDifficulty.economy_reserve; pushed by BotBrain._apply_config).
@@ -105,6 +110,12 @@ func tick() -> int:
 	for pick: Array in wanted:
 		var s: Actor = pick[0]
 		var type: StringName = pick[1]
+		# A pick still behind a structure is not trained: its chain's first link is the savings
+		# goal now (_propose_savings), and the economy builds it. The producer meanwhile trains
+		# the best unit it CAN make today under that claim, as every spend does, rather than
+		# stand idle on a unit the bot has no building for.
+		if type != &"" and not _bot.has_tech_for(type):
+			type = _best_trainable_unit_for(s, demand)
 		# A structure that can't train any combat unit (e.g. the Settlement, which only
 		# makes the weaponless Stock Truck) instead fields a capped number of utility
 		# units — builders/capturers that earn their keep outside the army.
@@ -122,7 +133,9 @@ func tick() -> int:
 
 
 ## Production's savings proposal: the most valuable unit any idle producer wants, affordable
-## or not, on the scale every proposal shares (Bot.unit_composition_value). See BotSavings.
+## or not, on the scale every proposal shares (Bot.purchase_values_per_energy). A wanted unit
+## still behind a structure proposes the FIRST LINK of its chain instead — the purchase the
+## bank is held for next — at the unit's chain-priced value. See BotSavings.
 func _propose_savings(a_wanted: Array, a_demand: Dictionary) -> void:
 	var types: Array = []
 	for pick: Array in a_wanted:
@@ -146,7 +159,11 @@ func _propose_savings(a_wanted: Array, a_demand: Dictionary) -> void:
 		if value > best_value:
 			best_value = value
 			best_type = type
-	_bot.savings.propose(&"production", best_type, best_value, _energy_cost(best_type))
+	var purchase: StringName = best_type
+	if best_type != &"" and not _bot.has_tech_for(best_type):
+		var chain: Array = _bot.prerequisite_chain(best_type)["structures"]
+		purchase = chain[0] if not chain.is_empty() else &""
+	_bot.savings.propose(&"production", purchase, best_value, _energy_cost(purchase))
 
 
 ## THE INFRASTRUCTURE RUNG, for a faction whose provider is a TRAINED unit (the Technocratic
@@ -295,32 +312,42 @@ func _owned_utility_unit_count() -> int:
 	return count
 
 
-## The producible unit at [structure] that best counters the believed enemy. With no
-## intel yet (empty demand), falls back to the cheapest affordable unit so the
-## building still fields an opening army.
+## The producible unit at [structure] that best counters the believed enemy — one the bot
+## can train today, or one still behind a structure it would have to raise first, which is
+## then the caller's cue to raise it (tick). With no intel yet (empty demand), falls back to
+## the cheapest affordable unit so the building still fields an opening army.
+##
+## A LOCKED UNIT IS A CANDIDATE AT ITS CHAIN COST (Alex, 2026-10-30): the purchase valuation
+## prices it at its own cost plus every unowned prerequisite's, so it competes honestly with
+## what is trainable now, and it must beat the best trainable candidate by `tech_value_margin`
+## — the bar the tech rung buys a building on, so production and the economy read the locked
+## unit the same way. From 2026-10-04 to 2026-10-31 a locked unit was no candidate at all: at
+## its own cost it scored on its gun like any other, won, failed the spend gate every tick and
+## held the bank, and the producer stood idle on a unit the bot had no building for (the
+## Constable was picked 46,707 of 56,794 barracks decisions and never trained). Priced at the
+## chain, a win now sends the economy to build the chain, and the producer trains the best
+## unit it can make under the claim meanwhile.
 func _best_unit_for(a_structure: Actor, a_demand: Dictionary) -> StringName:
 	if a_demand.is_empty():
 		return _cheapest_affordable_unit(a_structure)
-	var types: Array = []
-	for t: StringName in _bot.considered_producible_types(a_structure.production):
-		# Only train combat units — a weaponless unit (e.g. the Stock Truck) adds
-		# nothing to the army, so a structure that can ONLY make such units waits
-		# rather than spamming them. Builders are fielded via the economy, not here.
-		if not _bot.unit_can_attack(t):
-			continue
-		# Only units the bot can TRAIN TODAY. A tech-locked unit scores on its gun like any
-		# other, wins the comparison, and then fails the spend gate every tick — and the caller
-		# banks for it rather than falling back, so the producer stands idle on a unit the bot
-		# has no building for. Measured 2026-10-04 (piece-usage audit): the Constable was picked
-		# 46,707 of 56,794 barracks decisions and the Avalanche 9,247 of 10,212 war-factory
-		# decisions, neither ever trained, while the bot owned no tech structure.
-		if not _bot.has_tech_for(t):
-			continue
-		types.append(t)
+	var types: Array = _candidate_units_for(a_structure)
 	# The one valuation every purchase reads (Bot.purchase_values_per_energy): the model's
-	# marginal per energy where it applies, else the demand map.
+	# marginal per energy where it applies, else the demand map — per energy of the CHAIN.
 	var valued: Dictionary = _bot.purchase_values_per_energy(types, a_demand)
-	var scores: Array = types.map(func(t: StringName) -> float: return float(valued["values"][t]))
+	var trainable_best: float = 0.0
+	for t: StringName in types:
+		if _bot.has_tech_for(t):
+			trainable_best = maxf(trainable_best, float(valued["values"][t]))
+	var eligible: Array = types.filter(
+		func(t: StringName) -> bool:
+			return (
+				_bot.has_tech_for(t)
+				or float(valued["values"][t]) >= tech_value_margin * trainable_best
+			)
+	)
+	var scores: Array = eligible.map(
+		func(t: StringName) -> float: return float(valued["values"][t])
+	)
 	# A draw at the bot's temperature rather than the argmax, so two matches do not field the
 	# same mix; with no generator or at 0 it IS the argmax. NOTHING WORTH BUYING IS NOTHING
 	# BOUGHT (Alex, 2026-10-30): a candidate inert against everything believed is cut to 0
@@ -329,12 +356,46 @@ func _best_unit_for(a_structure: Actor, a_demand: Dictionary) -> StringName:
 	var chosen: int = BotSampling.pick(scores, decision_temperature, rng)
 	if chosen >= 0 and float(scores[chosen]) <= 0.0:
 		chosen = -1
-	var picked: StringName = types[chosen] if chosen >= 0 else &""
+	var picked: StringName = eligible[chosen] if chosen >= 0 else &""
 	var scored: Dictionary = {}
-	for i: int in types.size():
-		scored[types[i]] = scores[i]
+	for t: StringName in types:
+		scored[t] = float(valued["values"][t])
 	_act.usage.record_choice("train_learned" if valued["learned"] else "train", scored, picked)
 	return picked
+
+
+## The armed units [structure] could train for the army: the ones the bot can train today,
+## and the ones behind a chain some owned builder could raise. A weaponless unit (the Stock
+## Truck) adds nothing to the army, so a structure that can ONLY make such units waits rather
+## than spamming them — builders are fielded via the economy, not here. A unit whose chain
+## is empty and still locked is waiting on a structure already on its way: nothing to buy for
+## it, and nothing to train yet.
+func _candidate_units_for(a_structure: Actor) -> Array:
+	var types: Array = []
+	for t: StringName in _bot.considered_producible_types(a_structure.production):
+		if not _bot.unit_can_attack(t):
+			continue
+		if not _bot.has_tech_for(t):
+			var chain: Dictionary = _bot.prerequisite_chain(t)
+			if chain["structures"].is_empty() or not chain["placeable"]:
+				continue
+		types.append(t)
+	return types
+
+
+## The most valuable unit [structure] can train TODAY, the argmax rather than a draw: what it
+## trains while the bank is held for a locked unit's chain. &"" when nothing trainable is
+## worth anything.
+func _best_trainable_unit_for(a_structure: Actor, a_demand: Dictionary) -> StringName:
+	var types: Array = _candidate_units_for(a_structure).filter(_bot.has_tech_for)
+	var valued: Dictionary = _bot.purchase_values_per_energy(types, a_demand)["values"]
+	var best: StringName = &""
+	var best_value: float = 0.0
+	for t: StringName in types:
+		if float(valued[t]) > best_value:
+			best_value = float(valued[t])
+			best = t
+	return best
 
 
 func _cheapest_affordable_unit(a_structure: Actor) -> StringName:

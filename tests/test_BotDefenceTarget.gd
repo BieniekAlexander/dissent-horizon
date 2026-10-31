@@ -15,6 +15,7 @@ const TOWER: StringName = &"test_tower"
 const SAM: StringName = &"test_sam"
 const REDOUBT: StringName = &"test_redoubt"
 const EXTRACTOR: StringName = &"test_extractor"
+const FACTORY: StringName = &"test_factory"  # what the SAM is locked behind, when it is
 
 
 class FakeBot:
@@ -37,7 +38,16 @@ class FakeBot:
 		return false
 
 	func buildable_defence_structure_types() -> Array:
+		return reachable_defence_structure_types().filter(has_tech_for)
+
+	func reachable_defence_structure_types() -> Array:
 		return [TOWER, SAM]
+
+	func buildable_structure_types() -> Array:
+		return [TOWER, SAM, REDOUBT, FACTORY].filter(has_tech_for)
+
+	func builder_may_place(_a_type: StringName) -> bool:
+		return true
 
 	func buildable_production_structure_types() -> Array:
 		return [REDOUBT]
@@ -143,6 +153,7 @@ func before_each() -> void:
 		TOWER: TechnologySpec.new(400, 0, 0, 30),
 		SAM: TechnologySpec.new(400, 0, 0, 30),
 		REDOUBT: TechnologySpec.new(900, 0, 0, 30),
+		FACTORY: TechnologySpec.new(1200, 0, 0, 30),
 	}
 	_bot.energy = 5000
 	_act = StubActuator.new(null)
@@ -217,6 +228,57 @@ func test_the_defence_that_answers_the_seen_army_is_the_one_built() -> void:
 	_bot.values = {TOWER: 0.2, SAM: 1.0}
 	economy.tick()
 	assert_eq(_act.builds, [SAM], "the higher composition value wins")
+
+
+# ─── A TURRET BEHIND A STRUCTURE THE BOT HAS YET TO RAISE ───────────────────
+#
+# A SAM with no factory standing is a candidate AT ITS CHAIN COST (Alex, 2026-10-30): the
+# factory's price plus its own. It wins only when it is worth that, the demand must clear
+# that, and what goes up first is the factory. Until 2026-10-31 a locked turret was no
+# candidate at all, and the one direct answer to aircraft waited on a rung that never
+# valued its building.
+
+
+func _lock_the_sam_behind_a_factory() -> void:
+	_bot.technology_mapping[SAM] = TechnologySpec.new(400, 0, 0, 30, [FACTORY])
+
+
+func _believe_aircraft() -> void:
+	var clipper: Actor = autofree(Actor.new())
+	_bot.demand = {&"enemy_clipper": {"demand": 1.0, "rep": clipper}}
+
+
+func test_a_turret_behind_a_structure_is_priced_at_its_chain_and_the_chain_is_built_first() -> void:
+	var economy := _economy()
+	_lock_the_sam_behind_a_factory()
+	_believe_aircraft()
+	_bot.values = {TOWER: 1.0, SAM: 8.0}  # 2.0 per energy of factory and SAM: the better buy
+	economy.demand_read = {"anchor": Vector2.ZERO, "demand": 2000.0}
+	economy.tick()
+	assert_eq(_act.builds, [FACTORY], "the first link of the SAM's chain")
+	var choices: Dictionary = _act.usage.choices()["defence_structure"]
+	assert_eq(choices[String(SAM)]["chosen"], 1, "the SAM is what was chosen")
+	assert_almost_eq(float(choices[String(SAM)]["score_sum"]), 2.0, 1e-9, "8.0 × 400 / 1600")
+
+
+func test_a_turret_in_hand_beats_one_whose_chain_outweighs_its_gun() -> void:
+	var economy := _economy()
+	_lock_the_sam_behind_a_factory()
+	_believe_aircraft()
+	_bot.values = {TOWER: 1.0, SAM: 3.0}  # 0.75 at the chain
+	economy.demand_read = {"anchor": Vector2.ZERO, "demand": 2000.0}
+	economy.tick()
+	assert_eq(_act.builds, [TOWER])
+
+
+func test_the_demand_must_clear_the_chosen_turrets_chain_cost() -> void:
+	var economy := _economy()
+	_lock_the_sam_behind_a_factory()
+	_believe_aircraft()
+	_bot.values = {TOWER: 0.2, SAM: 8.0}
+	economy.demand_read = {"anchor": Vector2.ZERO, "demand": 1000.0}  # a SAM, not its chain
+	economy.tick()
+	assert_eq(_act.builds, [REDOUBT], "1000 against 1600: the rung falls through")
 
 
 func test_with_nothing_seen_the_bots_own_army_stands_in_for_the_enemys() -> void:

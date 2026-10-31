@@ -155,6 +155,11 @@ The reads, each stored on the model:
   believed source: physically accessible and not realistically so, which is what the rear of a
   base is. Both reads are kept (decided 2026-10-08): the band places a defence, arrival time
   prices a threat, and they disagree exactly where a flank route exists.
+- **The strength fields** (2026-10-31) — not distances but energy: the bot's own armed pieces
+  and the believed enemy's, each summed over a disc of its own reach and counted only where
+  it can damage what the other side has reaching there. Rebuilt with the distance fields, read at a
+  wave's leading edge as its share of the front. The rule and its consumer, the wave's retreat:
+  [bot-architecture](../bot-architecture.md) §The retreat reads the front.
 
 **Risk-weighted routes change what the bot DECIDES, not how its units walk** (decided
 2026-10-08). The stage point, a retreat destination and the direction an objective is

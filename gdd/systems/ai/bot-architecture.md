@@ -102,10 +102,11 @@ currency below, is still the model for the other managers.
   decayed-peak estimate of the believed enemy, under a humility prior (never assume the unseen
   enemy is weaker than 0.85× our own), with the bar relaxing the longer the bot holds without
   fighting so two even bots cannot deadlock, floored so a losing one does not throw its army
-  away. **It retreats**: a wave is called off once the army has lost 30% of its launch value
-  AND `BotMomentum` says it is still bleeding — both halves, because losses already taken are
-  not a reason to leave and a bot that pulls back on damage dribbles its army in. A
-  called-off wave regroups at home for 20 seconds.
+  away. **It retreats**: a wave is called off once it has lost 30% of its launch value AND it
+  is losing its FRONT — `BotMomentum.front_balance`, the wave's share of the answerable
+  strength within its reach of its centroid (§The retreat reads the front) — both halves,
+  because losses already taken are not a reason to leave and a bot that pulls back on damage
+  dribbles its army in. A called-off wave regroups at home for 20 seconds.
 - **`BotScout`** — a grid of last-seen timestamps; scouts are dispatched on the ERRAND with
   the best expected return and HELD across another manager's re-task (see §Scouting). Three
   comparisons, not three rules: WHICH unit scouts is a score over facts (speed, vision,
@@ -117,9 +118,14 @@ currency below, is still the model for the other managers.
   and it is a real per-difficulty ramp (0/1/2/3/4) rather than the flat 1 it shipped as,
   because a fog-limited attack objective makes "how many units will this bot spend looking"
   one of the strongest handicaps in the table.
-- **`BotMomentum`** — whether the bot is winning: the army-value trend over an 8-second
-  window, read as a loss rate. Blind to the enemy's losses, deliberately (belief ratchets up
-  as an attack reveals more, so any enemy-side trend reads a good push as a rout).
+- **`BotMomentum`** — whether the bot is winning, two ways. The ARMY'S value trend over an
+  8-second window, read as a loss rate: blind to the enemy's losses, deliberately (belief
+  ratchets up as an attack reveals more, so any enemy-side trend reads a good push as a rout),
+  and diluted by home units and production — the read for the economy's expansion risk and the
+  posture layer's risk dial, which are about the bot. And THE FRONT a wave stands on
+  (`front_balance`): own against believed-enemy answerable strength within the wave's reach of
+  its centroid, from `BotFields`' strength fields, as a share with its trend — the read for the
+  wave's retreat (§The retreat reads the front).
 - **`BotOpportunist`** — the one place decisions are COMPARED rather than sequenced: domain
   gatherers return scored `BotOpportunity`s in energy-equivalent value, the best are executed,
   capped at one action per actor per tick.
@@ -343,7 +349,7 @@ commander allocates energy, dominion, ability charges and unit-time, and nothing
 | — group, merge, split the army | *nowhere* | **no own-side grouping exists** |
 | — hold a region (deliberate idleness) | *nowhere* | `Defend` is never issued |
 | — retreat a unit | `BotBrain._tick_preservation` | hopeless-matchup test |
-| — retreat an army | `BotMilitary` | losses **and** momentum |
+| — retreat an army | `BotMilitary` | losses **and** the front's balance |
 | — per-unit retarget | `BotTargeting` | scored, four signals |
 | — one-off errands (capture, deposit, liberate) | `BotOpportunist` | **scored, in energy-equivalent** |
 | — aircraft: land, dock, rearm | *nowhere* | the bot has no concept of any of it |
@@ -510,6 +516,82 @@ bot unit acquires something it cannot hurt:
 Measured, mechanism and the residual: [bot-engagement-fixes](bot-engagement-fixes.md) §The
 objective nobody could act on. Cover: `tests/test_BotUntargetableCommitment.gd`.
 
+## The retreat reads the front
+
+**A wave is called off by what stands against IT, never by how the army as a whole is doing**
+(Alex, 2026-10-31; [decision-pathologies](decision-pathologies.md) §Rulings). The retreat rule
+has two halves, and the second changed: the wave has lost `wave_abort_fraction` of its launch
+value, AND `BotMomentum.front_balance` says the wave is losing its front.
+
+**The front is two strength fields on the bot's lattice** (`BotFields.strength_fields_of`,
+rebuilt with the other fields inside the fields job's work budget): the energy of the bot's own
+armed pieces and of the believed enemy's, each piece stamped over a disc of its own longest
+ground reach plus one pitch (`STRENGTH_SLACK`: a piece stands anywhere in its cell) — the
+smoothing is each piece's engagement reach. A piece counts at a cell only where it can damage
+some type the OTHER side has reaching that cell (`Bot.type_can_damage`): strength is ANSWERABLE
+strength, both ways. So a wave's infantry under aircraft it cannot shoot reads as nothing at its
+own front and leaves at once, a SAM battery reads as nothing to a ground wave however much it
+cost, and a tower whose shells land on the wave from beyond the wave's rifles is at the wave's
+front. The first draft smoothed both sides over one radius about the centroid, and the towers
+killing a wave of Recruits stood just outside it, so the read said the wave was winning while it
+was spent to the last two; one disc per piece's reach is what the engagement actually is. Pieces
+are summed by (cell, type) and every pass runs in input order over float32 accumulators, so two
+builds over the same beliefs are byte-identical (`tests/test_BotFields.gd`).
+
+**The read is the wave's SHARE of the front** — own ÷ (own + enemy), 0.5 with nothing on
+either side — at the wave's LEADING EDGE, its fielded member nearest the objective
+(`BotMilitary._front_position`), sampled every military think while a wave is live, with its
+slope over the momentum window. Not at the centroid: a wave fed by a stream of reinforcements
+has its centroid out between the staging point and the fight, where nothing of either side
+reaches, and read there the front said "nothing here" for the whole of a fight that was killing
+the leading members. The front is LOST when the share is at or under
+`BotMomentum.FRONT_LOSING_SHARE` (0.4: the enemy there is worth one and a half times the wave),
+or under even and falling at `FRONT_SLIPPING_PER_SECOND` or faster. Both numbers are
+placeholders on the footing of `LOSING_LOSS_RATE`: the harness's to search, not a difficulty
+parameter today. A wave's launch and its end both forget the front, so one wave's slope never
+reads into the next.
+
+**The loss gate measures the wave against everything committed to it.** `_wave_launch_value`
+grows by the value of every reserve released into the wave and every newcomer that joins it
+directly, so "lost `wave_abort_fraction` of its launch value" means of everything sent. Before
+this the gate compared a wave topped up by reinforcements against what it launched with — 1,300
+to 1,900 in the field against a launch of 700 — and neither the retreat nor the spent fraction
+could ever open while production kept feeding it; the stream was the leak in the gate as much as
+the global trend was.
+
+**Why not the global trend.** `BotMomentum.is_losing` samples `Bot.army_resource_value()` over
+the whole army, and two things made it the wrong question for a wave: units at home DILUTE a
+loss at the front, and production MASKS it — a bot reinforcing hard read as losing more slowly
+than its wave was, and a wave feeding into a superior force retreated late or never (U5r). The
+inverse was also wrong: a raid killing units at home called off a wave that was winning. The
+global read keeps the two consumers it is right for, because both ask about the bot rather than
+a front: `BotEconomy`'s "is it safe to go and take an extractor now", and the posture layer's
+risk dial (`BotBrain.posture_signals`). A tier with fields switched off has no front to read and
+falls back to the global trend, as before the fields existed.
+
+**Where the enemy's losses come in.** The global trend is blind to them on purpose (belief
+ratchets up as an attack reveals more). The front read is not: a believed enemy that dies in the
+wave's sight leaves the blackboard and so the enemy's strength field, which is why the share
+moves the right way in a fight the wave is winning. The per-engagement outcome once held in
+reserve for this ("did that trade well") is no longer wanted: the front's share over the window
+is that measure, without an engagement having to begin or end.
+
+`tests/test_BotMomentum.gd` pins the read and the retreat on a `FixtureFields`,
+`tests/test_BotStaging.gd` the committed value; `sims/bot/commitment/retreats_from_a_losing_front`
+plays it: a wave that out-values the enemy's believed ARMY marches into towers it cannot beat
+while three barracks grow the army at home, reads a share of 0.3 at first contact (24 s), is
+called off at about 34 s and is regrouping when the run ends, where the global rule — run as the
+A/B on the same spec — is still in ATTACK, feeding the towers.
+
+> **TODO — production's orders starve the military of thinks at HARD.** Writing the sim above
+> at HARD's 0.6 orders a second, the military ran four times in a ninety-second match with a
+> wave in the field: three barracks training Recruits spent the whole attention budget, and
+> every decision job behind production waited (`BotBrain._attentive`). A military that thinks
+> four times a minute cannot retreat on time whatever rule it reads. The sim sets attention
+> unlimited to isolate the rule; the allocation is the question.
+> - [ ] Should attention be shared per job, or should the military's turn come before
+>   production's when a wave is live?
+
 ## The opening's income rung reads the game
 
 **"Build an extractor before a barracks" is a searchable NUMBER bent by a signal, not a build
@@ -584,9 +666,12 @@ REJECTED, the count it replaced: `defence_structure_target` (default 2) bought t
 opening by construction, three in a clump before anything had been seen (observed 2026-10-06
 on main). The rung sits between income and throughput, and fires only once a producer stands
 or is going up — a static guards a base, and is never bought instead of one. The TYPE is the
-affordable defence whose weapons best answer the enemy UNITS on the
+defence whose weapons best answer the enemy UNITS on the
 blackboard (`Bot.unit_composition_value` over the demand map's unit entries: a turret answers
-an army, not a base). Before anything has been seen the bot's own live combat units stand in
+an army, not a base), among the ones some owned builder could place whose next purchase is
+affordable — a turret behind a structure the bot has yet to raise is priced at its chain
+cost, the demand must clear that, and the chain's first link is what goes up (§Valuing a
+unit, and saving for it; `tests/test_BotDefenceTarget.gd`). Before anything has been seen the bot's own live combat units stand in
 for the enemy's, one for one, and with no army to mirror either (the Colonial opening is three
 builders) only defences that can shoot something on the ground are considered — a static is
 bought ahead of the scout's report, and the cheapest defence was measured to be the wrong
@@ -616,9 +701,11 @@ tech structures, the one whose best unit — by the composition value the picker
 against the enemy the bot believes in, and only among units a producer the bot OWNS can
 train — is worth `BotDifficulty.tech_value_margin` (default 1.3, searchable) times the best
 unit it can train today; the biggest gain wins. It sits in the surplus branch beside
-production capacity, because it is the same kind of spend — and runs without a surplus when it
-is what the bot is saving for (§Valuing a unit, and saving for it). Three things are
-deliberate:
+production capacity, because it is the same kind of spend; when it is what the bot is saving
+for, the goal rung buys it without a surplus (§Valuing a unit, and saving for it). Since
+2026-10-31 the unit behind a candidate is priced at its CHAIN cost and a candidate is
+credited with every unit whose chain passes through it (`Bot.prerequisite_chain`), so a
+structure two links from the unit is a candidate for it. Three things are deliberate:
 
 - **The ratio is on composition value, which is strength PER ENERGY since 2026-10-07.** It was
   on strength alone, reasoned as "a higher-tech unit is seldom cheaper per point"; the value
@@ -679,6 +766,54 @@ replaces each producer buying the moment it could afford something, under which 
 of Recruits held the balance below every dear purchase: across twenty HARD sides the war
 factory was built at most once and no tech structure ever.
 
+**An unowned prerequisite is part of the price** (Alex, 2026-10-30; built 2026-10-31). The
+energy a value is read per is the CHAIN's: a unit or turret behind a structure the bot does
+not own is priced at its own cost plus every unowned prerequisite's, recursively
+(`Bot.prerequisite_chain` — the structures `TechnologySpec.required_structures` name that
+the bot neither owns nor has on its way, in build order, with their summed cost and whether
+some owned builder could place every link; `Bot.chain_cost`, `Bot.chain_price_factor`).
+`purchase_values_per_energy` divides by it on both scales, so a type the bot can produce
+today is priced exactly as before and a locked one competes honestly with it. What follows
+from one price:
+
+- **A locked unit is a candidate** (`BotProduction._best_unit_for`): it must beat the best
+  trainable candidate at the producer by `tech_value_margin` — the tech rung's bar, so the
+  two readers of a locked unit agree — and when it wins it is not trained: the first link of
+  its chain is proposed to the savings goal at the unit's chain-priced value, and the producer
+  trains the best unit it can make under that claim. From 2026-10-04 a locked unit was no
+  candidate at all, because at its own cost it won and idled the producer (§The tech rung).
+- **A locked turret is a candidate** (`BotEconomy._defence_structure_to_build`, over
+  `Bot.reachable_defence_structure_types`): the demand must clear its chain cost, and what the
+  rung raises is the chain's first link, placed as itself rather than at the frontage.
+- **The goal rung** (`BotEconomy._goal_rung`, after the tech rung): the structure the bank is
+  held for is bought the moment it is affordable above the reserve, surplus or not, whichever
+  rung proposed it. It replaces the tech rung's own no-surplus exception, and it is the only
+  rung that builds production's chain link — the tech rung values direct unlocks at owned
+  producers, the producer rung keeps its cap. Ledger domain `goal_structure`.
+- **A producer is priced by its locked units too** (`Bot.producer_values`), at their chain
+  cost. REJECTED 2026-10-09 at their own cost, which priced a barracks by the Constable.
+- **The tech and siege rungs read the chain**: a tech candidate is credited with every unit
+  whose chain passes through it, not only the ones naming it directly, and a gun two links
+  deep is started at its first link (`_unlocking_structure_for`). Both stay where they are:
+  the tech rung considers every owned producer, idle or not, and the siege rung is a demand
+  no fight prices; folding either into production's pick would have lost that, not
+  simplified it.
+
+Tests: `tests/test_BotPrerequisiteChain.gd`, `tests/test_BotProductionTechGate.gd`,
+`tests/test_BotDefenceTarget.gd` §A turret behind a structure, `tests/test_BotTechRung.gd`.
+
+> **TODO — the margin now stacks on a priced chain.** `tech_value_margin` was the stand-in
+> for the chain's price and build time; the price is in the comparison now, so the margin
+> stands in for build time alone, and at 1.3 on chain-priced values it is stricter than it
+> was (a 400 Constable behind a 1,200 Academy reads at a quarter of its gun). The ladder
+> search ranges over it, so `exec_j` measures it as it stands.
+> - [ ] Does the default move to 1.0, leaving time-to-field unpriced, or does the margin
+>   become a build-time term (seconds to field the chain against the threat clock)?
+> - [ ] A unit at a producer the bot does NOT own (the Caravel's airfield): the producer is
+>   not in `required_structures`, so it is not in the chain — the producer rung prices the
+>   airfield by its units at their chain cost, but the airfield's own price enters no
+>   per-energy figure. Does the ruling's "unbuilt building" mean the producer too?
+
 ## Local abilities
 
 Built 2026-10-07. **`BotAbilities` casts the abilities a UNIT holds and uses where it stands**,
@@ -729,8 +864,8 @@ work they do exists and nothing owned does it. No energy price is authored for a
   gun is read off the previews (`Bot.siege_gun_types`: a `command_bombard` ability on the pool),
   never by name — off the pool's DECLARED groups (`Abilities.declared_abilities`), because a
   preview never enters the tree and its live granted list is built in `_ready`; the first build
-  read the live list and found no gun all night. A gun still locked buys the tech structure it requires first, as the tech rung
-  does for a unit, and `SIEGE_GUNS_WANTED` is one: the shot is map-wide, so a second gun is a
+  read the live list and found no gun all night. A gun still locked buys the first link of its chain first (`Bot.prerequisite_chain`,
+  since 2026-10-31; the direct requirement before), and `SIEGE_GUNS_WANTED` is one: the shot is map-wide, so a second gun is a
   second charge, not more reach (TODO: a parameter when the search wants it). The wanted
   purchase is proposed to the savings goal at the value of the best unit the bot can train
   today, so the bank is held for it, and as DEMANDED: `BotSavings` ranks a demanded proposal
@@ -1339,6 +1474,8 @@ Tests: `tests/test_BotSanction.gd`,
 `tests/test_BotCombatUtility.gd` (armed or able to crush), `tests/test_BotKamikazeHold.gd`,
 `tests/test_Elimination.gd` (both defeat clauses),
 `tests/test_BotScout.gd` (scout suitability + the scouting trade-off),
-`tests/test_BotMomentum.gd` (the winning/losing signal and the retreat it drives),
+`tests/test_BotMomentum.gd` (the winning/losing signals — army trend and front balance — and
+the retreat they drive), `tests/test_BotFields.gd` (the strength fields: answerability, the
+budgeted rebuild, bit-identical builds),
 `tests/test_BotClusters.gd` (grouping and coverage), `tests/test_BotDebugOverlay.gd`,
 `tests/test_ScenarioPlayerSlots.gd` (the difficulty ramp's direction).

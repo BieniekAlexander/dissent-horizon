@@ -128,6 +128,7 @@ the only differences between the seats are the throttles:
 | `exec_g` (30 per pair, fair turn) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **97%** (29–1, 0 undecided) | 57% (12–9, 5 stalemates + 4 cut by the wall clock) | 72% (21–8, 1 stalemate) |
 | `exec_h` (30 per pair, answerable threats) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **97%** (28–1, 1 stalemate) | 54% (14–12, 4 stalemates) | 70% (21–9, 0) |
 | `exec_i` (30 per pair, reachability fixed; scout floor, inert cut, wave sweep) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **89%** (25–3, 2 stalemates) | 67% (18–9, 3) | 61% (17–11, 2) |
+| `exec_j` (30 per pair, the `exec_i` fixes; VOID past its 21st match — two sessions began editing the bot's scripts in the same checkout at 06:05, so the middle and top pairs measured code in flight) | 0.25 / 0.5 / 0.6 / ∞ | 6 / 3 / 2.5 / 0 | **96%** (24–1, 1 stalemate, 4 matches with script errors from a half-edited `bot.gd`) | 57% (17–13, 0) — void | 48% (14–15, 1) — void |
 
 What the three say together. The unthrottled bot issues 0.6–1.9 orders a second (measured on
 three probe matches), so an attention budget of 1.0 barely binds and HARD and IMPOSSIBLE were
@@ -262,6 +263,10 @@ every tier (HARD 1.22 / 1.39): the bot that commits sooner wins more often.
 > up and the top pair down, with a deployment regression, a sweep hang and an unfilled floor
 > found and fixed from it (same note, §What `exec_i` found), plus the first three defects of
 > [decision-pathologies](decision-pathologies.md); re-run as `exec_j` before any rung moves.
+> `exec_j` also carries the chain-cost valuation built 2026-10-31 — a locked unit or turret
+> priced at its unowned prerequisites plus itself, the goal rung, and a tech margin that now
+> stacks on a priced chain ([bot-architecture](bot-architecture.md) §Valuing a unit, and
+> saving for it) — so its rows are the first measured with the SAM and the Academy reachable.
 > - [ ] Which re-spacing: attention alone (MEDIUM 0.4, HARD 0.8), or every throttle widened
 >   together (periods, delay and attention)?
 > - [ ] Does the 1200 s cap stay, with an undecided match counted as neither tier's win, or
@@ -611,24 +616,29 @@ missing signal:
 
 **`BotMomentum` (2026-09-04)** — the army-value trend, sampled on the think cadence
 and read as a loss rate (fraction of the army bled per second) over an 8-second window.
-Chosen over a fuller position score (army + income + territory) and over per-engagement
-outcome because it is ONE sampled value, it unblocks the retreat in the same change, and the
-richer version grows out of it by adding terms rather than by replacing it.
+Chosen over a fuller position score (army + income + territory) because it is ONE sampled
+value, it unblocked the retreat in the same change, and the richer version grows out of it by
+adding terms rather than by replacing it. It is blind to the enemy's losses on purpose — belief
+ratchets UP as an attack reveals more of the enemy, so a trend over believed enemy value reads a
+successful push as a disaster — and it is the read for the questions that are about the BOT:
+the economy's expansion risk and the posture layer's risk dial.
 
-**Army-level retreat (2026-09-04).** `BotMilitary` calls a wave off when the army has
-lost 30% of its launch value **and** momentum says it is still bleeding. Both halves are
-load-bearing, and the second one is the whole design: heavy losses ALONE are not a reason to
-leave — a wave that spends a third of itself to destroy the enemy's army has won — and a bot
-that pulls back on damage is the dribbling bot the wave rule was written to stop. A called-off
-wave regroups at home for 20 seconds, which the army-size posture branch honours; without that
-window the retreat was re-ordered as an attack the same think it was decided.
-
-> **TODO — momentum is blind to the enemy's losses, and that is a real limitation rather
-> than an oversight.** Belief ratchets UP as an attack reveals more of the enemy, so any
-> trend over believed enemy value reads a successful push as a disaster; the only honest
-> signal available is our own. The consequence is that a costly-but-winning fight can read as
-> losing. Per-engagement outcome — "did that trade well" — is the fix, and it needs an
-> engagement to have a beginning and an end, which nothing currently defines.
+**Army-level retreat (2026-09-04; the front read 2026-10-31).** `BotMilitary` calls a wave off
+when the wave has lost 30% of everything committed to it **and** it is losing its front —
+`BotMomentum.front_balance`, the wave's share of the answerable strength reaching its leading
+edge, from `BotFields`' strength fields, with its trend. Both halves are load-bearing,
+and the second one is the whole design: heavy losses ALONE are not a reason to leave — a wave
+that spends a third of itself to destroy the enemy's army has won — and a bot that pulls back on
+damage is the dribbling bot the wave rule was written to stop. The second half was the global
+army trend until 2026-10-31, and that was the wrong question for a wave: home units diluted a
+loss at the front and production masked it, so a wave meeting a superior force retreated late or
+never, and a raid at home called off a wave that was winning. Reading the front also lets the
+enemy's losses count, where the global trend could not: a believed enemy that dies in sight
+leaves the belief and the field. The per-engagement outcome once held in reserve for that is
+superseded by it. Rule and reasoning: [bot-architecture](bot-architecture.md) §The retreat
+reads the front. A called-off wave regroups at home for 20 seconds, which the army-size posture
+branch honours; without that window the retreat was re-ordered as an attack the same think it
+was decided.
 
 > **TODO — a HISTORY of the opponent is still missing.** The blackboard records what exists
 > and where, never what changed, so the bot cannot notice that the enemy's composition moved

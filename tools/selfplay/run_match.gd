@@ -883,6 +883,15 @@ func _brain_sample(a_brain: BotBrain) -> Dictionary:
 		"scout_observed_fraction": scout.observed_fraction() if scout != null else 0.0,
 		"scouts_out": (scout._scouts as Array).size() if scout != null else 0,
 		"momentum_loss_rate": momentum.loss_rate() if momentum != null else 0.0,
+		# The front the wave is on, as the retreat reads it (BotMomentum.front_balance): the
+		# wave's share of the answerable strength at its centroid, 0.5 even, -1 while no wave
+		# is reading one. U5r's "when did the bot believe the front lost" is read off this.
+		"front_share":
+		(
+			float(momentum.last_front().get("share", -1.0))
+			if momentum != null and not momentum.last_front().is_empty()
+			else -1.0
+		),
 		# The posture layer: the held dials (0.5 is neutral), and the economy signals the
 		# commitment dial reads — own income and the fog-limited enemy estimate, energy/s.
 		"dials": posture.dials() if posture != null else {},

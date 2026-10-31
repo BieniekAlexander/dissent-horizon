@@ -5,8 +5,9 @@ extends GutTest
 ## building was unreachable in play however the bot valued it.
 ##
 ## Fixtures are stubs on the tests/test_BotIncomeTarget.gd pattern. The tech tree is REAL:
-## TechnologySpec with a prerequisite starts locked, so has_tech_for and
-## unit_requires_structure are the bot's own.
+## TechnologySpec with a prerequisite starts locked, so has_tech_for and prerequisite_chain
+## are the bot's own — and the Guard behind the 800 tech structure is priced AT ITS CHAIN
+## (Alex, 2026-10-30): its composition value times 200 / (200 + 800).
 
 const RESERVE: int = 600
 const TECH: StringName = &"test_tech"
@@ -127,7 +128,7 @@ func before_each() -> void:
 		RECRUIT: TechnologySpec.new(100, 0, 0, 30),
 		GUARD: TechnologySpec.new(200, 0, 0, 30, [TECH]),
 	}
-	_bot.values = {RECRUIT: 1.0, GUARD: 2.0}
+	_bot.values = {RECRUIT: 1.0, GUARD: 10.0}  # the Guard reads 2.0 at its chain
 	_bot.energy = 5000
 	_act = StubActuator.new(null)
 
@@ -149,11 +150,19 @@ func _economy() -> StubEconomy:
 
 func test_a_unit_worth_the_margin_more_buys_the_structure_that_unlocks_it() -> void:
 	_economy().tick()
-	assert_eq(_act.builds, [TECH], "the Guard is twice the Recruit; 2.0 >= 1.3")
+	assert_eq(_act.builds, [TECH], "the Guard is twice the Recruit at its chain; 2.0 >= 1.3")
 
 
 func test_below_the_margin_the_ladder_buys_capacity_instead() -> void:
-	_bot.values[GUARD] = 1.2
+	_bot.values[GUARD] = 6.0  # 1.2 at its chain
+	_economy().tick()
+	assert_eq(_act.builds, [REDOUBT])
+
+
+func test_the_tech_structure_is_in_the_price_the_margin_is_read_on() -> void:
+	# Twice the Recruit at its own cost, which cleared the margin until 2026-10-31; a fifth of
+	# that at the chain's.
+	_bot.values[GUARD] = 2.0
 	_economy().tick()
 	assert_eq(_act.builds, [REDOUBT])
 
@@ -193,5 +202,30 @@ func test_the_tech_decision_is_in_the_ledger() -> void:
 	_economy().tick()
 	var choices: Dictionary = _act.usage.choices()["tech_structure"]
 	assert_eq(choices[String(TECH)]["chosen"], 1)
-	assert_almost_eq(choices[String(TECH)]["score_sum"], 2.0, 0.001, "the best unit behind it")
+	assert_almost_eq(
+		choices[String(TECH)]["score_sum"], 2.0, 0.001, "the best unit behind it, at its chain"
+	)
 	assert_false(choices.has(String(REDOUBT)), "a producer unlocks nothing; not a tech candidate")
+
+
+## THE GOAL RUNG: a structure the bank is held for is bought surplus or not, whichever rung
+## proposed it — here production's, for a unit behind it (BotProduction._propose_savings),
+## which the tech rung's margin alone would not buy.
+func test_a_chain_link_production_is_saving_for_is_bought_without_a_surplus() -> void:
+	_bot.values[GUARD] = 6.0  # under the tech rung's margin
+	var economy := _economy()
+	economy._prev_energy = _bot.energy + 1  # not a surplus
+	_bot.savings.propose(&"production", TECH, 1.25, 800)  # outvalues the redoubt's 1.2
+	economy.tick()
+	assert_eq(_act.builds, [TECH], "the bank was held for it")
+	assert_eq(_act.usage.choices()["goal_structure"][String(TECH)]["chosen"], 1)
+	assert_ne(_bot.savings.goal(), TECH, "bought, it is no longer saved for")
+
+
+func test_the_goal_rung_waits_for_the_goal_to_be_affordable_above_the_reserve() -> void:
+	var economy := _economy()
+	economy._prev_energy = _bot.energy + 1
+	_bot.savings.propose(&"production", TECH, 1.25, 800)
+	_bot.energy = 800 + RESERVE - 1
+	economy.tick()
+	assert_eq(_act.builds, [])

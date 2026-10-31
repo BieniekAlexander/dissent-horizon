@@ -178,6 +178,15 @@ func test_a_wanted_gun_behind_tech_buys_the_tech_structure_first() -> void:
 	assert_eq(_act.builds, [TECH], "the structure that unlocks the gun")
 
 
+func test_a_chain_two_links_deep_is_started_at_its_first_link() -> void:
+	# No barracks either: the tech structure is locked behind it, so the barracks comes first
+	# (Bot.prerequisite_chain); the rung read only direct requirements until 2026-10-31.
+	_bot.owned = {}
+	_resolve_tech()
+	_economy().tick()
+	assert_eq(_act.builds, [BARRACKS])
+
+
 func test_with_the_tech_standing_the_gun_itself_is_bought() -> void:
 	_bot.owned = {BARRACKS: 1, TECH: 1}
 	_resolve_tech()

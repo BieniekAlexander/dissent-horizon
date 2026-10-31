@@ -15,7 +15,11 @@ extends RefCounted
 ## positions and the bot's own structures, the ground is the true grid (below), and the bot's
 ## own armed presence is a PENALTY on the enemy's field — an allied army is a challenge to
 ## the enemy's movement, so the enemy's expected route bends around it and the approach band
-## moves when the army does (Alex, 2026-10-08). Each read is a pure static over fixtures
+## moves when the army does (Alex, 2026-10-08). Beside the distance fields sit two STRENGTH
+## fields — the bot's own and the believed enemy's answerable energy, each piece summed over the
+## disc of its own reach (strength_fields_of) — which the wave's retreat reads as its share of
+## the front (bot-architecture.md §The retreat reads the front). Each read is a pure static over
+## fixtures
 ## underneath, which is what tests/test_BotFields.gd exercises; this object only gathers the
 ## sources.
 ##
@@ -90,6 +94,16 @@ const WORK_UNITS_PER_EXPLORED_CELL: int = 2
 const WORK_UNITS_PER_SOURCE: int = 5
 ## Work units one presence stamp costs.
 const WORK_UNITS_PER_STAMP: int = 10
+## Work units one strength-field cell visit costs: a disc cell's type-set or value update.
+const WORK_UNITS_PER_STRENGTH_CELL: int = 1
+
+## THE SLACK ON A PIECE'S REACH in the strength fields: a piece counts at every cell within its
+## longest ground reach plus this of its own cell's centre — one pitch, since a piece stands
+## anywhere in its cell (presence_penalty_of takes the same). So each piece is smoothed over
+## its own engagement reach, and a tower that shoots a wave from twelve away is at that wave's
+## front though the wave's rifles reach eight. An unarmed piece reaches nothing and counts only
+## in its own cell's neighbourhood — as something the other side can shoot.
+const STRENGTH_SLACK: float = PITCH
 
 ## The rebuild's stages, in order.
 enum Stage { GATHER, SWEEP, DONE }
@@ -116,6 +130,13 @@ var _home_fields: Dictionary = {}
 var _bands: Dictionary = {}
 var _penalty: PackedInt32Array = PackedInt32Array()
 var _penalty_built: bool = false
+## THE STRENGTH FIELDS (strength_fields_of): the bot's own and the believed enemy's answerable
+## strength per cell, each piece smoothed over its reach; part of the snapshot, empty before the
+## first. What the wave's retreat reads (BotMomentum.front_balance).
+var _own_strength: PackedFloat32Array = PackedFloat32Array()
+var _enemy_strength: PackedFloat32Array = PackedFloat32Array()
+## A believed type's longest ground reach, cached for one rebuild like _mobility_cache.
+var _reach_cache: Dictionary = {}
 ## The believed enemy sources behind the snapshot — see _enemy_sources.
 var _sources: Array = []
 var _sources_built: bool = false
@@ -273,6 +294,7 @@ func explored_mask() -> PackedByteArray:
 func refresh() -> void:
 	_build = {"stage": Stage.GATHER}
 	_mobility_cache = {}
+	_reach_cache = {}
 
 
 ## Whether a rebuild is part-way through.
@@ -323,6 +345,13 @@ func _gather() -> int:
 		lattice, stamps, PRESENCE_PENALTY_PER_ENERGY
 	)
 	var explored: PackedByteArray = explored_mask_over(lattice, _is_explored_at)
+	var strength: Dictionary = strength_fields_of(
+		lattice,
+		_own_strength_sources(stamps),
+		_enemy_strength_sources(sources),
+		STRENGTH_SLACK,
+		_strength_can_damage
+	)
 	var queue: Array = []
 	var enemy_cells: Array = []
 	var by_key: Dictionary = {}
@@ -410,6 +439,8 @@ func _gather() -> int:
 				"own_air": own_air,
 				"defences": defences,
 				"points": points,
+				"own_strength": strength["own"],
+				"enemy_strength": strength["enemy"],
 				"queue": queue,
 			},
 			true
@@ -419,6 +450,7 @@ func _gather() -> int:
 		sources.size() * WORK_UNITS_PER_SOURCE
 		+ stamps.size() * WORK_UNITS_PER_STAMP
 		+ lattice.cell_count() * WORK_UNITS_PER_EXPLORED_CELL
+		+ int(strength["cells"]) * WORK_UNITS_PER_STRENGTH_CELL
 	)
 
 
@@ -439,6 +471,8 @@ func _swap_in() -> void:
 	_own_arrival = _build["own_arrival"]
 	_own_air = _build["own_air"]
 	_defences = _build["defences"]
+	_own_strength = _build["own_strength"]
+	_enemy_strength = _build["enemy_strength"]
 	_bands = {}
 	_point_fields = _build["points"]
 	_coverage_cache = {}
@@ -622,6 +656,32 @@ func reach_coverage(a_reach: float) -> PackedFloat32Array:
 			lattice, approach_band(NavAgentClass.Size.SMALL), a_reach
 		)
 	return _coverage_cache[a_reach]
+
+
+## THE STRENGTH OF THE FRONT AT `a_xz`: {"own", "enemy"} — the energy of the bot's own armed
+## pieces and of the believed enemy's whose reach covers the cell, each side counted only where
+## it can damage what the other side has there (strength_fields_of). Zeros off the lattice.
+## What BotMomentum.front_balance reads for the wave's retreat.
+func front_strength_at(a_xz: Vector2) -> Dictionary:
+	_ensure_ready()
+	var cell: Vector2i = lattice.index_at(a_xz)
+	if not lattice.is_in_bounds(cell) or _own_strength.is_empty():
+		return {"own": 0.0, "enemy": 0.0}
+	var index: int = lattice.index_of(cell)
+	return {"own": float(_own_strength[index]), "enemy": float(_enemy_strength[index])}
+
+
+## The whole own strength channel of the ready snapshot, one value per cell — for the overlay
+## and for a test that compares two builds.
+func own_strength_field() -> PackedFloat32Array:
+	_ensure_ready()
+	return _own_strength
+
+
+## The whole believed-enemy strength channel of the ready snapshot, one value per cell.
+func enemy_strength_field() -> PackedFloat32Array:
+	_ensure_ready()
+	return _enemy_strength
 
 
 ## The penalty the bot's own armed pieces put on the enemy's field, one cost per cell.
@@ -1211,10 +1271,68 @@ func _presence_stamps() -> Array:
 					"reach": reach,
 					"value": float(bot.unit_cost(piece.id)),
 					"is_structure": piece.structure_is_active(),
+					"type": piece.id,
 				}
 			)
 		)
 	return stamps
+
+
+## The bot's own armed pieces as strength sources, {"cell", "type", "value", "reach"}, read off
+## the presence stamps (which carry each piece's type for this). Overridable by a fixture.
+func _own_strength_sources(a_stamps: Array) -> Array:
+	var out: Array = []
+	for stamp: Dictionary in a_stamps:
+		(
+			out
+			. append(
+				{
+					"cell": lattice.index_at(stamp["xz"]),
+					"type": stamp["type"],
+					"value": float(stamp["value"]),
+					"reach": float(stamp["reach"]),
+				}
+			)
+		)
+	return out
+
+
+## Every believed enemy piece as a strength source, in the same shape, at its type's longest
+## ground reach. No armed filter: a type that can damage nothing falls out through
+## answerability, which is the rule that an unarmed piece is never a threat applied where it is
+## cheapest.
+func _enemy_strength_sources(a_sources: Array) -> Array:
+	var out: Array = []
+	for source: Dictionary in a_sources:
+		var type: StringName = source.get("type", &"")
+		(
+			out
+			. append(
+				{
+					"cell": source["cell"],
+					"type": type,
+					"value": float(source.get("value", 0.0)),
+					"reach": reach_of_type(type),
+				}
+			)
+		)
+	return out
+
+
+## A believed type's longest ground reach (Bot.ground_reach_of_type), cached until the next
+## refresh(): that read walks the tree for a live carrier.
+func reach_of_type(a_type: StringName) -> float:
+	if not _reach_cache.has(a_type):
+		var bot: Bot = _commander as Bot
+		_reach_cache[a_type] = bot.ground_reach_of_type(a_type) if bot != null else 0.0
+	return _reach_cache[a_type]
+
+
+## Whether a piece of `a_type` can damage one of `a_target_type` — Bot.type_can_damage, memoised
+## there per pair. Overridable by a fixture.
+func _strength_can_damage(a_type: StringName, a_target_type: StringName) -> bool:
+	var bot: Bot = _commander as Bot
+	return bot != null and bot.type_can_damage(a_type, a_target_type)
 
 
 #endregion
@@ -1454,4 +1572,136 @@ static func presence_penalty_of(
 				if lattice.centre_of(cell).distance_to(centre) <= radius:
 					out[lattice.index_of(cell)] += weight
 	return out
+
+
+## THE STRENGTH FIELDS: for each side, the energy per cell of its pieces whose REACH covers the
+## cell — each piece stamped over a disc of its longest ground reach plus `slack`, cell centre
+## to cell centre, which is the smoothing — counting a piece at a cell only where it can damage
+## some type the OTHER side has reaching that cell (`can_damage(type, target_type)`). Strength
+## is ANSWERABLE strength, both ways: a wave's infantry under a bomber it cannot hit reads as
+## nothing there, a SAM site reads as nothing to a ground wave, and a tower that outranges the
+## wave is at the wave's front because its shells land there. `own` and `enemy` are [{"cell",
+## "type", "value", "reach"}]. Returns {"own", "enemy": one value per cell, "cells": the disc
+## cells visited, for the work charge}.
+##
+## Pieces are summed by (cell, type) first — a wave of forty shares a few cells — and every pass
+## runs in input order over float32 accumulators, so the result is a pure function of its inputs
+## to the bit (lattice-and-topology.md §Determinism).
+static func strength_fields_of(
+	lattice: Lattice, own: Array, enemy: Array, slack: float, can_damage: Callable
+) -> Dictionary:
+	var own_entries: Array = _strength_entries(lattice, own)
+	var enemy_entries: Array = _strength_entries(lattice, enemy)
+	var discs: Dictionary = {}
+	var own_types: Array = _types_within(lattice, own_entries, slack, discs)
+	var enemy_types: Array = _types_within(lattice, enemy_entries, slack, discs)
+	var pairs: Dictionary = {}
+	var out_own: PackedFloat32Array = _answerable_strength(
+		lattice, own_entries, enemy_types, slack, discs, can_damage, pairs
+	)
+	var out_enemy: PackedFloat32Array = _answerable_strength(
+		lattice, enemy_entries, own_types, slack, discs, can_damage, pairs
+	)
+	var cells: int = 0
+	for entry: Dictionary in own_entries + enemy_entries:
+		# Each entry's disc is walked twice: once for its types, once for its value.
+		cells += 2 * _entry_disc(lattice, entry, slack, discs).size()
+	return {"own": out_own, "enemy": out_enemy, "cells": cells}
+
+
+## `pieces` summed by (cell, type), in first-seen order, at the longest reach seen for the
+## pair; a piece off the lattice is dropped.
+static func _strength_entries(lattice: Lattice, pieces: Array) -> Array:
+	var by_key: Dictionary = {}
+	for piece: Dictionary in pieces:
+		var cell: Vector2i = piece["cell"]
+		if not lattice.is_in_bounds(cell):
+			continue
+		var key: String = "%d,%d:%s" % [cell.x, cell.y, piece["type"]]
+		if not by_key.has(key):
+			by_key[key] = {"cell": cell, "type": piece["type"], "value": 0.0, "reach": 0.0}
+		by_key[key]["value"] += float(piece["value"])
+		by_key[key]["reach"] = maxf(float(by_key[key]["reach"]), float(piece.get("reach", 0.0)))
+	return by_key.values()
+
+
+## An entry's disc: its reach plus the slack, about its cell.
+static func _entry_disc(
+	lattice: Lattice, entry: Dictionary, slack: float, discs: Dictionary
+) -> PackedInt32Array:
+	return _disc(lattice, entry["cell"], float(entry["reach"]) + slack, discs)
+
+
+## The indices of the cells whose centres lie within `radius` of `cell`'s centre, in row-major
+## order; memoised in `discs` by cell and radius, since a wave's pieces share cells.
+static func _disc(
+	lattice: Lattice, cell: Vector2i, radius: float, discs: Dictionary
+) -> PackedInt32Array:
+	var index: int = lattice.index_of(cell)
+	var key: String = "%d:%f" % [index, radius]
+	if discs.has(key):
+		return discs[key]
+	var centre: Vector2 = lattice.centre_of(cell)
+	var low: Vector2i = lattice.index_at(centre - Vector2(radius, radius))
+	var high: Vector2i = lattice.index_at(centre + Vector2(radius, radius))
+	var out := PackedInt32Array()
+	for z: int in range(maxi(0, low.y), mini(lattice.depth - 1, high.y) + 1):
+		for x: int in range(maxi(0, low.x), mini(lattice.width - 1, high.x) + 1):
+			var at := Vector2i(x, z)
+			if lattice.centre_of(at).distance_to(centre) <= radius:
+				out.append(lattice.index_of(at))
+	discs[key] = out
+	return out
+
+
+## Per cell, the types among `entries` whose disc covers it: a Dictionary type → true, or null
+## where nothing of that side reaches.
+static func _types_within(
+	lattice: Lattice, entries: Array, slack: float, discs: Dictionary
+) -> Array:
+	var out: Array = []
+	out.resize(lattice.cell_count())
+	for entry: Dictionary in entries:
+		for index: int in _entry_disc(lattice, entry, slack, discs):
+			if out[index] == null:
+				out[index] = {}
+			out[index][entry["type"]] = true
+	return out
+
+
+## Each entry's value added to every cell of its disc where some type the other side has
+## reaching it (`other_types`, from _types_within) is one it can damage. `pairs` memoises
+## can_damage.
+static func _answerable_strength(
+	lattice: Lattice,
+	entries: Array,
+	other_types: Array,
+	slack: float,
+	discs: Dictionary,
+	can_damage: Callable,
+	pairs: Dictionary
+) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	out.resize(lattice.cell_count())
+	for entry: Dictionary in entries:
+		for index: int in _entry_disc(lattice, entry, slack, discs):
+			var there: Variant = other_types[index]
+			if there == null:
+				continue
+			if _can_damage_any(entry["type"], there, can_damage, pairs):
+				out[index] += float(entry["value"])
+	return out
+
+
+## Whether `type` can damage any of `targets`' keys, through `can_damage`, memoised in `pairs`.
+static func _can_damage_any(
+	type: StringName, targets: Dictionary, can_damage: Callable, pairs: Dictionary
+) -> bool:
+	for target: StringName in targets:
+		var key: String = "%s>%s" % [type, target]
+		if not pairs.has(key):
+			pairs[key] = bool(can_damage.call(type, target))
+		if pairs[key]:
+			return true
+	return false
 #endregion

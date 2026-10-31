@@ -604,3 +604,131 @@ func test_the_fields_clusters_are_bases_with_centroids_over_their_members() -> v
 	)
 	fields.home = []
 	assert_eq(fields.clusters(5.0), [], "nothing owned: no base")
+
+
+# ─── THE STRENGTH FIELDS ─────────────────────────────────────────────────────
+
+
+## a damages b; b damages nothing.
+func _a_beats_b(attacker: StringName, _target: StringName) -> bool:
+	return attacker == &"a"
+
+
+func test_strength_is_a_disc_sum_counted_only_where_it_is_answerable() -> void:
+	var lattice: Lattice = _open_lattice()
+	var own: Array = [
+		{"cell": Vector2i(3, 3), "type": &"a", "value": 100.0, "reach": 0.0},
+		{"cell": Vector2i(3, 3), "type": &"a", "value": 50.0, "reach": 0.0},
+	]
+	var enemy: Array = [
+		{"cell": Vector2i(4, 3), "type": &"b", "value": 200.0, "reach": 0.0},
+		{"cell": Vector2i(0, 0), "type": &"b", "value": 999.0, "reach": 0.0},
+	]
+	var fields: Dictionary = BotFields.strength_fields_of(lattice, own, enemy, 5.0, _a_beats_b)
+	var own_field: PackedFloat32Array = fields["own"]
+	var enemy_field: PackedFloat32Array = fields["enemy"]
+	assert_eq(own_field.size(), lattice.cell_count())
+	assert_almost_eq(
+		own_field[lattice.index_of(Vector2i(3, 3))], 150.0, 0.001, "both pieces, summed"
+	)
+	assert_almost_eq(
+		own_field[lattice.index_of(Vector2i(4, 3))], 150.0, 0.001, "one pitch away: in the disc"
+	)
+	assert_almost_eq(
+		own_field[lattice.index_of(Vector2i(5, 3))], 0.0, 0.001, "two pitches: outside the disc"
+	)
+	assert_almost_eq(
+		own_field[lattice.index_of(Vector2i(3, 4))],
+		0.0,
+		0.001,
+		"in the disc, but nothing of the enemy's within reach of that cell: unanswerable, nothing"
+	)
+	for index: int in enemy_field.size():
+		assert_almost_eq(
+			enemy_field[index], 0.0, 0.001, "b can damage nothing: no strength anywhere"
+		)
+	assert_gt(int(fields["cells"]), 0, "the work charge counts the discs walked")
+
+
+func test_a_strength_piece_off_the_lattice_is_dropped() -> void:
+	var lattice: Lattice = _open_lattice()
+	var fields: Dictionary = BotFields.strength_fields_of(
+		lattice,
+		[{"cell": Vector2i(-1, 0), "type": &"a", "value": 100.0, "reach": 0.0}],
+		[{"cell": Vector2i(0, 0), "type": &"b", "value": 100.0, "reach": 0.0}],
+		5.0,
+		func(_attacker: StringName, _target: StringName) -> bool: return true
+	)
+	for index: int in lattice.cell_count():
+		assert_almost_eq((fields["own"] as PackedFloat32Array)[index], 0.0, 0.001)
+
+
+## A fixture with a wave of three types in the middle and an enemy line to its east, under a
+## table where the heavy type is the only one the enemy's turret can hurt.
+func _strength_fixture() -> FixtureFields:
+	var fields: FixtureFields = FixtureFields.over_open(Rect2(0.0, 0.0, 45.0, 45.0))
+	fields.add_own(Vector2i(4, 4), &"light", 100.0, 8.0)
+	fields.add_own(Vector2i(4, 4), &"light", 100.0, 8.0)
+	fields.add_own(Vector2i(4, 5), &"heavy", 400.0, 12.0)
+	fields.add_own(Vector2i(3, 4), &"air", 300.0, 6.0)
+	fields.add_enemy(Vector2i(6, 4), &"infantry", 100.0, 8.0)
+	fields.add_enemy(Vector2i(6, 4), &"infantry", 100.0, 8.0)
+	fields.add_enemy(Vector2i(7, 4), &"turret", 400.0, 12.0)
+	fields.add_enemy(Vector2i(0, 8), &"infantry", 100.0, 8.0)
+	fields.damage = {
+		&"turret": [&"heavy"], &"infantry": [&"light", &"heavy"], &"air": [&"infantry"]
+	}
+	return fields
+
+
+func test_the_strength_fields_reproduce_to_the_bit_across_two_builds() -> void:
+	var first: FixtureFields = _strength_fixture()
+	first.rebuild_now()
+	var second: FixtureFields = _strength_fixture()
+	second.rebuild_now()
+	assert_eq(first.own_strength_field(), second.own_strength_field())
+	assert_eq(first.enemy_strength_field(), second.enemy_strength_field())
+	var pieces: FixtureFields = _strength_fixture()
+	pieces.refresh()
+	while pieces.is_pending():
+		pieces.advance(40)
+	assert_eq(
+		pieces.own_strength_field(), first.own_strength_field(), "budgeted or whole: the same bytes"
+	)
+	assert_eq(pieces.enemy_strength_field(), first.enemy_strength_field())
+	assert_gt(first.own_strength_field()[first.lattice.index_of(Vector2i(4, 4))], 0.0)
+
+
+func test_a_gun_that_reaches_the_wave_is_at_its_front_and_the_read_serves_the_snapshot() -> void:
+	var fields: FixtureFields = FixtureFields.over_open(Rect2(0.0, 0.0, 45.0, 45.0))
+	fields.add_own(Vector2i(4, 4), &"a", 300.0)
+	fields.add_enemy(Vector2i(6, 4), &"b", 100.0)
+	fields.rebuild_now()
+	var middle: Vector2 = fields.lattice.centre_of(Vector2i(4, 4))
+	assert_eq(
+		fields.front_strength_at(middle),
+		{"own": 0.0, "enemy": 0.0},
+		"two pitches apart and neither reaches: nothing of either side is at the other's cell"
+	)
+	# The enemy piece now reaches six — ten away plus the slack covers the wave's cell — while
+	# the wave still reaches nothing: the gun is at the wave's front, and the wave counts there
+	# because it can damage what is shooting it.
+	fields.sources[0]["reach"] = 6.0
+	fields.refresh()
+	fields.advance(4)
+	assert_true(fields.is_pending())
+	assert_eq(
+		fields.front_strength_at(middle), {"own": 0.0, "enemy": 0.0}, "still the old snapshot"
+	)
+	fields.advance(BotJob.UNLIMITED_WORK_UNITS)
+	assert_eq(fields.front_strength_at(middle), {"own": 300.0, "enemy": 100.0}, "now in its reach")
+	assert_eq(
+		fields.front_strength_at(fields.lattice.centre_of(Vector2i(6, 4))),
+		{"own": 0.0, "enemy": 0.0},
+		"at the gun's own cell the wave reaches nothing, so nothing there is answerable"
+	)
+	assert_eq(
+		fields.front_strength_at(Vector2(-100.0, -100.0)),
+		{"own": 0.0, "enemy": 0.0},
+		"off the lattice"
+	)

@@ -282,6 +282,25 @@ func test_the_reserve_is_released_as_a_body_once_it_is_worth_sending() -> void:
 		assert_true(_is_wave_member(unit), "released units are the wave's now")
 
 
+func test_what_is_released_to_the_wave_is_committed_to_it() -> void:
+	# The spent and retreat tests measure the wave against everything sent, so the launch value
+	# grows with each release — or a wave fed by a stream never reads as losing anything.
+	var veteran := _armed_unit(OBJECTIVE)
+	_launch_wave([veteran], 1000.0)
+	_military.reinforce_fraction = 0.5
+	for i: int in 5:
+		_armed_unit(FakeBot.HOME)
+	_tick_attack()
+	assert_eq(_military.wave_size(), 6, "the reserve was released")
+	assert_almost_eq(_military._wave_launch_value, 1000.0 + 5.0 * 100.0, 0.01)
+	# Under a cap of one a newcomer joins the wave directly, and is committed the same way.
+	_military.squad_cap = 1
+	_armed_unit(FakeBot.HOME)
+	_tick_attack()
+	assert_eq(_military.wave_size(), 7)
+	assert_almost_eq(_military._wave_launch_value, 1000.0 + 6.0 * 100.0, 0.01)
+
+
 func test_a_spent_wave_releases_the_reserve_however_small() -> void:
 	var veteran := _armed_unit(OBJECTIVE)
 	_launch_wave([veteran], 1000.0)

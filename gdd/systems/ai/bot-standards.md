@@ -102,35 +102,33 @@ fight.
 **Standard.** Believing an enemy threat the bot cannot yet produce the answer to, it buys the
 chain that leads to the answer: the producer, the tech, then the unit.
 
-**What exists.** Two links of a three-link chain, neither aimed at a THREAT:
+**What exists (built 2026-10-31 on Alex's ruling of 2026-10-30: an unowned prerequisite is
+part of the price).** One price for every purchase, per energy of the CHAIN
+(`Bot.prerequisite_chain`, `Bot.chain_price_factor`; [bot-architecture](bot-architecture.md)
+§Valuing a unit, and saving for it):
 
-- Producer → unit: `_production_structure_to_build` values an unowned producer by the best
-  unit it trains that the bot HAS THE TECH FOR (`producer_values`), so an airfield is bought
-  for the Clipper's value against the believed enemy — but a producer whose good unit is
-  behind a tech building scores only its unlocked units.
-- Tech → unit: `_tech_structure_to_build` values a tech building by the best unit it unlocks
-  at a producer the bot OWNS, so a tech building is never bought for a unit whose producer is
-  not yet standing ("an Operations Center is not bought for an aircraft the bot has no
-  airfield for" — the right refusal for the wrong reason, since the airfield is never bought
-  for it either).
-- The siege rung does chain: a Bombard locked behind the Operations Center buys the Center
-  first (`_unlocking_structure_for`) — it is why 80 Centers were built by a rung that values
-  nothing about them.
+- Tech → unit: a unit behind a structure is a candidate at every producer, priced at its own
+  cost plus every unowned prerequisite's, recursively; when it beats the trainable best by
+  the tech margin, the chain's first link is the savings goal and the goal rung builds it,
+  while the producer trains what it can under the claim.
+- Tech → turret: the SAM behind a building the bot lacks is a defence candidate at its chain
+  cost; the demand must clear the chain, and the first link goes up.
+- Producer → unit: `producer_values` prices a producer by its locked units too, at their
+  chain cost — a factory whose good unit sits behind tech2 scores it.
+- The siege rung and the tech rung read the same chain: a tech candidate is credited with
+  every unit whose chain passes through it, and a gun two links deep is started at the first.
 
-So the war-factory-for-anti-air case is not expressed: with no war factory, the factory is
-valued by its unlocked units (Sloop, Matilda) against the believed army, which is the right
-answer by accident when they counter it and nothing when the answer is a unit behind tech2.
-The SAM, the one direct answer to aircraft, is a DEFENCE rung purchase with its own hole
-(§An unanswerable threat).
+Not expressed: a unit's PRODUCER is not in `required_structures`, so an airfield is not in
+the Caravel's chain — the producer rung buys it on its units' value, with its own price in no
+per-energy figure. Decided by cost alone; the margin stands in for build time (both open in
+the architecture note's TODO under that section).
 
-**Verdict: PARTIAL.**
+**Verdict: BUILT** as a rule; the ledger's reading waits on `exec_j`
+([bot-roadmap](bot-roadmap.md) §Difficulty first).
 
-> **TODO — value a purchase by the chain it opens.** Price an unowned producer or tech
-> building by the best unit REACHABLE through it (the chain's units, not only the next
-> link's), discounted by the chain's total cost and build time, against the believed enemy.
-> - [ ] Discount by cost alone, or by time to field (the threat clock already prices arrival)?
-> - [ ] Does the siege rung's `_unlocking_structure_for` generalise into this, so one rule
->   buys prerequisites for everything, or stay the demand-only chain it is?
+> **TODO — measure it.** `exec_j`'s choice ledger: SAMs chosen and built under enemy aircraft
+> with no factory standing (P4's time-to-first-answer), the Academy chosen by the tech rung at
+> chain-priced Constables, and whether a goal rung build is ever refunded (P2).
 > - [ ] Sim: a bot owning a barracks that believes three Clippers and no anti-air buys the
 >   chain to one (SAM or airfield → Clipper) within N seconds — which answer should it prefer?
 

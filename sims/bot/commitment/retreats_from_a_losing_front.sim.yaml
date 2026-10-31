@@ -1,0 +1,70 @@
+description: |
+  THE RETREAT READS THE FRONT, NOT THE ARMY. A sees B's four Recruits (400) and nothing else it
+  prices — believed army value counts units only — so at 800 against 400 it commits at once and
+  marches on B's command centre. What stands in front of that centre is the four Recruits AND
+  three Watch Towers (1,200) whose shells reach the wave from beyond its rifles: at the wave's
+  leading edge the front reads about 700 of its own against 1,600, a share of 0.3, under
+  BotMomentum.FRONT_LOSING_SHARE from first contact (about 24 s). Once the wave has lost
+  wave_abort_fraction of everything committed to it — the reinforcements released from the
+  staging point count — it is called off (about 34 s) and the posture is MASS through the
+  regroup window, which is where this run ends. Meanwhile three barracks train Recruits on
+  6,000 energy, so the ARMY'S value grows through the fight: BotMomentum.is_losing never reads
+  losing, and under the pre-2026-10-31 rule the wave fed itself into the towers to the last
+  unit and the posture stayed ATTACK (decision-pathologies.md U5r). Attention is unlimited
+  because at HARD's 0.6 orders a second the train orders alone spend the budget, and a military
+  that thinks four times in a minute cannot retreat on time whatever rule it reads — a tier
+  property, not the rule under test. Axis: COMMITMENT. Rule: bot-architecture.md §The retreat
+  reads the front.
+setting: { kind: flat, size: 80 }
+given:
+  A:
+    settings:
+      difficulty: HARD
+      vision: full
+      energy: 6000
+      config: { scout_unit_budget: 0, attention_orders_per_second: -1.0 }
+      consider: { units: [ cl_bioLight_antiLight ] }
+    with:
+      base:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: west
+      power:
+        of: [ { piece: cl_infrastructure, count: 1 } ]
+        at: { from: A.base, distance: 10, bearing: northwest }
+      barracks:
+        of: [ { piece: cl_barracks, count: 1 } ]
+        at: { from: A.base, distance: 10, bearing: south }
+      barracks2:
+        of: [ { piece: cl_barracks, count: 1 } ]
+        at: { from: A.base, distance: 10, bearing: southwest }
+      barracks3:
+        of: [ { piece: cl_barracks, count: 1 } ]
+        at: { from: A.base, distance: 10, bearing: north }
+      army:
+        of: [ { piece: cl_bioLight_antiLight, count: 8 } ]
+        at: { from: A.base, distance: 8, bearing: east }
+        formation: cluster
+  B:
+    with:
+      base:
+        of: [ { piece: cl_commandCenter, count: 1 } ]
+        at: east
+      power:
+        of: [ { piece: cl_infrastructure, count: 1 } ]
+        at: { from: B.base, distance: 6, bearing: east }
+      towers:
+        of: [ { piece: cl_defense_antiLight, count: 3 } ]
+        at: { from: B.base, distance: 8, bearing: west }
+        formation: line
+      guards:
+        of: [ { piece: cl_bioLight_antiLight, count: 4 } ]
+        at: { from: B.towers, distance: 3, bearing: west }
+        formation: cluster
+run: { for: 48s, seed: 1 }
+expect:
+  - { slot: A, check: posture, is: ATTACK, by: 15s }
+  # At the end of the run the called-off wave is regrouping at home; under the global rule the
+  # posture is still ATTACK here, the wave being fed into the towers.
+  - { slot: A, check: posture, is: MASS }
+  - { of: B.towers, check: alive }
+  - { of: A.army, check: alive, at_least: 2 }

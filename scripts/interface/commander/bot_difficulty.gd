@@ -148,12 +148,14 @@ var defence_propensity: float = 1.0
 ## HOW MUCH BETTER A LOCKED UNIT MUST BE before the bot buys the structure that unlocks it:
 ## the best composition value (Bot.unit_composition_value, against the enemy it believes in)
 ## among units behind one tech structure, over the best it can train today, must reach this
-## ratio. 1.0 techs the moment anything better exists; 3.0 never techs. The ratio is on
-## STRENGTH against the current enemy, not strength per energy, because a higher-tech unit is
-## generally stronger and seldom cheaper per point — and the margin is what represents the
-## overhead of the investment (the building's price and its build time) without pricing it.
-## The structures a tech building unlocks are not scored: a Bombard behind an Operations
-## Center is worth nothing to this ratio. See gdd/systems/ai/bot-architecture.md §The tech rung.
+## ratio. 1.0 techs the moment anything better exists; 3.0 never techs. The ratio is on the
+## purchase valuation, per energy of the CHAIN since 2026-10-31 (Bot.chain_price_factor: the
+## locked unit's own cost plus every unowned prerequisite's), so the building's price is in
+## the comparison and the margin stands in only for what is not priced — the chain's build
+## time. Production reads the same bar for a locked unit in its ranking (BotProduction.
+## tech_value_margin). The structures a tech building unlocks are not scored: a Bombard behind
+## an Operations Center is worth nothing to this ratio. See gdd/systems/ai/bot-architecture.md
+## §The tech rung.
 var tech_value_margin: float = 1.3
 
 ## How many non-combat utility units (the Colonial Stock Truck and its like) the bot keeps

@@ -87,14 +87,21 @@ var assumed_enemy_parity: float = 0.85
 ## down to this fraction of its launch value — so the bot doesn't dribble its army in.
 const WAVE_SPENT_FRACTION: float = 0.35
 
-## RETREAT. A wave is called off early — before it is spent — when the army has lost this
-## much of its launch value AND BotMomentum says the bot is actively bleeding.
+## RETREAT. A wave is called off early — before it is spent — when the WAVE has lost this
+## much of its launch value AND it is losing its FRONT (BotMomentum.front_balance: the enemy's
+## answerable strength reaching the wave's leading edge outweighs the wave's there, or an even
+## front is slipping away). The launch value grows with every reinforcement committed to the
+## wave, so the fraction is of everything sent.
 ##
 ## Both halves are load-bearing. Losses alone are not a reason to leave: a wave that trades
 ## a third of itself for the enemy's army has WON, and the old rule of running until spent
 ## to 35% exists because a bot that pulls back on damage dribbles its army in one squad at a
-## time. The momentum test is what distinguishes "this is costing us" from "this is costing
-## us FAST", and it is why retreating here is not a return to dribbling.
+## time. The front test is what distinguishes "this cost us" from "this is beating us", and it
+## is why retreating here is not a return to dribbling. It is read at the FRONT, not over the
+## army (Alex, 2026-10-31): the global trend was diluted by home units and masked by production,
+## so a wave feeding into a superior force retreated late or never (decision-pathologies.md
+## U5r), and a raid at home called off a wave that was winning. Without fields to read (the
+## tier has them off) the global trend stands in, as it did before the fields existed.
 ##
 ## A PARAMETER (BotDifficulty.wave_abort_fraction), and 0 restores the pre-retreat bot
 ## exactly: a wave that only ever ends by being spent.
@@ -169,7 +176,8 @@ const REACH_TOLERANCE: float = 8.0
 
 var _bot: Bot
 var _act: BotActuator
-## Whether the bot is winning or losing; what turns a costly push into a retreat.
+## Whether the bot is winning or losing — the front the wave is on, and the army as a whole;
+## what turns a costly push into a retreat.
 var _momentum: BotMomentum
 
 var _posture: Posture = Posture.MASS
@@ -380,6 +388,8 @@ func _launch(a_objective: Vector3) -> void:
 	for squad: Squad in [_main, _reserve, _guard]:
 		squad.clear()
 	_main.add_all(_combat_units(_bot.get_units()))
+	if _momentum != null:
+		_momentum.forget_front()
 	_main.policy = AssaultPolicy.new(
 		_bot, _act, a_objective, _objective_entity, _objective_id, OBJECTIVE_EPSILON
 	)
@@ -428,13 +438,17 @@ func _tick_reinforcements(a_objective: Vector3) -> void:
 		_reserve.add_all(newcomers)
 	else:
 		_main.add_all(newcomers)
+		_wave_launch_value += _value_of(newcomers)
 	_tick_guard()
 	if _reserve.is_empty():
 		return
 	# The wave has nobody left: the reserve IS the army, and holding it back would leave the
 	# objective to nobody.
 	if _main.is_empty() or _value_of(_reserve.members()) >= reinforce_fraction * _wave_launch_value:
-		_main.absorb(_reserve)
+		# What joins the wave is committed to it: the spent and retreat tests measure the wave
+		# against everything sent, or a wave fed by a stream of reinforcements never reads as
+		# losing anything — it stood at 1,300–1,900 against a launch of 700 while being spent.
+		_wave_launch_value += _value_of(_main.absorb(_reserve))
 		return
 	_reserve.policy = StagePolicy.new(_act, _staging_point(a_objective), OBJECTIVE_EPSILON)
 
@@ -814,13 +828,38 @@ func _committing_to_attack() -> bool:
 
 ## RETREAT TEST: is this wave failing rather than merely costing something?
 ##
-## Two conditions, and neither alone is enough — see wave_abort_fraction. False when the bot
-## has no momentum signal (a manager built without one in a test), so the wave behaves
-## exactly as it did before retreat existed.
+## Two conditions, and neither alone is enough — see wave_abort_fraction. The front is sampled
+## on every call, whatever the losses, so its trend is a history of the whole wave by the time
+## the loss gate opens. False when the bot has no momentum signal (a manager built without one
+## in a test), so the wave behaves exactly as it did before retreat existed.
 func _should_abort_wave(a_own_value: float) -> bool:
 	if _momentum == null:
 		return false
-	return a_own_value <= _wave_launch_value * wave_abort_fraction and _momentum.is_losing()
+	var front: Dictionary = _momentum.front_balance(_front_position())
+	if a_own_value > _wave_launch_value * wave_abort_fraction:
+		return false
+	if front.is_empty():
+		return _momentum.is_losing()
+	return BotMomentum.is_losing_front(front)
+
+
+## WHERE THE WAVE'S FRONT IS: its fielded member nearest the objective — the leading edge, where
+## contact is made — or the centroid when there is no objective or nobody is fielded. Not the
+## centroid otherwise: a wave fed by a stream of reinforcements has its centroid out between the
+## staging point and the fight, where nothing of either side reaches, and the front read there
+## said "nothing here" while the leading members were being killed.
+func _front_position() -> Vector3:
+	var fielded: Array = _main.fielded()
+	if fielded.is_empty() or not _has_objective:
+		return _main.centroid()
+	var leader: Actor = fielded[0]
+	var nearest: float = leader.global_position.distance_squared_to(_objective)
+	for unit: Actor in fielded:
+		var distance: float = unit.global_position.distance_squared_to(_objective)
+		if distance < nearest:
+			nearest = distance
+			leader = unit
+	return leader.global_position
 
 
 ## Close out the wave and start the regroup window. The escalation clock restarts too: the
@@ -829,6 +868,8 @@ func _end_wave() -> void:
 	_wave_active = false
 	_stalemate_time = 0.0
 	_regroup_until = _bot.seconds_elapsed() + REGROUP_SECONDS
+	if _momentum != null:
+		_momentum.forget_front()
 
 
 ## Units we send to fight: everything with COMBAT UTILITY except one that is currently busy.

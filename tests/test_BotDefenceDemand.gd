@@ -32,6 +32,9 @@ class FakeBot:
 	func buildable_defence_structure_types() -> Array:
 		return [TOWER]
 
+	func reachable_defence_structure_types() -> Array:
+		return [TOWER]
+
 	func can_afford(_a_type) -> bool:
 		return true
 
@@ -76,6 +79,7 @@ var _economy: BotEconomy
 func before_each() -> void:
 	_bot = FakeBot.new()
 	_bot.id = 1
+	_bot.technology_mapping[TOWER] = TechnologySpec.new(TOWER_COST, 0, 0, 30)
 	add_child_autofree(_bot)
 	_economy = BotEconomy.new(_bot, BotActuator.new(null))
 

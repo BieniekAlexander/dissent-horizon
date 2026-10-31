@@ -476,12 +476,10 @@ func _decide() -> void:
 			if espot != null and _issue_build(builder, etype, espot):
 				return
 
-	# STATIC DEFENCE AHEAD OF THE THREAT, then TECH when a surplus allows; each rung ends the
-	# think when it issued a build or is still searching for a spot, and falls through
-	# otherwise, like the rungs above.
-	# A rung whose building IS the savings goal runs without a surplus: the bank was held for it.
-	var tech_is_goal: bool = goal != &"" and _bot.buildable_structure_types().has(goal)
-	if _defence_rung(builder) or ((surplus or tech_is_goal) and _tech_rung(builder)):
+	# STATIC DEFENCE AHEAD OF THE THREAT, then TECH when a surplus allows, then THE GOAL the
+	# bank was held for, surplus or not; each rung ends the think when it issued a build or is
+	# still searching for a spot, and falls through otherwise, like the rungs above.
+	if _defence_rung(builder) or (surplus and _tech_rung(builder)) or _goal_rung(builder):
 		return
 	# SIEGE: a gun while the bot has spotting to use it with — demand, not a valuation.
 	if _siege_rung(builder):
@@ -547,13 +545,18 @@ func _defence_rung(a_builder: Actor) -> bool:
 	var ftype: Variant = _defence_structure_to_build()
 	if ftype == null:
 		return false
-	if float(read["demand"]) * defence_propensity < float(_energy_cost(ftype)):
+	# The demand must clear what the turret costs TO REACH — its chain's price with its own
+	# (Alex, 2026-10-30) — and what goes up now is the turret, or the first link of its chain.
+	var under_way: Array[StringName] = _types_under_way()
+	if float(read["demand"]) * defence_propensity < float(_bot.chain_cost(ftype, under_way)):
 		return false
-	_demanded_anchor = read["anchor"]
-	var fspot: Variant = _find_build_spot(ftype)
+	var buy: StringName = _next_purchase_for(ftype, under_way)
+	if buy == ftype:
+		_demanded_anchor = read["anchor"]  # a chain link is placed as itself, not as a turret
+	var fspot: Variant = _find_build_spot(buy)
 	if fspot is StringName:
 		return true  # still searching; the rest of the ladder waits for the answer
-	return fspot is Vector3 and _issue_build(a_builder, ftype, fspot)
+	return fspot is Vector3 and _issue_build(a_builder, buy, fspot)
 
 
 ## The tech rung: a structure whose units would be worth enough more than the ones the bot
@@ -614,17 +617,44 @@ func _siege_structure_to_build() -> StringName:
 	return &""
 
 
-## The first structure `a_type` requires (TechnologySpec.required_structures) that the bot
-## neither owns nor is building and can build today, or &"".
+## The first link of the chain `a_type` still needs (Bot.prerequisite_chain) when the bot can
+## build it today, or &"": nothing is missing, the next link is waiting on one going up, or
+## no owned builder could place it.
 func _unlocking_structure_for(a_type: StringName, a_under_way: Array[StringName]) -> StringName:
-	var spec: TechnologySpec = _bot.technology_mapping.get(a_type)
-	if spec == null:
+	var chain: Array = _bot.prerequisite_chain(a_type, a_under_way)["structures"]
+	if chain.is_empty() or not _bot.buildable_structure_types().has(chain[0]):
 		return &""
-	for required: StringName in spec.required_structures:
-		if _bot.get_structures_of_type(required).is_empty() and not a_under_way.has(required):
-			if _bot.has_tech_for(required) and _bot.buildable_structure_types().has(required):
-				return required
-	return &""
+	return chain[0]
+
+
+## What buying `a_type` means ordering now: itself when the bot has the tech for it, else the
+## first link of its chain (_unlocking_structure_for), else &"".
+func _next_purchase_for(a_type: StringName, a_under_way: Array[StringName]) -> StringName:
+	if _bot.has_tech_for(a_type):
+		return a_type
+	return _unlocking_structure_for(a_type, a_under_way)
+
+
+## THE GOAL RUNG: the structure the bot is saving for is bought the moment the bank holds its
+## price, surplus or not — the bank was held for exactly this, whichever rung proposed it: the
+## economy's tech structure or producer, or the first link of a locked unit's chain
+## (BotProduction._propose_savings), which no other rung would build — the tech rung values
+## direct unlocks at owned producers, the producer rung keeps its own cap. Until 2026-10-31
+## only the tech rung ran without a surplus, and only for its own goal. True as _defence_rung.
+func _goal_rung(a_builder: Actor) -> bool:
+	var goal: Dictionary = _bot.savings.goal_proposal()
+	if goal.is_empty():
+		return false
+	var gtype: StringName = goal["type"]
+	if not _bot.buildable_structure_types().has(gtype) or _types_under_way().has(gtype):
+		return false
+	if not can_afford_above_reserve(gtype):
+		return false
+	_act.usage.record_choice("goal_structure", {gtype: float(goal["value"])}, gtype)
+	var spot: Variant = _find_build_spot(gtype)
+	if spot is StringName:
+		return true
+	return spot is Vector3 and _issue_build(a_builder, gtype, spot)
 
 
 ## THE ECONOMY'S SAVINGS PROPOSAL: the better of the tech structure it wants and a production
@@ -714,11 +744,12 @@ func _production_structure_to_build() -> Variant:
 	return pool[0] if picked != &"" else null
 
 
-## Which TECH structure to build now, or null. A tech structure is one some unit REQUIRES
-## (its TechnologySpec names it) that the bot does not own and is not already building; a
-## candidate is affordable above the reserve, and the unit behind it that the bot values most
-## — against the enemy it believes in, by the same composition value the picker trains by —
-## must be worth `tech_value_margin` times the best unit it can train today, at a producer it
+## Which TECH structure to build now, or null. A tech structure is one some unit's CHAIN
+## passes through (Bot.prerequisite_chain: what it requires, and what those require) that the
+## bot does not own and is not already building; a candidate is affordable above the reserve,
+## and the unit behind it that the bot values most — against the enemy it believes in, by the
+## purchase valuation the picker trains by, which prices the unit at the chain's cost — must
+## be worth `tech_value_margin` times the best unit it can train today, at a producer it
 ## OWNS. The last clause is what keeps an Operations Center from being bought for an aircraft
 ## the bot has no airfield for. The best such candidate wins; cost breaks ties.
 ##
@@ -747,6 +778,7 @@ func _best_tech(a_affordable: bool) -> Dictionary:
 		if _bot.has_tech_for(t):
 			trainable_best = maxf(trainable_best, float(valued[t]))
 	var under_way: Array[StringName] = _types_under_way()
+	var chains: Dictionary = _chains_of(owned_producible, under_way)
 	var best_type: Variant = null
 	var best_gain: float = 0.0
 	var best_value: float = 0.0
@@ -757,7 +789,7 @@ func _best_tech(a_affordable: bool) -> Dictionary:
 			continue
 		var unlocked_best: float = 0.0
 		for t: StringName in owned_producible:
-			if _bot.unit_requires_structure(t, ttype):
+			if (chains[t] as Array).has(ttype):
 				unlocked_best = maxf(unlocked_best, float(valued[t]))
 		if unlocked_best < tech_value_margin * maxf(trainable_best, 0.001):
 			continue
@@ -774,6 +806,14 @@ func _best_tech(a_affordable: bool) -> Dictionary:
 			best_type = ttype
 			best_value = unlocked_best
 	return {"type": best_type, "value": best_value} if best_type != null else {}
+
+
+## Each of `a_types`' unowned chain (Bot.prerequisite_chain), type -> Array of structures.
+func _chains_of(a_types: Array, a_under_way: Array[StringName]) -> Dictionary:
+	var out: Dictionary = {}
+	for t: StringName in a_types:
+		out[t] = _bot.prerequisite_chain(t, a_under_way)["structures"]
+	return out
 
 
 ## Every type some OWNED producer can train, locked or not — the units a tech structure could
@@ -795,6 +835,7 @@ func _tech_candidates_scored() -> Dictionary:
 	var owned_producible: Array = _owned_producible_types()
 	var armed: Array = owned_producible.filter(_bot.unit_can_attack)
 	var valued: Dictionary = _bot.purchase_values_per_energy(armed, demand)["values"]
+	var chains: Dictionary = _chains_of(owned_producible, _types_under_way())
 	var scored: Dictionary = {}
 	for ttype: StringName in _bot.buildable_structure_types():
 		if not _bot.get_structures_of_type(ttype).is_empty():
@@ -802,7 +843,7 @@ func _tech_candidates_scored() -> Dictionary:
 		var unlocks_any: bool = false
 		var best: float = 0.0
 		for t: StringName in owned_producible:
-			if _bot.unit_requires_structure(t, ttype):
+			if (chains[t] as Array).has(ttype):
 				unlocks_any = true
 				if armed.has(t):
 					best = maxf(best, float(valued[t]))
@@ -811,10 +852,13 @@ func _tech_candidates_scored() -> Dictionary:
 	return scored
 
 
-## Which static defence to build now: the affordable buildable defence type whose weapons
-## best counter the enemy UNITS the bot believes in (Bot.unit_composition_value over the
-## demand map's unit entries — a turret answers an army, not a base), cost as the tiebreak.
-## null when none is affordable.
+## Which static defence to build now: the defence type whose weapons best counter the enemy
+## UNITS the bot believes in (Bot.unit_composition_value over the demand map's unit entries —
+## a turret answers an army, not a base), cost as the tiebreak, among the ones some owned
+## builder could place whose NEXT purchase is affordable above the reserve. A turret behind a
+## structure the bot has yet to raise is a candidate AT ITS CHAIN COST (Alex, 2026-10-30: the
+## factory's price plus the SAM's), so it wins only when it is worth that, and what the rung
+## then raises is the chain's first link (_defence_rung). null when none is affordable.
 ##
 ## BEFORE ANYTHING HAS BEEN SEEN the demand is a MIRROR of the bot's own army: each live
 ## combat unit it fields stands in for one enemy of the same kind — the same prior
@@ -825,8 +869,11 @@ func _tech_candidates_scored() -> Dictionary:
 ## defence is the wrong default — measured, the ladder's first turret was the SAM against an
 ## infantry rush, the one gun on the list that cannot shoot it.
 func _defence_structure_to_build() -> Variant:
-	var candidates: Array = _bot.buildable_defence_structure_types().filter(
-		func(t): return can_afford_above_reserve(t)
+	var under_way: Array[StringName] = _types_under_way()
+	var candidates: Array = _bot.reachable_defence_structure_types().filter(
+		func(t: StringName) -> bool:
+			var next: StringName = _next_purchase_for(t, under_way)
+			return next != &"" and can_afford_above_reserve(next)
 	)
 	if candidates.is_empty():
 		return null
@@ -851,12 +898,14 @@ func _defence_structure_to_build() -> Variant:
 		return null
 	var value: Dictionary = {}
 	for t in candidates:
-		value[t] = _bot.unit_composition_value(t, unit_demand)
+		value[t] = (
+			_bot.unit_composition_value(t, unit_demand) * _bot.chain_price_factor(t, under_way)
+		)
 	candidates.sort_custom(
 		func(a, b):
 			if value[a] != value[b]:
 				return value[a] > value[b]
-			return _energy_cost(a) < _energy_cost(b)
+			return _bot.chain_cost(a, under_way) < _bot.chain_cost(b, under_way)
 	)
 	_act.usage.record_choice("defence_structure", value, candidates[0])
 	return candidates[0]

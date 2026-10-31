@@ -143,8 +143,13 @@ func test_producers_are_priced_by_the_valuation_their_units_are_chosen_by() -> v
 	assert_gt(float(values[FACTORY]), float(values[BARRACKS]))
 
 
-func test_a_locked_unit_does_not_price_its_producer() -> void:
+func test_a_locked_unit_prices_its_producer_at_its_chain_cost() -> void:
+	# Until 2026-10-31 a locked unit did not count at all, because at its own cost it priced a
+	# barracks by the Constable behind a tech building the bot did not own (2026-10-09). Priced
+	# at the tech building too (Alex, 2026-10-30), it is the honest worth of the producer.
 	_bot.owned = {CENTRE: 1, BARRACKS: 1, FACTORY: 1}
 	_bot.values = {RECRUIT: 1.0, TANK: 9.0}
 	_bot.locked = [TANK]
-	assert_eq(float(_bot.producer_values([FACTORY])[FACTORY]), 0.0)
+	_bot.technology_mapping[TANK] = TechnologySpec.new(500, 0, 0, 30, [&"tech"])
+	_bot.technology_mapping[&"tech"] = TechnologySpec.new(1000, 0, 0, 30)
+	assert_almost_eq(float(_bot.producer_values([FACTORY])[FACTORY]), 9.0 * 500.0 / 1500.0, 1e-9)

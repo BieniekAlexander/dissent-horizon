@@ -280,6 +280,13 @@ vision, scouting off, each with six Recruits beside an unarmed Annex and nothing
   attacks in 90 s. Two bots that trade down below the gate stay home for good.
 - *behind_side_waits*: 8 against 6. The larger side does NOT commit at once — see the third
   finding — but after about 7 s; the smaller one (0.75, under the 0.85 floor) never commits.
+- *retreats_from_a_losing_front* (2026-10-31, PASSING on seed 1): 8 Recruits against 4
+  believed — so it commits at once — standing under three Watch Towers the believed ARMY value
+  never priced. At first contact (24 s) the wave's leading edge reads 700 against 1,600, a share
+  of 0.3; it is called off at about 34 s once it has lost `wave_abort_fraction` of everything
+  committed to it, and is regrouping (MASS) when the 48 s run ends, while three barracks grow
+  the army at home. The A/B on the same spec with the global trend in the gate stays in ATTACK
+  to the end ([bot-architecture](bot-architecture.md) §The retreat reads the front).
 
 Control: one army size changed per pair; axis **commitment**. Writing them found:
 

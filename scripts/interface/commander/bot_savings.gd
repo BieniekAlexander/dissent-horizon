@@ -48,6 +48,12 @@ func goal() -> StringName:
 	return best["type"] if not best.is_empty() else &""
 
 
+## The winning proposal itself, {"type", "value", "cost", "demanded"}, or {} with none: what
+## the goal rung records when it buys the goal (BotEconomy._goal_rung).
+func goal_proposal() -> Dictionary:
+	return _best().duplicate()
+
+
 ## How much of the bank `a_type` must leave untouched: the goal's price, unless `a_type` IS the
 ## goal or the claim is lifted.
 func claim_against(a_type: StringName) -> int:
