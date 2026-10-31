@@ -72,7 +72,7 @@ distinguishable causes.
 
 | ID | Pathology | Heuristic (over T unless stated) | Proposed trigger | Attribution read | Class | Data |
 |---|---|---|---|---|---|---|
-| U1 | **Unused strength**: a strong army stays home. Size is not the fault (Alex, 2026-10-30): a big army is wanted, and the fault is a big army that is not used | `idle_strength = max(0, V_home − k·V_enemy_combat)`, where V_home is own combat value within R_home of own structures, and V_enemy_combat is the enemy's true mobile combat value **plus** static defence value | true ratio `V_own/V_enemy ≥ 1.5`, no own combat unit in the enemy half, for ≥ 90 s; severity = ∫ idle_strength dt | B: the bot's `attack_ratio` vs the true ratio; D: posture, objective, `_wave_active`, sweep | SKILL; a DEFECT while no base threat is believed and the army is neither attacking nor sweeping (see U3) | N: positions |
+| U1 | **Unused strength**: a strong army stays home. Size is not the fault (Alex, 2026-10-30): a big army is wanted, and the fault is a big army that is not used | `idle_strength = max(0, V_home − k·V_enemy_combat)`, where V_home is own combat value within R_home of own structures, and V_enemy_combat is the enemy's true mobile combat value **plus** static defence value | DEFERRED (§Rulings, 2026-10-31): placeholder ratio 1.5, 90 s, nothing in the enemy half; not tuned until perception is fixed; severity = ∫ idle_strength dt | B: the bot's `attack_ratio` vs the true ratio; D: posture, objective, `_wave_active`, sweep | SKILL; a DEFECT while no base threat is believed and the army is neither attacking nor sweeping (see U3) | N: positions |
 | U2 | **Committed wave with nowhere to go** (the bug in §Defects) | `_wave_active ∧ posture ≠ ATTACK` | > 5 s | D only; it is a state the code should never hold | DEFECT | D: `wave_active` is in `sample_detail` only. Promote it. |
 | U3 | **Objective starvation**: ahead and ready, but no believed target passes the filter, and the army neither attacks nor searches. Ruled (Alex, 2026-10-30): with no known target and no believed reason to defend, the army scouts until it finds one | `ratio ≥ required` with no filtered objective and no sweep point held (note: the sampled `has_attack_objective` means "anything is believed", *before* the filter, so it cannot be used here; read `attack_objective`); split by which filter rejected each believed structure (`can_damage`, `abandoned`, `reachable`, disproved) | > 30 s | B: does the TRUE enemy have structures the army can damage and reach? If none is believed, the army should be sweeping; if one is believed and filtered, the filter | DEFECT | D: per-structure verdicts exist under `sample_detail`; the sweep point is in `debug_state` |
 | U4 | **Strength misread**: belief keeps the ratio gate shut (or open) wrongly | `err = believed_enemy_value / true_enemy_value`; ghost share = value of beliefs whose unit is dead or out of play | `err ≥ 1.5` while the gate is shut, or `err ≤ 0.5` while a wave launches into a lost fight (see U5) | B vs T directly | SKILL; a ghost share that never decays is a DEFECT | N: true per-type values per commander |
@@ -193,11 +193,13 @@ relaxation (about 6 s). Above about 1.18 the parameter has no effect
   (the M3 TODO in [bot-standards](bot-standards.md)). Applies to units and to defence
   structures alike.
 - **Research vs the savings claim** stays noted and unprioritised (P10).
+- **Perception first, no attack threshold yet** (2026-10-31). The bot's poor picture of the
+  enemy looks like the biggest problem, so the belief detectors come first: U3 (no target,
+  not searching), U4 (strength misread, ghost share) and X2 (belief convergence). U1 keeps
+  its placeholder trigger and is not tuned. If the bot still holds back once its picture of
+  the game is good, a "should have attacked" threshold is revisited then.
 
 ## Open questions
-
-> **TODO: what "should have attacked" means.** U1's trigger (ratio 1.5, 90 s, nothing in
-> the enemy half) is still a placeholder to fit against the corpus.
 
 > **TODO: scope.** The ladder plays Colonial mirrors. Should the detectors be validated on
 > Anarchical too before they're trusted?
